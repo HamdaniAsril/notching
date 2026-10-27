@@ -1,7 +1,8 @@
-import { beforeEach } from 'vitest';
+import { beforeEach, vi } from 'vitest';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { NotchController, PLACEHOLDER_CARD } from './controller';
 import type { NotchSize } from './shape';
+import type { ViewDeps } from './view';
 
 interface PendingTimer { at: number; fn: () => void }
 
@@ -46,4 +47,28 @@ export function frames(c: NotchController, n: number): void {
 export function runUntilNear(c: NotchController): void {
   for (let i = 0; i < 600 && !c.contentVisible; i++) c.frame(1 / 60);
   if (!c.contentVisible) throw new Error('panel never got near its open size');
+}
+
+// Fake requestAnimationFrame: frames run only when a test asks for them.
+export function fakeRaf() {
+  let queue = new Map<number, (now: number) => void>();
+  let nextId = 1;
+  let now = 0;
+  return {
+    raf: (cb: (now: number) => void): number => { queue.set(nextId, cb); return nextId++; },
+    caf: (id: number): void => { queue.delete(id); },
+    runAll(maxFrames: number): void {
+      for (let i = 0; i < maxFrames && queue.size > 0; i++) {
+        const due = [...queue.values()];
+        queue = new Map();
+        now += 1000 / 60;
+        for (const cb of due) cb(now);
+      }
+    },
+    pending: (): number => queue.size,
+  };
+}
+
+export function deps(r: ReturnType<typeof fakeRaf>): ViewDeps {
+  return { raf: r.raf, caf: r.caf, onHitRects: vi.fn(), onPhase: vi.fn(), onQuit: vi.fn() };
 }
