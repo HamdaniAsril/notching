@@ -1,31 +1,18 @@
-import { browserBridge, tauriBridge } from './bridge';
-import { DEFAULT_CONFIG } from './notch/config';
-import { connect } from './notch/connect';
-import { NotchController } from './notch/controller';
-import { mountNotch } from './notch/view';
+import { startApp } from './app';
+import { tauriBridge } from './bridge';
+import { browserBridge } from './bridge-browser';
 
 async function start(): Promise<void> {
   const root = document.getElementById('notch-root')!;
   const bridge = '__TAURI_INTERNALS__' in window ? tauriBridge() : browserBridge(root);
-  const info = await bridge.screenInfo();
-
-  const c = new NotchController({
-    notch: info.hasNotch ? { width: info.notchWidth, height: info.notchHeight } : null,
-    config: DEFAULT_CONFIG,
-    card: { width: 400, height: 90 },
+  await startApp(root, bridge, {
+    raf: cb => requestAnimationFrame(cb),
+    caf: id => cancelAnimationFrame(id),
     setTimer: (fn, ms) => {
       const id = setTimeout(fn, ms);
       return () => clearTimeout(id);
     },
   });
-  const h = connect(c, bridge, () => view.kick());
-  const view = mountNotch(root, c, {
-    raf: cb => requestAnimationFrame(cb),
-    caf: id => cancelAnimationFrame(id),
-    ...h,
-    onSelect: () => {},
-  });
-  view.kick();
 }
 
 void start();

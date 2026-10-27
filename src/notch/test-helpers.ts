@@ -1,5 +1,6 @@
 import { beforeEach, vi } from 'vitest';
 import type { Bridge, PointerUpdate } from '../bridge';
+import type { ModuleInfo, ModuleState } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
 import type { NotchSize } from './shape';
@@ -77,10 +78,31 @@ export function deps(r: ReturnType<typeof fakeRaf>): ViewDeps {
   return { raf: r.raf, caf: r.caf, onHitRects: vi.fn(), onPhase: vi.fn(), onQuit: vi.fn(), onSelect: vi.fn() };
 }
 
+const MODULE_CARDS: Record<string, { width: number; height: number }> = {
+  home: { width: 540, height: 72 },
+  'system-stat': { width: 480, height: 80 },
+};
+
+// A module that is installed and on, with the real modules' card sizes.
+export function moduleInfo(id: string, over: Partial<ModuleInfo> = {}): ModuleInfo {
+  return {
+    id, name: id, description: '', version: '1.0.0', entry: 'index.html', icon: 'icon.svg',
+    card: MODULE_CARDS[id] ?? { width: 400, height: 90 }, installed: true, enabled: true, ...over,
+  };
+}
+
+export const TEST_STATE: ModuleState = {
+  lang: 'id',
+  modules: [moduleInfo('home'), moduleInfo('system-stat')],
+  lastCard: null,
+};
+
 // Bridge whose methods are mocks; emit* plays the native side's events.
-export function fakeBridge() {
+export function fakeBridge(initial: ModuleState = TEST_STATE) {
   const pointer = new Set<(p: PointerUpdate) => void>();
   const resign = new Set<() => void>();
+  const moduleSubs = new Set<(s: ModuleState) => void>();
+  let state = initial;
   const bridge = {
     screenInfo: vi.fn(async () => ({ label: 'test', hasNotch: false, notchWidth: 0, notchHeight: 0 })),
     setHitRects: vi.fn(async () => {}),
@@ -88,8 +110,15 @@ export function fakeBridge() {
     onPointer: vi.fn((cb: (p: PointerUpdate) => void) => { pointer.add(cb); return () => { pointer.delete(cb); }; }),
     onResignKey: vi.fn((cb: () => void) => { resign.add(cb); return () => { resign.delete(cb); }; }),
     quit: vi.fn(async () => {}),
+    moduleState: vi.fn(async () => state),
+    onModuleState: vi.fn((cb: (s: ModuleState) => void) => { moduleSubs.add(cb); return () => { moduleSubs.delete(cb); }; }),
+    setLastCard: vi.fn(async (_id: string) => {}),
+    moduleCall: vi.fn(async (_m: string, _c: string, _method: string, _args?: unknown): Promise<unknown> => ({})),
+    moduleUrl: (id: string, file: string) => `mod://${id}/${file}`,
+    moduleSandbox: 'allow-scripts',
     emitPointer: (p: PointerUpdate) => pointer.forEach(cb => cb(p)),
     emitResignKey: () => resign.forEach(cb => cb()),
+    emitModuleState: (s: ModuleState) => { state = s; moduleSubs.forEach(cb => cb(s)); },
   };
   return bridge satisfies Bridge;
 }

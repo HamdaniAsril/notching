@@ -1,7 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { UnlistenFn } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { containsPoint, type Rect } from './notch/hit';
+import type { ModuleState } from './modules/types';
+import type { Rect } from './notch/hit';
 
 export interface ScreenInfo {
   label: string;
@@ -25,49 +26,12 @@ export interface Bridge {
   onPointer(cb: (p: PointerUpdate) => void): () => void;
   onResignKey(cb: () => void): () => void;
   quit(): Promise<void>;
-}
-
-// Stand-in for the native side in a normal browser (`npm run dev`).
-// `?notch=1` fakes a 164 × 32 notch. A click outside the hit rects plays the
-// part of the panel losing key status.
-export function browserBridge(root: HTMLElement): Bridge {
-  const doc = root.ownerDocument;
-  const hasNotch = new URLSearchParams(doc.defaultView?.location.search ?? '').get('notch') === '1';
-  let rects: Rect[] = [];
-  let inside = false;
-  const pointerSubs = new Set<(p: PointerUpdate) => void>();
-  const resignSubs = new Set<() => void>();
-
-  const local = (e: MouseEvent) => {
-    const box = root.getBoundingClientRect();
-    return { x: e.clientX - box.left, y: e.clientY - box.top };
-  };
-
-  doc.addEventListener('mousemove', e => {
-    const { x, y } = local(e);
-    const now = containsPoint(rects, x, y);
-    if (!now && !inside) return;
-    inside = now;
-    pointerSubs.forEach(cb => cb({ inside: now, x, y }));
-  });
-  doc.documentElement.addEventListener('mouseleave', () => {
-    if (!inside) return;
-    inside = false;
-    pointerSubs.forEach(cb => cb({ inside: false, x: 0, y: 0 }));
-  });
-  doc.addEventListener('click', e => {
-    const { x, y } = local(e);
-    if (!containsPoint(rects, x, y)) resignSubs.forEach(cb => cb());
-  });
-
-  return {
-    screenInfo: async () => ({ label: 'browser', hasNotch, notchWidth: hasNotch ? 164 : 0, notchHeight: hasNotch ? 32 : 0 }),
-    setHitRects: async r => { rects = r; },
-    setPanelKey: async key => console.info('setPanelKey', key),
-    onPointer: cb => { pointerSubs.add(cb); return () => pointerSubs.delete(cb); },
-    onResignKey: cb => { resignSubs.add(cb); return () => resignSubs.delete(cb); },
-    quit: async () => console.info('quit'),
-  };
+  moduleState(): Promise<ModuleState>;
+  onModuleState(cb: (s: ModuleState) => void): () => void;
+  setLastCard(id: string): Promise<void>;
+  moduleCall(moduleId: string, capability: string, method: string, args?: unknown): Promise<unknown>;
+  moduleUrl(id: string, file: string): string;
+  readonly moduleSandbox: string;
 }
 
 // Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
@@ -94,5 +58,13 @@ export function tauriBridge(): Bridge {
     onPointer: cb => syncUnlisten(win.listen<PointerUpdate>('notch://pointer', e => cb(e.payload))),
     onResignKey: cb => syncUnlisten(win.listen('notch://resign-key', () => cb())),
     quit: () => invoke('quit_app'),
+    moduleState: () => invoke<ModuleState>('get_module_state'),
+    // Broadcast to every window, so app-wide.
+    onModuleState: cb => syncUnlisten(listen<ModuleState>('notching://module-state', e => cb(e.payload))),
+    setLastCard: id => invoke('set_last_card', { id }),
+    moduleCall: (moduleId, capability, method, args) => invoke('module_call', { moduleId, capability, method, args }),
+    // macOS form of a custom protocol URL; Windows will need http://notchmod.localhost/.
+    moduleUrl: (id, file) => `notchmod://localhost/${id}/${file}`,
+    moduleSandbox: 'allow-scripts',
   };
 }

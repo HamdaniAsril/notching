@@ -1,0 +1,118 @@
+import type { Bridge } from './bridge';
+import { hostStrings } from './i18n';
+import { activeModules, EMPTY_CARD, pickCard } from './modules/cards';
+import { mountFrameHost } from './modules/frame';
+import type { ModuleInfo, ModuleState } from './modules/types';
+import { DEFAULT_CONFIG } from './notch/config';
+import { connect } from './notch/connect';
+import { NotchController, type Phase } from './notch/controller';
+import { mountNotch, type NotchView } from './notch/view';
+
+export interface AppEnv {
+  raf: (cb: (now: number) => void) => number;
+  caf: (id: number) => void;
+  setTimer: (fn: () => void, ms: number) => () => void;
+}
+
+export interface App {
+  readonly controller: NotchController;
+  readonly view: NotchView;
+  destroy(): void;
+}
+
+// One notch overlay: the controller and view from plan 1, filled with module cards.
+export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): Promise<App> {
+  const doc = root.ownerDocument;
+  const [info, initial] = await Promise.all([bridge.screenInfo(), bridge.moduleState()]);
+  let state: ModuleState = initial;
+  let strings = hostStrings(state.lang);
+  let card: ModuleInfo | null = pickCard(state, null, false);
+  let lastPhase: Phase = 'idle';
+  doc.documentElement.lang = state.lang;
+
+  const controller = new NotchController({
+    notch: info.hasNotch ? { width: info.notchWidth, height: info.notchHeight } : null,
+    config: DEFAULT_CONFIG,
+    card: card?.card ?? EMPTY_CARD,
+    setTimer: env.setTimer,
+  });
+  const wiring = connect(controller, bridge, () => view.kick());
+  const view = mountNotch(root, controller, {
+    raf: env.raf,
+    caf: env.caf,
+    onHitRects: wiring.onHitRects,
+    onQuit: wiring.onQuit,
+    onPhase,
+    onSelect,
+  });
+  const frames = mountFrameHost(view.content, {
+    bridge,
+    setTimer: env.setTimer,
+    onKey: key => {
+      if (key === 'Quit') {
+        wiring.onQuit();
+        return;
+      }
+      controller.escape();
+      view.kick();
+    },
+  });
+
+  // The module frame lives only while the panel is up.
+  function onPhase(phase: Phase): void {
+    wiring.onPhase(phase);
+    if (phase === 'open') frames.show(card, state.lang, strings);
+    else if (lastPhase === 'closing' && (phase === 'idle' || phase === 'hover')) frames.clear();
+    lastPhase = phase;
+  }
+
+  function renderPill(): void {
+    const items = activeModules(state).map(m => ({ id: m.id, label: m.name, icon: bridge.moduleUrl(m.id, m.icon) }));
+    view.setPill(items, card?.id ?? null, strings.settings);
+  }
+
+  function useCard(next: ModuleInfo | null): void {
+    card = next;
+    controller.setCard(next?.card ?? EMPTY_CARD);
+  }
+
+  function onSelect(id: string): void {
+    if (id === card?.id) return;
+    const next = activeModules(state).find(m => m.id === id);
+    if (!next) return;
+    useCard(next);
+    if (controller.phase === 'open') frames.show(card, state.lang, strings);
+    renderPill();
+    void bridge.setLastCard(id);
+    view.kick();
+  }
+
+  const offState = bridge.onModuleState(next => {
+    const langChanged = next.lang !== state.lang;
+    state = next;
+    strings = hostStrings(next.lang);
+    doc.documentElement.lang = next.lang;
+    const open = controller.phase === 'open';
+    const picked = pickCard(next, card?.id ?? null, open);
+    const changed = picked?.id !== card?.id
+      || picked?.card.width !== card?.card.width || picked?.card.height !== card?.card.height;
+    if (changed) useCard(picked);
+    if (open && (changed || langChanged)) frames.show(card, state.lang, strings);
+    renderPill();
+    view.kick();
+  });
+
+  renderPill();
+  view.kick();
+
+  return {
+    controller,
+    view,
+    destroy(): void {
+      offState();
+      frames.destroy();
+      view.destroy();
+      wiring.dispose();
+    },
+  };
+}
