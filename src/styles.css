@@ -50,25 +50,6 @@ body {
   pointer-events: auto;
 }
 
-.notch-content .card {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 12px 14px;
-  height: 66px;
-  box-sizing: content-box;
-}
-
-.notch-content .m {
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 11px;
-}
-
-.notch-content .big {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 3px 0 2px;
-}
-
 /* Navigation pill: look from beranda-nothing.html, entrance from full-flow-v3.html. */
 .notch-pill {
   position: absolute;
@@ -117,6 +98,21 @@ body {
 }
 
 .notch-pill .on svg {
+  opacity: 1;
+}
+
+/* Module icons: the module's own SVG, drawn as a mask in the text colour. */
+.notch-pill .glyph {
+  display: block;
+  width: 15px;
+  height: 15px;
+  background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+  opacity: 0.4;
+}
+
+.notch-pill .on .glyph {
   opacity: 1;
 }
 

@@ -12,11 +12,22 @@ export const OVERLAY_SIZE = { w: 640, h: 360 } as const;
 
 const CX = OVERLAY_SIZE.w / 2;
 
+// Half-open edges: x ∈ [r.x, r.x + r.w).
+export function containsPoint(rects: Rect[], x: number, y: number): boolean {
+  return rects.some(r => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+}
+
 // Areas that must catch the mouse; everything else in the overlay is click-through.
 // `pill` is the pill's rect while it is visible, or null.
 export function hitRects(c: NotchController, pill: Rect | null): Rect[] {
   if (c.phase === 'open') {
-    const { w, h } = c.panelSize();
+    // The larger of the target and the live size, so a panel shrinking to a
+    // smaller card still catches clicks; down to the pill, so the gap between
+    // them does too.
+    const size = c.panelSize();
+    const { pw, ph } = c.motion.springs;
+    const w = Math.max(size.w, pw.x);
+    const h = Math.max(size.h, ph.x, pill ? pill.y : 0);
     const panel = { x: CX - w / 2 - 12, y: 0, w: w + 24, h };
     return pill ? [panel, pill] : [panel];
   }

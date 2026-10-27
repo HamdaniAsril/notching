@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import type { Rect } from './notch/hit';
+import { containsPoint, type Rect } from './notch/hit';
 
 export interface ScreenInfo {
   label: string;
@@ -27,9 +27,6 @@ export interface Bridge {
   quit(): Promise<void>;
 }
 
-const contains = (rects: Rect[], x: number, y: number) =>
-  rects.some(r => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
-
 // Stand-in for the native side in a normal browser (`npm run dev`).
 // `?notch=1` fakes a 164 × 32 notch. A click outside the hit rects plays the
 // part of the panel losing key status.
@@ -48,7 +45,7 @@ export function browserBridge(root: HTMLElement): Bridge {
 
   doc.addEventListener('mousemove', e => {
     const { x, y } = local(e);
-    const now = contains(rects, x, y);
+    const now = containsPoint(rects, x, y);
     if (!now && !inside) return;
     inside = now;
     pointerSubs.forEach(cb => cb({ inside: now, x, y }));
@@ -60,7 +57,7 @@ export function browserBridge(root: HTMLElement): Bridge {
   });
   doc.addEventListener('click', e => {
     const { x, y } = local(e);
-    if (!contains(rects, x, y)) resignSubs.forEach(cb => cb());
+    if (!containsPoint(rects, x, y)) resignSubs.forEach(cb => cb());
   });
 
   return {

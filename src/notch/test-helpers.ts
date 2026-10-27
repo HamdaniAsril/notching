@@ -1,9 +1,12 @@
 import { beforeEach, vi } from 'vitest';
 import type { Bridge, PointerUpdate } from '../bridge';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
-import { NotchController, PLACEHOLDER_CARD } from './controller';
+import { type CardSize, NotchController } from './controller';
 import type { NotchSize } from './shape';
 import type { ViewDeps } from './view';
+
+// The old placeholder card's size, so plan 1's numbers still hold.
+export const TEST_CARD: CardSize = { width: 400, height: 90 };
 
 interface PendingTimer { at: number; fn: () => void }
 
@@ -36,7 +39,7 @@ export function ctl(notch: NotchSize | null, override: Partial<NotchConfig> = {}
   return new NotchController({
     notch,
     config: { ...DEFAULT_CONFIG, ...override },
-    card: PLACEHOLDER_CARD,
+    card: TEST_CARD,
     setTimer: timers.setTimer,
   });
 }
@@ -71,7 +74,7 @@ export function fakeRaf() {
 }
 
 export function deps(r: ReturnType<typeof fakeRaf>): ViewDeps {
-  return { raf: r.raf, caf: r.caf, onHitRects: vi.fn(), onPhase: vi.fn(), onQuit: vi.fn() };
+  return { raf: r.raf, caf: r.caf, onHitRects: vi.fn(), onPhase: vi.fn(), onQuit: vi.fn(), onSelect: vi.fn() };
 }
 
 // Bridge whose methods are mocks; emit* plays the native side's events.

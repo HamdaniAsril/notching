@@ -87,3 +87,33 @@ test('reopening while closing keeps the current panel size', () => {
   c.click();
   expect(c.motion.springs.pw.x).toBe(width);
 });
+
+test('switching cards while open moves the panel to the new size', () => {
+  const c = ctl(null);
+  c.click();
+  runUntilNear(c);
+  timers.advance(1000);
+  c.setCard({ width: 500, height: 100 });
+  expect(c.panelSize()).toEqual({ w: 500, h: 134 });
+  frames(c, 240);
+  expect(c.motion.springs.pw.x).toBeCloseTo(500, 0);
+  expect(c.pillVisible).toBe(true);
+});
+
+test('content hides while the panel resizes and returns when near', () => {
+  const c = ctl(null);
+  c.click();
+  runUntilNear(c);
+  c.setCard({ width: 540, height: 72 });
+  frames(c, 1);
+  expect(c.contentVisible).toBe(false);
+  runUntilNear(c);
+  expect(c.contentVisible).toBe(true);
+});
+
+test('setCard while idle changes nothing visible', () => {
+  const c = ctl(null);
+  c.setCard({ width: 540, height: 72 });
+  expect(c.targets()).toEqual({ W: 42, H: 4, s: 0, bx: 0, pw: 0, ph: 0 });
+  expect(c.card).toEqual({ width: 540, height: 72 });
+});

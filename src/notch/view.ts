@@ -1,5 +1,5 @@
 import type { NotchController, Phase } from './controller';
-import { OVERLAY_SIZE, type Rect, hitRects } from './hit';
+import { containsPoint, OVERLAY_SIZE, type Rect, hitRects } from './hit';
 import { lensPath, notchPath, panelPath } from './shape';
 
 export interface ViewDeps {
@@ -8,6 +8,21 @@ export interface ViewDeps {
   onHitRects: (rects: Rect[]) => void; // only when the rects change (rounded to 1 px)
   onPhase: (p: Phase) => void; // only when the phase changes
   onQuit: () => void; // Cmd+Q while the panel is open
+  onSelect: (id: string) => void; // a module icon in the pill was clicked
+}
+
+// One module icon in the pill; `icon` is the URL of its SVG, drawn as a mask.
+export interface PillItem {
+  id: string;
+  label: string;
+  icon: string;
+}
+
+export interface NotchView {
+  kick(): void;
+  destroy(): void;
+  readonly content: HTMLElement; // holds the card
+  setPill(items: PillItem[], active: string | null, moreLabel: string): void;
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -15,16 +30,12 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 // Line icons from beranda-nothing.html.
 const ICON = (d: string) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-const PILL_ICONS = [
-  { key: 'home', d: '<path d="M4 11l8-6.5 8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/>' },
-  { key: 'more', d: '<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>' },
-];
+const MORE_ICON = ICON('<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>');
 
-export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps): { kick(): void; destroy(): void } {
+export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps): NotchView {
   const doc = root.ownerDocument;
   const { w: OW, h: OH } = OVERLAY_SIZE;
   const notch = c.notch;
-  const panelSize = c.panelSize();
 
   const svg = doc.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('class', 'notch-svg');
@@ -37,17 +48,14 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   if (notch) svg.append(panel, liquid);
   else svg.append(liquid, panel);
 
+  // Styles are set through CSSOM only, never as style="" markup, so the page's CSP
+  // needs no inline styles.
   const content = doc.createElement('div');
   content.className = 'notch-content';
-  content.style.width = `${panelSize.w}px`;
   content.style.paddingTop = `${notch ? notch.height + 10 : 18}px`;
-  content.innerHTML = '<div class="card"><div class="big">Notching</div><div class="m">Kartu Beranda menyusul.</div></div>';
 
   const pill = doc.createElement('div');
   pill.className = 'notch-pill';
-  pill.style.top = `${panelSize.h + 10}px`;
-  pill.innerHTML = PILL_ICONS.map(({ key, d }, i) =>
-    `<span class="ic${key === 'home' ? ' on' : ''}" style="animation-delay:${0.06 + i * 0.045}s">${ICON(d)}</span>`).join('');
 
   root.append(svg, content, pill);
 
@@ -62,13 +70,49 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     return { x: pill.offsetLeft - pill.offsetWidth / 2, y: pill.offsetTop, w: pill.offsetWidth, h: pill.offsetHeight };
   }
 
+  // Writes a style only when it changes.
+  function setStyle(el: HTMLElement, prop: 'width' | 'top', value: string): void {
+    if (el.style[prop] !== value) el.style[prop] = value;
+  }
+
   function draw(): void {
     const s = c.motion.springs;
     const m = { W: s.W.x, H: s.H.x, s: s.s.x, bx: s.bx.x };
     liquid.setAttribute('d', notch ? notchPath(notch, m) : lensPath(m));
     panel.setAttribute('d', c.panelVisible ? panelPath(s.pw.x, s.ph.x) : '');
+    setStyle(content, 'width', `${c.panelSize().w}px`);
+    // The pill rides the panel's live height, so it follows a card change.
+    if (c.panelVisible) setStyle(pill, 'top', `${Math.round(s.ph.x) + 10}px`);
     content.classList.toggle('show', c.contentVisible);
     pill.classList.toggle('show', c.pillVisible);
+  }
+
+  function setPill(items: PillItem[], active: string | null, moreLabel: string): void {
+    const icons = items.map(item => {
+      const ic = doc.createElement('span');
+      ic.className = item.id === active ? 'ic on' : 'ic';
+      ic.dataset.id = item.id;
+      ic.setAttribute('role', 'button');
+      ic.setAttribute('aria-label', item.label);
+      const glyph = doc.createElement('i');
+      glyph.className = 'glyph';
+      glyph.style.setProperty('--icon', `url("${item.icon}")`);
+      ic.append(glyph);
+      return ic;
+    });
+    const more = doc.createElement('span');
+    more.className = 'ic';
+    more.setAttribute('role', 'button');
+    more.setAttribute('aria-label', moreLabel);
+    more.innerHTML = MORE_ICON;
+    icons.push(more);
+    icons.forEach((ic, i) => { ic.style.animationDelay = `${0.06 + i * 0.045}s`; });
+    pill.replaceChildren(...icons);
+  }
+
+  function onPillClick(e: MouseEvent): void {
+    const ic = (e.target as Element | null)?.closest<HTMLElement>('.ic[data-id]');
+    if (ic?.dataset.id) deps.onSelect(ic.dataset.id);
   }
 
   function report(): void {
@@ -104,14 +148,10 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     if (rafId === null) rafId = deps.raf(tick);
   }
 
-  function inside(rects: Rect[], x: number, y: number): boolean {
-    return rects.some(r => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
-  }
-
   function onClick(e: MouseEvent): void {
     if (c.phase === 'open') return;
     const box = root.getBoundingClientRect();
-    if (inside(hitRects(c, null), e.clientX - box.left, e.clientY - box.top)) {
+    if (containsPoint(hitRects(c, null), e.clientX - box.left, e.clientY - box.top)) {
       c.click();
       kick();
     }
@@ -129,10 +169,13 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
 
   doc.addEventListener('click', onClick);
   doc.addEventListener('keydown', onKey);
+  pill.addEventListener('click', onPillClick);
   draw();
 
   return {
     kick,
+    content,
+    setPill,
     destroy(): void {
       if (rafId !== null) deps.caf(rafId);
       rafId = null;

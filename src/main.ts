@@ -1,7 +1,7 @@
 import { browserBridge, tauriBridge } from './bridge';
 import { DEFAULT_CONFIG } from './notch/config';
 import { connect } from './notch/connect';
-import { NotchController, PLACEHOLDER_CARD } from './notch/controller';
+import { NotchController } from './notch/controller';
 import { mountNotch } from './notch/view';
 
 async function start(): Promise<void> {
@@ -12,7 +12,7 @@ async function start(): Promise<void> {
   const c = new NotchController({
     notch: info.hasNotch ? { width: info.notchWidth, height: info.notchHeight } : null,
     config: DEFAULT_CONFIG,
-    card: PLACEHOLDER_CARD,
+    card: { width: 400, height: 90 },
     setTimer: (fn, ms) => {
       const id = setTimeout(fn, ms);
       return () => clearTimeout(id);
@@ -23,6 +23,7 @@ async function start(): Promise<void> {
     raf: cb => requestAnimationFrame(cb),
     caf: id => cancelAnimationFrame(id),
     ...h,
+    onSelect: () => {},
   });
   view.kick();
 }

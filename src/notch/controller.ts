@@ -9,8 +9,6 @@ export interface CardSize {
   height: number;
 }
 
-export const PLACEHOLDER_CARD: CardSize = { width: 400, height: 90 };
-
 export interface ControllerDeps {
   notch: NotchSize | null;
   config: NotchConfig;
@@ -33,10 +31,12 @@ export class NotchController {
   private _contentVisible = false;
   private _pillVisible = false;
   private cancelPill: (() => void) | null = null;
+  private _card: CardSize;
 
   constructor(deps: ControllerDeps) {
     this.deps = deps;
-    this.motion = new NotchMotion(this.targets());
+    this._card = deps.card;
+    this.motion = new NotchMotion(this.targetsAt(0));
   }
 
   get phase(): Phase { return this._phase; }
@@ -45,6 +45,12 @@ export class NotchController {
   get panelVisible(): boolean { return this._panelVisible; }
   get notch(): NotchSize | null { return this.deps.notch; }
   get config(): NotchConfig { return this.deps.config; }
+  get card(): CardSize { return this._card; }
+
+  // An open panel springs to the new size; the caller kicks the frame loop.
+  setCard(card: CardSize): void {
+    this._card = card;
+  }
 
   pointer(inside: boolean, cursorX: number): void {
     this.hover = inside;
@@ -109,9 +115,13 @@ export class NotchController {
   }
 
   targets(): Targets {
+    return this.targetsAt(this.motion.t);
+  }
+
+  private targetsAt(t: number): Targets {
     const { notch, config } = this.deps;
     const d = config.dropDepth;
-    const breathe = 1 + 0.035 * Math.sin(this.motion ? this.motion.t * 2.2 : 0);
+    const breathe = 1 + 0.035 * Math.sin(t * 2.2);
     const bias = (limit: number) => Math.max(-limit, Math.min(limit, this.cursorX * 0.08));
     const open = this._phase === 'open';
 
@@ -136,9 +146,9 @@ export class NotchController {
   }
 
   panelSize(): { w: number; h: number } {
-    const { notch, card } = this.deps;
+    const notch = this.deps.notch;
     const top = notch ? notch.height + 10 : 18;
-    return { w: card.width, h: top + card.height + 16 };
+    return { w: this._card.width, h: top + this._card.height + 16 };
   }
 
   // The frame loop may stop only when nothing moves: idle at rest, or open at rest
