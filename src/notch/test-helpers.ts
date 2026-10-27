@@ -1,0 +1,49 @@
+import { beforeEach } from 'vitest';
+import { DEFAULT_CONFIG, type NotchConfig } from './config';
+import { NotchController, PLACEHOLDER_CARD } from './controller';
+import type { NotchSize } from './shape';
+
+interface PendingTimer { at: number; fn: () => void }
+
+// Fake setTimer: callbacks run only when a test advances the clock.
+export const timers = {
+  now: 0,
+  pending: [] as PendingTimer[],
+  setTimer: (fn: () => void, ms: number): (() => void) => {
+    const entry = { at: timers.now + ms, fn };
+    timers.pending.push(entry);
+    return () => { timers.pending = timers.pending.filter(t => t !== entry); };
+  },
+  advance(ms: number): void {
+    const end = timers.now + ms;
+    for (;;) {
+      const due = timers.pending.filter(t => t.at <= end).sort((a, b) => a.at - b.at)[0];
+      if (!due) break;
+      timers.pending = timers.pending.filter(t => t !== due);
+      timers.now = due.at;
+      due.fn();
+    }
+    timers.now = end;
+  },
+  reset(): void { timers.now = 0; timers.pending = []; },
+};
+
+beforeEach(() => timers.reset());
+
+export function ctl(notch: NotchSize | null, override: Partial<NotchConfig> = {}): NotchController {
+  return new NotchController({
+    notch,
+    config: { ...DEFAULT_CONFIG, ...override },
+    card: PLACEHOLDER_CARD,
+    setTimer: timers.setTimer,
+  });
+}
+
+export function frames(c: NotchController, n: number): void {
+  for (let i = 0; i < n; i++) c.frame(1 / 60);
+}
+
+export function runUntilNear(c: NotchController): void {
+  for (let i = 0; i < 600 && !c.contentVisible; i++) c.frame(1 / 60);
+  if (!c.contentVisible) throw new Error('panel never got near its open size');
+}
