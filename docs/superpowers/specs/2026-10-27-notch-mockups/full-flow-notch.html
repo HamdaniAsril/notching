@@ -1,0 +1,258 @@
+<style>
+  :root { color-scheme: light;
+          --bg-primary:#f5f5f7 !important; --bg-secondary:#ffffff !important; --bg-tertiary:#e5e5e7 !important;
+          --text-primary:#1d1d1f !important; --text-secondary:#6e6e73 !important; --text-tertiary:#aeaeb2 !important; }
+  .scene { position:relative; width:720px; height:420px; transform-origin: top left; }
+  .stage { position:relative; height:420px; border-radius:14px; overflow:hidden; user-select:none; transition: background .3s;
+           background: radial-gradient(120% 90% at 20% 10%, #ffffff 0%, #eef2f8 45%, #d9e2ef 100%); border:10px solid #111; border-bottom:none; }
+  .stage.dark { background: radial-gradient(120% 90% at 20% 10%, #3b5b8c 0%, #1d2c4a 45%, #0f1626 100%); }
+  .menubar { position:absolute; top:0; left:0; right:0; height:32px; display:flex; align-items:center; justify-content:space-between;
+             padding:0 14px; font:500 13px -apple-system, sans-serif; color:#111; background:rgba(255,255,255,.55); backdrop-filter: blur(10px); }
+  .stage.dark .menubar { color:#fff; background:rgba(30,40,60,.45); }
+  .menubar .l, .menubar .r { display:flex; gap:16px; align-items:center; }
+  .menubar .l b { font-weight:700; }
+  .hint { position:absolute; bottom:16px; width:100%; text-align:center; font-size:12px; color:rgba(0,0,0,.45); pointer-events:none; transition: opacity .2s; }
+  .stage.dark .hint { color:rgba(255,255,255,.5); }
+
+  #liquid { position:absolute; top:0; left:50%; transform:translateX(-50%); pointer-events:none; }
+  #hit { position:absolute; top:0; left:50%; transform:translateX(-50%); width:230px; height:44px; cursor:pointer; }
+
+  #content { position:absolute; top:0; left:50%; transform:translateX(-50%); width:400px; padding:0 18px 16px; box-sizing:border-box;
+             color:#fff; font-family:-apple-system,"Segoe UI",sans-serif; font-size:13px; opacity:0; transition: opacity .16s; pointer-events:none; }
+  #content.show { opacity:1; pointer-events:auto; }
+  .card { background:rgba(255,255,255,.08); border-radius:14px; padding:12px 14px; height:66px; box-sizing:content-box; }
+  .card .inner { transition: opacity .14s, transform .14s; }
+  .card .inner.swap { opacity:0; transform: translateY(4px); }
+  .m { color:rgba(255,255,255,.55); font-size:11px; }
+  .big { font-size:17px; font-weight:600; margin:3px 0 2px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .btn { width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; font-size:12px; }
+  .bar2 { height:4px; border-radius:2px; background:rgba(255,255,255,.15); margin-top:8px; overflow:hidden; }
+  .bar2 b { display:block; height:100%; background:#fff; border-radius:2px; }
+  .tag { font-size:10px; padding:2px 7px; border-radius:10px; background:rgba(61,220,132,.2); color:#3ddc84; }
+  .chip { font-size:11px; padding:4px 9px; border-radius:20px; background:rgba(255,255,255,.12); }
+
+  #pill { position:absolute; left:50%; transform:translateX(-50%); display:flex; gap:14px; padding:8px 16px; border-radius:17px;
+          background:#000; color:#fff; opacity:0; pointer-events:none; transition: opacity .12s; }
+  #pill.show { opacity:1; pointer-events:auto; animation: pillIn .5s cubic-bezier(.34,1.5,.5,1) both; }
+  @keyframes pillIn { from { transform: translate(-50%, -14px) scale(.6, .4); } to { transform: translate(-50%, 0) scale(1); } }
+  #pill .ic { width:16px; height:16px; cursor:pointer; opacity:.45; transition: opacity .15s; }
+  #pill .ic:hover { opacity:.75; }
+  #pill .ic.on { opacity:1; }
+  #pill.show .ic { animation: icIn .45s cubic-bezier(.34,1.6,.5,1) both; }
+  @keyframes icIn { from { transform: translateY(-6px); opacity:0; } }
+  #pill svg { width:16px; height:16px; display:block; }
+
+  .modes { display:flex; gap:8px; margin:14px 0 4px; flex-wrap:wrap; }
+  .modes button { padding:8px 12px; border-radius:10px; border:2px solid rgba(0,0,0,.1); background:#fff; cursor:pointer; font-size:13px; text-align:left; }
+  .modes button.on { border-color:#4c8dff; }
+  .modes small { display:block; color:#6e6e73; font-size:11px; margin-top:2px; }
+  .controls { display:flex; flex-wrap:wrap; gap:14px 20px; align-items:center; margin-top:10px; font-size:13px; }
+  .controls label { display:flex; align-items:center; gap:8px; }
+  .controls input[type=range] { width:120px; }
+  .controls .val { min-width:38px; opacity:.7; font-size:12px; }
+  .controls button { padding:6px 12px; border-radius:8px; border:1px solid rgba(0,0,0,.2); background:#fff; cursor:pointer; font-size:12px; }
+</style>
+
+<h2>Di MacBook yang punya notch</h2>
+<p class="subtitle">Notch fisik (tempat kamera) menjadi titik awalnya. Waktu kursor mendekat, tetesan turun dari bawah notch. Waktu diklik, panel mengembang dari notch itu sendiri, dan isinya mulai di bawah kamera supaya tidak tertutup. Ada dua pilihan untuk tampilan waktu diam di bawah ini.</p>
+
+<div class="stage" id="stage"><div class="scene" id="scene">
+  <div class="menubar">
+    <div class="l"><b></b><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span></div>
+    <div class="r"><span>⌁</span><span>◔</span><span>Sen 26 Okt 10:15</span></div>
+  </div>
+  <svg id="liquid" width="600" height="300" viewBox="-300 0 600 300">
+    <path id="panel" fill="#000"/>
+    <path id="notch" fill="#000"/>
+  </svg>
+  <div id="hit"></div>
+  <div id="content"><div class="card"><div class="inner" id="inner"></div></div></div>
+  <div id="pill"></div>
+  <div class="hint" id="hint">↑ dekatkan kursor ke notch, lalu klik</div>
+</div></div>
+
+<div class="modes">
+  <button id="m-hidden" class="on">Diam: tak terlihat<small>Hanya notch fisik, app baru terlihat saat disentuh</small></button>
+  <button id="m-line">Diam: garis tipis<small>Lensa tipis menggantung di bawah notch sebagai tanda</small></button>
+</div>
+
+<div class="controls">
+  <label>Kenyal <input type="range" id="bounce" min="0" max="100" value="100"><span class="val" id="bounceV">100</span></label>
+  <label>Kecepatan <input type="range" id="speed" min="40" max="200" value="200"><span class="val" id="speedV">200</span></label>
+  <label>Jarak tetesan <input type="range" id="depth" min="2" max="28" value="9"><span class="val" id="depthV">9 px</span></label>
+  <label>Tebal notch <input type="range" id="thick" min="2" max="14" step="0.5" value="4"><span class="val" id="thickV">4 px</span></label>
+  <label><input type="checkbox" id="slow"> Gerak lambat</label>
+  <button id="wall">Ganti wallpaper</button>
+</div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const stage = $('stage'), notch = $('notch'), panel = $('panel'), hit = $('hit'), content = $('content'), inner = $('inner'), pill = $('pill'), hint = $('hint');
+
+  const NW = 190, NH = 32, NR = 10;   // ukuran notch fisik (kira-kira MacBook Pro 14")
+  const PW = 400, PH = NH + 10 + 90 + 16;
+  const PILL_DELAY = 320;
+  const ICONS = {
+    cal:   '<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    music: '<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+    agent: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+    timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4"/>',
+    note:  '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    more:  '<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>',
+  };
+  const CARDS = {
+    cal:   '<div class="m">Berikutnya · 15 menit lagi</div><div class="big">Rapat tim</div><div class="m">10:30 – 11:00 · Google Meet</div>',
+    music: '<div class="row"><div><div class="m">♪ Lagi diputar</div><div class="big">Nama lagu</div><div class="m">Nama artis</div></div><div style="display:flex;gap:6px"><div class="btn">⏮</div><div class="btn">▶</div><div class="btn">⏭</div></div></div>',
+    agent: '<div class="row"><div><div class="m">Agent · Claude Code</div><div class="big">refactor auth</div></div><span class="tag">jalan</span></div><div class="m">langkah 4 dari 7</div><div class="bar2"><b style="width:57%"></b></div>',
+    timer: '<div class="row"><div><div class="m">Timer</div><div class="big" style="font-size:24px">24:59</div></div><div style="display:flex;gap:6px"><div class="btn">⏸</div><div class="btn">↺</div></div></div>',
+    note:  '<div class="m">Catatan cepat</div><div style="margin-top:6px;line-height:1.5">Beli kopi · kirim invoice ke klien · cek PR #12</div>',
+    more:  '<div class="m">Alat lainnya</div><div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip">Keep awake</span><span class="chip">Freeze keyboard</span><span class="chip">Uninstall app</span><span class="chip">Ngaca</span><span class="chip">System stat</span></div>',
+  };
+  let lastKey = 'cal', idleLine = false;
+
+  pill.innerHTML = Object.entries(ICONS).map(([k, d], i) =>
+    `<div class="ic" data-k="${k}" style="animation-delay:${0.06 + i * 0.045}s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg></div>`).join('');
+  const icons = [...pill.querySelectorAll('.ic')];
+  function showCard(k, animate) {
+    lastKey = k;
+    icons.forEach(x => x.classList.toggle('on', x.dataset.k === k));
+    if (!animate) { inner.innerHTML = CARDS[k]; return; }
+    inner.classList.add('swap');
+    setTimeout(() => { inner.innerHTML = CARDS[k]; inner.classList.remove('swap'); }, 120);
+  }
+  icons.forEach(ic => ic.addEventListener('click', e => { e.stopPropagation(); showCard(ic.dataset.k, true); }));
+  pill.style.top = (PH + 10) + 'px';
+  content.style.paddingTop = (NH + 10) + 'px';
+
+  const S = (x, k, c) => ({ x, v: 0, t: x, k, c });
+  const p = {
+    W:  S(70, 110, 13),   // setengah lebar bagian cair di bawah notch
+    H:  S(0, 80, 6),      // kedalaman di bawah notch
+    s:  S(0, 90, 14),
+    bx: S(0, 60, 9),
+    pw: S(NW, 170, 18.5),
+    ph: S(NH, 150, 17.5),
+  };
+  let hover = false, open = false, panelOn = false, t = 0, cursorX = 0, pillTimer = 0;
+
+  const val = id => +$(id).value;
+  const damp = () => 1.7 - (val('bounce') / 100) * 1.3;
+  const timeScale = () => (val('speed') / 100) * ($('slow').checked ? 0.25 : 1);
+
+  function step(dt) {
+    const dm = damp();
+    for (const key in p) {
+      const s = p[key], d = (key === 'pw' || key === 'ph') ? 1 : dm;
+      s.v += (s.k * (s.t - s.x) - s.c * d * s.v) * dt;
+      s.x += s.v * dt;
+    }
+  }
+
+  function setTargets() {
+    const T = idleLine ? val('thick') : 0;
+    if (open) {
+      p.pw.t = PW; p.ph.t = PH; p.W.t = 70; p.H.t = 0; p.s.t = 0; p.bx.t = 0;
+      return;
+    }
+    p.pw.t = NW * 0.8; p.ph.t = NH * 0.8;
+    if (hover) {
+      const dep = val('depth');
+      p.W.t = 44 - Math.min(16, dep * 0.6);
+      p.H.t = (T + dep) * (1 + 0.035 * Math.sin(t * 2.2));
+      p.s.t = 1;
+      p.bx.t = Math.max(-8, Math.min(8, cursorX * 0.08));
+    } else {
+      p.W.t = 70; p.H.t = T; p.s.t = 0; p.bx.t = 0;
+    }
+  }
+
+  const smooth = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  function extra(x) {
+    const W = p.W.x, c = Math.max(-W * 0.5, Math.min(W * 0.5, p.bx.x));
+    const u = x < c ? (c - x) / (W + c) : (x - c) / (W - c);
+    if (u >= 1) return 0;
+    const lens = 1 - smooth(0.24, 1, u), bead = Math.pow(1 - u * u, 2.4);
+    const s = Math.min(1, Math.max(0, p.s.x));
+    return Math.max(0, p.H.x) * ((1 - s) * lens + s * bead);
+  }
+  // notch fisik + bagian cair yang menggantung di bawahnya, sebagai satu bentuk
+  function notchPath() {
+    const hw = NW / 2, fl = 6, q = v => v.toFixed(2);
+    let d = `M ${q(-hw - fl)} 0 Q ${q(-hw)} 0 ${q(-hw)} ${fl} L ${q(-hw)} ${q(NH - NR)} Q ${q(-hw)} ${NH} ${q(-hw + NR)} ${NH}`;
+    const x0 = -hw + NR, x1 = hw - NR, N = 120;
+    for (let i = 0; i <= N; i++) { const x = x0 + ((x1 - x0) * i) / N; d += ` L ${q(x)} ${q(NH + extra(x))}`; }
+    return d + ` Q ${q(hw)} ${NH} ${q(hw)} ${q(NH - NR)} L ${q(hw)} ${fl} Q ${q(hw)} 0 ${q(hw + fl)} 0 Z`;
+  }
+  function panelPath() {
+    const w = Math.max(0, p.pw.x) / 2, h = Math.max(0, p.ph.x);
+    const R = Math.min(28, w, h * 0.5), fl = Math.min(12, w * 0.3), q = v => v.toFixed(2);
+    return `M ${q(-w - fl)} 0 Q ${q(-w)} 0 ${q(-w)} ${q(fl)} L ${q(-w)} ${q(h - R)} Q ${q(-w)} ${q(h)} ${q(-w + R)} ${q(h)} ` +
+           `L ${q(w - R)} ${q(h)} Q ${q(w)} ${q(h)} ${q(w)} ${q(h - R)} L ${q(w)} ${q(fl)} Q ${q(w)} 0 ${q(w + fl)} 0 Z`;
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000) * timeScale(); last = now;
+    t += dt;
+    setTargets();
+    for (let i = 0; i < 6; i++) step(dt / 6);
+    notch.setAttribute('d', notchPath());
+    if (!open && panelOn && p.pw.x < NW + 4 && p.ph.x < NH + 4) panelOn = false;
+    panel.setAttribute('d', panelOn ? panelPath() : '');
+    const near = open && Math.abs(p.pw.x - PW) < 40 && Math.abs(p.ph.x - PH) < 20;
+    content.classList.toggle('show', near);
+    if (near && !pill.classList.contains('show') && !pillTimer) {
+      pillTimer = setTimeout(() => { pillTimer = 0; if (open) pill.classList.add('show'); }, PILL_DELAY / timeScale());
+    }
+    hit.style.display = open ? 'none' : 'block';
+    hit.style.height = (hover ? NH + 14 + val('depth') + val('thick') : NH + 10) + 'px';
+    hint.style.opacity = open ? 0 : 1;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  function openPanel() {
+    showCard(lastKey, false);
+    p.pw.x = NW; p.pw.v = 0;
+    p.ph.x = NH + Math.max(0, p.H.x); p.ph.v = 60;
+    panelOn = true; open = true;
+  }
+  function closePanel() {
+    clearTimeout(pillTimer); pillTimer = 0;
+    pill.classList.remove('show');
+    content.classList.remove('show');
+    open = false; hover = false;
+  }
+
+  hit.addEventListener('mouseenter', () => { hover = true; });
+  hit.addEventListener('mouseleave', () => { hover = false; });
+  hit.addEventListener('mousemove', e => { const r = hit.getBoundingClientRect(); cursorX = e.clientX - (r.left + r.width / 2); });
+  hit.addEventListener('click', e => { e.stopPropagation(); openPanel(); });
+  stage.addEventListener('click', e => { if (open && !e.target.closest('#content') && !e.target.closest('#pill')) closePanel(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && open) closePanel(); });
+
+  const setMode = line => {
+    idleLine = line;
+    $('m-hidden').classList.toggle('on', !line); $('m-line').classList.toggle('on', line);
+    if (window.brainstorm) window.brainstorm.send({ type: 'click', choice: line ? 'idle-line' : 'idle-hidden' });
+  };
+  $('m-hidden').addEventListener('click', () => setMode(false));
+  $('m-line').addEventListener('click', () => setMode(true));
+
+  [['bounce', ''], ['speed', ''], ['depth', ' px'], ['thick', ' px']].forEach(([id, unit]) =>
+    $(id).addEventListener('input', () => { $(id + 'V').textContent = $(id).value + unit; }));
+  $('wall').addEventListener('click', () => stage.classList.toggle('dark'));
+
+  // perkecil seluruh layar tiruan supaya muat di panel browser yang sempit
+  const scene = $('scene');
+  const fit = () => {
+    const k = Math.min(1, stage.clientWidth / 720);
+    scene.style.transform = `scale(${k})`;
+    stage.style.height = (420 * k) + 'px';
+  };
+  new ResizeObserver(fit).observe(stage);
+  fit();
+})();
+</script>

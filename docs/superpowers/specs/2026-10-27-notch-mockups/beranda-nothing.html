@@ -1,0 +1,215 @@
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: light;
+          --bg-primary:#f5f5f7 !important; --bg-secondary:#ffffff !important; --bg-tertiary:#e5e5e7 !important;
+          --text-primary:#1d1d1f !important; --text-secondary:#6e6e73 !important; --text-tertiary:#aeaeb2 !important; }
+  .lay { display:grid; gap:20px; }
+  .opt { border-radius:14px; background:#fff; border:2px solid rgba(0,0,0,.06); padding:14px 16px 16px; cursor:pointer; }
+  .opt.selected { border-color:#4c8dff; }
+  .opt h3 { margin:0 0 4px; font-size:15px; }
+  .opt p.d { margin:0 0 10px; color:#6e6e73; font-size:12.5px; }
+  .wall { position:relative; border-radius:10px; overflow:hidden;
+          background: radial-gradient(120% 90% at 20% 10%, #ffffff 0%, #eef2f8 45%, #d9e2ef 100%); }
+  .scene { position:absolute; top:0; width:600px; transform-origin: top left; }
+  .legend { display:flex; gap:8px 16px; flex-wrap:wrap; font-size:12px; color:#6e6e73; margin:-4px 0 14px; }
+  .legend b { color:#1d1d1f; font-weight:600; }
+
+  /* hitam putih; abu dibagi tiga tingkat; merah hanya untuk satu titik */
+  .pn { --w:#fff; --g1: rgba(255,255,255,.68); --g2: rgba(255,255,255,.42); --g3: rgba(255,255,255,.16); --red:#E8262E;
+        position:absolute; top:0; left:50%; transform:translateX(-50%); background:#000; color:var(--w);
+        border-radius:0 0 30px 30px; padding:20px 24px 14px; box-sizing:border-box;
+        font-family:"Space Grotesk", -apple-system, "Segoe UI Variable", "Segoe UI", sans-serif; font-size:13px;
+        font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+  .pn::before, .pn::after { content:""; position:absolute; top:0; width:12px; height:12px; }
+  .pn::before { left:-12px; background: radial-gradient(circle at 0 100%, transparent 12px, #000 12.5px); }
+  .pn::after  { right:-12px; background: radial-gradient(circle at 100% 100%, transparent 12px, #000 12.5px); }
+
+  .mono, .lab, .rm .m, .foot { font-family:"Space Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+  .lab { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--g2); white-space:nowrap;
+         display:flex; align-items:center; gap:6px; line-height:14px; }
+  .rd { width:6px; height:6px; border-radius:50%; background:var(--red); display:inline-block; flex:none; }
+  .dm { display:block; }
+  .row { display:flex; align-items:flex-end; justify-content:space-between; gap:22px; }
+  .vdots { width:3px; flex:none; align-self:stretch;
+           background: radial-gradient(circle, rgba(255,255,255,.3) .9px, transparent 1.3px) center top / 3px 5px repeat-y; }
+  .hdots { height:3px; margin:16px 0 10px;
+           background: radial-gradient(circle, rgba(255,255,255,.3) .9px, transparent 1.3px) left center / 5px 3px repeat-x; }
+
+  .next { font-size:15px; font-weight:500; white-space:nowrap; letter-spacing:-.1px; line-height:19px; }
+  .bar { display:flex; align-items:center; gap:8px; }
+  .rm { display:flex; align-items:center; gap:9px; white-space:nowrap; line-height:18px; }
+  .rm .ck { width:8px; height:8px; border-radius:50%; border:1.2px solid var(--g2); flex:none; }
+  .rm .m { margin-left:auto; padding-left:14px; color:var(--g2); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+
+  .foot { display:flex; gap:16px; align-items:center; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--g2); white-space:nowrap; }
+  .foot b { color:var(--g1); font-weight:400; }
+  .foot .song { display:flex; align-items:center; gap:6px; font-family:"Space Grotesk", -apple-system, sans-serif;
+                font-size:12px; letter-spacing:0; text-transform:none; color:var(--g2); }
+  .foot .song span { color:var(--g1); }
+  .foot svg { width:12px; height:12px; }
+  .foot .clk { margin-left:auto; color:var(--g1); font-size:11px; }
+
+  .tile { width:120px; height:120px; border-radius:28px; background:#fff; color:#000; position:relative; box-sizing:border-box; padding:14px; flex:none; }
+  .tile .lab { color:rgba(0,0,0,.5); }
+  .disc { width:120px; height:120px; border-radius:50%; background:#1C1C1C; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; flex:none; }
+
+  .pill { position:absolute; left:50%; transform:translateX(-50%); display:flex; gap:16px; padding:8px 16px 11px; border-radius:18px; background:#000; color:#fff; }
+  .pill .ic { position:relative; }
+  .pill svg { width:15px; height:15px; opacity:.4; display:block; }
+  .pill .on svg { opacity:1; }
+  .pill .on::after { content:""; position:absolute; left:50%; bottom:-6px; width:3px; height:3px; margin-left:-1.5px; border-radius:50%; background:#fff; }
+</style>
+
+<h2>Beranda gaya Nothing OS</h2>
+<p class="subtitle">Semua pilihan memakai bahan yang sama. Bedanya ada di cara tanggal dan suhu ditata.</p>
+<div class="legend">
+  <span><b>Angka titik-titik</b> untuk tanggal dan suhu. Hurufnya aku gambar sendiri, bukan milik Nothing, jadi aman dipakai.</span>
+  <span><b>Label kecil huruf kapital</b> dengan huruf mesin ketik (monospace).</span>
+  <span><b>Hitam, putih, dan abu.</b> Merah hanya untuk satu titik kecil.</span>
+  <span><b>Garis titik-titik</b> sebagai pemisah, menggantikan garis biasa.</span>
+  <span><b>Jam</b> kecil di pojok kanan bawah dan bisa dimatikan.</span>
+  <span><b>Titik kecil</b> di bawah ikon yang sedang aktif di pil.</span>
+</div>
+
+<div class="lay" id="lay"></div>
+
+<script>
+(function () {
+  // huruf titik 5x7 buatan sendiri; '1' = titik menyala
+  const G = {
+    '0':['01110','10001','10001','10001','10001','10001','01110'],
+    '1':['00100','01100','00100','00100','00100','00100','01110'],
+    '2':['01110','10001','00001','00010','00100','01000','11111'],
+    '3':['11111','00010','00100','00010','00001','10001','01110'],
+    '4':['00010','00110','01010','10010','11111','00010','00010'],
+    '5':['11111','10000','11110','00001','00001','10001','01110'],
+    '6':['00110','01000','10000','11110','10001','10001','01110'],
+    '7':['11111','00001','00010','00100','01000','01000','01000'],
+    '8':['01110','10001','10001','01110','10001','10001','01110'],
+    '9':['01110','10001','10001','01111','00001','00010','01100'],
+    '°':['010','101','010','000','000','000','000'],
+  };
+  const dots = (str, p) => {
+    let x = 0, out = '';
+    for (const ch of str) {
+      const g = G[ch];
+      g.forEach((row, r) => [...row].forEach((b, c) => {
+        if (b === '1') out += `<circle cx="${(x + c) * p + p / 2}" cy="${r * p + p / 2}" r="${p * .4}"/>`;
+      }));
+      x += g[0].length + 1;
+    }
+    const W = (x - 1) * p, H = 7 * p;
+    return `<svg class="dm" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="currentColor">${out}</svg>`;
+  };
+  // baris titik: sisa waktu menuju sholat berikutnya
+  const bar = (n, lit) => {
+    let out = '';
+    for (let i = 0; i < n; i++) out += `<circle cx="${i * 6 + 2.5}" cy="2.5" r="1.7" fill="${i < lit ? '#fff' : 'rgba(255,255,255,.16)'}"/>`;
+    return `<svg width="${n * 6 - 1}" height="5">${out}</svg>`;
+  };
+
+  const L = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const I = {
+    home:  '<path d="M4 11l8-6.5 8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/>',
+    music: '<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
+    agent: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+    timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4"/>',
+    note:  '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    more:  '<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>',
+  };
+  const pill = () => `<div class="pill">${['home','music','agent','timer','note','more']
+    .map((k, i) => `<span class="ic ${i === 0 ? 'on' : ''}">${L(I[k])}</span>`).join('')}</div>`;
+
+  const prayer = (mt) => `
+      <div class="next" style="margin-top:${mt}px">Dzuhur 11.47</div>
+      <div class="bar" style="margin-top:7px">${bar(18, 15)}<span class="lab">1 j 22 m</span></div>`;
+  const reminders = `
+      <div class="rm"><span class="ck"></span>Kirim invoice<span class="m">14.00</span></div>
+      <div class="rm" style="margin-top:4px"><span class="ck"></span>Bayar listrik<span class="m">Hari ini</span></div>`;
+  const foot = `<div class="hdots"></div>
+    <div class="foot">
+      <span class="song">${L(I.music)}<span>Nama lagu</span>Nama artis</span>
+      <span>Timer <b>12.30</b></span><span>Agent <b>4/7</b></span>
+      <span class="clk">10.25</span>
+    </div>`;
+
+  const options = [
+    { id: 'n1', w: 470, title: 'N1. Dua angka, tanpa kotak',
+      desc: 'Lanjutan dari C1 dan D1. Tanggal paling besar dan paling terang. Suhu lebih kecil dan abu, jadi urutan bacanya jelas: tanggal dulu, baru cuaca. Kanan: sholat berikutnya dan reminder.',
+      html: `<div class="row">
+          <div>
+            <div class="lab"><i class="rd"></i>Selasa</div>
+            <div style="display:flex; align-items:flex-end; gap:24px; margin-top:10px">
+              <div>${dots('27', 9)}<div class="lab" style="margin-top:9px">Oktober 2026</div></div>
+              <div style="color:var(--g1)">${dots('31°', 5)}<div class="lab" style="margin-top:9px">Berawan</div></div>
+            </div>
+          </div>
+          <div style="width:186px">
+            <div class="lab">Sholat berikutnya</div>${prayer(5)}
+            <div class="lab" style="margin-top:14px; margin-bottom:5px">Reminder · 2</div>${reminders}
+          </div>
+        </div>${foot}` },
+    { id: 'n2', w: 540, title: 'N2. Tiga kolom, dipisah garis titik',
+      desc: 'Tanggal dan suhu sama besar, tetapi titik suhu lebih redup. Kolom ketiga berisi hal yang akan datang: sholat berikutnya, lalu reminder.',
+      html: `<div style="display:flex; gap:18px">
+          <div>
+            <div class="lab"><i class="rd"></i>Selasa</div>
+            <div style="margin-top:10px">${dots('27', 8)}</div>
+            <div class="lab" style="margin-top:10px">Oktober 2026</div>
+          </div>
+          <div class="vdots"></div>
+          <div>
+            <div class="lab">Jakarta</div>
+            <div style="margin-top:10px; color:var(--g2)">${dots('31°', 8)}</div>
+            <div class="lab" style="margin-top:10px">Berawan · 25°/33°</div>
+          </div>
+          <div class="vdots"></div>
+          <div style="flex:1; min-width:0">
+            <div class="lab">Berikutnya</div>${prayer(6)}
+            <div style="margin-top:12px">${reminders}</div>
+          </div>
+        </div>${foot}` },
+    { id: 'n3', w: 520, title: 'N3. Bentuk widget Nothing',
+      desc: 'Tanggal ada di ubin putih. Karena hanya ubin ini yang terang, mata langsung tertuju ke sana. Suhu ada di lingkaran abu gelap. Pilihan ini paling mirip layar utama ponsel Nothing.',
+      html: `<div class="row" style="align-items:center">
+          <div style="display:flex; gap:12px">
+            <div class="tile">
+              <div class="lab">Sel · Okt</div>
+              <i class="rd" style="position:absolute; right:16px; top:18px"></i>
+              <div style="position:absolute; left:14px; bottom:16px">${dots('27', 8)}</div>
+            </div>
+            <div class="disc">
+              <div class="lab">Jakarta</div>
+              ${dots('31°', 5)}
+              <div class="lab">Berawan</div>
+            </div>
+          </div>
+          <div style="flex:1; min-width:0">
+            <div class="lab">Sholat berikutnya</div>${prayer(5)}
+            <div class="lab" style="margin-top:14px; margin-bottom:5px">Reminder · 2</div>${reminders}
+          </div>
+        </div>${foot}` },
+  ];
+
+  document.getElementById('lay').innerHTML = options.map(o => `
+    <div class="opt" data-choice="${o.id}" onclick="toggleSelect(this)">
+      <h3>${o.title}</h3><p class="d">${o.desc}</p>
+      <div class="wall"><div class="scene"><div class="pn" style="width:${o.w}px">${o.html}</div>${pill()}</div></div>
+    </div>`).join('');
+
+  document.querySelectorAll('.wall').forEach(wall => {
+    const scene = wall.querySelector('.scene'), pn = wall.querySelector('.pn'), pl = wall.querySelector('.pill');
+    const fit = () => {
+      pl.style.top = (pn.offsetHeight + 10) + 'px';
+      const h = pn.offsetHeight + 64;
+      scene.style.height = h + 'px';
+      const k = Math.min(1, wall.clientWidth / 600);
+      scene.style.transform = `scale(${k})`;
+      scene.style.left = Math.max(0, (wall.clientWidth - 600) / 2) + 'px';
+      wall.style.height = (h * k) + 'px';
+    };
+    new ResizeObserver(fit).observe(wall); fit();
+    document.fonts && document.fonts.ready.then(fit);
+  });
+})();
+</script>

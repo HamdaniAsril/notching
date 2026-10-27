@@ -1,0 +1,185 @@
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  :root { color-scheme: light;
+          --bg-primary:#f5f5f7 !important; --bg-secondary:#ffffff !important; --bg-tertiary:#e5e5e7 !important;
+          --text-primary:#1d1d1f !important; --text-secondary:#6e6e73 !important; --text-tertiary:#aeaeb2 !important; }
+  .lay { display:grid; gap:20px; }
+  .opt { border-radius:14px; background:#fff; border:2px solid rgba(0,0,0,.06); padding:14px 16px 16px; cursor:pointer; }
+  .opt.selected { border-color:#4c8dff; }
+  .opt h3 { margin:0 0 4px; font-size:15px; }
+  .opt p.d { margin:0 0 10px; color:#6e6e73; font-size:12.5px; }
+  .wall { position:relative; border-radius:10px; overflow:hidden;
+          background: radial-gradient(120% 90% at 20% 10%, #ffffff 0%, #eef2f8 45%, #d9e2ef 100%); }
+  .scene { position:absolute; top:0; width:720px; height:636px; transform-origin: top left; }
+  .legend { display:flex; gap:8px 16px; flex-wrap:wrap; font-size:12px; color:#6e6e73; margin:-4px 0 14px; }
+  .legend b { color:#1d1d1f; font-weight:600; }
+
+  .win { --w:#fff; --g1: rgba(255,255,255,.68); --g2: rgba(255,255,255,.42); --g3: rgba(255,255,255,.16); --red:#E8262E;
+         position:absolute; left:20px; top:18px; width:680px; height:600px; background:#000; color:var(--w);
+         border-radius:14px; overflow:hidden; display:flex; box-shadow: 0 18px 50px rgba(20,30,60,.28), 0 0 0 .5px rgba(255,255,255,.12) inset;
+         font-family:"Space Grotesk", -apple-system, "Segoe UI Variable", "Segoe UI", sans-serif; font-size:13px; -webkit-font-smoothing: antialiased; }
+  .lab, .mono, .fld, .btn, .size { font-family:"Space Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+  .lab { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--g2); white-space:nowrap; }
+  .rd { width:6px; height:6px; border-radius:50%; background:var(--red); display:inline-block; }
+
+  .side { width:188px; flex:none; background:#0B0B0B; padding:12px 10px; box-sizing:border-box; display:flex; flex-direction:column; gap:2px; }
+  .dots3 { display:flex; gap:7px; padding:2px 4px 14px; }
+  .dots3 i { width:10px; height:10px; border-radius:50%; background:#2b2b2b; }
+  .search { display:flex; align-items:center; gap:7px; border-radius:8px; background:#161616; padding:6px 9px; margin-bottom:12px; color:var(--g2); font-size:12px; }
+  .search svg { width:12px; height:12px; }
+  .side .lab { padding:10px 10px 5px; }
+  .si { display:flex; align-items:center; gap:9px; padding:6px 10px; border-radius:8px; color:var(--g1); font-size:12.5px; white-space:nowrap; }
+  .si svg { width:14px; height:14px; color:var(--g2); flex:none; }
+  .si.on { background:#1C1C1C; color:#fff; }
+  .si.on svg { color:#fff; }
+  .si.add { color:var(--g2); }
+  .si .n { margin-left:auto; font-family:"Space Mono", monospace; font-size:10px; color:var(--g2); }
+  .grow { flex:1; }
+
+  .pane { flex:1; padding:22px 26px; box-sizing:border-box; overflow:hidden; }
+  .head { display:flex; align-items:center; gap:12px; }
+  .head .ico { width:34px; height:34px; border-radius:10px; background:#1C1C1C; display:grid; place-items:center; }
+  .head .ico svg { width:17px; height:17px; }
+  .head h4 { margin:0; font-size:19px; font-weight:500; letter-spacing:-.2px; }
+  .head .sub { color:var(--g2); font-size:12px; margin-top:1px; }
+  .head .tg { margin-left:auto; }
+  .grp { margin-top:18px; }
+  .grp .lab { margin-bottom:4px; }
+  .rw { display:flex; align-items:center; gap:12px; padding:9px 0; white-space:nowrap;
+        background: radial-gradient(circle, rgba(255,255,255,.2) .8px, transparent 1.1px) left bottom / 5px 3px repeat-x; }
+  .rw:last-child { background:none; }
+  .rw .t { flex:1; }
+  .rw .t small { display:block; color:var(--g2); font-size:11.5px; margin-top:1px; }
+  .rw svg.mi { width:15px; height:15px; color:var(--g1); flex:none; }
+  .rw .chev { width:12px; height:12px; color:var(--g3); }
+  .size { font-size:10px; color:var(--g2); letter-spacing:.06em; }
+
+  .tg { width:30px; height:18px; border-radius:9px; background:#2A2A2A; position:relative; flex:none; }
+  .tg::after { content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:#777; }
+  .tg.on { background:#fff; }
+  .tg.on::after { left:14px; background:#000; }
+  .fld { display:flex; align-items:center; gap:10px; border:1px solid #2A2A2A; border-radius:8px; padding:5px 10px; font-size:11px; color:#fff; letter-spacing:.04em; }
+  .fld svg { width:10px; height:10px; color:var(--g2); }
+  .btn { display:inline-block; border:1px solid #333; border-radius:999px; padding:6px 14px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--g1); white-space:nowrap; }
+  .btn.w { background:#fff; color:#000; border-color:#fff; }
+  .foot { display:flex; align-items:center; justify-content:space-between; margin-top:18px; }
+</style>
+
+<h2>Halaman pengaturan</h2>
+<p class="subtitle">Pengaturan dibuka di jendela biasa, bukan di dalam notch, karena butuh ruang untuk slider dan daftar modul. Cara membukanya: ikon ⋯ di ujung kanan pil. Kedua pilihan memakai gaya Nothing OS yang sama dengan Beranda.</p>
+<div class="legend">
+  <span><b>Kotak pencarian</b> selalu ada di atas, jadi kamu tidak perlu meraba-raba.</span>
+  <span><b>Setiap modul punya halaman sendiri</b> yang berisi semua pengaturannya. Pengaturan satu modul tidak tersebar ke mana-mana.</span>
+  <span><b>Halaman Izin</b> menjelaskan setiap izin dan modul mana yang memakainya. Ide ini dipinjam dari Vorssaint.</span>
+</div>
+
+<div class="lay" id="lay"></div>
+
+<script>
+(function () {
+  const L = (d, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const I = {
+    gear:   '<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>',
+    drop:   '<path d="M12 3.5c3.5 4.2 5.5 7.3 5.5 10a5.5 5.5 0 0 1-11 0c0-2.7 2-5.8 5.5-10z"/>',
+    bell:   '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+    shield: '<path d="M12 3l7 3v5.5c0 4.2-2.9 7.9-7 9.5-4.1-1.6-7-5.3-7-9.5V6z"/>',
+    grid:   '<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>',
+    info:   '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+    home:   '<path d="M4 11l8-6.5 8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/>',
+    timer:  '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4"/>',
+    cup:    '<path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3.5v2M11 3.5v2"/>',
+    kbd:    '<rect x="3" y="6.5" width="18" height="11" rx="2"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M8 14h8"/>',
+    cam:    '<path d="M4 8.5h3l1.5-2.5h7L17 8.5h3v10H4z"/><circle cx="12" cy="13" r="3.2"/>',
+    note:   '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    chart:  '<path d="M4 19h16M7 16v-4M11 16V8M15 16v-6M19 16V5"/>',
+    plus:   '<path d="M12 5v14M5 12h14"/>',
+    search: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+    chev:   '<path d="M9 6l6 6-6 6"/>',
+    down:   '<path d="M6 9l6 6 6-6"/>',
+  };
+  const mods = [
+    ['home', 'Beranda', 'Tanggal, cuaca, sholat, reminder', '180 KB', 1],
+    ['timer', 'Timer', 'Hitung mundur dan stopwatch', '60 KB', 1],
+    ['cup', 'Keep awake', 'Laptop tidak tidur', '20 KB', 1],
+    ['kbd', 'Freeze keyboard', 'Kunci keyboard untuk dibersihkan', '30 KB', 0],
+    ['cam', 'Kamera cermin', 'Lihat wajah sebelum rapat', '40 KB', 1],
+    ['note', 'Catatan', 'Catatan cepat', '90 KB', 1],
+    ['chart', 'System stat', 'CPU, memori, jaringan', '70 KB', 0],
+  ];
+  const tg = on => `<span class="tg ${on ? 'on' : ''}"></span>`;
+  const si = (ic, name, on, extra = '') => `<div class="si ${on ? 'on' : ''}">${L(I[ic])}${name}${extra}</div>`;
+  const chrome = `<div class="dots3"><i></i><i></i><i></i></div>
+    <div class="search">${L(I.search)}Cari pengaturan</div>`;
+
+  // S1: sidebar per bagian; modul dikumpulkan di satu halaman daftar
+  const s1 = `<div class="win">
+      <div class="side">${chrome}
+        ${si('gear', 'Umum')}${si('drop', 'Tampilan notch')}${si('bell', 'Notifikasi')}
+        ${si('grid', 'Modul', 1, '<span class="n">7</span>')}${si('shield', 'Izin')}
+        <div class="grow"></div>${si('info', 'Tentang')}
+      </div>
+      <div class="pane">
+        <div class="head"><div><h4>Modul</h4><div class="sub">7 terpasang · 490 KB</div></div>
+          <span class="btn w" style="margin-left:auto">+ Tambah modul</span></div>
+        <div class="grp">
+          ${mods.map(([ic, n, d, s, on]) => `<div class="rw">${L(I[ic], 'mi')}<div class="t">${n}<small>${d}</small></div>
+            <span class="size">${s}</span>${tg(on)}${L(I.chev, 'chev')}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  // S2: modul langsung ada di sidebar; satu klik ke pengaturan modul
+  const s2 = `<div class="win">
+      <div class="side">${chrome}
+        <div class="lab">Aplikasi</div>
+        ${si('gear', 'Umum')}${si('drop', 'Tampilan notch')}${si('bell', 'Notifikasi')}${si('shield', 'Izin')}
+        <div class="lab">Modul</div>
+        ${mods.map(([ic, n], i) => si(ic, n, i === 0)).join('')}
+        <div class="si add">${L(I.plus)}Tambah modul</div>
+        <div class="grow"></div>${si('info', 'Tentang')}
+      </div>
+      <div class="pane">
+        <div class="head"><div class="ico">${L(I.home)}</div>
+          <div><h4>Beranda</h4><div class="sub">Tanggal, cuaca, sholat berikutnya, dan reminder.</div></div>${tg(1)}</div>
+        <div class="grp"><div class="lab">Tampilan</div>
+          <div class="rw"><div class="t">Tampilkan jam</div>${tg(1)}</div>
+        </div>
+        <div class="grp"><div class="lab">Lokasi</div>
+          <div class="rw"><div class="t">Kota<small>Dipakai untuk cuaca dan waktu sholat</small></div><span class="fld">Jakarta${L(I.down)}</span></div>
+          <div class="rw"><div class="t">Pakai lokasi perangkat</div>${tg(0)}</div>
+        </div>
+        <div class="grp"><div class="lab">Sholat</div>
+          <div class="rw"><div class="t">Metode hitung</div><span class="fld">Kemenag RI${L(I.down)}</span></div>
+          <div class="rw"><div class="t">Notifikasi saat masuk waktu</div>${tg(1)}</div>
+        </div>
+        <div class="foot"><span class="size">Versi 1.0 · 180 KB</span><span class="btn">Copot modul</span></div>
+      </div>
+    </div>`;
+
+  const options = [
+    { id: 's1', title: 'S1. Sidebar per bagian',
+      desc: 'Enam bagian di kiri. Semua modul dikumpulkan di halaman "Modul": nyalakan, matikan, atau klik untuk masuk ke pengaturan modul itu. Sidebar-nya pendek dan tidak pernah bertambah panjang.',
+      html: s1 },
+    { id: 's2', title: 'S2. Modul langsung di sidebar',
+      desc: 'Setiap modul yang terpasang muncul di sidebar, urutannya sama dengan ikon di pil notch. Mau mengatur Timer? Klik "Timer". Satu klik langsung sampai. Sidebar bertambah panjang seiring makin banyak modul yang dipasang.',
+      html: s2 },
+  ];
+
+  document.getElementById('lay').innerHTML = options.map(o => `
+    <div class="opt" data-choice="${o.id}" onclick="toggleSelect(this)">
+      <h3>${o.title}</h3><p class="d">${o.desc}</p>
+      <div class="wall"><div class="scene">${o.html}</div></div>
+    </div>`).join('');
+
+  document.querySelectorAll('.wall').forEach(wall => {
+    const scene = wall.querySelector('.scene');
+    const fit = () => {
+      const k = Math.min(1, wall.clientWidth / 720);
+      scene.style.transform = `scale(${k})`;
+      scene.style.left = Math.max(0, (wall.clientWidth - 720) / 2) + 'px';
+      wall.style.height = (636 * k) + 'px';
+    };
+    new ResizeObserver(fit).observe(wall); fit();
+  });
+})();
+</script>

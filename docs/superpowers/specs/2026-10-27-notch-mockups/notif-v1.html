@@ -1,0 +1,163 @@
+<style>
+  :root { color-scheme: light;
+          --bg-primary:#f5f5f7 !important; --bg-secondary:#ffffff !important; --bg-tertiary:#e5e5e7 !important;
+          --text-primary:#1d1d1f !important; --text-secondary:#6e6e73 !important; --text-tertiary:#aeaeb2 !important; }
+  .block { margin-bottom:18px; }
+  .block h3 { margin:0 0 6px; font-size:15px; }
+  .stage { position:relative; border-radius:12px; overflow:hidden; border:8px solid #111; border-bottom:none;
+           background: radial-gradient(120% 90% at 20% 10%, #ffffff 0%, #eef2f8 45%, #d9e2ef 100%); transition: background .3s; }
+  body.dark-wall .stage { background: radial-gradient(120% 90% at 20% 10%, #3b5b8c 0%, #1d2c4a 45%, #0f1626 100%); }
+  .scene { position:relative; width:720px; height:150px; transform-origin: top left; }
+  .menubar { position:absolute; top:0; left:0; right:0; height:32px; display:flex; align-items:center; justify-content:space-between;
+             padding:0 14px; font:500 13px -apple-system, sans-serif; color:#111; background:rgba(255,255,255,.55); }
+  body.dark-wall .menubar { color:#fff; background:rgba(30,40,60,.45); }
+  .menubar .l, .menubar .r { display:flex; gap:16px; align-items:center; }
+  .scene svg.shape { position:absolute; top:0; left:50%; transform:translateX(-50%); }
+  .ear { position:absolute; top:0; height:32px; display:flex; align-items:center; color:#fff; font-family:-apple-system,"Segoe UI",sans-serif;
+         opacity:0; transition: opacity .18s; white-space:nowrap; pointer-events:none; }
+  .ear.show { opacity:1; transition-delay:.12s; }
+  .appic { width:20px; height:20px; border-radius:6px; display:flex; align-items:center; justify-content:center; }
+  .appic svg { width:13px; height:13px; }
+  .t1 { font-size:12.5px; font-weight:600; }
+  .t2 { font-size:11.5px; color:rgba(255,255,255,.6); margin-left:6px; }
+
+  .triggers { display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 16px; }
+  .triggers button { padding:8px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.15); background:#fff; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:8px; }
+  .triggers .appic { width:18px; height:18px; border-radius:5px; }
+  .opts { display:flex; gap:16px; flex-wrap:wrap; align-items:center; font-size:13px; margin-bottom:12px; }
+  .opts button { padding:6px 12px; border-radius:8px; border:1px solid rgba(0,0,0,.2); background:#fff; cursor:pointer; font-size:12px; }
+</style>
+
+<h2>Notifikasi sekilas</h2>
+<p class="subtitle">Klik salah satu tombol notifikasi. Di Mac yang punya notch, notch melebar ke samping: logo app di kiri kamera, keterangan di kanan. Di layar tanpa notch, lensa terbuka jadi pil kecil dengan isi yang sama. Setelah sekitar 3,5 detik, keduanya kembali seperti semula.</p>
+
+<div class="triggers" id="triggers"></div>
+<div class="opts">
+  <label><input type="checkbox" id="glow"> Tambahkan cahaya G2 saat notifikasi muncul</label>
+  <button id="wallBtn">Ganti ke wallpaper gelap</button>
+</div>
+
+<div class="block"><h3>Mac dengan notch</h3>
+  <div class="stage" id="st-notch"><div class="scene">
+    <div class="menubar"><div class="l"><b></b><b>Finder</b><span>File</span><span>Edit</span><span>View</span></div><div class="r"><span>◔</span><span>Sen 26 Okt 10:25</span></div></div>
+    <svg class="shape" width="720" height="150" viewBox="-360 0 720 150"><defs></defs><g class="glowg"></g><path class="body" fill="#000"/></svg>
+    <div class="ear" id="n-left"></div><div class="ear" id="n-right"></div>
+  </div></div>
+</div>
+
+<div class="block"><h3>Tanpa notch (Windows, Mac tanpa notch, monitor eksternal)</h3>
+  <div class="stage" id="st-lens"><div class="scene">
+    <svg class="shape" width="720" height="150" viewBox="-360 0 720 150"><defs></defs><g class="glowg"></g><path class="body" fill="#000"/></svg>
+    <div class="ear" id="l-left"></div><div class="ear" id="l-right"></div>
+  </div></div>
+</div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const f = v => v.toFixed(2);
+  const ic = d => `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const NOTIFS = [
+    { k: 'cal',   bg: '#ff5c5c', icon: ic('<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'), t1: 'Rapat tim', t2: '5 menit lagi', label: 'Rapat 5 menit lagi' },
+    { k: 'agent', bg: '#d97757', icon: ic('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'), t1: 'Agent selesai', t2: 'refactor auth', label: 'Agent selesai' },
+    { k: 'timer', bg: '#ff9f43', icon: ic('<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4"/>'), t1: 'Timer selesai', t2: '25:00', label: 'Timer habis' },
+    { k: 'music', bg: '#7873f5', icon: ic('<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>'), t1: 'Nama lagu', t2: 'Nama artis', label: 'Lagu berganti' },
+  ];
+  $('triggers').innerHTML = NOTIFS.map(n => `<button data-k="${n.k}"><span class="appic" style="background:${n.bg}">${n.icon}</span>${n.label}</button>`).join('');
+
+  const S = (x, k, c) => ({ x, v: 0, t: x, k, c });
+  const NW = 190, NH = 32, NR = 10;
+
+  const GRAD = `<linearGradient id="GID" class="rimgrad" gradientUnits="userSpaceOnUse" x1="-110" y1="0" x2="110" y2="0" spreadMethod="reflect">
+      <stop offset="0" stop-color="#ff6ec4"/><stop offset=".33" stop-color="#7873f5"/><stop offset=".66" stop-color="#4adede"/><stop offset="1" stop-color="#ffd166"/></linearGradient>
+      <filter id="BID" x="-20%" y="-50%" width="140%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>`;
+
+  function makeScene(rootId, kind) {
+    const root = $(rootId), svg = root.querySelector('svg.shape'), body = svg.querySelector('.body');
+    svg.querySelector('defs').innerHTML = GRAD.replace('GID', 'g-' + kind).replace('BID', 'b-' + kind);
+    const glowG = svg.querySelector('.glowg');
+    const L = $(kind === 'notch' ? 'n-left' : 'l-left'), R = $(kind === 'notch' ? 'n-right' : 'l-right');
+    const sc = {
+      kind, body, glowG, L, R, glowA: 0,
+      hw: S(kind === 'notch' ? NW / 2 : 42, 210, 15),   // setengah lebar
+      h:  S(kind === 'notch' ? NH : 4, 210, 17),
+      showing: false, timer: 0,
+    };
+    return sc;
+  }
+  const scenes = [makeScene('st-notch', 'notch'), makeScene('st-lens', 'lens')];
+
+  const smooth = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  function shapePath(sc) {
+    const hw = Math.max(1, sc.hw.x), h = Math.max(0.5, sc.h.x);
+    if (sc.kind === 'lens' && !sc.showing && h < 10 && hw < 60) {
+      // lensa tipis saat diam
+      let d = `M ${f(-hw)} 0`;
+      for (let i = 1; i < 70; i++) { const x = -hw + (2 * hw * i) / 70; d += ` L ${f(x)} ${f(h * (1 - smooth(0.24, 1, Math.abs(x) / hw)))}`; }
+      return d + ` L ${f(hw)} 0 Z`;
+    }
+    const R = Math.min(sc.kind === 'notch' ? NR + 4 : 18, h * 0.55, hw), fl = Math.min(sc.kind === 'notch' ? 6 : 10, hw * 0.3);
+    return `M ${f(-hw - fl)} 0 Q ${f(-hw)} 0 ${f(-hw)} ${f(fl)} L ${f(-hw)} ${f(h - R)} Q ${f(-hw)} ${f(h)} ${f(-hw + R)} ${f(h)} ` +
+           `L ${f(hw - R)} ${f(h)} Q ${f(hw)} ${f(h)} ${f(hw)} ${f(h - R)} L ${f(hw)} ${f(fl)} Q ${f(hw)} 0 ${f(hw + fl)} 0 Z`;
+  }
+
+  function notify(n) {
+    for (const sc of scenes) {
+      clearTimeout(sc.timer);
+      sc.showing = true;
+      if (sc.kind === 'notch') {
+        sc.hw.t = NW / 2 + 150; sc.h.t = NH;
+        sc.L.innerHTML = `<span class="appic" style="background:${n.bg}">${n.icon}</span>`;
+        sc.R.innerHTML = `<span class="t1">${n.t1}</span><span class="t2">${n.t2}</span>`;
+        sc.L.style.left = `calc(50% - ${NW / 2 + 150 - 14}px)`; sc.L.style.top = '0'; sc.L.style.height = NH + 'px';
+        sc.R.style.left = `calc(50% + ${NW / 2 + 12}px)`; sc.R.style.top = '0'; sc.R.style.height = NH + 'px';
+      } else {
+        sc.hw.t = 150; sc.h.t = 38;
+        sc.L.innerHTML = `<span class="appic" style="background:${n.bg}">${n.icon}</span>`;
+        sc.R.innerHTML = `<span class="t1">${n.t1}</span><span class="t2">${n.t2}</span>`;
+        sc.L.style.left = `calc(50% - ${150 - 14}px)`; sc.L.style.height = '38px';
+        sc.R.style.left = `calc(50% - ${150 - 44}px)`; sc.R.style.height = '38px';
+      }
+      sc.L.classList.add('show'); sc.R.classList.add('show');
+      sc.timer = setTimeout(() => {
+        sc.L.classList.remove('show'); sc.R.classList.remove('show');
+        setTimeout(() => {
+          sc.showing = false;
+          sc.hw.t = sc.kind === 'notch' ? NW / 2 : 42; sc.h.t = sc.kind === 'notch' ? NH : 4;
+        }, 140);
+      }, 3500);
+    }
+  }
+  document.querySelectorAll('#triggers button').forEach(b => b.addEventListener('click', () => notify(NOTIFS.find(n => n.k === b.dataset.k))));
+
+  let last = performance.now();
+  (function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    for (const sc of scenes) {
+      for (const s of [sc.hw, sc.h]) {
+        for (let i = 0; i < 4; i++) { const d = dt / 4; s.v += (s.k * (s.t - s.x) - s.c * s.v) * d; s.x += s.v * d; }
+      }
+      const d = shapePath(sc);
+      sc.body.setAttribute('d', d);
+      const wantGlow = $('glow').checked && sc.showing ? 1 : 0;
+      sc.glowA += (wantGlow - sc.glowA) * Math.min(1, dt * 6);
+      sc.glowG.innerHTML = sc.glowA > 0.02
+        ? `<g opacity="${f(sc.glowA)}"><path d="${d}" fill="none" stroke="url(#g-${sc.kind})" stroke-width="5" filter="url(#b-${sc.kind})"/><path d="${d}" fill="none" stroke="url(#g-${sc.kind})" stroke-width="2.2"/></g>`
+        : '';
+    }
+    const off = (now / 1000) * 110 % 440;
+    document.querySelectorAll('.rimgrad').forEach(g => g.setAttribute('gradientTransform', `translate(${f(off)} 0)`));
+    requestAnimationFrame(loop);
+  })(last);
+
+  // perkecil layar tiruan supaya muat di panel yang sempit
+  document.querySelectorAll('.stage').forEach(stage => {
+    const scene = stage.querySelector('.scene');
+    const fit = () => { const k = Math.min(1, stage.clientWidth / 720); scene.style.transform = `scale(${k})`; stage.style.height = (150 * k) + 'px'; };
+    new ResizeObserver(fit).observe(stage); fit();
+  });
+
+  const wb = $('wallBtn');
+  wb.addEventListener('click', () => { const dk = document.body.classList.toggle('dark-wall'); wb.textContent = dk ? 'Ganti ke wallpaper terang' : 'Ganti ke wallpaper gelap'; });
+})();
+</script>

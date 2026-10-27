@@ -1,0 +1,107 @@
+<style>
+  :root { color-scheme: light;
+          --bg-primary:#f5f5f7 !important; --bg-secondary:#ffffff !important; --bg-tertiary:#e5e5e7 !important;
+          --text-primary:#1d1d1f !important; --text-secondary:#6e6e73 !important; --text-tertiary:#aeaeb2 !important; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px; }
+  .opt { border-radius:14px; background:#fff; border:2px solid rgba(0,0,0,.06); padding:14px 16px 16px; cursor:pointer; }
+  .opt.selected { border-color:#4c8dff; }
+  .opt h3 { margin:0 0 4px; font-size:15px; }
+  .opt p.d { margin:0 0 10px; color:#6e6e73; font-size:12.5px; }
+  .pair { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .wall { position:relative; height:110px; border-radius:8px; overflow:hidden; transition: background .3s;
+          background: radial-gradient(120% 90% at 20% 10%, #3b5b8c 0%, #1d2c4a 45%, #0f1626 100%); }
+  body.light-wall .wall { background: radial-gradient(120% 90% at 20% 10%, #ffffff 0%, #eef2f8 45%, #d9e2ef 100%); }
+  .wall svg { position:absolute; top:0; left:50%; transform:translateX(-50%); }
+  .wall .lbl { position:absolute; bottom:6px; right:8px; font-size:10px; color:rgba(255,255,255,.5); }
+  body.light-wall .wall .lbl { color:rgba(0,0,0,.4); }
+  .status { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .status button { font-size:11px; padding:4px 10px; border-radius:20px; border:1px solid rgba(0,0,0,.12); background:#fff; cursor:pointer; }
+  .status button.on { border-color:#1d1d1f; }
+  .status i { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .pulse { animation: pulse 2.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:.15 } 50% { opacity:.9 } }
+  .top { display:flex; gap:10px; align-items:center; margin-bottom:14px; }
+  .top button { padding:6px 12px; border-radius:8px; border:1px solid rgba(0,0,0,.2); background:#fff; cursor:pointer; font-size:12px; }
+</style>
+
+<h2>Notch yang bisa bercahaya</h2>
+<p class="subtitle">Ada empat cara membuat notch bercahaya. Masing-masing aku tampilkan di Mac yang punya notch (kiri) dan di lensa tipis untuk layar tanpa notch (kanan). Cahaya paling terlihat di wallpaper gelap, jadi tombol di bawah bisa dipakai untuk membandingkannya dengan wallpaper terang.</p>
+<div class="top"><button id="wallBtn">Ganti ke wallpaper terang</button></div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+(function () {
+  const f = v => v.toFixed(2);
+  const NW = 150, NH = 26, NR = 8;
+  function notchD() {
+    const hw = NW / 2, fl = 5;
+    return `M ${-hw - fl} 0 Q ${-hw} 0 ${-hw} ${fl} L ${-hw} ${NH - NR} Q ${-hw} ${NH} ${-hw + NR} ${NH} L ${hw - NR} ${NH} Q ${hw} ${NH} ${hw} ${NH - NR} L ${hw} ${fl} Q ${hw} 0 ${hw + fl} 0 Z`;
+  }
+  function lensD() {
+    const W = 42, H = 5, N = 60;
+    const sm = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+    let d = `M ${-W} 0`;
+    for (let i = 1; i < N; i++) { const x = -W + (2 * W * i) / N; d += ` L ${f(x)} ${f(H * (1 - sm(0.24, 1, Math.abs(x) / W)))}`; }
+    return d + ` L ${W} 0 Z`;
+  }
+
+  const options = [
+    { id: 'halo',   title: 'G1. Halo lembut', desc: 'Cahaya putih kebiruan yang lembut di sekeliling notch, selalu menyala dan tidak bergerak.' },
+    { id: 'rim',    title: 'G2. Garis pelangi', desc: 'Garis tipis berwarna yang terus mengalir di tepi bawah notch, mirip efek Siri di iPhone dan Mac.' },
+    { id: 'pulse',  title: 'G3. Berdenyut', desc: 'Cahaya menyala dan meredup pelan seperti napas. Cocok dipakai sebagai tanda halus kalau ada sesuatu yang perlu dilihat.' },
+    { id: 'status', title: 'G4. Warna = status', desc: 'Warna cahaya menunjukkan apa yang sedang terjadi. Klik tombol di bawah untuk mencoba setiap warna.' },
+  ];
+  const STATUS = [['agent', '#3ddc84', 'Agent jalan'], ['meet', '#ff9f43', 'Rapat sebentar lagi'], ['done', '#4c8dff', 'Agent selesai'], ['err', '#ff5c5c', 'Ada error']];
+
+  function scene(o, which) {
+    const d = which === 'notch' ? notchD() : lensD();
+    const uid = o.id + '-' + which;
+    let glow = '';
+    if (o.id === 'halo')   glow = `<path d="${d}" fill="#bcd4ff" filter="url(#b8-${uid})" opacity=".85"/>`;
+    if (o.id === 'pulse')  glow = `<path class="pulse" d="${d}" fill="#bcd4ff" filter="url(#b8-${uid})"/>`;
+    if (o.id === 'status') glow = `<path id="st-${uid}" d="${d}" fill="${STATUS[0][1]}" filter="url(#b8-${uid})" opacity=".9"/>`;
+    if (o.id === 'rim')    glow = `<path d="${d}" fill="none" stroke="url(#g-${uid})" stroke-width="5" filter="url(#b3-${uid})"/>
+                                   <path d="${d}" fill="none" stroke="url(#g-${uid})" stroke-width="2.2"/>`;
+    return `<div class="wall"><svg width="300" height="110" viewBox="-150 0 300 110">
+      <defs>
+        <filter id="b8-${uid}" x="-50%" y="-50%" width="200%" height="400%"><feMorphology operator="dilate" radius="${which === 'notch' ? 4 : 3}"/><feGaussianBlur stdDeviation="${which === 'notch' ? 8 : 5}"/><feComponentTransfer><feFuncA type="linear" slope="2.4"/></feComponentTransfer></filter>
+        <filter id="b3-${uid}" x="-50%" y="-50%" width="200%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+        <linearGradient id="g-${uid}" class="rimgrad" gradientUnits="userSpaceOnUse" x1="-90" y1="0" x2="90" y2="0" spreadMethod="reflect">
+          <stop offset="0" stop-color="#ff6ec4"/><stop offset=".33" stop-color="#7873f5"/>
+          <stop offset=".66" stop-color="#4adede"/><stop offset="1" stop-color="#ffd166"/>
+        </linearGradient>
+      </defs>
+      ${glow}
+      <path d="${d}" fill="#000"/>
+    </svg><div class="lbl">${which === 'notch' ? 'Mac dengan notch' : 'tanpa notch'}</div></div>`;
+  }
+
+  document.getElementById('grid').innerHTML = options.map(o => `
+    <div class="opt" data-choice="${o.id}" onclick="toggleSelect(this)">
+      <h3>${o.title}</h3><p class="d">${o.desc}</p>
+      <div class="pair">${scene(o, 'notch')}${scene(o, 'lens')}</div>
+      ${o.id === 'status' ? `<div class="status">${STATUS.map(([k, c, l], i) => `<button data-k="${k}" class="${i === 0 ? 'on' : ''}"><i style="background:${c}"></i>${l}</button>`).join('')}</div>` : ''}
+    </div>`).join('');
+
+  document.querySelectorAll('.status button').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const c = STATUS.find(s => s[0] === b.dataset.k)[1];
+    ['status-notch', 'status-lens'].forEach(id => document.getElementById('st-' + id).setAttribute('fill', c));
+    document.querySelectorAll('.status button').forEach(x => x.classList.toggle('on', x === b));
+  }));
+
+  const grads = [...document.querySelectorAll('.rimgrad')];
+  (function loop(now) {
+    const off = (now / 1000) * 90 % 360;
+    grads.forEach(g => g.setAttribute('gradientTransform', `translate(${f(off)} 0)`));
+    requestAnimationFrame(loop);
+  })(performance.now());
+
+  const btn = document.getElementById('wallBtn');
+  btn.addEventListener('click', () => {
+    const light = document.body.classList.toggle('light-wall');
+    btn.textContent = light ? 'Ganti ke wallpaper gelap' : 'Ganti ke wallpaper terang';
+  });
+})();
+</script>
