@@ -1,3 +1,6 @@
+import { invoke } from '@tauri-apps/api/core';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import type { Rect } from './notch/hit';
 
 export interface ScreenInfo {
@@ -67,5 +70,32 @@ export function browserBridge(root: HTMLElement): Bridge {
     onPointer: cb => { pointerSubs.add(cb); return () => pointerSubs.delete(cb); },
     onResignKey: cb => { resignSubs.add(cb); return () => resignSubs.delete(cb); },
     quit: async () => console.info('quit'),
+  };
+}
+
+// Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
+function syncUnlisten(pending: Promise<UnlistenFn>): () => void {
+  let unlisten: UnlistenFn | null = null;
+  let disposed = false;
+  void pending.then(fn => {
+    if (disposed) fn();
+    else unlisten = fn;
+  });
+  return () => {
+    disposed = true;
+    unlisten?.();
+  };
+}
+
+// The native side: commands in src-tauri/src/commands.rs, events emitted to this window.
+export function tauriBridge(): Bridge {
+  const win = getCurrentWebviewWindow();
+  return {
+    screenInfo: () => invoke<ScreenInfo>('get_screen_info'),
+    setHitRects: rects => invoke('set_hit_rects', { rects }),
+    setPanelKey: key => invoke('set_panel_key', { key }),
+    onPointer: cb => syncUnlisten(win.listen<PointerUpdate>('notch://pointer', e => cb(e.payload))),
+    onResignKey: cb => syncUnlisten(win.listen('notch://resign-key', () => cb())),
+    quit: () => invoke('quit_app'),
   };
 }

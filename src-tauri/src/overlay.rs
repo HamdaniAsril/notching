@@ -1,0 +1,175 @@
+//! One transparent notch panel per screen (main thread only).
+
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+use objc2::MainThreadMarker;
+use objc2_foundation::{NSPoint, NSRect, NSSize};
+use tauri::{AppHandle, LogicalSize, Manager, Size, WebviewUrl};
+use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask};
+
+use crate::geometry::{overlay_frame, Rect, OVERLAY_H, OVERLAY_W};
+use crate::screens::{current_screens, ScreenInfo};
+
+// The macro brings its own AppKit imports, so it lives in a module of its own.
+mod panel {
+    tauri_nspanel::tauri_panel! {
+        panel!(NotchPanel {
+            config: {
+                can_become_key_window: true,
+                is_floating_panel: true
+            }
+        })
+    }
+}
+use panel::NotchPanel;
+
+pub struct OverlayEntry {
+    pub screen: ScreenInfo,
+    pub frame: Rect,
+    pub css_rects: Vec<Rect>,
+}
+
+/// Live overlays by window label.
+#[derive(Default)]
+pub struct Overlays(pub Mutex<HashMap<String, OverlayEntry>>);
+
+/// What to do with the panel "notch-{index}" for a screen.
+#[derive(Debug, PartialEq)]
+enum SlotAction {
+    /// No panel for this index yet.
+    Create,
+    /// Same screen as before: leave the panel alone (no flicker).
+    Keep,
+    /// The screen changed, or a parked panel is reused: move it and reload its page.
+    Refresh,
+}
+
+fn slot_action(panel_exists: bool, previous: Option<&ScreenInfo>, now: &ScreenInfo) -> SlotAction {
+    match (panel_exists, previous) {
+        (false, _) => SlotAction::Create,
+        (true, Some(prev)) if prev == now => SlotAction::Keep,
+        (true, _) => SlotAction::Refresh,
+    }
+}
+
+/// Matches panels to the current screens.
+///
+/// Panels are never closed. Closing a tauri-nspanel panel makes AppKit throw an
+/// uncaught NSRangeException (the Touch Bar finder's KVO observer on the window no
+/// longer matches its swizzled class), which aborts the app. So a screen that goes
+/// away only hides its panel, and the panel is reused when a screen takes its index again.
+pub fn rebuild_overlays(app: &AppHandle) -> tauri::Result<()> {
+    let mtm = MainThreadMarker::new().expect("rebuild_overlays must run on the main thread");
+    apply_screens(app, current_screens(mtm))
+}
+
+fn apply_screens(app: &AppHandle, screens: Vec<ScreenInfo>) -> tauri::Result<()> {
+    let overlays = app.state::<Overlays>();
+    let mut previous = std::mem::take(&mut *overlays.0.lock().unwrap());
+
+    for screen in screens {
+        let label = format!("notch-{}", screen.index);
+        let frame = overlay_frame(screen.frame);
+        let panel = app.get_webview_panel(&label).ok();
+        let before = previous.remove(&label);
+        let mut css_rects = Vec::new();
+        match slot_action(panel.is_some(), before.as_ref().map(|e| &e.screen), &screen) {
+            SlotAction::Create => create_panel(app, &label, frame)?,
+            SlotAction::Keep => css_rects = before.map(|e| e.css_rects).unwrap_or_default(),
+            SlotAction::Refresh => {
+                let panel = panel.expect("Refresh implies an existing panel");
+                // Ordering out and in again also hands key status back if the panel had it.
+                panel.hide();
+                place(&*panel, frame);
+                if let Some(window) = app.get_webview_window(&label) {
+                    window.reload()?;
+                }
+            }
+        }
+        overlays
+            .0
+            .lock()
+            .unwrap()
+            .insert(label, OverlayEntry { screen, frame, css_rects });
+    }
+
+    // Screens that went away: park their panels.
+    for label in previous.into_keys() {
+        if let Ok(panel) = app.get_webview_panel(&label) {
+            panel.hide();
+        }
+    }
+    Ok(())
+}
+
+// AppKit coordinates, so the overlay lands exactly on screens with any scale.
+fn place<R: tauri::Runtime>(panel: &dyn tauri_nspanel::Panel<R>, frame: Rect) {
+    let rect = NSRect::new(NSPoint::new(frame.x, frame.y), NSSize::new(frame.w, frame.h));
+    panel.as_panel().setFrame_display(rect, true);
+    panel.set_ignores_mouse_events(true);
+    panel.show();
+}
+
+fn create_panel(app: &AppHandle, label: &str, frame: Rect) -> tauri::Result<()> {
+    let panel = PanelBuilder::<_, NotchPanel>::new(app, label)
+        .url(WebviewUrl::App("index.html".into()))
+        .size(Size::Logical(LogicalSize::new(OVERLAY_W, OVERLAY_H)))
+        .level(PanelLevel::Status)
+        .collection_behavior(
+            // No full_screen_auxiliary: the notch stays off full-screen Spaces.
+            CollectionBehavior::new().can_join_all_spaces().stationary().ignores_cycle(),
+        )
+        .style_mask(StyleMask::empty().borderless().nonactivating_panel())
+        .transparent(true)
+        .has_shadow(false)
+        .no_activate(true)
+        .hides_on_deactivate(false)
+        .accepts_mouse_moved_events(true)
+        .with_window(|w| {
+            w.accept_first_mouse(true)
+                .transparent(true)
+                .decorations(false)
+                .visible(false)
+                .focused(false)
+                .skip_taskbar(true)
+        })
+        .build()?;
+
+    place(&*panel, frame);
+    Ok(())
+}
+
+pub fn set_mouse_passthrough(app: &AppHandle, label: &str, passthrough: bool) {
+    if let Ok(panel) = app.get_webview_panel(label) {
+        panel.set_ignores_mouse_events(passthrough);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::geometry::NotchGeom;
+
+    fn screen(index: usize, w: f64, notch: Option<NotchGeom>) -> ScreenInfo {
+        ScreenInfo { index, frame: Rect { x: 0.0, y: 0.0, w, h: 900.0 }, notch }
+    }
+
+    #[test]
+    fn a_new_screen_gets_a_new_panel() {
+        assert_eq!(slot_action(false, None, &screen(0, 1470.0, None)), SlotAction::Create);
+    }
+
+    #[test]
+    fn an_unchanged_screen_keeps_its_panel_as_is() {
+        let s = screen(0, 1470.0, None);
+        assert_eq!(slot_action(true, Some(&s), &s), SlotAction::Keep);
+    }
+
+    #[test]
+    fn a_changed_or_returning_screen_reuses_its_panel() {
+        let now = screen(0, 1470.0, Some(NotchGeom { width: 164.0, height: 32.0 }));
+        assert_eq!(slot_action(true, Some(&screen(0, 1512.0, None)), &now), SlotAction::Refresh);
+        assert_eq!(slot_action(true, None, &now), SlotAction::Refresh); // parked, screen came back
+    }
+}

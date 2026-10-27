@@ -1,4 +1,4 @@
-import { browserBridge } from './bridge';
+import { browserBridge, tauriBridge } from './bridge';
 import { DEFAULT_CONFIG } from './notch/config';
 import { NotchController, PLACEHOLDER_CARD } from './notch/controller';
 import { OVERLAY_SIZE } from './notch/hit';
@@ -6,7 +6,7 @@ import { mountNotch } from './notch/view';
 
 async function start(): Promise<void> {
   const root = document.getElementById('notch-root')!;
-  const bridge = browserBridge(root);
+  const bridge = '__TAURI_INTERNALS__' in window ? tauriBridge() : browserBridge(root);
   const info = await bridge.screenInfo();
 
   const c = new NotchController({
