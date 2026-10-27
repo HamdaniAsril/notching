@@ -5,6 +5,8 @@ mod commands;
 #[cfg(target_os = "macos")]
 mod overlay;
 #[cfg(target_os = "macos")]
+mod pointer;
+#[cfg(target_os = "macos")]
 mod screens;
 
 #[cfg(target_os = "macos")]
@@ -24,6 +26,7 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             overlay::rebuild_overlays(app.handle())?;
             screens::watch_screen_changes(app.handle().clone());
+            pointer::start_pointer_monitor(app.handle().clone());
             Ok(())
         })
         .build(tauri::generate_context!())

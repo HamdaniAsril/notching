@@ -1,7 +1,7 @@
 import { browserBridge, tauriBridge } from './bridge';
 import { DEFAULT_CONFIG } from './notch/config';
+import { connect } from './notch/connect';
 import { NotchController, PLACEHOLDER_CARD } from './notch/controller';
-import { OVERLAY_SIZE } from './notch/hit';
 import { mountNotch } from './notch/view';
 
 async function start(): Promise<void> {
@@ -18,21 +18,11 @@ async function start(): Promise<void> {
       return () => clearTimeout(id);
     },
   });
+  const h = connect(c, bridge, () => view.kick());
   const view = mountNotch(root, c, {
     raf: cb => requestAnimationFrame(cb),
     caf: id => cancelAnimationFrame(id),
-    onHitRects: rects => void bridge.setHitRects(rects),
-    onPhase: () => {},
-    onQuit: () => void bridge.quit(),
-  });
-
-  bridge.onPointer(p => {
-    c.pointer(p.inside, p.x - OVERLAY_SIZE.w / 2);
-    view.kick();
-  });
-  bridge.onResignKey(() => {
-    c.resignKey();
-    view.kick();
+    ...h,
   });
   view.kick();
 }

@@ -1,11 +1,17 @@
 //! One transparent notch panel per screen (main thread only).
 
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ptr::NonNull;
 use std::sync::Mutex;
 
+use block2::RcBlock;
+use objc2::rc::Retained;
+use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2::MainThreadMarker;
-use objc2_foundation::{NSPoint, NSRect, NSSize};
-use tauri::{AppHandle, LogicalSize, Manager, Size, WebviewUrl};
+use objc2_app_kit::NSWindowDidResignKeyNotification;
+use objc2_foundation::{NSNotification, NSNotificationCenter, NSObjectProtocol, NSOperationQueue, NSPoint, NSRect, NSSize};
+use tauri::{AppHandle, Emitter, EventTarget, LogicalSize, Manager, Size, WebviewUrl};
 use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask};
 
 use crate::geometry::{overlay_frame, Rect, OVERLAY_H, OVERLAY_W};
@@ -33,6 +39,12 @@ pub struct OverlayEntry {
 /// Live overlays by window label.
 #[derive(Default)]
 pub struct Overlays(pub Mutex<HashMap<String, OverlayEntry>>);
+
+thread_local! {
+    // One resign-key observer per panel; panels live as long as the app.
+    static RESIGN_OBSERVERS: RefCell<Vec<Retained<ProtocolObject<dyn NSObjectProtocol>>>> =
+        const { RefCell::new(Vec::new()) };
+}
 
 /// What to do with the panel "notch-{index}" for a screen.
 #[derive(Debug, PartialEq)]
@@ -137,7 +149,28 @@ fn create_panel(app: &AppHandle, label: &str, frame: Rect) -> tauri::Result<()> 
         .build()?;
 
     place(&*panel, frame);
+    watch_resign_key(app, label, panel.as_panel());
     Ok(())
+}
+
+// Tells the panel's page when it loses key status (a click outside it), so the
+// panel closes. A notification observer rather than tauri-nspanel's panel_event!
+// handler, which would replace Tauri's own window delegate.
+fn watch_resign_key(app: &AppHandle, label: &str, window: &objc2_app_kit::NSPanel) {
+    let app = app.clone();
+    let label = label.to_string();
+    let block = RcBlock::new(move |_: NonNull<NSNotification>| {
+        let _ = app.emit_to(EventTarget::webview_window(&label), "notch://resign-key", ());
+    });
+    let observer = unsafe {
+        NSNotificationCenter::defaultCenter().addObserverForName_object_queue_usingBlock(
+            Some(NSWindowDidResignKeyNotification),
+            Some(window as &AnyObject),
+            Some(&NSOperationQueue::mainQueue()),
+            &block,
+        )
+    };
+    RESIGN_OBSERVERS.with(|o| o.borrow_mut().push(observer));
 }
 
 pub fn set_mouse_passthrough(app: &AppHandle, label: &str, passthrough: bool) {

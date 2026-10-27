@@ -1,4 +1,5 @@
 import { beforeEach, vi } from 'vitest';
+import type { Bridge, PointerUpdate } from '../bridge';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { NotchController, PLACEHOLDER_CARD } from './controller';
 import type { NotchSize } from './shape';
@@ -71,4 +72,21 @@ export function fakeRaf() {
 
 export function deps(r: ReturnType<typeof fakeRaf>): ViewDeps {
   return { raf: r.raf, caf: r.caf, onHitRects: vi.fn(), onPhase: vi.fn(), onQuit: vi.fn() };
+}
+
+// Bridge whose methods are mocks; emit* plays the native side's events.
+export function fakeBridge() {
+  const pointer = new Set<(p: PointerUpdate) => void>();
+  const resign = new Set<() => void>();
+  const bridge = {
+    screenInfo: vi.fn(async () => ({ label: 'test', hasNotch: false, notchWidth: 0, notchHeight: 0 })),
+    setHitRects: vi.fn(async () => {}),
+    setPanelKey: vi.fn(async () => {}),
+    onPointer: vi.fn((cb: (p: PointerUpdate) => void) => { pointer.add(cb); return () => { pointer.delete(cb); }; }),
+    onResignKey: vi.fn((cb: () => void) => { resign.add(cb); return () => { resign.delete(cb); }; }),
+    quit: vi.fn(async () => {}),
+    emitPointer: (p: PointerUpdate) => pointer.forEach(cb => cb(p)),
+    emitResignKey: () => resign.forEach(cb => cb()),
+  };
+  return bridge satisfies Bridge;
 }
