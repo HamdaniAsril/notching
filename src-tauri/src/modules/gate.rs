@@ -1,0 +1,119 @@
+//! The capability gate: a module may use only what its manifest declares (spec 6).
+
+use super::manifest::Capability;
+use super::store::ModuleEntry;
+
+/// A capability call the gate let through.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Call {
+    SystemStatsRead,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CallError {
+    UnknownModule(String),
+    ModuleOff(String),
+    UnknownCapability(String),
+    NotDeclared { module: String, capability: String },
+    UnknownMethod(String),
+    Failed(String),
+}
+
+// Sent to the module as is.
+impl std::fmt::Display for CallError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CallError::UnknownModule(id) => write!(f, "unknown module {id}"),
+            CallError::ModuleOff(id) => write!(f, "module {id} is switched off"),
+            CallError::UnknownCapability(cap) => write!(f, "unknown capability {cap}"),
+            CallError::NotDeclared { module, capability } => write!(f, "module {module} did not declare {capability}"),
+            CallError::UnknownMethod(method) => write!(f, "unknown method {method}"),
+            CallError::Failed(why) => write!(f, "{why}"),
+        }
+    }
+}
+
+pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str, method: &str) -> Result<Call, CallError> {
+    let module = module.ok_or_else(|| CallError::UnknownModule(module_id.to_string()))?;
+    if !module.enabled {
+        return Err(CallError::ModuleOff(module_id.to_string()));
+    }
+    // Same names as in manifest.json.
+    let cap: Capability = serde_json::from_value(serde_json::Value::String(capability.to_string()))
+        .map_err(|_| CallError::UnknownCapability(capability.to_string()))?;
+    if !module.manifest.capabilities.contains(&cap) {
+        return Err(CallError::NotDeclared { module: module_id.to_string(), capability: capability.to_string() });
+    }
+    match (cap, method) {
+        (Capability::SystemStats, "read") => Ok(Call::SystemStatsRead),
+        _ => Err(CallError::UnknownMethod(method.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::modules::manifest::{CardSize, Manifest};
+
+    fn entry(id: &str, caps: &[Capability], enabled: bool) -> ModuleEntry {
+        ModuleEntry {
+            manifest: Manifest {
+                id: id.into(),
+                version: "1.0.0".into(),
+                entry: "index.html".into(),
+                icon: "icon.svg".into(),
+                card: CardSize { width: 400, height: 90 },
+                permissions: vec![],
+                capabilities: caps.to_vec(),
+            },
+            name: id.into(),
+            description: String::new(),
+            installed: true,
+            enabled,
+        }
+    }
+
+    #[test]
+    fn a_declared_capability_is_allowed() {
+        let m = entry("system-stat", &[Capability::SystemStats], true);
+        assert_eq!(authorize(Some(&m), "system-stat", "system.stats", "read"), Ok(Call::SystemStatsRead));
+    }
+
+    #[test]
+    fn an_undeclared_capability_is_refused() {
+        let m = entry("home", &[], true);
+        assert_eq!(
+            authorize(Some(&m), "home", "system.stats", "read"),
+            Err(CallError::NotDeclared { module: "home".into(), capability: "system.stats".into() })
+        );
+    }
+
+    #[test]
+    fn switched_off_or_unknown_modules_are_refused() {
+        assert_eq!(authorize(None, "zzz", "system.stats", "read"), Err(CallError::UnknownModule("zzz".into())));
+        let off = entry("system-stat", &[Capability::SystemStats], false);
+        assert_eq!(
+            authorize(Some(&off), "system-stat", "system.stats", "read"),
+            Err(CallError::ModuleOff("system-stat".into()))
+        );
+    }
+
+    #[test]
+    fn unknown_capabilities_and_methods_are_refused() {
+        let m = entry("system-stat", &[Capability::SystemStats], true);
+        assert_eq!(
+            authorize(Some(&m), "system-stat", "keyboard.lock", "lock"),
+            Err(CallError::UnknownCapability("keyboard.lock".into()))
+        );
+        assert_eq!(
+            authorize(Some(&m), "system-stat", "system.stats", "write"),
+            Err(CallError::UnknownMethod("write".into()))
+        );
+    }
+
+    #[test]
+    fn errors_read_as_plain_sentences() {
+        let e = CallError::NotDeclared { module: "home".into(), capability: "system.stats".into() };
+        assert_eq!(e.to_string(), "module home did not declare system.stats");
+    }
+}

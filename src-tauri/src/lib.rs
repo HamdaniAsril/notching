@@ -2,6 +2,7 @@ mod geometry;
 mod locale;
 mod modules;
 mod settings;
+mod system_stats;
 
 #[cfg(target_os = "macos")]
 mod commands;
