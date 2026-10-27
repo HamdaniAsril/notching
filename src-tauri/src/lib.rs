@@ -1,4 +1,6 @@
 mod geometry;
+mod locale;
+mod settings;
 
 #[cfg(target_os = "macos")]
 mod commands;
