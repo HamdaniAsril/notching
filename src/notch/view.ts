@@ -56,8 +56,10 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   let lastRects = '';
   let lastPhase = c.phase;
 
+  // Layout box, not getBoundingClientRect(): the entrance animation scales the pill.
+  // offsetLeft ignores the translateX(-50%) that centres it, so subtract half the width.
   function pillRect(): Rect {
-    return { x: pill.offsetLeft, y: pill.offsetTop, w: pill.offsetWidth, h: pill.offsetHeight };
+    return { x: pill.offsetLeft - pill.offsetWidth / 2, y: pill.offsetTop, w: pill.offsetWidth, h: pill.offsetHeight };
   }
 
   function draw(): void {
