@@ -1,0 +1,9 @@
+{
+  "id": "home",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "card": { "width": 540, "height": 72 },
+  "permissions": [],
+  "capabilities": []
+}

@@ -1,5 +1,6 @@
 mod geometry;
 mod locale;
+mod modules;
 mod settings;
 
 #[cfg(target_os = "macos")]

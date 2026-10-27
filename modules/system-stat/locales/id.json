@@ -1,0 +1,7 @@
+{
+  "name": "System stat",
+  "description": "CPU, memori, jaringan",
+  "cpu": "CPU",
+  "memory": "Memori",
+  "network": "Jaringan"
+}

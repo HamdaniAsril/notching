@@ -1,0 +1,310 @@
+//! The module catalog: original packages in the app bundle, installed copies in
+//! the active folder.
+
+use std::path::{Path, PathBuf};
+
+use super::manifest::{parse_manifest, Manifest};
+use crate::locale::Lang;
+use crate::settings::Settings;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ModuleEntry {
+    pub manifest: Manifest,
+    pub name: String,
+    pub description: String,
+    pub installed: bool,
+    pub enabled: bool,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum StoreError {
+    UnknownModule(String),
+    Io(String),
+}
+
+impl std::fmt::Display for StoreError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StoreError::UnknownModule(id) => write!(f, "unknown module {id}"),
+            StoreError::Io(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+fn io(e: std::io::Error) -> StoreError {
+    StoreError::Io(e.to_string())
+}
+
+pub struct ModuleStore {
+    bundle_dir: PathBuf,
+    active_dir: PathBuf,
+}
+
+impl ModuleStore {
+    pub fn new(bundle_dir: PathBuf, active_dir: PathBuf) -> Self {
+        ModuleStore { bundle_dir, active_dir }
+    }
+
+    pub fn active_dir(&self) -> &Path {
+        &self.active_dir
+    }
+
+    /// Module ids in catalog order (index.json in the bundle). Missing or broken: none.
+    pub fn catalog(&self) -> Vec<String> {
+        std::fs::read_to_string(self.bundle_dir.join("index.json"))
+            .ok()
+            .and_then(|text| serde_json::from_str(&text).ok())
+            .unwrap_or_default()
+    }
+
+    /// Replaces the active copy of every installed module with the bundle's, so
+    /// modules update with the app (spec 6), and removes uninstalled ones.
+    pub fn sync(&self, settings: &Settings) -> Vec<StoreError> {
+        let mut errors = Vec::new();
+        for id in self.catalog() {
+            let result = if settings.uninstalled_modules.contains(&id) {
+                remove_dir(&self.active_dir.join(&id))
+            } else {
+                self.copy_in(&id)
+            };
+            if let Err(e) = result {
+                eprintln!("notching: syncing module {id} failed: {e}");
+                errors.push(e);
+            }
+        }
+        errors
+    }
+
+    /// Every catalog module whose bundled manifest is valid, in catalog order.
+    /// Uninstalled modules are listed too, so they can be installed again.
+    pub fn list(&self, settings: &Settings, lang: Lang) -> Vec<ModuleEntry> {
+        self.catalog()
+            .into_iter()
+            .filter_map(|id| {
+                let dir = self.bundle_dir.join(&id);
+                let json = std::fs::read_to_string(dir.join("manifest.json")).ok()?;
+                let manifest = match parse_manifest(&json, &id) {
+                    Ok(m) => m,
+                    Err(e) => {
+                        eprintln!("notching: module {id} left out: {e:?}");
+                        return None;
+                    }
+                };
+                let file = match lang {
+                    Lang::Id => "locales/id.json",
+                    Lang::En => "locales/en.json",
+                };
+                let text: serde_json::Value = std::fs::read_to_string(dir.join(file))
+                    .ok()
+                    .and_then(|t| serde_json::from_str(&t).ok())
+                    .unwrap_or_default();
+                let name = text["name"].as_str().unwrap_or(&id).to_string();
+                let description = text["description"].as_str().unwrap_or("").to_string();
+                let installed = !settings.uninstalled_modules.contains(&id);
+                let enabled = installed && !settings.disabled_modules.contains(&id);
+                Some(ModuleEntry { manifest, name, description, installed, enabled })
+            })
+            .collect()
+    }
+
+    pub fn set_enabled(&self, id: &str, enabled: bool, settings: &mut Settings) -> Result<(), StoreError> {
+        self.known(id)?;
+        settings.disabled_modules.retain(|m| m != id);
+        if !enabled {
+            settings.disabled_modules.push(id.to_string());
+        }
+        Ok(())
+    }
+
+    /// Deletes the active copy; the original stays in the bundle.
+    pub fn uninstall(&self, id: &str, settings: &mut Settings) -> Result<(), StoreError> {
+        self.known(id)?;
+        remove_dir(&self.active_dir.join(id))?;
+        if !settings.uninstalled_modules.iter().any(|m| m == id) {
+            settings.uninstalled_modules.push(id.to_string());
+        }
+        Ok(())
+    }
+
+    /// Copies the module back from the bundle and switches it on.
+    pub fn reinstall(&self, id: &str, settings: &mut Settings) -> Result<(), StoreError> {
+        self.known(id)?;
+        self.copy_in(id)?;
+        settings.uninstalled_modules.retain(|m| m != id);
+        settings.disabled_modules.retain(|m| m != id);
+        Ok(())
+    }
+
+    fn known(&self, id: &str) -> Result<(), StoreError> {
+        if self.catalog().iter().any(|m| m == id) {
+            Ok(())
+        } else {
+            Err(StoreError::UnknownModule(id.to_string()))
+        }
+    }
+
+    // Copies to a temporary folder first, then swaps it in.
+    fn copy_in(&self, id: &str) -> Result<(), StoreError> {
+        let tmp = self.active_dir.join(format!(".{id}.tmp"));
+        let target = self.active_dir.join(id);
+        remove_dir(&tmp)?;
+        copy_dir(&self.bundle_dir.join(id), &tmp).map_err(io)?;
+        remove_dir(&target)?;
+        std::fs::rename(&tmp, &target).map_err(io)
+    }
+}
+
+fn remove_dir(dir: &Path) -> Result<(), StoreError> {
+    match std::fs::remove_dir_all(dir) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(io(e)),
+        _ => Ok(()),
+    }
+}
+
+fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let dest = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_dir(&entry.path(), &dest)?;
+        } else {
+            std::fs::copy(entry.path(), dest)?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+pub(crate) fn fake_bundle(dir: &std::path::Path) {
+    std::fs::create_dir_all(dir).unwrap();
+    std::fs::write(dir.join("index.json"), r#"["a","b"]"#).unwrap();
+    for (id, upper) in [("a", "A"), ("b", "B")] {
+        let m = dir.join(id);
+        std::fs::create_dir_all(m.join("locales")).unwrap();
+        std::fs::write(
+            m.join("manifest.json"),
+            format!(
+                r#"{{"id":"{id}","version":"1.0.0","entry":"index.html","icon":"icon.svg",
+                   "card":{{"width":400,"height":90}},"permissions":[],"capabilities":[]}}"#
+            ),
+        )
+        .unwrap();
+        std::fs::write(m.join("index.html"), "v1").unwrap();
+        std::fs::write(m.join("icon.svg"), "<svg/>").unwrap();
+        std::fs::write(
+            m.join("locales/id.json"),
+            format!(r#"{{"name":"Modul {upper}","description":"Isi {upper}"}}"#),
+        )
+        .unwrap();
+        std::fs::write(
+            m.join("locales/en.json"),
+            format!(r#"{{"name":"Module {upper}","description":"About {upper}"}}"#),
+        )
+        .unwrap();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::locale::Lang;
+    use crate::settings::Settings;
+
+    fn setup() -> (tempfile::TempDir, ModuleStore) {
+        let d = tempfile::tempdir().unwrap();
+        fake_bundle(&d.path().join("bundle"));
+        let store = ModuleStore::new(d.path().join("bundle"), d.path().join("active"));
+        (d, store)
+    }
+
+    fn names(store: &ModuleStore, s: &Settings, lang: Lang) -> Vec<String> {
+        store.list(s, lang).into_iter().map(|e| e.name).collect()
+    }
+
+    #[test]
+    fn sync_copies_installed_modules_and_skips_uninstalled() {
+        let (d, store) = setup();
+        let s = Settings { uninstalled_modules: vec!["b".into()], ..Default::default() };
+        assert!(store.sync(&s).is_empty());
+        assert!(d.path().join("active/a/index.html").exists());
+        assert!(!d.path().join("active/b").exists());
+    }
+
+    #[test]
+    fn sync_replaces_old_copies() {
+        let (d, store) = setup();
+        let a = d.path().join("active/a");
+        std::fs::create_dir_all(&a).unwrap();
+        std::fs::write(a.join("index.html"), "old").unwrap();
+        std::fs::write(a.join("stale.js"), "x").unwrap();
+        store.sync(&Settings::default());
+        assert_eq!(std::fs::read_to_string(a.join("index.html")).unwrap(), "v1");
+        assert!(!a.join("stale.js").exists());
+    }
+
+    #[test]
+    fn uninstall_removes_the_active_copy_but_not_the_original() {
+        let (d, store) = setup();
+        let mut s = Settings::default();
+        store.sync(&s);
+        store.uninstall("a", &mut s).unwrap();
+        assert!(!d.path().join("active/a").exists());
+        assert!(d.path().join("bundle/a/index.html").exists());
+        assert_eq!(s.uninstalled_modules, vec!["a".to_string()]);
+        // Synced again later (next launch): stays uninstalled.
+        store.sync(&s);
+        assert!(!d.path().join("active/a").exists());
+    }
+
+    #[test]
+    fn reinstall_brings_it_back_switched_on() {
+        let (d, store) = setup();
+        let mut s = Settings::default();
+        store.sync(&s);
+        store.set_enabled("a", false, &mut s).unwrap();
+        store.uninstall("a", &mut s).unwrap();
+        store.reinstall("a", &mut s).unwrap();
+        assert!(s.uninstalled_modules.is_empty() && s.disabled_modules.is_empty());
+        assert!(d.path().join("active/a/index.html").exists());
+    }
+
+    #[test]
+    fn switching_off_keeps_the_files() {
+        let (d, store) = setup();
+        let mut s = Settings::default();
+        store.sync(&s);
+        store.set_enabled("a", false, &mut s).unwrap();
+        assert!(d.path().join("active/a/index.html").exists());
+        let a = &store.list(&s, Lang::Id)[0];
+        assert!(a.installed && !a.enabled);
+    }
+
+    #[test]
+    fn unknown_ids_are_refused() {
+        let (_d, store) = setup();
+        let mut s = Settings::default();
+        assert_eq!(store.set_enabled("zzz", false, &mut s), Err(StoreError::UnknownModule("zzz".into())));
+        assert_eq!(store.uninstall("zzz", &mut s), Err(StoreError::UnknownModule("zzz".into())));
+        assert_eq!(store.reinstall("zzz", &mut s), Err(StoreError::UnknownModule("zzz".into())));
+    }
+
+    #[test]
+    fn list_follows_the_catalog_in_the_chosen_language() {
+        let (_d, store) = setup();
+        let s = Settings::default();
+        assert_eq!(names(&store, &s, Lang::Id), ["Modul A", "Modul B"]);
+        assert_eq!(names(&store, &s, Lang::En), ["Module A", "Module B"]);
+        let s = Settings { uninstalled_modules: vec!["b".into()], ..Default::default() };
+        let b = &store.list(&s, Lang::En)[1];
+        assert!(!b.installed && !b.enabled);
+        assert_eq!(b.description, "About B");
+    }
+
+    #[test]
+    fn a_module_with_a_broken_manifest_is_left_out() {
+        let (d, store) = setup();
+        std::fs::write(d.path().join("bundle/b/manifest.json"), "{").unwrap();
+        assert_eq!(names(&store, &Settings::default(), Lang::Id), ["Modul A"]);
+    }
+}
