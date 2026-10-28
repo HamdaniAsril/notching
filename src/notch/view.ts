@@ -81,8 +81,9 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     liquid.setAttribute('d', notch ? notchPath(notch, m) : lensPath(m));
     panel.setAttribute('d', c.panelVisible ? panelPath(s.pw.x, s.ph.x) : '');
     setStyle(content, 'width', `${c.panelSize().w}px`);
-    // The pill rides the panel's live height, so it follows a card change.
-    if (c.panelVisible) setStyle(pill, 'top', `${Math.round(s.ph.x) + 10}px`);
+    // Under the panel's final height, like the mockups, so it does not ride the
+    // opening bounce; a card change slides it there (CSS transition on top).
+    setStyle(pill, 'top', `${c.panelSize().h + 10}px`);
     content.classList.toggle('show', c.contentVisible);
     pill.classList.toggle('show', c.pillVisible);
   }

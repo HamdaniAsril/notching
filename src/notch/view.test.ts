@@ -112,3 +112,21 @@ test('the pill and the content area follow the card size', () => {
   expect(pill.style.top).toBe('144px');
   expect(v.content.style.width).toBe('500px');
 });
+
+test('the pill stays put while the opening panel settles', () => {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  const c = ctl(null);
+  const v = mountNotch(root, c, deps(r));
+  const pill = root.querySelector<HTMLElement>('.notch-pill')!;
+  c.click();
+  v.kick();
+  const tops = new Set<string>();
+  for (let i = 0; i < 600 && r.pending() > 0; i++) {
+    r.runAll(1);
+    if (c.pillVisible) tops.add(pill.style.top);
+    timers.advance(1000 / 60);
+  }
+  expect(c.pillVisible).toBe(true);
+  expect([...tops]).toEqual(['134px']);
+});
