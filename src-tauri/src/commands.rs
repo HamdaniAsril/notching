@@ -29,15 +29,19 @@ pub fn get_screen_info(window: WebviewWindow, overlays: State<Overlays>) -> Resu
     })
 }
 
-/// Also reroutes the cursor at once, so click-through follows a hit area that grows
-/// or shrinks under a still cursor.
+/// Moves the sensors to the new hit areas and reroutes the cursor at once, so
+/// click-through follows a hit area that grows or shrinks under a still cursor.
 #[tauri::command]
 pub fn set_hit_rects(app: AppHandle, window: WebviewWindow, overlays: State<Overlays>, rects: Vec<Rect>) {
-    if let Some(entry) = overlays.0.lock().unwrap().get_mut(window.label()) {
+    let label = window.label().to_string();
+    if let Some(entry) = overlays.0.lock().unwrap().get_mut(&label) {
         entry.css_rects = rects;
     }
     let handle = app.clone();
-    let _ = app.run_on_main_thread(move || crate::pointer::reroute_now(&handle));
+    let _ = app.run_on_main_thread(move || {
+        crate::sensor::sync(&handle, &label);
+        crate::pointer::reroute_now(&handle);
+    });
 }
 
 /// `true` makes the panel key so it gets Esc; `false` hands key status back to the

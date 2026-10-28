@@ -9,7 +9,7 @@ use block2::RcBlock;
 use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2::MainThreadMarker;
-use objc2_app_kit::NSWindowDidResignKeyNotification;
+use objc2_app_kit::{NSWindowAnimationBehavior, NSWindowDidResignKeyNotification};
 use objc2_foundation::{NSNotification, NSNotificationCenter, NSObjectProtocol, NSOperationQueue, NSPoint, NSRect, NSSize};
 use tauri::{AppHandle, Emitter, EventTarget, LogicalSize, Manager, Size, WebviewUrl};
 use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask};
@@ -82,36 +82,46 @@ fn apply_screens(app: &AppHandle, screens: Vec<ScreenInfo>) -> tauri::Result<()>
 
     for screen in screens {
         let label = format!("notch-{}", screen.index);
-        let frame = overlay_frame(screen.frame);
-        let panel = app.get_webview_panel(&label).ok();
-        let before = previous.remove(&label);
-        let mut css_rects = Vec::new();
-        match slot_action(panel.is_some(), before.as_ref().map(|e| &e.screen), &screen) {
-            SlotAction::Create => create_panel(app, &label, frame)?,
-            SlotAction::Keep => css_rects = before.map(|e| e.css_rects).unwrap_or_default(),
-            SlotAction::Refresh => {
-                let panel = panel.expect("Refresh implies an existing panel");
-                // Ordering out and in again also hands key status back if the panel had it.
-                panel.hide();
-                place(&*panel, frame);
-                if let Some(window) = app.get_webview_window(&label) {
-                    window.reload()?;
-                }
-            }
+        // A screen that fails is skipped, not the rest after it.
+        if let Err(e) = place_screen(app, &label, screen, previous.remove(&label)) {
+            eprintln!("notching: overlay {label} failed: {e}");
         }
-        overlays
-            .0
-            .lock()
-            .unwrap()
-            .insert(label, OverlayEntry { screen, frame, css_rects });
+        crate::sensor::sync(app, &label);
     }
 
-    // Screens that went away: park their panels.
+    // Screens that went away: park their panels and sensors.
     for label in previous.into_keys() {
         if let Ok(panel) = app.get_webview_panel(&label) {
             panel.hide();
         }
+        crate::sensor::sync(app, &label);
     }
+    Ok(())
+}
+
+fn place_screen(app: &AppHandle, label: &str, screen: ScreenInfo, before: Option<OverlayEntry>) -> tauri::Result<()> {
+    let overlays = app.state::<Overlays>();
+    let frame = overlay_frame(screen.frame);
+    let panel = app.get_webview_panel(label).ok();
+    let mut css_rects = Vec::new();
+    match slot_action(panel.is_some(), before.as_ref().map(|e| &e.screen), &screen) {
+        SlotAction::Create => create_panel(app, label, frame)?,
+        SlotAction::Keep => css_rects = before.map(|e| e.css_rects).unwrap_or_default(),
+        SlotAction::Refresh => {
+            let panel = panel.expect("Refresh implies an existing panel");
+            // Ordering out and in again also hands key status back if the panel had it.
+            panel.hide();
+            place(&*panel, frame);
+            if let Some(window) = app.get_webview_window(label) {
+                window.reload()?;
+            }
+        }
+    }
+    overlays
+        .0
+        .lock()
+        .unwrap()
+        .insert(label.to_string(), OverlayEntry { screen, frame, css_rects });
     Ok(())
 }
 
@@ -137,7 +147,9 @@ fn create_panel(app: &AppHandle, label: &str, frame: Rect) -> tauri::Result<()> 
         .has_shadow(false)
         .no_activate(true)
         .hides_on_deactivate(false)
-        .accepts_mouse_moved_events(true)
+        // Off until the cursor reaches a notch (pointer.rs), or AppKit hands
+        // this window every mouse move on the screen.
+        .accepts_mouse_moved_events(false)
         .with_window(|w| {
             w.accept_first_mouse(true)
                 .transparent(true)
@@ -148,6 +160,9 @@ fn create_panel(app: &AppHandle, label: &str, frame: Rect) -> tauri::Result<()> 
         })
         .build()?;
 
+    // Closing the panel orders it out and in again to hand key status back; without
+    // this, AppKit animates that re-show and the panel's top edge visibly dips.
+    panel.as_panel().setAnimationBehavior(NSWindowAnimationBehavior::None);
     place(&*panel, frame);
     watch_resign_key(app, label, panel.as_panel());
     Ok(())
@@ -171,6 +186,15 @@ fn watch_resign_key(app: &AppHandle, label: &str, window: &objc2_app_kit::NSPane
         )
     };
     RESIGN_OBSERVERS.with(|o| o.borrow_mut().push(observer));
+}
+
+/// Lets the overlays receive mouse moves, only while the cursor is inside a notch.
+pub fn set_mouse_moved_events(app: &AppHandle, on: bool) {
+    for label in app.state::<Overlays>().0.lock().unwrap().keys() {
+        if let Ok(panel) = app.get_webview_panel(label) {
+            panel.set_accepts_mouse_moved_events(on);
+        }
+    }
 }
 
 pub fn set_mouse_passthrough(app: &AppHandle, label: &str, passthrough: bool) {

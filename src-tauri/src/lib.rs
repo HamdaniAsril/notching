@@ -14,6 +14,8 @@ mod overlay;
 mod pointer;
 #[cfg(target_os = "macos")]
 mod screens;
+#[cfg(target_os = "macos")]
+mod sensor;
 
 #[cfg(target_os = "macos")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -57,6 +59,7 @@ pub fn run() {
             app.manage(app_core::StatsState(std::sync::Mutex::new(system_stats::SystemStats::new())));
             overlay::rebuild_overlays(app.handle())?;
             screens::watch_screen_changes(app.handle().clone());
+            sensor::init(app.handle());
             pointer::start_pointer_monitor(app.handle().clone());
             Ok(())
         })
