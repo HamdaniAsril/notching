@@ -92,6 +92,11 @@ pub struct PointerRouter {
 }
 
 impl PointerRouter {
+    /// True while the cursor is inside some overlay's hit area.
+    pub fn any_inside(&self) -> bool {
+        self.inside.values().any(|&inside| inside)
+    }
+
     pub fn route(&mut self, overlays: &[OverlayHit], px: f64, py: f64) -> Vec<PointerRoute> {
         self.inside.retain(|label, _| overlays.iter().any(|o| &o.label == label));
         let mut out = Vec::new();
@@ -176,5 +181,16 @@ mod tests {
         let o = vec![hit("notch-0")];
         let out = r.route(&o, 735.0, 956.0);
         assert_eq!((out[0].inside, out[0].y), (true, 0.0));
+    }
+
+    #[test]
+    fn router_knows_when_the_cursor_left_every_overlay() {
+        let mut r = PointerRouter::default();
+        let o = vec![hit("notch-0")];
+        assert!(!r.any_inside());
+        r.route(&o, 735.0, 940.0);
+        assert!(r.any_inside());
+        r.route(&o, 100.0, 100.0);
+        assert!(!r.any_inside());
     }
 }
