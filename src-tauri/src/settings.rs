@@ -5,10 +5,13 @@ use std::path::Path;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LanguageSetting {
-    #[default]
-    Auto,
     Id,
     En,
+    // A value this version does not know (a newer app, a hand edit) reads as Auto,
+    // so it never costs the rest of the file. serde wants it last.
+    #[default]
+    #[serde(other)]
+    Auto,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -117,5 +120,17 @@ mod tests {
         let p = d.path().join(SETTINGS_FILE);
         std::fs::write(&p, r#"{"language":"en","future":1}"#).unwrap();
         assert_eq!(load_settings(&p), Settings { language: LanguageSetting::En, ..Default::default() });
+    }
+
+    #[test]
+    fn an_unknown_value_keeps_the_rest() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        std::fs::write(&p, r#"{"language":"ja","lastCard":"system-stat","disabledModules":["home"]}"#).unwrap();
+        let s = load_settings(&p);
+        assert_eq!(s.language, LanguageSetting::Auto);
+        assert_eq!(s.last_card, Some("system-stat".into()));
+        assert_eq!(s.disabled_modules, vec!["home".to_string()]);
+        assert!(!d.path().join("settings.json.broken").exists());
     }
 }
