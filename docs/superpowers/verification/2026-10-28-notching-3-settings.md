@@ -48,6 +48,11 @@ Tampilan dan teks semua halaman dinilai pemilik lewat pratinjau browser sebelum 
 ## Temuan dan catatan
 
 - **Tidak ada perbaikan selama cek di perangkat.** Semua poin lulus pada percobaan pertama.
+- **Pemeriksaan akhir kode** menemukan dua hal yang tidak tertangkap cek di perangkat, dan keduanya sudah diperbaiki dengan test:
+  - Dua klik ⋯ yang sangat cepat bisa menghilangkan ikon Dock padahal jendela tetap terbuka.
+  - Menahan tombol panah di slider membuat nilainya mundur sesaat dan bisa melewatkan satu langkah.
+  - Sesudah perbaikan: `npm test` 153 lulus, `cargo test` 70 lulus.
+  - `/Applications/Notching.app` yang dicoba pemilik dibangun sebelum perbaikan ini.
 - **Ikon Dock** masih ikon bawaan dari kerangka Tauri, sampai logo Notching dibuat.
 - **Buka saat login dan build baru.** App ini ditandatangani lokal, jadi macOS bisa menganggap setiap build baru sebagai app berbeda. Setelah Notching diperbarui, tombol ini mungkin perlu dinyalakan ulang. Ini terkait keputusan tanda tangan digital di spec bagian 9.
 - **Pratinjau notch di jendela pengaturan** berhenti beranimasi kalau jendelanya tersembunyi di balik app lain. Ini perilaku normal WebKit dan sejalan dengan aturan hemat daya.
