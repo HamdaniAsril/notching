@@ -192,7 +192,15 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
     render();
   });
   doc.addEventListener('keydown', onKey);
-  const offState = bridge.onModuleState(next => { state = next; render(); });
+  // The Look page already shows the values it just saved; rebuilding it for their
+  // echo would put a slider back one step while an arrow key is held down.
+  const onlyNotchChanged = (a: ModuleState, b: ModuleState) =>
+    JSON.stringify({ ...a, notch: null }) === JSON.stringify({ ...b, notch: null });
+  const offState = bridge.onModuleState(next => {
+    const echo = route.page === 'look' && !searchInput.value.trim() && onlyNotchChanged(state, next);
+    state = next;
+    if (!echo) render();
+  });
   const offInfo = bridge.onSettings(next => { info = next; render(); });
   render();
 

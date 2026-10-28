@@ -55,3 +55,15 @@ test('thickness says it only shows without a notch', async () => {
   app.go({ page: 'look' });
   expect(root.querySelector('[data-row="look.thickness"]')!.textContent).toContain('Hanya terlihat di layar tanpa notch.');
 });
+
+test('holding an arrow key never jumps back or drops a step', async () => {
+  const { root, app, bridge } = await mountForTest({ ...TEST_STATE, notch: { ...DEFAULT_CONFIG, bounce: 50 } });
+  app.go({ page: 'look' });
+  const bounce = () => root.querySelector<HTMLInputElement>('input[data-key="look.bounce"]')!;
+  slide(bounce(), '51', 'change');
+  slide(bounce(), '52', 'change');
+  bridge.emitModuleState({ ...TEST_STATE, notch: { ...DEFAULT_CONFIG, bounce: 51 } });
+  expect(bounce().value).toBe('52');
+  slide(bounce(), '53', 'change');
+  expect(bridge.setNotchConfig).toHaveBeenLastCalledWith({ ...DEFAULT_CONFIG, bounce: 53 });
+});

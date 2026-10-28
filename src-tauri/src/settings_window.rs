@@ -18,6 +18,16 @@ pub const SETTINGS_LABEL: &str = "settings";
 pub const SETTINGS_EVENT: &str = "notching://settings";
 pub const SETTINGS_SIZE: (f64, f64) = (680.0, 600.0);
 
+// Two ⋯ clicks close together must not both build the window: the second build
+// fails, and its clean-up would take the Dock icon from the open window. The
+// main thread never takes this lock.
+static OPENING: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// A build that failed because another one won leaves that window's Dock icon.
+fn hide_dock_icon_after_failed_build(settings_window_open: bool) -> bool {
+    !settings_window_open
+}
+
 /// Open at login, as macOS reports it. Same values as LoginItem in src/settings/types.ts.
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -98,7 +108,9 @@ pub fn set_screen(app: AppHandle, core: State<CoreState>, name: Option<String>) 
 /// synchronous command can deadlock.
 #[tauri::command]
 pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    let _opening = OPENING.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(existing) = app.get_webview_window(SETTINGS_LABEL) {
+        let _ = app.set_activation_policy(ActivationPolicy::Regular);
         let _ = existing.unminimize();
         existing.show().map_err(|e| e.to_string())?;
         return existing.set_focus().map_err(|e| e.to_string());
@@ -126,7 +138,9 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
     let settings = match builder.build() {
         Ok(win) => win,
         Err(e) => {
-            let _ = app.set_activation_policy(ActivationPolicy::Accessory);
+            if hide_dock_icon_after_failed_build(app.get_webview_window(SETTINGS_LABEL).is_some()) {
+                let _ = app.set_activation_policy(ActivationPolicy::Accessory);
+            }
             return Err(e.to_string());
         }
     };
@@ -150,4 +164,15 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
         .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_failed_second_open_keeps_the_dock_icon() {
+        assert!(!hide_dock_icon_after_failed_build(true));
+        assert!(hide_dock_icon_after_failed_build(false));
+    }
 }
