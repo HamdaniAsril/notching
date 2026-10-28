@@ -1,5 +1,7 @@
+mod app_core;
 mod geometry;
 mod locale;
+mod module_commands;
 mod modules;
 mod settings;
 mod system_stats;
@@ -19,15 +21,40 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_nspanel::init())
         .manage(overlay::Overlays::default())
+        .register_uri_scheme_protocol(modules::protocol::SCHEME, |ctx, req| {
+            use tauri::Manager;
+            let Some(core) = ctx.app_handle().try_state::<app_core::CoreState>() else {
+                return tauri::http::Response::builder().status(404).body(Vec::new()).unwrap();
+            };
+            let core = core.0.lock().unwrap();
+            modules::protocol::respond(core.active_dir(), |id| core.servable(id), req.uri().path())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::get_screen_info,
             commands::set_hit_rects,
             commands::set_panel_key,
             commands::quit_app,
+            module_commands::get_module_state,
+            module_commands::set_last_card,
+            module_commands::set_module_enabled,
+            module_commands::uninstall_module,
+            module_commands::reinstall_module,
+            module_commands::module_call,
         ])
         .setup(|app| {
             // No Dock icon.
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            // Before the overlays: their pages ask for module state as they load.
+            use tauri::Manager;
+            let paths = app.path();
+            let store = modules::store::ModuleStore::new(
+                paths.resource_dir()?.join("modules"),
+                paths.app_data_dir()?.join("modules"),
+            );
+            let settings = paths.app_config_dir()?.join(settings::SETTINGS_FILE);
+            let core = app_core::AppCore::open(settings, store, locale::device_locale());
+            app.manage(app_core::CoreState(std::sync::Mutex::new(core)));
+            app.manage(app_core::StatsState(std::sync::Mutex::new(system_stats::SystemStats::new())));
             overlay::rebuild_overlays(app.handle())?;
             screens::watch_screen_changes(app.handle().clone());
             pointer::start_pointer_monitor(app.handle().clone());

@@ -80,7 +80,7 @@ export function deps(r: ReturnType<typeof fakeRaf>): ViewDeps {
 
 const MODULE_CARDS: Record<string, { width: number; height: number }> = {
   home: { width: 540, height: 72 },
-  'system-stat': { width: 480, height: 80 },
+  'system-stat': { width: 400, height: 80 },
 };
 
 // A module that is installed and on, with the real modules' card sizes.

@@ -34,7 +34,7 @@ test('opens the last card', async () => {
   const { app, r, frame } = await start({ ...TEST_STATE, lastCard: 'system-stat' });
   open(app, r);
   expect(frame()!.getAttribute('src')).toContain('system-stat');
-  expect(app.controller.panelSize().w).toBe(480);
+  expect(app.controller.panelSize().w).toBe(400);
 });
 
 test('picking a module switches the card and remembers it', async () => {

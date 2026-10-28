@@ -1,6 +1,8 @@
+/* Fixed column widths, so changing numbers never move the columns; the spare
+   space is spread evenly, so the left and right margins match. */
 .row {
   display: flex;
-  gap: 18px;
+  justify-content: space-between;
   height: 80px;
 }
 
@@ -8,7 +10,16 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-width: 0;
+}
+
+/* "100%" in dot digits at pitch 5 is 115 px wide. */
+.col[data-k="cpu"] {
+  flex: 0 0 115px;
+}
+
+.col[data-k="mem"],
+.col[data-k="net"] {
+  flex: 0 0 90px;
 }
 
 .big {

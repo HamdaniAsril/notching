@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "id.web.notching",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run build:modules && npm run dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"
@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' notchmod: data:; font-src 'self'; frame-src notchmod:; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
@@ -28,6 +28,9 @@
     ],
     "macOS": {
       "minimumSystemVersion": "13.0"
+    },
+    "resources": {
+      "../dist-modules/": "modules/"
     }
   }
 }

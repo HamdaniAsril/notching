@@ -104,13 +104,13 @@ mod tests {
     use super::*;
 
     const GOOD: &str = r#"{"id":"system-stat","version":"1.0.0","entry":"index.html","icon":"icon.svg",
-      "card":{"width":480,"height":80},"permissions":[],"capabilities":["system.stats"]}"#;
+      "card":{"width":400,"height":80},"permissions":[],"capabilities":["system.stats"]}"#;
 
     #[test]
     fn a_good_manifest_parses() {
         let m = parse_manifest(GOOD, "system-stat").unwrap();
         assert_eq!(m.capabilities, vec![Capability::SystemStats]);
-        assert_eq!(m.card, CardSize { width: 480, height: 80 });
+        assert_eq!(m.card, CardSize { width: 400, height: 80 });
     }
 
     #[test]
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn card_size_must_fit_the_notch_overlay() {
-        assert_eq!(parse_manifest(&GOOD.replace("480", "700"), "system-stat"), Err(ManifestError::CardSize));
+        assert_eq!(parse_manifest(&GOOD.replace("400", "700"), "system-stat"), Err(ManifestError::CardSize));
         assert_eq!(
             parse_manifest(&GOOD.replace("\"height\":80", "\"height\":300"), "system-stat"),
             Err(ManifestError::CardSize)

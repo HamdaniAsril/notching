@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "entry": "index.html",
   "icon": "icon.svg",
-  "card": { "width": 480, "height": 80 },
+  "card": { "width": 400, "height": 80 },
   "permissions": [],
   "capabilities": ["system.stats"]
 }

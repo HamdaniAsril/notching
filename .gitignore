@@ -28,3 +28,4 @@ node_modules/
 dist/
 src-tauri/target/
 .superpowers/
+dist-modules/

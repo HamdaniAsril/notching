@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && npm run build:modules",
     "preview": "vite preview",
     "tauri": "tauri",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "build:modules": "node scripts/build-modules.mjs"
   },
   "dependencies": {
     "@fontsource/space-grotesk": "^5.3.0",
