@@ -51,7 +51,7 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         language,
         screen,
         screens,
-        login: LoginItem::Unavailable,
+        login: crate::login_item::state(),
         version: app.package_info().version.to_string(),
     }
 }

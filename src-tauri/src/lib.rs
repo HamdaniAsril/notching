@@ -9,6 +9,8 @@ mod system_stats;
 #[cfg(target_os = "macos")]
 mod commands;
 #[cfg(target_os = "macos")]
+mod login_item;
+#[cfg(target_os = "macos")]
 mod overlay;
 #[cfg(target_os = "macos")]
 mod pointer;
@@ -50,6 +52,8 @@ pub fn run() {
             settings_window::set_language,
             settings_window::set_notch_config,
             settings_window::set_screen,
+            login_item::set_launch_at_login,
+            login_item::open_login_items,
         ])
         .setup(|app| {
             // No Dock icon.
