@@ -16,6 +16,8 @@ mod pointer;
 mod screens;
 #[cfg(target_os = "macos")]
 mod sensor;
+#[cfg(target_os = "macos")]
+mod settings_window;
 
 #[cfg(target_os = "macos")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -23,6 +25,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_nspanel::init())
         .manage(overlay::Overlays::default())
+        .manage(overlay::ConnectedScreens::default())
         .register_uri_scheme_protocol(modules::protocol::SCHEME, |ctx, req| {
             use tauri::Manager;
             let Some(core) = ctx.app_handle().try_state::<app_core::CoreState>() else {
@@ -42,6 +45,11 @@ pub fn run() {
             module_commands::uninstall_module,
             module_commands::reinstall_module,
             module_commands::module_call,
+            settings_window::open_settings,
+            settings_window::get_settings,
+            settings_window::set_language,
+            settings_window::set_notch_config,
+            settings_window::set_screen,
         ])
         .setup(|app| {
             // No Dock icon.

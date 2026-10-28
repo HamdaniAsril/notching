@@ -36,7 +36,7 @@ export interface Bridge {
 }
 
 // Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
-function syncUnlisten(pending: Promise<UnlistenFn>): () => void {
+export function syncUnlisten(pending: Promise<UnlistenFn>): () => void {
   let unlisten: UnlistenFn | null = null;
   let disposed = false;
   void pending.then(fn => {

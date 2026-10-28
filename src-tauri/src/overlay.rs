@@ -14,7 +14,7 @@ use objc2_foundation::{NSNotification, NSNotificationCenter, NSObjectProtocol, N
 use tauri::{AppHandle, Emitter, EventTarget, LogicalSize, Manager, Size, WebviewUrl};
 use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask};
 
-use crate::geometry::{overlay_frame, Rect, OVERLAY_H, OVERLAY_W};
+use crate::geometry::{overlay_frame, pick_screens, Rect, OVERLAY_H, OVERLAY_W};
 use crate::screens::{current_screens, ScreenInfo};
 
 // The macro brings its own AppKit imports, so it lives in a module of its own.
@@ -39,6 +39,11 @@ pub struct OverlayEntry {
 /// Live overlays by window label.
 #[derive(Default)]
 pub struct Overlays(pub Mutex<HashMap<String, OverlayEntry>>);
+
+/// Names of the connected screens, each once, in NSScreen order: the choices in
+/// the settings window, whether or not a screen has a notch now.
+#[derive(Default)]
+pub struct ConnectedScreens(pub Mutex<Vec<String>>);
 
 thread_local! {
     // One resign-key observer per panel; panels live as long as the app.
@@ -77,10 +82,24 @@ pub fn rebuild_overlays(app: &AppHandle) -> tauri::Result<()> {
 }
 
 fn apply_screens(app: &AppHandle, screens: Vec<ScreenInfo>) -> tauri::Result<()> {
+    let mut names: Vec<String> = Vec::new();
+    for s in &screens {
+        if !names.contains(&s.name) {
+            names.push(s.name.clone());
+        }
+    }
+    *app.state::<ConnectedScreens>().0.lock().unwrap() = names;
+
+    // One lock at a time: the choice first, then the overlays.
+    let choice = app.state::<crate::app_core::CoreState>().0.lock().unwrap().screen().map(String::from);
+    let all: Vec<&str> = screens.iter().map(|s| s.name.as_str()).collect();
+    let keep = pick_screens(&all, choice.as_deref());
+
     let overlays = app.state::<Overlays>();
     let mut previous = std::mem::take(&mut *overlays.0.lock().unwrap());
 
-    for screen in screens {
+    // Screens left out are parked below, like screens that went away.
+    for screen in screens.into_iter().enumerate().filter(|(i, _)| keep.contains(i)).map(|(_, s)| s) {
         let label = format!("notch-{}", screen.index);
         // A screen that fails is skipped, not the rest after it.
         if let Err(e) = place_screen(app, &label, screen, previous.remove(&label)) {
@@ -89,13 +108,14 @@ fn apply_screens(app: &AppHandle, screens: Vec<ScreenInfo>) -> tauri::Result<()>
         crate::sensor::sync(app, &label);
     }
 
-    // Screens that went away: park their panels and sensors.
+    // Screens that went away or are not chosen: park their panels and sensors.
     for label in previous.into_keys() {
         if let Ok(panel) = app.get_webview_panel(&label) {
             panel.hide();
         }
         crate::sensor::sync(app, &label);
     }
+    crate::settings_window::emit_settings(app);
     Ok(())
 }
 
@@ -209,7 +229,7 @@ mod tests {
     use crate::geometry::NotchGeom;
 
     fn screen(index: usize, w: f64, notch: Option<NotchGeom>) -> ScreenInfo {
-        ScreenInfo { index, frame: Rect { x: 0.0, y: 0.0, w, h: 900.0 }, notch }
+        ScreenInfo { index, frame: Rect { x: 0.0, y: 0.0, w, h: 900.0 }, notch, name: "A".into() }
     }
 
     #[test]

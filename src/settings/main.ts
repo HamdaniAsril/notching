@@ -1,9 +1,12 @@
 import { browserSettingsBridge } from './bridge-browser';
+import { tauriSettingsBridge } from './bridge-tauri';
 import { mountSettings } from './shell';
 
 async function start(): Promise<void> {
   const root = document.getElementById('settings-root')!;
-  const bridge = browserSettingsBridge(new URLSearchParams(location.search));
+  const bridge = '__TAURI_INTERNALS__' in window
+    ? tauriSettingsBridge()
+    : browserSettingsBridge(new URLSearchParams(location.search));
   await mountSettings(root, bridge, {
     raf: cb => requestAnimationFrame(cb),
     caf: id => cancelAnimationFrame(id),

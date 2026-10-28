@@ -14,11 +14,13 @@ use objc2_foundation::{NSNotification, NSNotificationCenter, NSObjectProtocol, N
 
 use crate::geometry::{notch_from_screen, NotchGeom, Rect};
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ScreenInfo {
     pub index: usize,
     pub frame: Rect,
     pub notch: Option<NotchGeom>,
+    /// NSScreen.localizedName, e.g. "Built-in Retina Display".
+    pub name: String,
 }
 
 fn to_rect(r: NSRect) -> Rect {
@@ -37,7 +39,7 @@ pub fn current_screens(mtm: MainThreadMarker) -> Vec<ScreenInfo> {
                 to_rect(screen.auxiliaryTopLeftArea()),
                 to_rect(screen.auxiliaryTopRightArea()),
             );
-            ScreenInfo { index, frame, notch }
+            ScreenInfo { index, frame, notch, name: screen.localizedName().to_string() }
         })
         .collect()
 }

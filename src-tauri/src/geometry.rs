@@ -56,6 +56,21 @@ pub fn overlay_frame(screen: Rect) -> Rect {
     }
 }
 
+/// Indexes of the screens that get a notch: every screen, or only those named
+/// `choice`. A chosen screen that is not connected falls back to every screen,
+/// so the notch is never gone from all of them.
+pub fn pick_screens(names: &[&str], choice: Option<&str>) -> Vec<usize> {
+    let all = || (0..names.len()).collect();
+    let Some(choice) = choice else { return all() };
+    let chosen: Vec<usize> = names.iter().enumerate().filter(|(_, n)| **n == choice).map(|(i, _)| i).collect();
+    if chosen.is_empty() { all() } else { chosen }
+}
+
+/// Bottom-left origin (AppKit) that centres a w × h window on the screen.
+pub fn centered_origin(screen: Rect, w: f64, h: f64) -> (f64, f64) {
+    (screen.x + (screen.w - w) / 2.0, screen.y + (screen.h - h) / 2.0)
+}
+
 pub fn css_rect_to_global(overlay: Rect, css: Rect) -> Rect {
     Rect {
         x: overlay.x + css.x,
@@ -192,5 +207,31 @@ mod tests {
         assert!(r.any_inside());
         r.route(&o, 100.0, 100.0);
         assert!(!r.any_inside());
+    }
+
+    #[test]
+    fn every_screen_when_nothing_is_chosen() {
+        assert_eq!(pick_screens(&["A", "B"], None), vec![0, 1]);
+    }
+
+    #[test]
+    fn only_the_chosen_screen() {
+        assert_eq!(pick_screens(&["A", "B"], Some("B")), vec![1]);
+    }
+
+    #[test]
+    fn two_screens_with_the_same_name_both_count() {
+        assert_eq!(pick_screens(&["A", "A", "B"], Some("A")), vec![0, 1]);
+    }
+
+    #[test]
+    fn a_missing_screen_falls_back_to_every_screen() {
+        assert_eq!(pick_screens(&["A", "B"], Some("C")), vec![0, 1]);
+    }
+
+    #[test]
+    fn a_window_is_centred_on_its_screen() {
+        let s = Rect { x: -1920.0, y: 0.0, w: 1920.0, h: 1080.0 };
+        assert_eq!(centered_origin(s, 680.0, 600.0), (-1300.0, 240.0));
     }
 }

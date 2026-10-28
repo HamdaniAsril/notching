@@ -15,7 +15,7 @@ pub fn get_module_state(core: State<CoreState>) -> ModuleStateDto {
 }
 
 // Changes the state under the lock, then broadcasts it after letting go.
-fn change(
+pub(crate) fn change(
     app: &AppHandle,
     core: &State<CoreState>,
     f: impl FnOnce(&mut AppCore) -> Result<(), CoreError>,
