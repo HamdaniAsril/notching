@@ -1,10 +1,10 @@
 import { expect, test } from 'vitest';
-import { moduleInfo } from '../notch/test-helpers';
+import { moduleInfo, TEST_STATE } from '../notch/test-helpers';
 import { pickCard } from './cards';
 import type { ModuleState } from './types';
 
 const S = (over: Partial<ModuleState> = {}): ModuleState =>
-  ({ lang: 'id', lastCard: null, modules: [moduleInfo('home'), moduleInfo('system-stat')], ...over });
+  ({ ...TEST_STATE, ...over });
 
 test('opens the last card', () => expect(pickCard(S({ lastCard: 'system-stat' }), null, false)?.id).toBe('system-stat'));
 

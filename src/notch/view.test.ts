@@ -130,3 +130,14 @@ test('the pill stays put while the opening panel settles', () => {
   expect(c.pillVisible).toBe(true);
   expect([...tops]).toEqual(['134px']);
 });
+
+test('the ⋯ icon opens settings', () => {
+  const root = document.createElement('div');
+  const onMore = vi.fn();
+  const onSelect = vi.fn();
+  const v = mountNotch(root, ctl(null), { ...deps(fakeRaf()), onMore, onSelect });
+  v.setPill(ITEMS, 'home', 'Pengaturan');
+  root.querySelector<HTMLElement>('.notch-pill .ic.more')!.click();
+  expect(onMore).toHaveBeenCalledTimes(1);
+  expect(onSelect).not.toHaveBeenCalled();
+});

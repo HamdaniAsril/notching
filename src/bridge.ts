@@ -32,6 +32,7 @@ export interface Bridge {
   moduleCall(moduleId: string, capability: string, method: string, args?: unknown): Promise<unknown>;
   moduleUrl(id: string, file: string): string;
   readonly moduleSandbox: string;
+  openSettings(): Promise<void>;
 }
 
 // Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
@@ -66,5 +67,6 @@ export function tauriBridge(): Bridge {
     // macOS form of a custom protocol URL; Windows will need http://notchmod.localhost/.
     moduleUrl: (id, file) => `notchmod://localhost/${id}/${file}`,
     moduleSandbox: 'allow-scripts',
+    openSettings: () => invoke('open_settings'),
   };
 }

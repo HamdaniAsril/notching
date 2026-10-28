@@ -9,6 +9,7 @@ export interface ViewDeps {
   onPhase: (p: Phase) => void; // only when the phase changes
   onQuit: () => void; // Cmd+Q while the panel is open
   onSelect: (id: string) => void; // a module icon in the pill was clicked
+  onMore: () => void; // the ⋯ icon was clicked
 }
 
 // One module icon in the pill; `icon` is the URL of its SVG, drawn as a mask.
@@ -102,7 +103,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
       return ic;
     });
     const more = doc.createElement('span');
-    more.className = 'ic';
+    more.className = 'ic more';
     more.setAttribute('role', 'button');
     more.setAttribute('aria-label', moreLabel);
     more.innerHTML = MORE_ICON;
@@ -112,8 +113,9 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   }
 
   function onPillClick(e: MouseEvent): void {
-    const ic = (e.target as Element | null)?.closest<HTMLElement>('.ic[data-id]');
+    const ic = (e.target as Element | null)?.closest<HTMLElement>('.ic');
     if (ic?.dataset.id) deps.onSelect(ic.dataset.id);
+    else if (ic?.classList.contains('more')) deps.onMore();
   }
 
   function report(): void {

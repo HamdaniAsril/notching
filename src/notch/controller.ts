@@ -32,10 +32,12 @@ export class NotchController {
   private _pillVisible = false;
   private cancelPill: (() => void) | null = null;
   private _card: CardSize;
+  private _config: NotchConfig;
 
   constructor(deps: ControllerDeps) {
     this.deps = deps;
     this._card = deps.card;
+    this._config = deps.config;
     this.motion = new NotchMotion(this.targetsAt(0));
   }
 
@@ -44,12 +46,17 @@ export class NotchController {
   get contentVisible(): boolean { return this._contentVisible; }
   get panelVisible(): boolean { return this._panelVisible; }
   get notch(): NotchSize | null { return this.deps.notch; }
-  get config(): NotchConfig { return this.deps.config; }
+  get config(): NotchConfig { return this._config; }
   get card(): CardSize { return this._card; }
 
   // An open panel springs to the new size; the caller kicks the frame loop.
   setCard(card: CardSize): void {
     this._card = card;
+  }
+
+  // The settings sliders; applies from the next frame, the caller kicks the loop.
+  setConfig(config: NotchConfig): void {
+    this._config = config;
   }
 
   pointer(inside: boolean, cursorX: number): void {
@@ -89,7 +96,7 @@ export class NotchController {
 
   frame(frameSeconds: number): void {
     this.motion.setTargets(this.targets());
-    this.motion.advance(frameSeconds, this.deps.config);
+    this.motion.advance(frameSeconds, this._config);
 
     const { pw, ph } = this.motion.springs;
     const notch = this.deps.notch;
@@ -110,7 +117,7 @@ export class NotchController {
       this.cancelPill = this.deps.setTimer(() => {
         this.cancelPill = null;
         if (this._phase === 'open') this._pillVisible = true;
-      }, PILL_DELAY_MS / timeScale(this.deps.config.speed));
+      }, PILL_DELAY_MS / timeScale(this._config.speed));
     }
   }
 
@@ -119,7 +126,8 @@ export class NotchController {
   }
 
   private targetsAt(t: number): Targets {
-    const { notch, config } = this.deps;
+    const { notch } = this.deps;
+    const config = this._config;
     const d = config.dropDepth;
     const breathe = 1 + 0.035 * Math.sin(t * 2.2);
     const bias = (limit: number) => Math.max(-limit, Math.min(limit, this.cursorX * 0.08));

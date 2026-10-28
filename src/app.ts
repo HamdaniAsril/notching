@@ -3,7 +3,7 @@ import { hostStrings } from './i18n';
 import { activeModules, EMPTY_CARD, pickCard } from './modules/cards';
 import { mountFrameHost } from './modules/frame';
 import type { ModuleInfo, ModuleState } from './modules/types';
-import { DEFAULT_CONFIG } from './notch/config';
+import { clampConfig, type NotchConfig } from './notch/config';
 import { connect } from './notch/connect';
 import { NotchController, type Phase } from './notch/controller';
 import { mountNotch, type NotchView } from './notch/view';
@@ -32,7 +32,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
 
   const controller = new NotchController({
     notch: info.hasNotch ? { width: info.notchWidth, height: info.notchHeight } : null,
-    config: DEFAULT_CONFIG,
+    config: clampConfig(state.notch),
     card: card?.card ?? EMPTY_CARD,
     setTimer: env.setTimer,
   });
@@ -44,6 +44,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     onQuit: wiring.onQuit,
     onPhase,
     onSelect,
+    onMore,
   });
   const frames = mountFrameHost(view.content, {
     bridge,
@@ -87,6 +88,15 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     view.kick();
   }
 
+  function onMore(): void {
+    controller.escape();
+    view.kick();
+    void bridge.openSettings();
+  }
+
+  const sameConfig = (a: NotchConfig, b: NotchConfig) =>
+    a.bounce === b.bounce && a.speed === b.speed && a.dropDepth === b.dropDepth && a.thickness === b.thickness;
+
   const offState = bridge.onModuleState(next => {
     const langChanged = next.lang !== state.lang;
     state = next;
@@ -98,6 +108,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       || picked?.card.width !== card?.card.width || picked?.card.height !== card?.card.height;
     if (changed) useCard(picked);
     if (open && (changed || langChanged)) frames.show(card, state.lang, strings);
+    const config = clampConfig(next.notch);
+    if (!sameConfig(config, controller.config)) controller.setConfig(config);
     renderPill();
     view.kick();
   });

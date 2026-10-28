@@ -2,6 +2,7 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { type App, startApp } from './app';
 import type { ModuleState } from './modules/types';
+import { DEFAULT_CONFIG } from './notch/config';
 import { fakeBridge, fakeRaf, moduleInfo, TEST_STATE, timers } from './notch/test-helpers';
 
 afterEach(() => { document.body.innerHTML = ''; document.documentElement.lang = ''; });
@@ -118,4 +119,23 @@ test('a hidden overlay drops its frame even with no animation frames', async () 
   document.dispatchEvent(new Event('visibilitychange'));
   expect(frame()).toBeNull();
   visibility.mockRestore();
+});
+
+test('⋯ closes the panel and opens settings', async () => {
+  const { root, app, r, bridge } = await start();
+  open(app, r);
+  root.querySelector<HTMLElement>('.notch-pill .ic.more')!.click();
+  expect(bridge.openSettings).toHaveBeenCalledTimes(1);
+  expect(app.controller.phase).toBe('closing');
+});
+
+test('the notch starts with the saved look', async () => {
+  const { app } = await start({ ...TEST_STATE, notch: { ...DEFAULT_CONFIG, dropDepth: 20 } });
+  expect(app.controller.config.dropDepth).toBe(20);
+});
+
+test('a new look from settings reaches the notch, clamped', async () => {
+  const { app, bridge } = await start();
+  bridge.emitModuleState({ ...TEST_STATE, notch: { ...DEFAULT_CONFIG, thickness: 10, bounce: 400 } });
+  expect(app.controller.config).toEqual({ ...DEFAULT_CONFIG, thickness: 10, bounce: 100 });
 });

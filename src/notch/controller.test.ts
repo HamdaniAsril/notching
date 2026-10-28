@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import { DEFAULT_CONFIG } from './config';
 import { ctl, frames, runUntilNear, timers } from './test-helpers';
 
 test('rest targets without a notch', () =>
@@ -116,4 +117,12 @@ test('setCard while idle changes nothing visible', () => {
   c.setCard({ width: 540, height: 72 });
   expect(c.targets()).toEqual({ W: 42, H: 4, s: 0, bx: 0, pw: 0, ph: 0 });
   expect(c.card).toEqual({ width: 540, height: 72 });
+});
+
+test('a new config applies from the next frame', () => {
+  const c = ctl(null);
+  expect(c.targets().H).toBe(4);
+  c.setConfig({ ...DEFAULT_CONFIG, thickness: 10 });
+  expect(c.targets().H).toBe(10);
+  expect(c.config.thickness).toBe(10);
 });

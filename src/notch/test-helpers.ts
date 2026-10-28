@@ -75,7 +75,9 @@ export function fakeRaf() {
 }
 
 export function deps(r: ReturnType<typeof fakeRaf>): ViewDeps {
-  return { raf: r.raf, caf: r.caf, onHitRects: vi.fn(), onPhase: vi.fn(), onQuit: vi.fn(), onSelect: vi.fn() };
+  return {
+    raf: r.raf, caf: r.caf, onHitRects: vi.fn(), onPhase: vi.fn(), onQuit: vi.fn(), onSelect: vi.fn(), onMore: vi.fn(),
+  };
 }
 
 const MODULE_CARDS: Record<string, { width: number; height: number }> = {
@@ -87,7 +89,7 @@ const MODULE_CARDS: Record<string, { width: number; height: number }> = {
 export function moduleInfo(id: string, over: Partial<ModuleInfo> = {}): ModuleInfo {
   return {
     id, name: id, description: '', version: '1.0.0', entry: 'index.html', icon: 'icon.svg',
-    card: MODULE_CARDS[id] ?? { width: 400, height: 90 }, installed: true, enabled: true, ...over,
+    card: MODULE_CARDS[id] ?? { width: 400, height: 90 }, installed: true, enabled: true, size: 0, iconSvg: '', ...over,
   };
 }
 
@@ -95,6 +97,7 @@ export const TEST_STATE: ModuleState = {
   lang: 'id',
   modules: [moduleInfo('home'), moduleInfo('system-stat')],
   lastCard: null,
+  notch: DEFAULT_CONFIG,
 };
 
 // Bridge whose methods are mocks; emit* plays the native side's events.
@@ -116,6 +119,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     moduleCall: vi.fn(async (_m: string, _c: string, _method: string, _args?: unknown): Promise<unknown> => ({})),
     moduleUrl: (id: string, file: string) => `mod://${id}/${file}`,
     moduleSandbox: 'allow-scripts',
+    openSettings: vi.fn(async () => {}),
     emitPointer: (p: PointerUpdate) => pointer.forEach(cb => cb(p)),
     emitResignKey: () => resign.forEach(cb => cb()),
     emitModuleState: (s: ModuleState) => { state = s; moduleSubs.forEach(cb => cb(s)); },

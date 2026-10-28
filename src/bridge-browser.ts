@@ -1,6 +1,8 @@
 import type { Bridge, PointerUpdate } from './bridge';
 import index from '../modules/index.json';
+import type { Lang } from './kit/protocol';
 import type { ModuleInfo, ModuleState } from './modules/types';
+import { DEFAULT_CONFIG } from './notch/config';
 import { containsPoint, type Rect } from './notch/hit';
 
 interface ManifestJson {
@@ -13,15 +15,20 @@ interface ManifestJson {
 
 const manifests = import.meta.glob<ManifestJson>('../modules/*/manifest.json', { eager: true, import: 'default' });
 const locales = import.meta.glob<Record<string, string>>('../modules/*/locales/*.json', { eager: true, import: 'default' });
+const icons = import.meta.glob<string>('../modules/*/icon.svg', { query: '?raw', eager: true, import: 'default' });
 const manifestOf = (id: string) => manifests[`../modules/${id}/manifest.json`];
 
-function catalog(lang: 'id' | 'en', off: string[]): ModuleInfo[] {
+// The browser cannot measure a package, so every module shows this size.
+const FAKE_SIZE = 140 * 1024;
+
+export function catalog(lang: Lang, off: string[]): ModuleInfo[] {
   return (index as string[]).map(id => {
     const m = manifestOf(id);
     const t = locales[`../modules/${id}/locales/${lang}.json`] ?? {};
     return {
       id, name: t.name ?? id, description: t.description ?? '', version: m.version, entry: m.entry, icon: m.icon,
       card: m.card, installed: true, enabled: !off.includes(id),
+      size: FAKE_SIZE, iconSvg: icons[`../modules/${id}/${m.icon}`] ?? '',
     };
   });
 }
@@ -46,6 +53,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     lang: params.get('lang') === 'en' ? 'en' : 'id',
     modules: catalog(params.get('lang') === 'en' ? 'en' : 'id', (params.get('off') ?? '').split(',')),
     lastCard: null,
+    notch: DEFAULT_CONFIG,
   };
   let rects: Rect[] = [];
   let inside = false;
@@ -100,5 +108,6 @@ export function browserBridge(root: HTMLElement): Bridge {
     // Preview only, not a security boundary: without allow-same-origin the
     // module's scripts from the Vite server are blocked by CORS.
     moduleSandbox: 'allow-scripts allow-same-origin',
+    openSettings: async () => void doc.defaultView?.open(`/settings.html${doc.defaultView.location.search}`, 'notching-settings'),
   };
 }
