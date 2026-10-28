@@ -8,7 +8,7 @@ Build rilis: `npm run tauri build -- --bundles app`.
 
 - `npx tsc --noEmit`: lulus.
 - `npm test`: 100 lulus (40 di awal rencana).
-- `npm run build:modules && cargo test --manifest-path src-tauri/Cargo.toml`: 49 lulus (8 di awal rencana).
+- `npm run build:modules && cargo test --manifest-path src-tauri/Cargo.toml`: 50 lulus (8 di awal rencana).
 
 ## Ukuran
 
@@ -48,6 +48,7 @@ Cara mengukur gerakan mouse: pemilik mengklik "Mulai", lalu langsung menggerakka
 - **Tepi atas panel turun sekejap setiap kali panel ditutup.** Masalah ini sudah ada sejak rencana 1. Penyebabnya animasi bawaan macOS saat jendela ditampilkan lagi ketika fokus keyboard dikembalikan ke app sebelumnya. Animasi itu sekarang dimatikan.
 - **Pil naik-turun sesaat setelah panel terbuka.** Pil mengikuti tinggi panel yang masih memantul. Sekarang pil diam di tinggi akhir panel, dan bergeser halus saat berganti kartu.
 - **System stat terus membaca CPU setelah semua panel tertutup.** Ini terjadi setelah monitor dicabut. Panel milik layar yang hilang disembunyikan, dan jendela tersembunyi tidak mendapat frame animasi, jadi penutupannya tidak pernah selesai. Sekarang kartu dilepas begitu jendelanya tersembunyi. Diuji ulang dengan catatan: tidak ada pembacaan setelah panel tersembunyi.
+- **Satu nilai pengaturan yang tidak dikenal membuang seluruh file pengaturan.** Ditemukan di pemeriksaan akhir. Sekarang nilai bahasa yang tidak dikenal dibaca sebagai otomatis, dan pengaturan lain tetap utuh.
 - **Layar penuh.** Spec lama menyebut notch disembunyikan saat ada app layar penuh. Pemilik memutuskan notch tetap tampil dan bisa dipakai, dan spec bagian 4.5 sudah diperbarui. Sensor sekarang ikut ke Space layar penuh.
 
 ## Masih terbuka
@@ -57,4 +58,5 @@ Cara mengukur gerakan mouse: pemilik mengklik "Mulai", lalu langsung menggerakka
   - Catatan uji menunjukkan status tembus klik berganti-ganti selagi kursor diam di atas tetesan.
   - Daftar jendela menunjukkan tidak ada jendela lain di atas notch: menu bar layar penuh ada di level 24, di bawah notch yang ada di level 25.
   - Versi rencana 1 juga tidak konsisten di layar penuh.
+  - Percobaan dari pemeriksaan akhir: jendela notch juga diikutkan ke Space layar penuh. Hasilnya lebih buruk, karena klik di monitor tanpa notch selalu gagal, jadi perubahan itu dibatalkan.
   - Dicatat sebagai pekerjaan lanjutan.
