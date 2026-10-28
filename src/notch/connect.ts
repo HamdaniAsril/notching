@@ -3,10 +3,13 @@ import type { NotchController, Phase } from './controller';
 import { OVERLAY_SIZE } from './hit';
 import type { ViewDeps } from './view';
 
+// The part of the bridge the notch's own wiring uses.
+export type NotchWiring = Pick<Bridge, 'setHitRects' | 'setPanelKey' | 'onPointer' | 'onResignKey' | 'quit'>;
+
 // Wires the controller and view to the native side.
 export function connect(
   c: NotchController,
-  bridge: Bridge,
+  bridge: NotchWiring,
   kick: () => void,
 ): Pick<ViewDeps, 'onHitRects' | 'onPhase' | 'onQuit'> & { dispose(): void } {
   let last: Phase = c.phase;

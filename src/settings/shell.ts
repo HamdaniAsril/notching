@@ -4,6 +4,7 @@ import { el, head, note } from './controls';
 import { icon, type IconName } from './icons';
 import { generalPage } from './pages/general';
 import { aboutPage, notificationsPage, permissionsPage } from './pages/info';
+import { lookPage } from './pages/look';
 import { addPage, modulePage, modulesPage } from './pages/modules';
 import { search, searchIndex } from './search';
 import type {
@@ -18,6 +19,7 @@ export interface SettingsApp {
 
 export const PAGES: Partial<Record<Route['page'], PageRender>> = {
   general: generalPage,
+  look: lookPage,
   notifications: notificationsPage,
   modules: modulesPage,
   module: modulePage,

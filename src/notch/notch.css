@@ -1,0 +1,111 @@
+/* The notch view (view.ts): lens or notch, panel, card area and pill. Shared by
+   the overlay page and the settings window's preview. */
+
+.notch-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.notch-svg path {
+  fill: #000;
+}
+
+/* Card area inside the panel (full-flow-v3.html #content). */
+.notch-content {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 18px 16px;
+  box-sizing: border-box;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.16s;
+  pointer-events: none;
+}
+
+.notch-content.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Navigation pill: look from beranda-nothing.html, entrance from full-flow-v3.html. */
+.notch-pill {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  padding: 8px 16px 11px;
+  border-radius: 18px;
+  background: #000;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  /* top: slides to a new card's height at about the panel's pace. */
+  transition: opacity 0.12s, top 0.3s cubic-bezier(0.3, 1.2, 0.5, 1);
+}
+
+.notch-pill.show {
+  opacity: 1;
+  pointer-events: auto;
+  animation: pill-in 0.5s cubic-bezier(0.34, 1.5, 0.5, 1) both;
+}
+
+@keyframes pill-in {
+  from { transform: translate(-50%, -14px) scale(0.6, 0.4); }
+  to { transform: translate(-50%, 0) scale(1); }
+}
+
+.notch-pill .ic {
+  position: relative;
+  cursor: pointer;
+}
+
+.notch-pill.show .ic {
+  animation: ic-in 0.45s cubic-bezier(0.34, 1.6, 0.5, 1) both;
+}
+
+@keyframes ic-in {
+  from { transform: translateY(-6px); opacity: 0; }
+}
+
+.notch-pill svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  opacity: 0.4;
+}
+
+.notch-pill .on svg {
+  opacity: 1;
+}
+
+/* Module icons: the module's own SVG, drawn as a mask in the text colour. */
+.notch-pill .glyph {
+  display: block;
+  width: 15px;
+  height: 15px;
+  background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+  opacity: 0.4;
+}
+
+.notch-pill .on .glyph {
+  opacity: 1;
+}
+
+.notch-pill .on::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 3px;
+  height: 3px;
+  margin-left: -1.5px;
+  border-radius: 50%;
+  background: #fff;
+}

@@ -1,4 +1,5 @@
 @import '../kit/kit.css';
+@import '../notch/notch.css';
 
 /* The settings window (settings.html, option S1). Dark is the mockup; light is
    its mirror image. It follows the device (spec 5). */
@@ -499,4 +500,35 @@ input:focus-visible,
 .note.small {
   font-size: 11.5px;
   margin-top: 10px;
+}
+
+/* Notch look: a strip of "screen" with the lens on top; the notch is always black. */
+.preview {
+  position: relative;
+  height: 150px;
+  margin-top: 18px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--sel);
+}
+
+.preview-root {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 640px;
+  height: 360px;
+  margin-left: -320px;
+}
+
+/* The panel is black in both themes, so its text keeps the dark-theme greys. */
+.preview .notch-content {
+  --g2: rgba(255, 255, 255, 0.42);
+}
+
+.preview-hint {
+  display: block;
+  margin-top: 6px;
+  color: var(--g2);
+  font-size: 11.5px;
 }

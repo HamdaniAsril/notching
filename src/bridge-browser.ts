@@ -1,9 +1,9 @@
-import type { Bridge, PointerUpdate } from './bridge';
+import type { Bridge } from './bridge';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
 import type { ModuleInfo, ModuleState } from './modules/types';
 import { DEFAULT_CONFIG } from './notch/config';
-import { containsPoint, type Rect } from './notch/hit';
+import { localPointer } from './notch/local-pointer';
 
 interface ManifestJson {
   version: string;
@@ -43,8 +43,8 @@ function fakeStats() {
 
 // Stand-in for the native side in a normal browser (`npm run dev`).
 // `?notch=1` fakes a 164 × 32 notch, `?lang=en` switches to English and
-// `?off=home,system-stat` switches modules off. A click outside the hit rects
-// plays the part of the panel losing key status.
+// `?off=home,system-stat` switches modules off. Pointer and clicks come from
+// localPointer().
 export function browserBridge(root: HTMLElement): Bridge {
   const doc = root.ownerDocument;
   const params = new URLSearchParams(doc.defaultView?.location.search ?? '');
@@ -55,40 +55,15 @@ export function browserBridge(root: HTMLElement): Bridge {
     lastCard: null,
     notch: DEFAULT_CONFIG,
   };
-  let rects: Rect[] = [];
-  let inside = false;
-  const pointerSubs = new Set<(p: PointerUpdate) => void>();
-  const resignSubs = new Set<() => void>();
+  const pointer = localPointer(root);
   const stateSubs = new Set<(s: ModuleState) => void>();
-
-  const local = (e: MouseEvent) => {
-    const box = root.getBoundingClientRect();
-    return { x: e.clientX - box.left, y: e.clientY - box.top };
-  };
-
-  doc.addEventListener('mousemove', e => {
-    const { x, y } = local(e);
-    const now = containsPoint(rects, x, y);
-    if (!now && !inside) return;
-    inside = now;
-    pointerSubs.forEach(cb => cb({ inside: now, x, y }));
-  });
-  doc.documentElement.addEventListener('mouseleave', () => {
-    if (!inside) return;
-    inside = false;
-    pointerSubs.forEach(cb => cb({ inside: false, x: 0, y: 0 }));
-  });
-  doc.addEventListener('click', e => {
-    const { x, y } = local(e);
-    if (!containsPoint(rects, x, y)) resignSubs.forEach(cb => cb());
-  });
 
   return {
     screenInfo: async () => ({ label: 'browser', hasNotch, notchWidth: hasNotch ? 164 : 0, notchHeight: hasNotch ? 32 : 0 }),
-    setHitRects: async r => { rects = r; },
+    setHitRects: pointer.setHitRects,
     setPanelKey: async key => console.info('setPanelKey', key),
-    onPointer: cb => { pointerSubs.add(cb); return () => pointerSubs.delete(cb); },
-    onResignKey: cb => { resignSubs.add(cb); return () => resignSubs.delete(cb); },
+    onPointer: pointer.onPointer,
+    onResignKey: pointer.onResignKey,
     quit: async () => console.info('quit'),
     moduleState: async () => state,
     onModuleState: cb => { stateSubs.add(cb); return () => stateSubs.delete(cb); },
