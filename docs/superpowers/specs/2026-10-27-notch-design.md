@@ -215,7 +215,7 @@ Acuan: `notif-v1.html` dan `glow-options.html`.
 - **Panel hanya terbuka di layar yang diklik.**
 - **Notifikasi muncul di layar yang sedang ada kursornya.**
 - **Pengaturan:** notch bisa dibatasi ke satu layar saja.
-- **Saat ada app layar penuh** (film, game, presentasi), notch disembunyikan di layar itu **(keputusan penulis)**.
+- **Saat ada app layar penuh** (film, game, presentasi), notch tetap tampil dan tetap bisa dipakai di layar itu. Diputuskan pemilik ide pada 28 Oktober 2026, menggantikan keputusan penulis sebelumnya untuk menyembunyikannya.
 
 ### 4.6 Perilaku jendela
 

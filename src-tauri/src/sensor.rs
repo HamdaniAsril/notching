@@ -66,11 +66,13 @@ fn new_sensor(mtm: MainThreadMarker) -> Retained<NSPanel> {
     );
     unsafe { panel.setReleasedWhenClosed(false) };
     panel.setLevel(STATUS_LEVEL);
-    // Same Spaces behaviour as the overlays: every Space, never full-screen ones.
+    // Every Space, full-screen ones too: the notch stays usable over full-screen
+    // apps (owner's decision, 2026-10-28), and there the sensor must catch the cursor.
     panel.setCollectionBehavior(
         NSWindowCollectionBehavior::CanJoinAllSpaces
             | NSWindowCollectionBehavior::Stationary
-            | NSWindowCollectionBehavior::IgnoresCycle,
+            | NSWindowCollectionBehavior::IgnoresCycle
+            | NSWindowCollectionBehavior::FullScreenAuxiliary,
     );
     panel.setHidesOnDeactivate(false);
     panel.setHasShadow(false);
