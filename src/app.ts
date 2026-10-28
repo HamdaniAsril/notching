@@ -102,6 +102,14 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     view.kick();
   });
 
+  // An overlay whose screen went away is ordered out. It gets no animation frames
+  // there, so its close never reaches 'idle'; the module must stop anyway.
+  function onVisibility(): void {
+    if (doc.visibilityState === 'hidden') frames.clear();
+    else if (controller.phase === 'open') frames.show(card, state.lang, strings);
+  }
+  doc.addEventListener('visibilitychange', onVisibility);
+
   renderPill();
   view.kick();
 
@@ -109,6 +117,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     controller,
     view,
     destroy(): void {
+      doc.removeEventListener('visibilitychange', onVisibility);
       offState();
       frames.destroy();
       view.destroy();

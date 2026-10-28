@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import { type App, startApp } from './app';
 import type { ModuleState } from './modules/types';
 import { fakeBridge, fakeRaf, moduleInfo, TEST_STATE, timers } from './notch/test-helpers';
@@ -105,4 +105,17 @@ test('a language change reloads the frame in the new language', async () => {
   expect(posted).toContainEqual({ type: 'notching:init', moduleId: 'home', lang: 'en' });
   expect(root.querySelector('.notch-pill .ic:not([data-id])')!.getAttribute('aria-label')).toBe('Settings');
   expect(document.documentElement.lang).toBe('en');
+});
+
+test('a hidden overlay drops its frame even with no animation frames', async () => {
+  // A parked overlay (its screen went away) is ordered out: no rAF, so its close
+  // animation never finishes, but the module must not keep running.
+  const { app, r, frame } = await start();
+  open(app, r);
+  expect(frame()).not.toBeNull();
+  app.controller.resignKey();
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(frame()).toBeNull();
+  visibility.mockRestore();
 });
