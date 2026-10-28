@@ -91,6 +91,7 @@ pub fn reroute_now(app: &AppHandle) {
     for route in routes {
         if route.changed {
             set_mouse_passthrough(app, &route.label, !route.inside);
+            crate::sensor::set_resting(&route.label, route.inside);
         }
         let payload = PointerPayload { inside: route.inside, x: route.x, y: route.y };
         let _ = app.emit_to(EventTarget::webview_window(&route.label), "notch://pointer", payload);

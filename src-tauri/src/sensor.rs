@@ -6,7 +6,7 @@
 //! Like the overlays, sensors are never closed: unused ones are only ordered out.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
 use objc2::rc::Retained;
@@ -46,6 +46,27 @@ define_class!(
 thread_local! {
     // Sensor panels by overlay label, one per hit rect.
     static SENSORS: RefCell<HashMap<String, Vec<Retained<NSPanel>>>> = RefCell::new(HashMap::new());
+    // Overlays the cursor is inside: their sensors let the mouse through.
+    static RESTING: RefCell<HashSet<String>> = RefCell::new(HashSet::new());
+}
+
+/// While the cursor is inside an overlay's hit area, that overlay's sensors stop
+/// catching the mouse. Over a full-screen app a sensor can sit above its overlay,
+/// whatever order it was given, and would swallow the click meant for the overlay.
+pub fn set_resting(label: &str, resting: bool) {
+    RESTING.with(|r| {
+        let mut r = r.borrow_mut();
+        if resting {
+            r.insert(label.to_string());
+        } else {
+            r.remove(label);
+        }
+    });
+    SENSORS.with(|s| {
+        for sensor in s.borrow().get(label).into_iter().flatten() {
+            sensor.setIgnoresMouseEvents(resting);
+        }
+    });
 }
 
 pub fn init(app: &AppHandle) {
@@ -108,10 +129,16 @@ pub fn sync(app: &AppHandle, label: &str) {
         let map = overlays.0.lock().unwrap();
         match map.get(label) {
             Some(e) => (e.frame, e.css_rects.clone()),
-            None => (Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }, Vec::new()),
+            None => {
+                // A parked overlay: the router forgets it without an exit, so its
+                // sensors must not come back still resting.
+                set_resting(label, false);
+                (Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }, Vec::new())
+            }
         }
     };
     let overlay_number = app.get_webview_panel(label).ok().map(|p| p.as_panel().windowNumber());
+    let resting = RESTING.with(|r| r.borrow().contains(label));
     SENSORS.with(|s| {
         let mut sensors = s.borrow_mut();
         let pool = sensors.entry(label.to_string()).or_default();
@@ -122,6 +149,7 @@ pub fn sync(app: &AppHandle, label: &str) {
             match (rects.get(i), overlay_number) {
                 (Some(&css), Some(number)) => {
                     sensor.setFrame_display(ns_rect(css_rect_to_global(frame, css)), false);
+                    sensor.setIgnoresMouseEvents(resting);
                     sensor.orderWindow_relativeTo(NSWindowOrderingMode::Below, number);
                 }
                 _ => sensor.orderOut(None),

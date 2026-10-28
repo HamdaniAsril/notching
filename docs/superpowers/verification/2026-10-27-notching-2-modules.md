@@ -40,7 +40,7 @@ Cara mengukur gerakan mouse: pemilik mengklik "Mulai", lalu langsung menggerakka
 | 7 | `disabledModules: ["home"]` menghilangkan ikon Beranda. `uninstalledModules: ["system-stat"]` menghapus folder modul aktif dan ikonnya, lalu panel pindah ke Beranda. Mengosongkan keduanya mengembalikan semuanya. | Lulus | Dilaporkan pemilik. Folder dicek dengan `ls`. |
 | 8 | Perilaku rencana 1 tetap ada: menu bar dekat tengah bisa diklik, klik di luar dan Esc menutup panel, keluar-masuk samping panel, cabut-pasang monitor, pindah Space. | Lulus | Dilaporkan pemilik. |
 | 9 | Build rilis memuat kedua kartu (protokol `notchmod` dan CSP). | Lulus | Dilaporkan pemilik. Bundle berisi `Resources/modules/<id>/`. |
-| 10 | App layar penuh. | Sebagian | Lihat "Masih terbuka". |
+| 10 | App layar penuh. | Lulus | Awalnya sebagian, diperbaiki pada 2026-10-28 (lihat "Temuan dan perbaikan"). Dilaporkan pemilik: klik tetesan di atas Safari layar penuh membuka panel setiap kali di kedua layar, dan perilaku tanpa layar penuh tidak berubah. |
 
 ## Temuan dan perbaikan
 
@@ -50,13 +50,7 @@ Cara mengukur gerakan mouse: pemilik mengklik "Mulai", lalu langsung menggerakka
 - **System stat terus membaca CPU setelah semua panel tertutup.** Ini terjadi setelah monitor dicabut. Panel milik layar yang hilang disembunyikan, dan jendela tersembunyi tidak mendapat frame animasi, jadi penutupannya tidak pernah selesai. Sekarang kartu dilepas begitu jendelanya tersembunyi. Diuji ulang dengan catatan: tidak ada pembacaan setelah panel tersembunyi.
 - **Satu nilai pengaturan yang tidak dikenal membuang seluruh file pengaturan.** Ditemukan di pemeriksaan akhir. Sekarang nilai bahasa yang tidak dikenal dibaca sebagai otomatis, dan pengaturan lain tetap utuh.
 - **Layar penuh.** Spec lama menyebut notch disembunyikan saat ada app layar penuh. Pemilik memutuskan notch tetap tampil dan bisa dipakai, dan spec bagian 4.5 sudah diperbarui. Sensor sekarang ikut ke Space layar penuh.
-
-## Masih terbuka
-
-- **Klik tetesan di layar penuh pada monitor tanpa notch kadang tidak sampai.**
-  - Di layar MacBook klik berjalan normal.
-  - Catatan uji menunjukkan status tembus klik berganti-ganti selagi kursor diam di atas tetesan.
-  - Daftar jendela menunjukkan tidak ada jendela lain di atas notch: menu bar layar penuh ada di level 24, di bawah notch yang ada di level 25.
-  - Versi rencana 1 juga tidak konsisten di layar penuh.
-  - Percobaan dari pemeriksaan akhir: jendela notch juga diikutkan ke Space layar penuh. Hasilnya lebih buruk, karena klik di monitor tanpa notch selalu gagal, jadi perubahan itu dibatalkan.
-  - Dicatat sebagai pekerjaan lanjutan.
+- **Klik tetesan di layar penuh pada monitor tanpa notch kadang tidak sampai.** Di layar MacBook dan tanpa layar penuh klik berjalan normal.
+  - Catatan uji dengan daftar jendela di bawah kursor saat klik menunjukkan klik selalu jatuh ke sensor, bukan ke jendela notch, padahal jendela notch sudah siap menerima klik. Di Space layar penuh, sensor bisa berada di atas jendela notch meski sudah ditaruh di bawahnya. Sensor tidak memakai klik itu, jadi panel tidak terbuka.
+  - Perbaikan: selama kursor ada di dalam notch, sensornya berhenti menangkap mouse, dan aktif lagi begitu kursor keluar. Tugas sensor memang hanya memberi tahu bahwa kursor sampai di notch.
+  - Catatan uji setelah perbaikan menunjukkan setiap klik di tetesan sampai ke jendela notch.
