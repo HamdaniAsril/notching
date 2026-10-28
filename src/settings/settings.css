@@ -430,3 +430,73 @@ input:focus-visible,
   outline: 1px solid var(--g2);
   outline-offset: 2px;
 }
+
+/* Modules */
+.module .glyph,
+.module > .icon-grid {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: var(--g1);
+}
+
+.glyph {
+  display: block;
+  background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+.head .ico .glyph,
+.head .ico .icon svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+
+.module .size,
+.foot .size {
+  font-size: 10px;
+  color: var(--g2);
+  letter-spacing: 0.06em;
+}
+
+.module .icon-chev svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  color: var(--g3);
+}
+
+.module[role="button"] {
+  cursor: default;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0 0 12px;
+  color: var(--g2);
+  font-size: 12px;
+}
+
+.back svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22px;
+}
+
+.note.small {
+  font-size: 11.5px;
+  margin-top: 10px;
+}

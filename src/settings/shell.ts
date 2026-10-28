@@ -4,6 +4,7 @@ import { el, head, note } from './controls';
 import { icon, type IconName } from './icons';
 import { generalPage } from './pages/general';
 import { aboutPage, notificationsPage, permissionsPage } from './pages/info';
+import { addPage, modulePage, modulesPage } from './pages/modules';
 import { search, searchIndex } from './search';
 import type {
   PageContext, PageRender, Route, SectionId, SettingsBridge, SettingsEnv, SettingsInfo,
@@ -18,6 +19,9 @@ export interface SettingsApp {
 export const PAGES: Partial<Record<Route['page'], PageRender>> = {
   general: generalPage,
   notifications: notificationsPage,
+  modules: modulesPage,
+  module: modulePage,
+  add: addPage,
   permissions: permissionsPage,
   about: aboutPage,
 };
