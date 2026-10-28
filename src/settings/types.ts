@@ -45,3 +45,18 @@ export interface SettingsEnv {
 }
 
 export type { Lang, SettingsStrings };
+
+// What a page gets to draw itself and act.
+export interface PageContext {
+  strings: SettingsStrings;
+  lang: Lang;
+  state: ModuleState;
+  info: SettingsInfo;
+  bridge: SettingsBridge;
+  env: SettingsEnv;
+  go(route: Route): void;
+  save(key: string, pending: Promise<void>): void; // a failure shows strings.saveFailed by that setting
+  onCleanup(fn: () => void): void; // runs before the page is replaced
+}
+
+export type PageRender = (ctx: PageContext, route: Route) => HTMLElement;

@@ -1,0 +1,432 @@
+@import '../kit/kit.css';
+
+/* The settings window (settings.html, option S1). Dark is the mockup; light is
+   its mirror image. It follows the device (spec 5). */
+:root {
+  color-scheme: light dark;
+  --bg: #000;
+  --side: #0b0b0b;
+  --field: #161616;
+  --sel: #1c1c1c;
+  --line: #2a2a2a;
+  --knob: #777;
+  --fg: #fff;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #fff;
+    --side: #f4f4f4;
+    --field: #e9e9e9;
+    --sel: #e4e4e4;
+    --line: #d6d6d6;
+    --knob: #fff;
+    --fg: #000;
+    --w: #000;
+    --g1: rgba(0, 0, 0, 0.68);
+    --g2: rgba(0, 0, 0, 0.45);
+    --g3: rgba(0, 0, 0, 0.16);
+  }
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+.mono,
+.size,
+.btn,
+.val,
+.n {
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+#settings-root {
+  height: 100%;
+}
+
+.settings {
+  display: flex;
+  height: 100%;
+}
+
+/* Title bar strip: the window is dragged from here; the traffic lights sit on it. */
+.drag {
+  height: 28px;
+  flex: none;
+}
+
+.side .drag {
+  height: 36px;
+}
+
+/* Sidebar */
+.side {
+  width: 188px;
+  flex: none;
+  background: var(--side);
+  padding: 0 10px 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 8px;
+  background: var(--field);
+  padding: 6px 9px;
+  margin-bottom: 12px;
+  color: var(--g2);
+}
+
+.search-box .icon svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 12px;
+  color: var(--fg);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.search::placeholder {
+  color: var(--g2);
+}
+
+.search::-webkit-search-cancel-button {
+  display: none;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--g1);
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.nav .icon {
+  color: var(--g2);
+  display: flex;
+}
+
+.nav svg {
+  width: 14px;
+  height: 14px;
+}
+
+.nav.on {
+  background: var(--sel);
+  color: var(--fg);
+}
+
+.nav.on .icon {
+  color: var(--fg);
+}
+
+.nav .n {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--g2);
+}
+
+.grow {
+  flex: 1;
+}
+
+/* Pane */
+.pane {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane-body {
+  padding: 0 26px 22px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.head h1 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+}
+
+.head .sub {
+  color: var(--g2);
+  font-size: 12px;
+  margin-top: 1px;
+}
+
+.head .ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--sel);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.head .side-ctl {
+  margin-left: auto;
+}
+
+.grp {
+  margin-top: 18px;
+}
+
+/* Dotted divider under each row, as in the mockup. */
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 9px 0;
+  background: radial-gradient(circle, var(--g3) 0.8px, transparent 1.1px) left bottom / 5px 3px repeat-x;
+  border-radius: 6px;
+  transition: background-color 1.2s;
+}
+
+.row:last-child {
+  background-image: none;
+}
+
+.row.found {
+  background-color: var(--sel);
+  transition: none;
+}
+
+.row .t {
+  flex: 1;
+  min-width: 0;
+}
+
+.row small,
+.result small {
+  display: block;
+  color: var(--g2);
+  font-size: 11.5px;
+  margin-top: 1px;
+}
+
+.row .err {
+  flex-basis: 100%;
+  color: var(--fg);
+}
+
+.ctl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.note {
+  color: var(--g2);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 18px 0 0;
+  max-width: 420px;
+}
+
+.app-name {
+  margin-top: 18px;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.mono {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* Switch 30 × 18 */
+.switch {
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  border: 0;
+  padding: 0;
+  background: var(--line);
+  position: relative;
+  flex: none;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--knob);
+  transition: left 0.15s;
+}
+
+.switch.on {
+  background: var(--fg);
+}
+
+.switch.on::after {
+  left: 14px;
+  background: var(--bg);
+}
+
+.switch:disabled {
+  opacity: 0.4;
+}
+
+/* Segmented choice */
+.choice {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.choice button {
+  border: 0;
+  border-radius: 6px;
+  padding: 3px 10px;
+  background: transparent;
+  color: var(--g1);
+  font-size: 11.5px;
+}
+
+.choice button.on {
+  background: var(--sel);
+  color: var(--fg);
+}
+
+.select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 4px 8px;
+  font-size: 11.5px;
+  max-width: 220px;
+}
+
+/* Pill buttons */
+.btn {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  padding: 6px 14px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--g1);
+  white-space: nowrap;
+}
+
+.btn.solid,
+.btn.confirm {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--bg);
+}
+
+/* Slider: thin track, filled part in the text colour, round thumb. */
+.range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.range input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 180px;
+  height: 14px;
+  margin: 0;
+  background: transparent;
+}
+
+.range input::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(var(--fg), var(--fg)) left / var(--fill, 0%) 100% no-repeat, var(--line);
+}
+
+.range input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--fg);
+}
+
+.range .val {
+  width: 44px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--g1);
+}
+
+/* Search results */
+.results {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.result {
+  border: 0;
+  background: radial-gradient(circle, var(--g3) 0.8px, transparent 1.1px) left bottom / 5px 3px repeat-x;
+  padding: 9px 0;
+  text-align: left;
+}
+
+.result:hover {
+  color: var(--fg);
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible {
+  outline: 1px solid var(--g2);
+  outline-offset: 2px;
+}
