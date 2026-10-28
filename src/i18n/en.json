@@ -2,5 +2,83 @@
   "emptyTitle": "Every module is off.",
   "emptyHint": "Turn one on in Settings.",
   "loadFailed": "This module didn't load.",
-  "settings": "Settings"
+  "settings": "Settings",
+  "settingsWindow": {
+    "title": "Settings",
+    "search": "Search settings",
+    "noResults": "Nothing matches.",
+    "saveFailed": "Couldn't save. Try again.",
+    "sections": {
+      "general": "General",
+      "look": "Notch look",
+      "notifications": "Notifications",
+      "modules": "Modules",
+      "permissions": "Permissions",
+      "about": "About"
+    },
+    "general": {
+      "language": "Language",
+      "languageHint": "For the notch and this window.",
+      "languageAuto": "Automatic",
+      "languageId": "Indonesia",
+      "languageEn": "English",
+      "screen": "Show the notch on",
+      "screenEvery": "Every screen",
+      "screenMissing": "{name} (not connected)",
+      "screenMissingHint": "This screen isn't connected. Until it is, the notch shows on every screen.",
+      "login": "Open at login",
+      "loginHint": "Notching is ready as soon as you log in.",
+      "loginUnavailable": "Only available in the installed Notching.app.",
+      "loginNeedsApproval": "macOS is waiting for your OK in Login Items.",
+      "loginOpen": "Open Login Items"
+    },
+    "look": {
+      "preview": "Preview",
+      "previewHint": "Point at the notch, then click.",
+      "bounce": "Bounce",
+      "speed": "Speed",
+      "dropDepth": "Drop depth",
+      "thickness": "Notch thickness",
+      "thicknessHint": "Only on screens without a notch.",
+      "reset": "Reset to defaults"
+    },
+    "notifications": {
+      "sub": "Nothing sends notifications yet.",
+      "note": "Once a module sends notifications, its glow, duration and per-module choices live here."
+    },
+    "modules": {
+      "summary": "{n} installed · {size}",
+      "none": "No modules installed.",
+      "add": "+ Add module",
+      "noSettings": "This module has no settings yet.",
+      "versionSize": "Version {version} · {size}",
+      "uninstall": "Uninstall module",
+      "uninstallConfirm": "Sure? Click again",
+      "uninstallNote": "The original stays in the app. Add it back any time.",
+      "addTitle": "Add module",
+      "addSub": "Built-in modules you've uninstalled.",
+      "addOne": "Add",
+      "addNone": "Every built-in module is installed."
+    },
+    "permissions": {
+      "sub": "No module needs a system permission yet.",
+      "note": "When one does, you'll see here which permission, what it's for and which module uses it."
+    },
+    "about": {
+      "name": "Notching",
+      "version": "Version",
+      "trust": "Free. No ads. No tracking.",
+      "later": "Update checks and the donation link come with the public release."
+    },
+    "keywords": {
+      "language": "language english indonesian bahasa automatic",
+      "screen": "screen display monitor external",
+      "login": "login startup launch automatic",
+      "bounce": "bounce spring",
+      "speed": "speed fast slow animation",
+      "dropDepth": "drop hover depth droplet",
+      "thickness": "thickness thin lens line",
+      "version": "version update donate"
+    }
+  }
 }

@@ -1,0 +1,38 @@
+import { expect, test } from 'vitest';
+import { settingsStrings } from '../i18n';
+import type { Lang } from '../kit/protocol';
+import { moduleInfo } from '../notch/test-helpers';
+import { search, searchIndex } from './search';
+
+const mods = [
+  moduleInfo('home', { name: 'Beranda', description: 'Tanggal, cuaca, sholat, reminder' }),
+  moduleInfo('system-stat', { name: 'System stat', description: 'CPU, memori, jaringan' }),
+];
+const idx = (m = mods, lang: Lang = 'id') => searchIndex(settingsStrings(lang), m);
+
+test('finds a setting by its label', () => expect(search(idx(), 'bahasa')[0].key).toBe('general.language'));
+
+test('finds a setting by a keyword', () => expect(search(idx(), 'monitor')[0].key).toBe('general.screen'));
+
+test('finds a module by name or description and opens its page', () => {
+  expect(search(idx(), 'system')[0].route).toEqual({ page: 'module', id: 'system-stat' });
+  expect(search(idx(), 'cuaca')[0].route).toEqual({ page: 'module', id: 'home' });
+});
+
+test('an uninstalled module leads to Add module', () =>
+  expect(search(idx([moduleInfo('home', { name: 'Beranda', installed: false, enabled: false })]), 'beranda')[0].route)
+    .toEqual({ page: 'add' }));
+
+test('ignores case and accents', () => expect(search(idx(), 'KÉNYAL')[0].key).toBe('look.bounce'));
+
+test('every word must match', () => {
+  expect(search(idx(), 'tebal notch')[0].key).toBe('look.thickness');
+  expect(search(idx(), 'bahasa zzz')).toEqual([]);
+});
+
+test('labels that start with the query come first', () =>
+  expect(search(idx(), 'ke').slice(0, 2).map(e => e.key)).toEqual(['look.bounce', 'look.speed']));
+
+test('follows the language', () => expect(search(idx(mods, 'en'), 'language')[0].key).toBe('general.language'));
+
+test('a blank query finds nothing', () => expect(search(idx(), '   ')).toEqual([]));

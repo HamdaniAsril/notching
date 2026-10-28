@@ -2,5 +2,83 @@
   "emptyTitle": "Semua modul mati.",
   "emptyHint": "Nyalakan lagi di Pengaturan.",
   "loadFailed": "Modul ini gagal dimuat.",
-  "settings": "Pengaturan"
+  "settings": "Pengaturan",
+  "settingsWindow": {
+    "title": "Pengaturan",
+    "search": "Cari pengaturan",
+    "noResults": "Tidak ada yang cocok.",
+    "saveFailed": "Gagal menyimpan. Coba lagi.",
+    "sections": {
+      "general": "Umum",
+      "look": "Tampilan notch",
+      "notifications": "Notifikasi",
+      "modules": "Modul",
+      "permissions": "Izin",
+      "about": "Tentang"
+    },
+    "general": {
+      "language": "Bahasa",
+      "languageHint": "Untuk notch dan jendela ini.",
+      "languageAuto": "Otomatis",
+      "languageId": "Indonesia",
+      "languageEn": "English",
+      "screen": "Notch muncul di",
+      "screenEvery": "Semua layar",
+      "screenMissing": "{name} (tidak tersambung)",
+      "screenMissingHint": "Layar ini sedang tidak tersambung. Sampai tersambung lagi, notch muncul di semua layar.",
+      "login": "Buka saat login",
+      "loginHint": "Notching siap begitu kamu masuk.",
+      "loginUnavailable": "Hanya bisa diatur dari Notching.app yang terpasang.",
+      "loginNeedsApproval": "macOS menunggu persetujuanmu di Login Items.",
+      "loginOpen": "Buka Login Items"
+    },
+    "look": {
+      "preview": "Pratinjau",
+      "previewHint": "Arahkan kursor ke notch, lalu klik.",
+      "bounce": "Kenyal",
+      "speed": "Kecepatan",
+      "dropDepth": "Jarak tetesan",
+      "thickness": "Tebal notch",
+      "thicknessHint": "Hanya terlihat di layar tanpa notch.",
+      "reset": "Kembalikan bawaan"
+    },
+    "notifications": {
+      "sub": "Belum ada yang mengirim notifikasi.",
+      "note": "Begitu ada modul yang memberi notifikasi, cahaya, lama tampil, dan pilihan per modul diatur di sini."
+    },
+    "modules": {
+      "summary": "{n} terpasang · {size}",
+      "none": "Belum ada modul terpasang.",
+      "add": "+ Tambah modul",
+      "noSettings": "Modul ini belum punya pengaturan.",
+      "versionSize": "Versi {version} · {size}",
+      "uninstall": "Copot modul",
+      "uninstallConfirm": "Yakin? Klik lagi",
+      "uninstallNote": "Salinan aslinya tetap ada di app. Kamu bisa memasangnya lagi kapan saja.",
+      "addTitle": "Tambah modul",
+      "addSub": "Modul bawaan yang pernah kamu copot.",
+      "addOne": "Pasang",
+      "addNone": "Semua modul bawaan sudah terpasang."
+    },
+    "permissions": {
+      "sub": "Belum ada modul yang butuh izin sistem.",
+      "note": "Kalau nanti ada, di sini kamu lihat izin apa, untuk apa, dan modul mana yang memakainya."
+    },
+    "about": {
+      "name": "Notching",
+      "version": "Versi",
+      "trust": "Gratis. Tanpa iklan. Tanpa pelacakan.",
+      "later": "Cek update dan tautan donasi hadir saat rilis publik."
+    },
+    "keywords": {
+      "language": "bahasa indonesia inggris english language otomatis",
+      "screen": "layar monitor eksternal display screen",
+      "login": "login masuk mulai startup otomatis",
+      "bounce": "kenyal pegas pantul bounce",
+      "speed": "kecepatan cepat lambat animasi speed",
+      "dropDepth": "tetesan hover turun jarak drop",
+      "thickness": "tebal tipis lensa garis",
+      "version": "versi update donasi"
+    }
+  }
 }
