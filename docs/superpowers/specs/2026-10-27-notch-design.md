@@ -379,6 +379,7 @@ Acuan: `settings.html`, pilihan **S1**.
 
 - **Jendela biasa**, bukan di dalam notch, karena butuh ruang untuk slider dan daftar.
 - **Cara membuka:** lewat ikon ⋯ di pil.
+- **Ikon Dock:** selama jendela pengaturan terbuka, ikon Notching muncul di Dock dan Cmd+Tab, lalu hilang lagi saat jendela ditutup. Diputuskan pemilik ide pada 28 Oktober 2026.
 
 ### Sidebar
 
@@ -387,7 +388,7 @@ Acuan: `settings.html`, pilihan **S1**.
 
 | Bagian | Isi |
 |---|---|
-| Umum | Bahasa, mulai saat login, layar tempat notch muncul, ekspor dan impor pengaturan (ide dari Vorssaint, **keputusan penulis** soal letaknya) |
+| Umum | Bahasa, mulai saat login, layar tempat notch muncul. Ekspor dan impor pengaturan (ide dari Vorssaint) ditunda sampai pengaturan modul lebih banyak; diputuskan pemilik ide pada 28 Oktober 2026. |
 | Tampilan notch | Empat slider dengan pratinjau langsung |
 | Notifikasi | Cahaya G2 nyala/mati, lama tampil (bawaan 3,5 detik), notifikasi per modul nyala/mati |
 | Modul | Daftar modul terpasang: ikon, nama, keterangan singkat, ukuran, tombol nyala/mati. Klik untuk masuk ke halaman modul. Ada tombol "+ Tambah modul". |
