@@ -14,6 +14,10 @@ pub struct ModuleEntry {
     pub description: String,
     pub installed: bool,
     pub enabled: bool,
+    /// Bytes of the original package, so uninstalled modules have one too.
+    pub size: u64,
+    /// The icon file's SVG text, read from the original package.
+    pub icon_svg: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -102,7 +106,9 @@ impl ModuleStore {
                 let description = text["description"].as_str().unwrap_or("").to_string();
                 let installed = !settings.uninstalled_modules.contains(&id);
                 let enabled = installed && !settings.disabled_modules.contains(&id);
-                Some(ModuleEntry { manifest, name, description, installed, enabled })
+                let icon_svg = std::fs::read_to_string(dir.join(&manifest.icon)).unwrap_or_default();
+                let size = package_size(&dir);
+                Some(ModuleEntry { manifest, name, description, installed, enabled, size, icon_svg })
             })
             .collect()
     }
@@ -159,6 +165,20 @@ fn remove_dir(dir: &Path) -> Result<(), StoreError> {
         Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(io(e)),
         _ => Ok(()),
     }
+}
+
+/// Total bytes of the files in a folder and its subfolders; symlinks are not
+/// followed, and a missing folder is 0.
+pub fn package_size(dir: &Path) -> u64 {
+    let Ok(entries) = std::fs::read_dir(dir) else { return 0 };
+    entries
+        .flatten()
+        .map(|entry| match entry.file_type() {
+            Ok(t) if t.is_dir() => package_size(&entry.path()),
+            Ok(t) if t.is_file() => entry.metadata().map_or(0, |m| m.len()),
+            _ => 0,
+        })
+        .sum()
 }
 
 fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
@@ -306,5 +326,24 @@ mod tests {
         let (d, store) = setup();
         std::fs::write(d.path().join("bundle/b/manifest.json"), "{").unwrap();
         assert_eq!(names(&store, &Settings::default(), Lang::Id), ["Modul A"]);
+    }
+
+    #[test]
+    fn list_reports_the_icon_and_package_size() {
+        let (d, store) = setup();
+        let a = &store.list(&Settings::default(), Lang::En)[0];
+        assert_eq!(a.icon_svg, "<svg/>");
+        assert_eq!(a.size, package_size(&d.path().join("bundle/a")));
+        assert!(a.size > 0);
+    }
+
+    #[test]
+    fn package_size_counts_nested_files() {
+        let d = tempfile::tempdir().unwrap();
+        std::fs::write(d.path().join("x"), "abc").unwrap();
+        std::fs::create_dir_all(d.path().join("sub")).unwrap();
+        std::fs::write(d.path().join("sub/y"), "12345").unwrap();
+        assert_eq!(package_size(d.path()), 8);
+        assert_eq!(package_size(&d.path().join("missing")), 0);
     }
 }

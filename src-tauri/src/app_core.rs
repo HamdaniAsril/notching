@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use crate::locale::{resolve_lang, Lang};
 use crate::modules::manifest::CardSize;
 use crate::modules::store::{ModuleEntry, ModuleStore, StoreError};
-use crate::settings::{load_settings, save_settings, Settings};
+use crate::settings::{load_settings, save_settings, LanguageSetting, NotchConfig, Settings};
 use crate::system_stats::SystemStats;
 
 /// Same shape as ModuleInfo in src/modules/types.ts.
@@ -22,14 +22,18 @@ pub struct ModuleInfoDto {
     pub card: CardSize,
     pub installed: bool,
     pub enabled: bool,
+    pub size: u64,
+    pub icon_svg: String,
 }
 
+/// Broadcast to every window: the notch overlays and the settings window.
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModuleStateDto {
     pub lang: Lang,
     pub modules: Vec<ModuleInfoDto>,
     pub last_card: Option<String>,
+    pub notch: NotchConfig,
 }
 
 #[derive(Debug, PartialEq)]
@@ -93,9 +97,12 @@ impl AppCore {
                     card: e.manifest.card,
                     installed: e.installed,
                     enabled: e.enabled,
+                    size: e.size,
+                    icon_svg: e.icon_svg.clone(),
                 })
                 .collect(),
             last_card: self.settings.last_card.clone(),
+            notch: self.settings.notch,
         }
     }
 
@@ -110,6 +117,31 @@ impl AppCore {
 
     pub fn active_dir(&self) -> &Path {
         self.store.active_dir()
+    }
+
+    pub fn language(&self) -> LanguageSetting {
+        self.settings.language
+    }
+
+    pub fn screen(&self) -> Option<&str> {
+        self.settings.screen.as_deref()
+    }
+
+    /// Module names and descriptions follow the new language at once.
+    pub fn set_language(&mut self, language: LanguageSetting) -> Result<(), CoreError> {
+        self.settings.language = language;
+        self.changed()
+    }
+
+    pub fn set_notch(&mut self, config: NotchConfig) -> Result<(), CoreError> {
+        self.settings.notch = config.clamped();
+        self.save()
+    }
+
+    /// An empty name means every screen, like None.
+    pub fn set_screen(&mut self, name: Option<String>) -> Result<(), CoreError> {
+        self.settings.screen = name.filter(|n| !n.is_empty());
+        self.save()
     }
 
     pub fn set_last_card(&mut self, id: &str) -> Result<(), CoreError> {
@@ -212,5 +244,44 @@ mod tests {
         core.reinstall("a").unwrap();
         assert!(d.path().join("active/a/index.html").exists());
         assert!(core.servable("a"));
+    }
+
+    #[test]
+    fn a_language_choice_renames_the_modules_and_survives_a_restart() {
+        let d = setup();
+        let mut core = open(&d, Some("en-US"));
+        core.set_language(LanguageSetting::Id).unwrap();
+        let s = core.state();
+        assert_eq!(s.lang, Lang::Id);
+        assert_eq!(s.modules.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), ["Modul A", "Modul B"]);
+        assert_eq!(open(&d, Some("en-US")).language(), LanguageSetting::Id);
+    }
+
+    #[test]
+    fn notch_config_is_clamped_saved_and_shared() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.set_notch(NotchConfig { bounce: 150.0, thickness: 1.0, ..Default::default() }).unwrap();
+        let want = NotchConfig { bounce: 100.0, speed: 200.0, drop_depth: 9.0, thickness: 2.0 };
+        assert_eq!(core.state().notch, want);
+        assert_eq!(open(&d, None).state().notch, want);
+    }
+
+    #[test]
+    fn an_empty_screen_name_means_every_screen() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.set_screen(Some("".into())).unwrap();
+        assert_eq!(core.screen(), None);
+        core.set_screen(Some("DELL".into())).unwrap();
+        assert_eq!(open(&d, None).screen(), Some("DELL"));
+    }
+
+    #[test]
+    fn state_carries_icons_and_sizes() {
+        let d = setup();
+        let s = open(&d, None).state();
+        assert_eq!(s.modules[0].icon_svg, "<svg/>");
+        assert!(s.modules[0].size > 0);
     }
 }

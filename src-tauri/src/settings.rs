@@ -14,14 +14,72 @@ pub enum LanguageSetting {
     Auto,
 }
 
+/// The four "Tampilan notch" sliders (spec 4.3). Same keys and ranges as
+/// NotchConfig and CONFIG_RANGES in src/notch/config.ts.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotchConfig {
+    pub bounce: f64,
+    pub speed: f64,
+    pub drop_depth: f64,
+    pub thickness: f64,
+}
+
+// By hand, so a missing value or one that is not a number falls back to its own
+// default rather than to 0.
+impl<'de> serde::Deserialize<'de> for NotchConfig {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let value = <serde_json::Value as serde::Deserialize>::deserialize(d)?;
+        let base = NotchConfig::default();
+        let num = |key: &str, default: f64| value.get(key).and_then(serde_json::Value::as_f64).unwrap_or(default);
+        Ok(NotchConfig {
+            bounce: num("bounce", base.bounce),
+            speed: num("speed", base.speed),
+            drop_depth: num("dropDepth", base.drop_depth),
+            thickness: num("thickness", base.thickness),
+        })
+    }
+}
+
+impl Default for NotchConfig {
+    fn default() -> Self {
+        NotchConfig { bounce: 100.0, speed: 200.0, drop_depth: 9.0, thickness: 4.0 }
+    }
+}
+
+impl NotchConfig {
+    /// Each value cut to its slider's range; a value that is not a finite number
+    /// becomes its default.
+    pub fn clamped(self) -> NotchConfig {
+        let d = NotchConfig::default();
+        let clamp = |v: f64, default: f64, min: f64, max: f64| if v.is_finite() { v.clamp(min, max) } else { default };
+        NotchConfig {
+            bounce: clamp(self.bounce, d.bounce, 0.0, 100.0),
+            speed: clamp(self.speed, d.speed, 40.0, 200.0),
+            drop_depth: clamp(self.drop_depth, d.drop_depth, 2.0, 28.0),
+            thickness: clamp(self.thickness, d.thickness, 2.0, 14.0),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    #[serde(deserialize_with = "lenient_version")]
     pub version: u32,
+    #[serde(deserialize_with = "lenient")]
     pub language: LanguageSetting,
+    #[serde(deserialize_with = "lenient")]
     pub last_card: Option<String>,
+    #[serde(deserialize_with = "lenient")]
     pub disabled_modules: Vec<String>,
+    #[serde(deserialize_with = "lenient")]
     pub uninstalled_modules: Vec<String>,
+    #[serde(deserialize_with = "lenient")]
+    pub notch: NotchConfig,
+    /// The one screen the notch shows on, by name; None is every screen.
+    #[serde(deserialize_with = "lenient")]
+    pub screen: Option<String>,
 }
 
 impl Default for Settings {
@@ -32,8 +90,34 @@ impl Default for Settings {
             last_card: None,
             disabled_modules: Vec::new(),
             uninstalled_modules: Vec::new(),
+            notch: NotchConfig::default(),
+            screen: None,
         }
     }
+}
+
+// A value of the wrong type (a hand edit, an older or newer app) resets only its
+// own field, never the whole file.
+fn lenient_or<'de, D, T>(d: D, fallback: T) -> Result<T, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::de::DeserializeOwned,
+{
+    let value = <serde_json::Value as serde::Deserialize>::deserialize(d)?;
+    Ok(serde_json::from_value(value).unwrap_or(fallback))
+}
+
+fn lenient<'de, D, T>(d: D) -> Result<T, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::de::DeserializeOwned + Default,
+{
+    lenient_or(d, T::default())
+}
+
+// The one field whose default is not its type's default.
+fn lenient_version<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
+    lenient_or(d, Settings::default().version)
 }
 
 pub const SETTINGS_FILE: &str = "settings.json";
@@ -46,8 +130,8 @@ pub fn load_settings(path: &Path) -> Settings {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Settings::default(),
         Err(e) => return keep_aside(path, &e.to_string()),
     };
-    match serde_json::from_str(&text) {
-        Ok(settings) => settings,
+    match serde_json::from_str::<Settings>(&text) {
+        Ok(settings) => Settings { notch: settings.notch.clamped(), ..settings },
         Err(e) => keep_aside(path, &e.to_string()),
     }
 }
@@ -132,5 +216,57 @@ mod tests {
         assert_eq!(s.last_card, Some("system-stat".into()));
         assert_eq!(s.disabled_modules, vec!["home".to_string()]);
         assert!(!d.path().join("settings.json.broken").exists());
+    }
+
+    #[test]
+    fn the_new_defaults() {
+        let s = Settings::default();
+        assert_eq!(s.notch, NotchConfig { bounce: 100.0, speed: 200.0, drop_depth: 9.0, thickness: 4.0 });
+        assert_eq!(s.screen, None);
+    }
+
+    #[test]
+    fn notch_values_are_clamped_to_the_slider_ranges() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        std::fs::write(&p, r#"{"notch":{"bounce":500,"speed":10,"dropDepth":9.5,"thickness":-3}}"#).unwrap();
+        assert_eq!(
+            load_settings(&p).notch,
+            NotchConfig { bounce: 100.0, speed: 40.0, drop_depth: 9.5, thickness: 2.0 }
+        );
+    }
+
+    #[test]
+    fn a_value_of_the_wrong_type_resets_only_that_field() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        std::fs::write(
+            &p,
+            r#"{"language":"en","lastCard":"system-stat","notch":{"bounce":"x","speed":150},
+                "disabledModules":"home","screen":5}"#,
+        )
+        .unwrap();
+        let s = load_settings(&p);
+        assert_eq!(s.language, LanguageSetting::En);
+        assert_eq!(s.last_card, Some("system-stat".into()));
+        assert_eq!((s.notch.bounce, s.notch.speed), (100.0, 150.0));
+        assert!(s.disabled_modules.is_empty());
+        assert_eq!(s.screen, None);
+        assert!(!d.path().join("settings.json.broken").exists());
+    }
+
+    #[test]
+    fn the_screen_choice_survives_a_save_and_load() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        let s = Settings { screen: Some("DELL U2723QE".into()), ..Default::default() };
+        save_settings(&p, &s).unwrap();
+        assert_eq!(load_settings(&p), s);
+    }
+
+    #[test]
+    fn clamped_replaces_values_that_are_not_numbers() {
+        let c = NotchConfig { bounce: f64::NAN, speed: f64::INFINITY, ..Default::default() }.clamped();
+        assert_eq!((c.bounce, c.speed), (100.0, 200.0));
     }
 }

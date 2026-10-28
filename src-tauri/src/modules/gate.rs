@@ -70,6 +70,8 @@ mod tests {
             description: String::new(),
             installed: true,
             enabled,
+            size: 0,
+            icon_svg: String::new(),
         }
     }
 
