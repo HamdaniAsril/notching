@@ -45,7 +45,7 @@ Cara cek: checklist dicoba pemilik di build dev (`npm run tauri dev`). Build ril
 | Kartu Beranda terbuka dan diam | 0,0 | 0,0 |
 | Panel tertutup, pemilik memakai Mac | 0,0, sesekali 0,1–1,9 | 0,0 |
 
-Angka kecil di baris terakhir berasal dari pemantau gerakan mouse Notching (`pointer.rs`), karena WebContent tetap 0,0. CPU build rilis tidak diukur ulang di bagian ini.
+Angka kecil di baris terakhir muncul saat pemilik memakai Mac, sementara WebContent tetap 0,0. Penyebab pastinya tidak diselidiki. Pemantau mouse di `pointer.rs` hanya aktif saat kursor ada di notch, jadi bukan penyebab utamanya. CPU build rilis diukur di bagian B.
 
 ### Checklist
 
@@ -71,3 +71,62 @@ Tampilan dan teks kartu serta halaman pengaturan dinilai pemilik dan disetujui t
   - ournoor juga hanya melayani koordinat di Indonesia, butuh internet, dan akan mengirim lokasi kota ke layanan kedua.
   - Pemilik memilih tetap memakai hitungan sendiri. Kode dan spec tidak berubah.
 - **Tidak ada perbaikan kode selama cek di perangkat.** Satu-satunya perubahan sesudah Task 6 adalah tinggi kartu di rencana, dari 148 menjadi 156, supaya sesuai dengan kode.
+
+## B. Notifikasi
+
+Tanggal: 29–30 Oktober 2026
+Perangkat: MacBook Air M4 (layar bawaan ber-notch). Monitor eksternal tidak tersambung saat daftar jendela direkam pukul 23.25.
+Cara cek: checklist dicoba pemilik di build dev. Build rilis dibuka dari `src-tauri/target/release/bundle/macos/Notching.app` dan tidak disalin ke `/Applications`.
+
+### Test otomatis
+
+- `npx tsc --noEmit`: lulus.
+- `npm test`: 228 lulus, di 30 file (196 setelah bagian A).
+- `cargo test --manifest-path src-tauri/Cargo.toml`: 122 lulus, 1 diabaikan (99 setelah bagian A).
+
+### Ukuran
+
+- `Notching.app`: 4,9 MB, sama dengan bagian A.
+- `dist/assets`: 212 KB (bagian A: 192 KB).
+
+### CPU (build rilis, sampel tiap sekitar 2 detik)
+
+| Keadaan | `notching` | WebContent notch | WebContent pengaturan |
+|---|---|---|---|
+| Diam tanpa notifikasi, Mac tidak disentuh (41 sampel, sekitar 80 detik) | 0,0 di semua sampel | 0,0 di semua sampel | belum terbuka |
+| Buka pengaturan, klik Kirim contoh, notifikasi dengan cahaya (11 sampel) | 2,5–7,2 | 0,1–9,6 | 0,9–2,0 |
+| Setelah notifikasi selesai dan pengaturan ditutup (16 sampel) | paling tinggi 0,1 | paling tinggi 0,1 | sudah tertutup |
+
+Selama notifikasi tampil, CPU sedikit naik karena cahayanya bergerak. Begitu notifikasi selesai, CPU kembali ke 0. Penjadwal yang bangun sekali semenit tidak terlihat di sampel diam.
+
+### Checklist
+
+| # | Cek | Hasil | Catatan |
+|---|---|---|---|
+| 1 | Kirim contoh: telinga di samping notch, cahaya, dan bunyi Glass. Di monitor: pil kecil. | Lulus | Dilaporkan pemilik. Monitor tidak tersambung saat daftar jendela direkam, jadi bagian monitor hanya berdasarkan laporan pemilik. |
+| 2 | Cahaya mati → tanpa cahaya. Lama tampil 6 dtk → lebih lama. Lalu kembali ke bawaan. | Lulus | Dilaporkan pemilik. `settings.json` kembali ke `glow: true` dan `seconds: 3.5`. |
+| 3 | Reminder tepat waktu, di layar tempat kursor, dengan bunyi. Klik telinga membuka kartu Beranda. | Lulus | Dilaporkan pemilik. Enam reminder uji tercatat `notified` di `reminders.json`. |
+| 4 | Dua reminder di menit yang sama tampil bergantian. | Lulus | Dilaporkan pemilik. "Tes 1" dan "Tes 2" (22.57) keduanya `notified`. |
+| 5 | Panel terbuka saat reminder jatuh tempo → notifikasi muncul setelah panel ditutup. | Lulus | Dilaporkan pemilik. |
+| 6 | Terlewat: tanda di notch dan di ikon Beranda di pil, lalu hilang setelah panel dibuka. | Lulus setelah perbaikan | Tiga percobaan awal tidak memunculkan titik. Ada dua sebab, dan keduanya diperbaiki (lihat Temuan). Desain titiknya juga diganti dua kali atas pilihan pemilik. Percobaan terakhir dengan video layar penuh (reminder 00.00) dilaporkan pemilik: notch melebar dengan titik merah. Jalur "2 menit tidak menyentuh Mac" belum dicoba terpisah di perangkat. Jalur itu memakai kode yang sama dan sudah diuji di test. |
+| 7 | Saklar Tampil mati → reminder tidak muncul. Saklar Suara mati → tanpa bunyi. | Lulus | Dilaporkan pemilik. Pengaturan masih `home.reminder` dengan suara mati saat laporan ini ditulis. |
+| 8 | Notifikasi waktu sholat tanpa bunyi. | Belum | Saklarnya belum dinyalakan saat laporan ini ditulis. Pemilik melaporkannya di waktu sholat berikutnya. |
+| 9 | Cmd+Q lalu jalankan lagi → reminder yang sudah muncul tidak muncul lagi. | Lulus | Dilaporkan pemilik setelah Notching dibuka ulang pukul 23.05. |
+| 10 | Perilaku lama: hover, buka-tutup, Esc, klik di luar, menu bar, slider, dan Beranda. | Lulus | Dilaporkan pemilik. |
+| 11 | Build rilis: Kirim contoh berbunyi dan bercahaya. | Lulus | Dilaporkan pemilik. |
+
+Tampilan telinga, cahaya, pil, halaman Notifikasi, dan saklar sholat di Beranda dinilai pemilik di pratinjau browser sebelum Task 12 di-commit, dan disetujui tanpa perubahan.
+
+### Temuan dan catatan
+
+- **Titik di ikon pil tidak pernah terlihat.** Titik dihapus saat panel terbuka, padahal pil baru muncul sesudah panel terbuka. Sekarang titik baru dihapus saat panel ditutup. Diperbaiki di `bf63685` dengan test.
+- **App layar penuh tidak dikenali di MacBook ber-notch.** Daftar jendela yang direkam saat Arc layar penuh menunjukkan dua hal:
+  - Jendela layar penuh mulai di bawah strip notch (y 33, area aman 32), bukan di y 0.
+  - Space layar penuh tidak punya jendela desktop Dock (layer 20), sedangkan Space biasa punya.
+
+  `covers_screen` sekarang juga menghitung jendela yang mulai di bawah strip notch, asal di Space itu tidak ada jendela desktop Dock. Diperbaiki di `72d9a69` dengan test dari angka rekaman tadi.
+- **Desain titik terlewat diganti atas pilihan pemilik.** Dari titik putih di bawah notch menjadi titik hitam berpinggiran putih di kiri notch (`13a483b`), lalu titik merah aksen di dalam notch yang melebar 20 px ke kiri (`5481ad2`). Di layar tanpa notch, titiknya ada di bawah lensa. Spec bagian 4.4 diperbarui.
+- **Pemilik menimbang titik pelangi beranimasi** dan memilih merah. Animasi yang terus berjalan akan membuat Notching tidak pernah benar-benar diam.
+- **Nilai "3,5 dtk" di halaman Notifikasi** sempat terpotong menjadi dua baris. Ini diperbaiki sebelum Task 12 di-commit.
+- **Sesi lain di folder yang sama** menambahkan gradasi panel (`c4d3082`) di cabang ini, di antara Task 11 dan Task 12. Perubahan itu tidak termasuk rencana ini, tetapi ikut terlihat di semua cek bagian B.
+
