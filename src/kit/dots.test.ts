@@ -14,3 +14,5 @@ test('percent has its own glyph', () => expect(dotText('%', 5).match(/<circle/g)
 test('unknown characters are a programming error', () => expect(() => dotText('a', 6)).toThrow());
 
 test('the dot bar lights the first n dots', () => expect(dotBar(18, 9).match(/fill="#fff"/g)).toHaveLength(9));
+
+test('minus has its own glyph', () => expect(dotText('-3°', 5).match(/<circle/g)!.length).toBeGreaterThan(3));

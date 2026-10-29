@@ -81,7 +81,7 @@ export function deps(r: ReturnType<typeof fakeRaf>): ViewDeps {
 }
 
 const MODULE_CARDS: Record<string, { width: number; height: number }> = {
-  home: { width: 540, height: 72 },
+  home: { width: 540, height: 156 },
   'system-stat': { width: 400, height: 80 },
 };
 

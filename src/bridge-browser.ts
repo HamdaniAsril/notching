@@ -1,4 +1,5 @@
 import type { Bridge } from './bridge';
+import { fakeHome } from './bridge-browser-home';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
 import type { ModuleInfo, ModuleState } from './modules/types';
@@ -43,7 +44,8 @@ function fakeStats() {
 
 // Stand-in for the native side in a normal browser (`npm run dev`).
 // `?notch=1` fakes a 164 × 32 notch, `?lang=en` switches to English and
-// `?off=home,system-stat` switches modules off. Pointer and clicks come from
+// `?off=home,system-stat` switches modules off; Beranda's own switches are in
+// bridge-browser-home.ts. Pointer and clicks come from
 // localPointer().
 export function browserBridge(root: HTMLElement): Bridge {
   const doc = root.ownerDocument;
@@ -56,6 +58,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     notch: DEFAULT_CONFIG,
   };
   const pointer = localPointer(root);
+  const homeCall = fakeHome(params);
   const stateSubs = new Set<(s: ModuleState) => void>();
 
   return {
@@ -71,11 +74,12 @@ export function browserBridge(root: HTMLElement): Bridge {
       state = { ...state, lastCard: id };
       stateSubs.forEach(cb => cb(state));
     },
-    moduleCall: async (moduleId, capability, method) => {
+    moduleCall: async (moduleId, capability, method, args) => {
       if (!manifestOf(moduleId)?.capabilities.includes(capability)) {
         throw new Error(`module ${moduleId} did not declare ${capability}`);
       }
       if (capability === 'system.stats' && method === 'read') return fakeStats();
+      if (capability === 'home.data' || capability === 'reminders') return homeCall(capability, method, args);
       throw new Error(`unknown method ${method}`);
     },
     // Vite serves the module sources directly.

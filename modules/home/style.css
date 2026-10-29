@@ -1,13 +1,226 @@
-#card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  height: 72px;
+/* Beranda N2, sizes and greys from beranda-nothing.html. Fixed height, so the
+   panel never changes size with what the card shows. */
+#card,
+.home,
+.list {
+  height: 156px;
 }
 
-.title {
-  font-size: 17px;
+.hdots,
+.foot {
+  flex: none;
+}
+
+.home,
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cols {
+  display: flex;
+  gap: 18px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.col .big {
+  min-height: 56px;
+  margin: 10px 0;
+}
+
+/* Same size as the date, but dimmer: the date is read first (spec 7). */
+.col[data-k="weather"] .big {
+  color: var(--g2);
+}
+
+.col[data-k="next"] {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  outline: none;
+}
+
+.next {
+  margin-top: 6px;
+  font-size: 15px;
   font-weight: 500;
-  letter-spacing: -0.2px;
+  line-height: 19px;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+
+.dbar {
+  display: block;
+}
+
+.rms {
+  margin-top: 12px;
+}
+
+.rm {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.rm + .rm {
+  margin-top: 4px;
+}
+
+.rm .ck {
+  flex: none;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 1.2px solid var(--g2);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.rm .t {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rm .m {
+  margin-left: auto;
+  padding-left: 14px;
+  color: var(--g2);
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rm.empty {
+  color: var(--g2);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 15px;
+  color: var(--g2);
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.foot b {
+  color: var(--g1);
+  font-weight: 400;
+}
+
+.foot .clk {
+  margin-left: auto;
+  color: var(--g1);
+  font-size: 11px;
+}
+
+/* The full reminder list. */
+.list .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.list .back {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--g1);
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.add {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.add input {
+  padding: 4px 0;
+  border: 0;
+  outline: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left bottom / 5px 3px repeat-x;
+  color: var(--w);
+  font: 13px "Space Grotesk", -apple-system, sans-serif;
+  /* kit.css turns selection off for the whole card. */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.add input:focus {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0.9px, transparent 1.3px);
+}
+
+.add input::placeholder {
+  color: var(--g2);
+}
+
+.add input.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.add input.time {
+  width: 44px;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+.add .err {
+  color: var(--g1);
+}
+
+.items {
+  flex: 1;
+  min-height: 0;
+  margin-top: 8px;
+  overflow-y: auto;
+}
+
+.items::-webkit-scrollbar {
+  display: none;
+}
+
+.items .rm {
+  padding: 1px 0;
+}
+
+.items .rm .ck {
+  width: 10px;
+  height: 10px;
+  cursor: pointer;
+}
+
+.items .rm.done .ck {
+  background: var(--g2);
+}
+
+.items .rm.done .t {
+  color: var(--g2);
+  text-decoration: line-through;
 }

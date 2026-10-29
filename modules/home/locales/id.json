@@ -1,5 +1,38 @@
 {
   "name": "Beranda",
   "description": "Tanggal, cuaca, sholat, reminder",
-  "soon": "Tanggal, cuaca, dan sholat menyusul."
+  "weather": "Cuaca",
+  "next": "Berikutnya",
+  "noPlace": "Atur kota di Pengaturan",
+  "today": "Hari ini",
+  "tomorrow": "Besok",
+  "hours": "j",
+  "minutes": "m",
+  "reminders": "Reminder",
+  "noReminders": "Belum ada reminder.",
+  "newReminder": "Reminder baru",
+  "time": "Jam",
+  "badTime": "Jam tidak dikenali",
+  "addFailed": "Gagal menyimpan",
+  "back": "Kembali",
+  "markDone": "Tandai selesai",
+  "markOpen": "Tandai belum selesai",
+  "prayers": {
+    "fajr": "Subuh",
+    "dhuhr": "Dzuhur",
+    "asr": "Ashar",
+    "maghrib": "Maghrib",
+    "isha": "Isya"
+  },
+  "weatherKinds": {
+    "clear": "Cerah",
+    "mostlyClear": "Cerah berawan",
+    "cloudy": "Berawan",
+    "fog": "Berkabut",
+    "drizzle": "Gerimis",
+    "rain": "Hujan",
+    "showers": "Hujan sesaat",
+    "snow": "Salju",
+    "storm": "Badai petir"
+  }
 }

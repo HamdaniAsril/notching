@@ -1,5 +1,38 @@
 {
   "name": "Home",
   "description": "Date, weather, prayer times, reminders",
-  "soon": "Date, weather and prayer times are on the way."
+  "weather": "Weather",
+  "next": "Next",
+  "noPlace": "Set your city in Settings",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "hours": "h",
+  "minutes": "m",
+  "reminders": "Reminders",
+  "noReminders": "No reminders yet.",
+  "newReminder": "New reminder",
+  "time": "Time",
+  "badTime": "Unknown time",
+  "addFailed": "Couldn't save",
+  "back": "Back",
+  "markDone": "Mark done",
+  "markOpen": "Mark not done",
+  "prayers": {
+    "fajr": "Fajr",
+    "dhuhr": "Dhuhr",
+    "asr": "Asr",
+    "maghrib": "Maghrib",
+    "isha": "Isha"
+  },
+  "weatherKinds": {
+    "clear": "Clear",
+    "mostlyClear": "Mostly clear",
+    "cloudy": "Cloudy",
+    "fog": "Fog",
+    "drizzle": "Drizzle",
+    "rain": "Rain",
+    "showers": "Showers",
+    "snow": "Snow",
+    "storm": "Thunderstorm"
+  }
 }
