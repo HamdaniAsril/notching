@@ -42,18 +42,9 @@ export interface Reminder {
   notified: boolean;
 }
 
-// A running module's line in the bottom row, e.g. Timer 12.30 (plan 5).
-export interface MiniStatus {
-  module: string;
-  label: string;
-  value: string;
-}
-
 export interface HomeSnapshot {
   place: Place | null;
   weather: Weather | null;
   prayer: PrayerDay | null;
   reminders: Reminder[];
-  showClock: boolean;
-  statuses: MiniStatus[];
 }

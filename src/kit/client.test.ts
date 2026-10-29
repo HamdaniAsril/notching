@@ -49,3 +49,27 @@ test('Escape and Cmd+Q are passed to the host', async () => {
   expect(posted).toContainEqual({ type: 'notching:key', key: 'Escape' });
   expect(posted).toContainEqual({ type: 'notching:key', key: 'Quit' });
 });
+
+test('the kit knows its widget and passes expand and view', async () => {
+  const { win, posted } = frameWindow();
+  const p = connectKit(win);
+  hostSays(win, { type: 'notching:init', moduleId: 'home', lang: 'id', widget: 'reminders' });
+  const kit = await p;
+  expect(kit.widget).toBe('reminders');
+  kit.expand();
+  kit.collapse();
+  expect(posted).toContainEqual({ type: 'notching:expand' });
+  expect(posted).toContainEqual({ type: 'notching:collapse' });
+  const seen: boolean[] = [];
+  kit.onView(full => seen.push(full));
+  hostSays(win, { type: 'notching:view', full: true });
+  hostSays(win, { type: 'notching:view', full: false });
+  expect(seen).toEqual([true, false]);
+});
+
+test('a module frame has no widget', async () => {
+  const { win } = frameWindow();
+  const p = connectKit(win);
+  hostSays(win, { type: 'notching:init', moduleId: 'system-stat', lang: 'id' });
+  expect((await p).widget).toBeNull();
+});

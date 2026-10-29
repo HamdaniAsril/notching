@@ -16,3 +16,18 @@ test('host messages are checked by shape', () => {
   for (const bad of [undefined, { type: 'notching:init', moduleId: 'home', lang: 'fr' },
                      { type: 'notching:result', id: 1, ok: false }]) expect(isHostMessage(bad)).toBe(false);
 });
+
+test('a view message needs a boolean', () => {
+  expect(isHostMessage({ type: 'notching:view', full: true })).toBe(true);
+  expect(isHostMessage({ type: 'notching:view', full: 'ya' })).toBe(false);
+});
+
+test('init may name its widget', () => {
+  expect(isHostMessage({ type: 'notching:init', moduleId: 'home', lang: 'id', widget: 'date' })).toBe(true);
+  expect(isHostMessage({ type: 'notching:init', moduleId: 'home', lang: 'id', widget: 5 })).toBe(false);
+});
+
+test('a frame may ask to expand or collapse', () => {
+  expect(isFrameMessage({ type: 'notching:expand' })).toBe(true);
+  expect(isFrameMessage({ type: 'notching:collapse' })).toBe(true);
+});

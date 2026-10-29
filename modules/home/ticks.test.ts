@@ -1,11 +1,11 @@
 import { expect, test, vi } from 'vitest';
-import { startTicks, WEATHER_EVERY_MS } from './ticks';
+import { everyMinute, startTicks, WEATHER_EVERY_MS } from './ticks';
 import type { HomeSnapshot } from './types';
 
-const SNAP: HomeSnapshot = { place: null, weather: null, prayer: null, reminders: [], showClock: true, statuses: [] };
+const SNAP: HomeSnapshot = { place: null, weather: null, prayer: null, reminders: [] };
 const flush = () => new Promise(r => setTimeout(r, 0));
 
-function setup(start = new Date(2026, 9, 27, 10, 18, 30)) {
+function setup(start = new Date(2026, 9, 27, 10, 18, 30), weather = true) {
   let now = start;
   const calls: Array<{ method: string; resolve: (v: unknown) => void; reject: (e: Error) => void }> = [];
   const kit = {
@@ -13,7 +13,7 @@ function setup(start = new Date(2026, 9, 27, 10, 18, 30)) {
   };
   const timers: Array<[() => void, number]> = [];
   const onSnapshot = vi.fn();
-  startTicks(kit as never, onSnapshot, (fn, ms) => { timers.push([fn, ms]); }, () => now);
+  startTicks(kit as never, onSnapshot, (fn, ms) => { timers.push([fn, ms]); }, () => now, { weather });
   // Runs the last timer after its delay.
   const tick = () => { const [fn, ms] = timers[timers.length - 1]; now = new Date(now.getTime() + ms); fn(); };
   return { kit, calls, timers, onSnapshot, tick };
@@ -51,4 +51,23 @@ test('a failed call keeps the last snapshot', async () => {
   t.calls[1].reject(new Error('offline'));
   await flush();
   expect(t.onSnapshot).toHaveBeenCalledTimes(1);
+});
+
+test('only the weather widget asks for fresh weather', () => {
+  const t = setup(undefined, false);
+  for (let i = 0; i < 40; i++) t.tick();
+  expect(methods(t.kit)).not.toContain('refreshWeather');
+  expect(methods(t.kit)[0]).toBe('read');
+});
+
+test('everyMinute wakes on the minute boundary', () => {
+  const timers: Array<[() => void, number]> = [];
+  let now = new Date(2026, 9, 27, 10, 18, 20);
+  const cb = vi.fn();
+  everyMinute((fn, ms) => { timers.push([fn, ms]); }, () => now, cb);
+  expect(timers[0][1]).toBe(40_000);
+  now = new Date(2026, 9, 27, 10, 19, 0);
+  timers[0][0]();
+  expect(cb).toHaveBeenCalledTimes(1);
+  expect(timers[1][1]).toBe(60_000);
 });

@@ -2,7 +2,7 @@ import { dayKey } from '../modules/home/format';
 import type { HomeSnapshot, PrayerName, PrayerTime, Reminder } from '../modules/home/types';
 
 // Beranda's data for the browser preview (`npm run dev`), kept in memory.
-// `?city=0` starts without a city; `?status=1` adds a running Timer.
+// `?city=0` starts without a city.
 export function fakeHome(params: URLSearchParams): (capability: string, method: string, args: unknown) => Promise<unknown> {
   const hasCity = params.get('city') !== '0';
   const at = (days: number, h: number, m: number) => {
@@ -34,8 +34,6 @@ export function fakeHome(params: URLSearchParams): (capability: string, method: 
         : null,
       prayer: hasCity ? prayer() : null,
       reminders: reminders.map(r => ({ ...r })),
-      showClock: true,
-      statuses: params.get('status') === '1' ? [{ module: 'timer', label: 'Timer', value: '12.30' }] : [],
     };
   }
 

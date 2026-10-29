@@ -1,51 +1,43 @@
-/* Beranda N2, sizes and greys from beranda-nothing.html. Fixed height, so the
-   panel never changes size with what the card shows. */
-#card,
-.home,
-.list {
-  height: 156px;
+/* The built-in widgets (design 30 Oct §4–5): greys, label and reminder rows from
+   beranda-nothing.html; big numbers 42 px in every widget. Each widget fills its
+   frame, which the notch sizes to its columns and the page's height (104 px). */
+#card {
+  height: 100%;
 }
 
-.hdots,
-.foot {
-  flex: none;
+html,
+body {
+  height: 100%;
+  overflow: hidden;
 }
 
-.home,
+.wd,
 .list {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
-.cols {
-  display: flex;
-  gap: 18px;
+.wd {
+  gap: 6px;
 }
 
-.col {
-  display: flex;
-  flex-direction: column;
+.wd-big {
+  min-height: 42px;
 }
 
-.col .big {
-  min-height: 56px;
-  margin: 10px 0;
-}
-
-/* Same size as the date, but dimmer: the date is read first (spec 7). */
-.col[data-k="weather"] .big {
+/* Same size as the date, but dimmer: the date is read first. */
+.wd-weather .wd-big {
   color: var(--g2);
 }
 
-.col[data-k="next"] {
-  flex: 1;
-  min-width: 0;
+.wd-reminders {
   cursor: pointer;
   outline: none;
+  min-width: 0;
 }
 
-.next {
-  margin-top: 6px;
+.wd-next {
   font-size: 15px;
   font-weight: 500;
   line-height: 19px;
@@ -53,19 +45,12 @@
   white-space: nowrap;
 }
 
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 7px;
-}
-
-.dbar {
+.wd-bar .dbar {
   display: block;
 }
 
 .rms {
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .rm {
@@ -109,30 +94,6 @@
 
 .rm.empty {
   color: var(--g2);
-}
-
-.foot {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-height: 15px;
-  color: var(--g2);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.foot b {
-  color: var(--g1);
-  font-weight: 400;
-}
-
-.foot .clk {
-  margin-left: auto;
-  color: var(--g1);
-  font-size: 11px;
 }
 
 /* The full reminder list. */

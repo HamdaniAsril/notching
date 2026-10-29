@@ -2,7 +2,7 @@
   "name": "Built-in widgets",
   "description": "Date, weather, prayer, reminders, clock",
   "weather": "Weather",
-  "next": "Next",
+  "prayer": "Prayer",
   "noPlace": "Set your city in Settings",
   "today": "Today",
   "tomorrow": "Tomorrow",

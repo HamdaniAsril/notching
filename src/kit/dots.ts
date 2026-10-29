@@ -15,6 +15,21 @@ export const GLYPHS: Record<string, readonly string[]> = {
   '-': ['000', '000', '000', '111', '000', '000', '000'],
 };
 
+// Big numbers in every widget share this pitch: 7 dots make 42 px (design 30 Oct §4).
+export const BIG_PITCH = 6;
+
+// Width of dotText(text, pitch).
+export function dotWidth(text: string, pitch: number): number {
+  let x = 0;
+  for (const ch of text) x += (GLYPHS[ch]?.[0].length ?? 0) + 1;
+  return (x - 1) * pitch;
+}
+
+// The big pitch, or one dot smaller when the text would not fit (a "-12°").
+export function fitPitch(text: string, maxWidth: number): number {
+  return dotWidth(text, BIG_PITCH) <= maxWidth ? BIG_PITCH : BIG_PITCH - 1;
+}
+
 // Glyphs one dot apart; dot radius 0.4 of the pitch.
 export function dotText(text: string, pitch: number): string {
   let x = 0;

@@ -4,7 +4,11 @@ import { type FrameMessage, isHostMessage, type Lang } from './protocol';
 export interface Kit {
   readonly moduleId: string;
   readonly lang: Lang;
+  readonly widget: string | null; // the widget this frame shows; null on a module page
   call<T>(capability: string, method: string, args?: unknown): Promise<T>;
+  expand(): void; // asks to cover the whole page
+  collapse(): void;
+  onView(cb: (full: boolean) => void): void;
 }
 
 // Resolves when the host says hello. Only messages from the parent window count;
@@ -13,15 +17,24 @@ export function connectKit(win: Window = window): Promise<Kit> {
   const post = (msg: FrameMessage) => win.parent.postMessage(msg, '*');
   const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
   let nextId = 1;
+  const views: ((full: boolean) => void)[] = [];
 
   return new Promise(resolve => {
     win.addEventListener('message', e => {
       if (e.source !== win.parent || !isHostMessage(e.data)) return;
       const msg = e.data;
+      if (msg.type === 'notching:view') {
+        views.forEach(cb => cb(msg.full));
+        return;
+      }
       if (msg.type === 'notching:init') {
         resolve({
           moduleId: msg.moduleId,
           lang: msg.lang,
+          widget: msg.widget ?? null,
+          expand: () => post({ type: 'notching:expand' }),
+          collapse: () => post({ type: 'notching:collapse' }),
+          onView: cb => { views.push(cb); },
           call<T>(capability: string, method: string, args?: unknown): Promise<T> {
             const id = nextId++;
             return new Promise<T>((res, rej) => {

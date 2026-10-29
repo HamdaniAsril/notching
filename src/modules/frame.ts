@@ -61,7 +61,7 @@ export function mountFrameHost(container: HTMLElement, deps: FrameHostDeps): Fra
       cancelReady = null;
     } else if (msg.type === 'notching:key') {
       deps.onKey(msg.key);
-    } else {
+    } else if (msg.type === 'notching:call') {
       deps.bridge.moduleCall(moduleId, msg.capability, msg.method, msg.args).then(
         value => reply(from, { type: 'notching:result', id: msg.id, ok: true, value }),
         err => reply(from, { type: 'notching:result', id: msg.id, ok: false, error: err instanceof Error ? err.message : String(err) }),

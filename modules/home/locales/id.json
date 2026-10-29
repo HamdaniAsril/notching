@@ -2,7 +2,7 @@
   "name": "Widget bawaan",
   "description": "Tanggal, cuaca, sholat, reminder, jam",
   "weather": "Cuaca",
-  "next": "Berikutnya",
+  "prayer": "Sholat",
   "noPlace": "Atur kota di Pengaturan",
   "today": "Hari ini",
   "tomorrow": "Besok",
