@@ -62,6 +62,61 @@ impl NotchConfig {
     }
 }
 
+/// The Beranda city, typed once (spec 7). Weather and prayer times both use it.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Place {
+    pub name: String,
+    pub region: String,
+    pub country: String,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+impl Place {
+    pub fn is_valid(&self) -> bool {
+        let name = self.name.trim().chars().count();
+        (1..=100).contains(&name)
+            && self.latitude.is_finite()
+            && self.longitude.is_finite()
+            && (-90.0..=90.0).contains(&self.latitude)
+            && (-180.0..=180.0).contains(&self.longitude)
+    }
+}
+
+/// How prayer times are computed; Kemenag RI unless chosen otherwise.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum PrayerMethod {
+    Singapore,
+    MuslimWorldLeague,
+    Egyptian,
+    Karachi,
+    UmmAlQura,
+    NorthAmerica,
+    // A method this version does not know reads as Kemenag. serde wants it last.
+    #[default]
+    #[serde(other)]
+    Kemenag,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct HomeSettings {
+    #[serde(deserialize_with = "lenient")]
+    pub place: Option<Place>,
+    #[serde(deserialize_with = "lenient")]
+    pub prayer_method: PrayerMethod,
+    #[serde(deserialize_with = "lenient_true")]
+    pub show_clock: bool,
+}
+
+impl Default for HomeSettings {
+    fn default() -> Self {
+        HomeSettings { place: None, prayer_method: PrayerMethod::Kemenag, show_clock: true }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -80,6 +135,8 @@ pub struct Settings {
     /// The one screen the notch shows on, by name; None is every screen.
     #[serde(deserialize_with = "lenient")]
     pub screen: Option<String>,
+    #[serde(deserialize_with = "lenient")]
+    pub home: HomeSettings,
 }
 
 impl Default for Settings {
@@ -92,6 +149,7 @@ impl Default for Settings {
             uninstalled_modules: Vec::new(),
             notch: NotchConfig::default(),
             screen: None,
+            home: HomeSettings::default(),
         }
     }
 }
@@ -115,7 +173,12 @@ where
     lenient_or(d, T::default())
 }
 
-// The one field whose default is not its type's default.
+// Switches that are on unless turned off.
+fn lenient_true<'de, D: serde::Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
+    lenient_or(d, true)
+}
+
+// The version's default is not its type's default either.
 fn lenient_version<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
     lenient_or(d, Settings::default().version)
 }
@@ -131,7 +194,11 @@ pub fn load_settings(path: &Path) -> Settings {
         Err(e) => return keep_aside(path, &e.to_string()),
     };
     match serde_json::from_str::<Settings>(&text) {
-        Ok(settings) => Settings { notch: settings.notch.clamped(), ..settings },
+        Ok(mut settings) => {
+            settings.notch = settings.notch.clamped();
+            settings.home.place = settings.home.place.filter(Place::is_valid);
+            settings
+        }
         Err(e) => keep_aside(path, &e.to_string()),
     }
 }
@@ -268,5 +335,49 @@ mod tests {
     fn clamped_replaces_values_that_are_not_numbers() {
         let c = NotchConfig { bounce: f64::NAN, speed: f64::INFINITY, ..Default::default() }.clamped();
         assert_eq!((c.bounce, c.speed), (100.0, 200.0));
+    }
+
+    fn jakarta() -> Place {
+        Place {
+            name: "Jakarta".into(),
+            region: "Jakarta".into(),
+            country: "Indonesia".into(),
+            latitude: -6.21462,
+            longitude: 106.84513,
+        }
+    }
+
+    #[test]
+    fn home_defaults() {
+        assert_eq!(
+            Settings::default().home,
+            HomeSettings { place: None, prayer_method: PrayerMethod::Kemenag, show_clock: true }
+        );
+    }
+
+    #[test]
+    fn home_settings_survive_a_save_and_load() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        let s = Settings {
+            home: HomeSettings { place: Some(jakarta()), prayer_method: PrayerMethod::Karachi, show_clock: false },
+            ..Default::default()
+        };
+        save_settings(&p, &s).unwrap();
+        assert_eq!(load_settings(&p), s);
+    }
+
+    #[test]
+    fn an_unknown_method_or_a_bad_place_falls_back() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        std::fs::write(
+            &p,
+            r#"{"home":{"prayerMethod":"jafari",
+                "place":{"name":"X","region":"","country":"","latitude":200,"longitude":0},"showClock":"no"}}"#,
+        )
+        .unwrap();
+        assert_eq!(load_settings(&p).home, HomeSettings::default());
+        assert!(!d.path().join("settings.json.broken").exists());
     }
 }

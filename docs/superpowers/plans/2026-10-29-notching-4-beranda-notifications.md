@@ -19,7 +19,7 @@
 
 **Architecture:**
 - **Bagian Rust baru, `src-tauri/src/home/`:** memegang data Beranda, karena kartu modul hidup di iframe sandbox yang tidak bisa menyimpan apa pun, tidak punya jaringan, dan hanya ada selama panel terbuka.
-  - `prayer.rs`: waktu sholat dengan crate `salah`.
+  - `prayer.rs`: waktu sholat, dengan rumus adhan-js yang diterjemahkan ke Rust.
   - `weather.rs`: cuaca dan pencarian kota ke Open-Meteo lewat `ureq`.
   - `reminders.rs`: `reminders.json`.
   - `schedule.rs` (Bagian B): satu thread yang tidur sampai reminder atau waktu sholat berikutnya, lalu mengirim notifikasi.
@@ -34,7 +34,6 @@
 - Sama dengan rencana 3: Tauri 2, `tauri-nspanel` 2.1, objc2 0.6 / objc2-app-kit 0.3, Vite 8, TypeScript, Vitest + jsdom.
 - Tambahan Rust:
   - `chrono` 0.4 untuk tanggal lokal,
-  - `salah` 0.7 (MIT) untuk waktu sholat. Ini terjemahan Rust dari Adhan, rumusnya sama dengan adhan-js,
   - `ureq` 3 dengan native-tls saja, untuk HTTPS lewat TLS bawaan macOS,
   - Bagian B: `objc2-core-graphics` 0.3 (waktu diam dan daftar jendela), fitur `NSSound` di objc2-app-kit, dan fitur `NSDictionary`/`NSValue` di objc2-foundation.
 - Tidak ada tambahan npm.
@@ -53,7 +52,7 @@ Acuan visual di `docs/superpowers/specs/2026-10-27-notch-mockups/`:
 Rencana sebelumnya: `docs/superpowers/plans/2026-10-28-notching-3-settings.md`. Jendela pengaturan, `SettingsDto`, `change`, dan siaran `notching://settings` berasal dari sana.
 
 **Keputusan pemilik saat menyusun rencana ini (29 Oktober 2026)**, dimasukkan ke spec bersama commit rencana ini:
-- Waktu sholat dihitung di bagian Rust dengan `salah`, bukan adhan-js di kartu. Alasannya, notifikasi sholat harus jalan walau kartu Beranda tertutup. Rumusnya sama.
+- Waktu sholat dihitung di bagian Rust dengan rumus adhan-js yang diterjemahkan ke Rust, bukan adhan-js di kartu. Alasannya, notifikasi sholat harus jalan walau kartu Beranda tertutup. Hasilnya sama sampai ke detik.
 - Metode Kemenag RI: Subuh 20°, Isya 18°, Ashar mazhab Syafi'i, ihtiyat Subuh +2, Dzuhur +3, Ashar +2, Maghrib +3, Isya +2 menit, dibulatkan ke atas.
   - Dengan angka ini, hasilnya sama dengan jadwal resmi Kemenag (Bimas Islam) untuk Jakarta, 29 dan 30 Oktober 2026: 04.10, 11.40, 14.53, 17.49, 19.00.
   - Pemilik mencocokkan lagi dengan jadwal kotanya sendiri di Task 7.
@@ -113,7 +112,7 @@ Ini rencana 4 dari 5 untuk tahap "versi Mac untuk dipakai sendiri":
   - TLS memakai native-tls (Security framework macOS). Tidak ada rustls.
   - CSP halaman notch, pengaturan, dan modul tidak berubah. Tidak ada webview yang punya akses jaringan.
 - **Waktu sholat:**
-  - Dihitung di Rust dengan `salah` 0.7, mazhab Syafi'i, untuk tanggal lokal Mac.
+  - Dihitung di Rust dengan terjemahan adhan-js 4.4.3 (MIT, hak cipta Batoul Apps dicantumkan di kepala file), mazhab Syafi'i, untuk tanggal lokal Mac.
   - Tabel metode:
 
     | Metode | Kunci JSON | Parameter |
@@ -187,7 +186,7 @@ Ini rencana 4 dari 5 untuk tahap "versi Mac untuk dipakai sendiri":
 **Files:**
 - Create: `src-tauri/src/home/mod.rs` (untuk sekarang hanya `pub mod prayer;`), `src-tauri/src/home/prayer.rs`
 - Modify:
-  - `src-tauri/Cargo.toml`: `chrono = "0.4"` dan `salah = "0.7"` di `[dependencies]`.
+  - `src-tauri/Cargo.toml`: `chrono = "0.4"` di `[dependencies]`.
   - `src-tauri/src/settings.rs`, `src-tauri/src/app_core.rs`.
   - `src-tauri/src/lib.rs`: `mod home;`.
 - Test: di dalam `prayer.rs`, `settings.rs`, dan `app_core.rs`
@@ -227,9 +226,10 @@ pub enum PrayerName { Fajr, Dhuhr, Asr, Maghrib, Isha }
 pub struct PrayerTime { pub name: PrayerName, pub at: i64 }          // at: milidetik epoch
 #[derive(Clone, Debug, PartialEq, serde::Serialize)] #[serde(rename_all = "camelCase")]
 pub struct PrayerDay { pub today: Vec<PrayerTime>, pub prev: PrayerTime, pub next: PrayerTime }
-pub fn parameters(method: PrayerMethod) -> salah::Parameters;
+pub struct Parameters { pub fajr_angle: f64, pub isha_angle: f64, pub isha_interval: f64, pub adjustments: [f64; 5], pub round_up: bool }
+pub fn parameters(method: PrayerMethod) -> Parameters;
 pub fn day_times(date: chrono::NaiveDate, place: &Place, method: PrayerMethod) -> Vec<PrayerTime>;   // lima, berurutan
-pub fn prayer_day(now_ms: i64, today: chrono::NaiveDate, place: &Place, method: PrayerMethod) -> PrayerDay;
+pub fn prayer_day(now_ms: i64, today: chrono::NaiveDate, place: &Place, method: PrayerMethod) -> Option<PrayerDay>;   // None di dekat kutub
 ```
 
 **Aturan:**
@@ -238,7 +238,7 @@ pub fn prayer_day(now_ms: i64, today: chrono::NaiveDate, place: &Place, method: 
   - `show_clock` memakai `lenient_or(d, true)` lewat helper baru `lenient_true`.
   - `load_settings` membuang `home.place` yang tidak `is_valid()`.
 - **`parameters`** mengikuti tabel metode di Global Constraints.
-- **`day_times`:** `PrayerSchedule::new().on(date).for_location(Coordinates::new(lat, lon)).with_configuration(parameters(method)).calculate()`, lalu `.time(Prayer::…)` untuk kelima sholat, tanpa terbit.
+- **`day_times`:** terjemahan baris demi baris `PrayerTimes` di adhan-js untuk kelima sholat, tanpa terbit, dengan aturan tengah malam untuk lintang tinggi. Kosong kalau matahari tidak terbit atau terbenam hari itu.
 - **`prayer_day`:**
   - Hitung waktu kemarin, hari ini, dan besok.
   - `prev` adalah waktu terakhir yang `≤ now`, dan `next` adalah waktu pertama yang `> now`.

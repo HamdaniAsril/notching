@@ -1,5 +1,6 @@
 mod app_core;
 mod geometry;
+mod home;
 mod locale;
 mod module_commands;
 mod modules;

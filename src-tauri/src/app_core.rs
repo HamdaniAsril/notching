@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use crate::locale::{resolve_lang, Lang};
 use crate::modules::manifest::CardSize;
 use crate::modules::store::{ModuleEntry, ModuleStore, StoreError};
-use crate::settings::{load_settings, save_settings, LanguageSetting, NotchConfig, Settings};
+use crate::settings::{load_settings, save_settings, HomeSettings, LanguageSetting, NotchConfig, Place, PrayerMethod, Settings};
 use crate::system_stats::SystemStats;
 
 /// Same shape as ModuleInfo in src/modules/types.ts.
@@ -40,6 +40,7 @@ pub struct ModuleStateDto {
 pub enum CoreError {
     Store(StoreError),
     Save(String),
+    Invalid(String),
 }
 
 impl std::fmt::Display for CoreError {
@@ -47,6 +48,7 @@ impl std::fmt::Display for CoreError {
         match self {
             CoreError::Store(e) => write!(f, "{e}"),
             CoreError::Save(e) => write!(f, "saving settings failed: {e}"),
+            CoreError::Invalid(what) => write!(f, "invalid value: {what}"),
         }
     }
 }
@@ -141,6 +143,28 @@ impl AppCore {
     /// An empty name means every screen, like None.
     pub fn set_screen(&mut self, name: Option<String>) -> Result<(), CoreError> {
         self.settings.screen = name.filter(|n| !n.is_empty());
+        self.save()
+    }
+
+    pub fn home(&self) -> &HomeSettings {
+        &self.settings.home
+    }
+
+    pub fn set_place(&mut self, place: Option<Place>) -> Result<(), CoreError> {
+        if place.as_ref().is_some_and(|p| !p.is_valid()) {
+            return Err(CoreError::Invalid("place".into()));
+        }
+        self.settings.home.place = place;
+        self.save()
+    }
+
+    pub fn set_prayer_method(&mut self, method: PrayerMethod) -> Result<(), CoreError> {
+        self.settings.home.prayer_method = method;
+        self.save()
+    }
+
+    pub fn set_show_clock(&mut self, on: bool) -> Result<(), CoreError> {
+        self.settings.home.show_clock = on;
         self.save()
     }
 
@@ -275,6 +299,38 @@ mod tests {
         assert_eq!(core.screen(), None);
         core.set_screen(Some("DELL".into())).unwrap();
         assert_eq!(open(&d, None).screen(), Some("DELL"));
+    }
+
+    fn jakarta() -> Place {
+        Place {
+            name: "Jakarta".into(),
+            region: "Jakarta".into(),
+            country: "Indonesia".into(),
+            latitude: -6.21462,
+            longitude: 106.84513,
+        }
+    }
+
+    #[test]
+    fn beranda_settings_are_saved() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.set_place(Some(jakarta())).unwrap();
+        core.set_prayer_method(PrayerMethod::Karachi).unwrap();
+        core.set_show_clock(false).unwrap();
+        let want = HomeSettings { place: Some(jakarta()), prayer_method: PrayerMethod::Karachi, show_clock: false };
+        assert_eq!(core.home(), &want);
+        assert_eq!(open(&d, None).home(), &want);
+    }
+
+    #[test]
+    fn an_invalid_place_is_refused() {
+        let d = setup();
+        let mut core = open(&d, None);
+        let bad = Place { latitude: f64::NAN, ..jakarta() };
+        assert!(matches!(core.set_place(Some(bad)), Err(CoreError::Invalid(_))));
+        assert_eq!(core.home().place, None);
+        assert!(!d.path().join(SETTINGS_FILE).exists());
     }
 
     #[test]
