@@ -25,7 +25,7 @@ function closeDraft(): void {
   Object.assign(draft, { open: false, query: '', status: 'idle', results: [], seq: draft.seq + 1 });
 }
 
-const HOME_ROUTE = { page: 'module', id: 'home' } as const;
+const HOME_ROUTE = { page: 'pages' } as const;
 
 function placeRow(ctx: PageContext): HTMLElement {
   const s = ctx.strings.home;
@@ -112,14 +112,13 @@ function finder(ctx: PageContext): HTMLElement {
   return box;
 }
 
-// Beranda's own settings on its module page (spec 8): city, prayer method, clock.
-export function homeSettings(ctx: PageContext): HTMLElement {
+// Data the built-in widgets share (design 30 Oct §9): the city, the prayer
+// method and the prayer notice, which runs whether or not a widget shows it.
+export function sharedData(ctx: PageContext): HTMLElement {
   const s = ctx.strings.home;
   const home = ctx.info.home;
   const method = select('home.prayerMethod', PRAYER_METHODS.map(m => ({ value: m, label: s.methods[m] })), home.prayerMethod,
     v => ctx.save('home.prayerMethod', ctx.bridge.setPrayerMethod(v as PrayerMethod)));
-  const clock = toggle('home.showClock', s.showClock, home.showClock,
-    on => ctx.save('home.showClock', ctx.bridge.setShowClock(on)));
   // The same switch as "Waktu sholat · Tampil" on the Notifikasi page.
   const prayer = ctx.state.modules.find(m => m.id === 'home')?.channels.find(c => c.id === 'prayer')
     ?? { on: false, sound: false };
@@ -129,6 +128,5 @@ export function homeSettings(ctx: PageContext): HTMLElement {
     placeRow(ctx),
     row({ key: 'home.prayerMethod', label: s.prayerMethod, hint: s.prayerMethodHint, control: method }),
     row({ key: 'home.prayerNotice', label: s.prayerNotice, hint: s.prayerNoticeHint, control: prayerNotice }),
-    row({ key: 'home.showClock', label: s.showClock, hint: s.showClockHint, control: clock }),
   );
 }

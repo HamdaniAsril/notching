@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { settingsStrings } from '../i18n';
 import type { Lang } from '../kit/protocol';
-import { moduleInfo } from '../notch/test-helpers';
+import { homeWidgets, moduleInfo } from '../notch/test-helpers';
 import { search, searchIndex } from './search';
 
 const mods = [
@@ -16,7 +16,7 @@ test('finds a setting by a keyword', () => expect(search(idx(), 'monitor')[0].ke
 
 test('finds a module by name or description and opens its page', () => {
   expect(search(idx(), 'system')[0].route).toEqual({ page: 'module', id: 'system-stat' });
-  expect(search(idx(), 'cuaca')[0].route).toEqual({ page: 'module', id: 'home' });
+  expect(search(idx(), 'tanggal')[0].route).toEqual({ page: 'module', id: 'home' });
 });
 
 test('an uninstalled module leads to Add module', () =>
@@ -37,17 +37,22 @@ test('follows the language', () => expect(search(idx(mods, 'en'), 'language')[0]
 
 test('a blank query finds nothing', () => expect(search(idx(), '   ')).toEqual([]));
 
-test('finds the city setting on the Beranda page', () => {
-  const e = search(idx(), 'kota')[0];
+test('the city is found under Halaman', () => {
+  const e = search(idx([homeWidgets(), mods[1]]), 'kota')[0];
   expect(e.key).toBe('home.place');
-  expect(e.where).toBe('Beranda');
-  expect(e.route).toEqual({ page: 'module', id: 'home' });
-  expect(search(idx(), 'jam')[0].key).toBe('home.showClock');
+  expect(e.where).toBe('Halaman');
+  expect(e.route).toEqual({ page: 'pages' });
+  expect(search(idx([homeWidgets(), mods[1]]), 'tampilkan jam')).toEqual([]);
 });
 
-test('Beranda settings are not offered while Beranda is uninstalled', () => {
-  const gone = [moduleInfo('home', { name: 'Beranda', installed: false, enabled: false })];
-  expect(search(idx(gone), 'kota')).toEqual([]);
+test('the widget package is not offered as a module', () => {
+  expect(search(idx([homeWidgets(), mods[1]]), 'widget bawaan').map(e => e.key)).not.toContain('module.home');
+});
+
+test('custom pages are found by name', () => {
+  const pages = [{ id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [] }];
+  const e = search(searchIndex(settingsStrings('id'), [homeWidgets()], pages), 'kerja')[0];
+  expect(e).toMatchObject({ key: 'page.p1', where: 'Halaman', route: { page: 'pages' } });
 });
 
 test('finds the glow and the notice kinds', () => {

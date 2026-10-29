@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
 import type { ModuleState } from '../../modules/types';
-import { moduleInfo, TEST_STATE, timers } from '../../notch/test-helpers';
+import { homeWidgets, moduleInfo, TEST_STATE, timers } from '../../notch/test-helpers';
 import { h1, mountForTest, settle } from '../test-helpers';
 
 const STATE: ModuleState = {
@@ -108,4 +108,13 @@ test('module icons are masks, never markup', async () => {
   expect(root.querySelector('[onload]')).toBeNull();
   const glyph = root.querySelector<HTMLElement>('.module .glyph')!;
   expect(glyph.style.getPropertyValue('--icon')).toContain('data:image/svg+xml,');
+});
+
+test('the widget package is not listed as a module', async () => {
+  const { root, app } = await mountForTest({ ...STATE, modules: [homeWidgets(), STATE.modules[1]] });
+  app.go({ page: 'modules' });
+  expect([...root.querySelectorAll('.module .label')].map(e => e.textContent)).toEqual(['System stat']);
+  expect(root.querySelector('.head .sub')!.textContent).toBe('1 terpasang · 140 KB');
+  app.go({ page: 'add' });
+  expect(root.querySelector('.module')).toBeNull();
 });

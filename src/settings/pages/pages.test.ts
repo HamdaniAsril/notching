@@ -1,17 +1,14 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
 import type { ModuleState } from '../../modules/types';
-import { moduleInfo, TEST_STATE } from '../../notch/test-helpers';
+import { BERANDA, homeWidgets, moduleInfo, TEST_STATE } from '../../notch/test-helpers';
 import { mountForTest, settle, TEST_INFO } from '../test-helpers';
 import type { Place, SettingsInfo } from '../types';
 
 const STATE: ModuleState = {
   ...TEST_STATE,
   modules: [
-    moduleInfo('home', { name: 'Beranda', channels: [
-      { id: 'reminder', name: 'Reminder', on: true, sound: true, widget: null },
-      { id: 'prayer', name: 'Waktu sholat', on: false, sound: false, widget: null },
-    ] }),
+    homeWidgets(),
     moduleInfo('system-stat', { name: 'System stat' }),
   ],
 };
@@ -21,7 +18,7 @@ const searchBox = (root: HTMLElement) => key(root, 'home.placeSearch') as HTMLIn
 
 async function open(info: SettingsInfo = TEST_INFO, state: ModuleState = STATE) {
   const t = await mountForTest(state, info);
-  t.app.go({ page: 'module', id: 'home' });
+  t.app.go({ page: 'pages' });
   return { ...t, text: () => t.root.querySelector('.pane')!.textContent! };
 }
 
@@ -32,12 +29,32 @@ function type(input: HTMLInputElement, value: string): void {
 
 const enter = (el: HTMLElement) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 
-test('the Beranda page has its settings instead of the empty note', async () => {
+test('the Halaman page holds the shared widget data', async () => {
   const { root, text } = await open();
+  expect(root.querySelector('.pane h1')!.textContent).toBe('Halaman');
   const rows = [...root.querySelectorAll<HTMLElement>('[data-row]')].map(r => r.dataset.row);
-  expect(rows).toEqual(expect.arrayContaining(['home.place', 'home.prayerMethod', 'home.showClock']));
-  expect(text()).not.toContain('Modul ini belum punya pengaturan.');
+  expect(rows).toEqual(expect.arrayContaining(['home.place', 'home.prayerMethod', 'home.prayerNotice']));
+  expect(text()).toContain('Data widget');
   expect(text()).toContain('Belum diatur');
+});
+
+test('there is no clock switch any more', async () => {
+  const { root } = await open();
+  expect(key(root, 'home.showClock')).toBeNull();
+});
+
+test('the page list shows Beranda, the custom pages, then Modul', async () => {
+  const kerja = { id: 'p1', name: '<b>Kerja</b>', icon: 'briefcase', widgets: [{ widget: 'home/clock', col: 0, width: 1 }] };
+  const { root } = await open(TEST_INFO, { ...STATE, pages: [BERANDA, kerja] });
+  const rows = [...root.querySelectorAll<HTMLElement>('[data-row^="page."]')];
+  expect(rows.map(r => r.dataset.row)).toEqual(['page.home', 'page.p1', 'page.modules']);
+  expect(rows[0].textContent).toContain('Beranda');
+  expect(rows[0].textContent).toContain('3 widget');
+  expect(rows[1].querySelector('.label')!.textContent).toBe('<b>Kerja</b>');
+  expect(rows[1].querySelector('b')).toBeNull();
+  expect(rows[2].textContent).toContain('Modul');
+  expect(rows[2].textContent).toContain('6 per baris');
+  expect(rows[0].querySelector('svg')).not.toBeNull();
 });
 
 test('System stat still says it has no settings', async () => {
@@ -124,7 +141,7 @@ test('the chosen city shows with a Change button', async () => {
   expect(key(root, 'home.placeChange')!.textContent).toBe('Ganti');
 });
 
-test('the prayer method and the clock save at once', async () => {
+test('the prayer method saves at once', async () => {
   const { root, bridge } = await open();
   const method = key(root, 'home.prayerMethod') as HTMLSelectElement;
   expect(method.value).toBe('kemenag');
@@ -132,11 +149,9 @@ test('the prayer method and the clock save at once', async () => {
   method.value = 'karachi';
   method.dispatchEvent(new Event('change'));
   expect(bridge.setPrayerMethod).toHaveBeenCalledWith('karachi');
-  key(root, 'home.showClock')!.click();
-  expect(bridge.setShowClock).toHaveBeenCalledWith(false);
 });
 
-test('the Beranda page has the prayer notification switch', async () => {
+test('the Halaman page has the prayer notification switch', async () => {
   const { root, bridge, text } = await open();
   const sw = key(root, 'home.prayerNotice')!;
   expect(sw.getAttribute('aria-checked')).toBe('false');

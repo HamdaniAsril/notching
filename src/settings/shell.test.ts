@@ -10,12 +10,13 @@ const type = (input: HTMLInputElement, text: string) => {
   input.dispatchEvent(new Event('input'));
 };
 
-test('opens on Umum, with six sections and the module count', async () => {
+test('opens on Umum, with seven sections, Halaman before Modul, and the module count', async () => {
   const { root } = await mountForTest();
-  expect(navLabels(root)).toEqual(['Umum', 'Tampilan notch', 'Notifikasi', 'Modul', 'Izin', 'Tentang']);
+  expect(navLabels(root)).toEqual(['Umum', 'Tampilan notch', 'Notifikasi', 'Halaman', 'Modul', 'Izin', 'Tentang']);
   expect(root.querySelector('.nav.on .label')!.textContent).toBe('Umum');
   expect(h1(root)).toBe('Umum');
-  expect(root.querySelector('[data-key="nav.modules"] .n')!.textContent).toBe('2');
+  // The widget package is not a module.
+  expect(root.querySelector('[data-key="nav.modules"] .n')!.textContent).toBe('1');
 });
 
 test('the sidebar opens each section', async () => {

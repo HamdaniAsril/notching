@@ -1,5 +1,5 @@
 import type { SettingsStrings } from '../i18n';
-import type { ModuleInfo } from '../modules/types';
+import { hasPage, type ModuleInfo, type Page } from '../modules/types';
 import type { Route, SectionId } from './types';
 
 export interface SearchEntry {
@@ -15,10 +15,10 @@ export function normalize(s: string): string {
   return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-const SECTIONS: SectionId[] = ['general', 'look', 'notifications', 'modules', 'permissions', 'about'];
+const SECTIONS: SectionId[] = ['general', 'look', 'notifications', 'pages', 'modules', 'permissions', 'about'];
 
-// Every searchable setting, in sidebar order; modules follow their section.
-export function searchIndex(s: SettingsStrings, modules: ModuleInfo[]): SearchEntry[] {
+// Every searchable setting, in sidebar order; modules and pages follow their section.
+export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Page[] = []): SearchEntry[] {
   const k = s.keywords;
   const rows: Record<SectionId, [key: string, label: string, keywords: string][]> = {
     general: [
@@ -36,24 +36,17 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[]): SearchEn
       ['notifications.glow', s.notifications.glow, k.glow],
       ['notifications.seconds', s.notifications.seconds, k.seconds],
     ],
+    pages: [
+      ['home.place', s.home.place, k.place],
+      ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
+      ['home.prayerNotice', s.home.prayerNotice, k.channels],
+    ],
     modules: [],
     permissions: [],
     about: [['about.version', s.about.version, k.version]],
   };
   const entry = (key: string, label: string, where: string, route: Route, extra = ''): SearchEntry =>
     ({ key, label, where, route, text: normalize(`${label} ${where} ${extra}`) });
-  // A module's own settings, found under the module's name.
-  const moduleRows = (m: ModuleInfo): SearchEntry[] => {
-    const own: Record<string, [key: string, label: string, keywords: string][]> = {
-      home: [
-        ['home.place', s.home.place, k.place],
-        ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
-        ['home.prayerNotice', s.home.prayerNotice, k.channels],
-        ['home.showClock', s.home.showClock, k.showClock],
-      ],
-    };
-    return (own[m.id] ?? []).map(([key, label, keywords]) => entry(key, label, m.name, { page: 'module', id: m.id }, keywords));
-  };
 
   return SECTIONS.flatMap(page => {
     const where = s.sections[page];
@@ -64,12 +57,13 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[]): SearchEn
         m.channels.map(c => entry(`channel.${m.id}.${c.id}`, c.name, where, { page }, `${m.name} ${k.channels}`)))
       : [];
     const mods = page === 'modules'
-      ? modules.flatMap(m => [
-        entry(`module.${m.id}`, m.name, where, m.installed ? { page: 'module', id: m.id } : { page: 'add' }, m.description),
-        ...(m.installed ? moduleRows(m) : []),
-      ])
+      ? modules.filter(hasPage).map(m =>
+        entry(`module.${m.id}`, m.name, where, m.installed ? { page: 'module', id: m.id } : { page: 'add' }, m.description))
       : [];
-    return [entry(`section.${page}`, where, '', { page }), ...own, ...kinds, ...mods];
+    const named = page === 'pages'
+      ? pages.filter(p => p.name !== null).map(p => entry(`page.${p.id}`, p.name!, where, { page: 'pages' }, k.pages))
+      : [];
+    return [entry(`section.${page}`, where, '', { page }), ...own, ...kinds, ...named, ...mods];
   });
 }
 

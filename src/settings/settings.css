@@ -599,6 +599,20 @@ input:focus-visible,
   outline: none;
 }
 
+/* Halaman: the pages in pill order. */
+.page-row .pg-icon svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  color: var(--g1);
+}
+
+.page-row .size {
+  font-size: 10px;
+  color: var(--g2);
+  letter-spacing: 0.06em;
+}
+
 /* Notifikasi: a small heading over the kinds, and Tampil / Suara column names
    lined up over each row's two switches. */
 .grp-label {

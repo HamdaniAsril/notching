@@ -22,7 +22,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     screens: ['Built-in Retina Display', 'DELL U2723QE'],
     login: 'off',
     version: '0.1.0',
-    home: { place: null, prayerMethod: 'kemenag', showClock: true },
+    home: { place: null, prayerMethod: 'kemenag' },
   };
   let state: ModuleState = {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
@@ -67,7 +67,6 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     },
     setPlace: async place => setInfo({ ...info, home: { ...info.home, place } }),
     setPrayerMethod: async prayerMethod => setInfo({ ...info, home: { ...info.home, prayerMethod } }),
-    setShowClock: async showClock => setInfo({ ...info, home: { ...info.home, showClock } }),
     setNoticeGlow: async glow => setState({ ...state, notifications: { ...state.notifications, glow } }),
     setNoticeSeconds: async seconds => setState({ ...state, notifications: { ...state.notifications, seconds } }),
     setChannel: async (module, channel, pref) => setModule(module, {

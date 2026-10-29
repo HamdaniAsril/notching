@@ -7,6 +7,8 @@ import { aboutPage, permissionsPage } from './pages/info';
 import { notificationsPage } from './pages/notifications';
 import { lookPage } from './pages/look';
 import { addPage, modulePage, modulesPage } from './pages/modules';
+import { pagesPage } from './pages/pages';
+import { hasPage } from '../modules/types';
 import { search, searchIndex } from './search';
 import type {
   PageContext, PageRender, Route, SectionId, SettingsBridge, SettingsEnv, SettingsInfo,
@@ -22,6 +24,7 @@ export const PAGES: Partial<Record<Route['page'], PageRender>> = {
   general: generalPage,
   look: lookPage,
   notifications: notificationsPage,
+  pages: pagesPage,
   modules: modulesPage,
   module: modulePage,
   add: addPage,
@@ -29,9 +32,10 @@ export const PAGES: Partial<Record<Route['page'], PageRender>> = {
   about: aboutPage,
 };
 
-// The sidebar never grows (spec 8): five sections on top, About at the bottom.
+// The sidebar never grows (spec 8, design 30 Oct §9): six sections on top, About at the bottom.
 const NAV: [SectionId, IconName][] = [
-  ['general', 'gear'], ['look', 'drop'], ['notifications', 'bell'], ['modules', 'grid'], ['permissions', 'shield'],
+  ['general', 'gear'], ['look', 'drop'], ['notifications', 'bell'], ['pages', 'layers'], ['modules', 'grid'],
+  ['permissions', 'shield'],
 ];
 
 const FOUND_MS = 1200;
@@ -110,7 +114,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
 
   function results(query: string): HTMLElement {
     const list = el('div', 'results');
-    const hits = search(searchIndex(strings(), state.modules), query);
+    const hits = search(searchIndex(strings(), state.modules, state.pages), query);
     if (hits.length === 0) list.append(note(strings().noResults));
     for (const hit of hits) {
       const b = el('button', 'result');
@@ -154,7 +158,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
       item.button.classList.toggle('on', on);
       if (on) item.button.setAttribute('aria-current', 'page');
       else item.button.removeAttribute('aria-current');
-      if (item.count) item.count.textContent = String(state.modules.filter(m => m.installed).length);
+      if (item.count) item.count.textContent = String(state.modules.filter(m => m.installed && hasPage(m)).length);
     }
 
     const active = doc.activeElement as HTMLElement | null;

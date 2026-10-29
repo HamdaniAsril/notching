@@ -1,15 +1,14 @@
 import { fill } from '../../i18n';
 import { formatBytes } from '../../kit/format';
-import type { ModuleInfo } from '../../modules/types';
+import { hasPage, type ModuleInfo } from '../../modules/types';
 import { button, el, group, head, note, toggle } from '../controls';
 import { icon } from '../icons';
-import { homeSettings } from './home';
 import type { PageContext, PageRender } from '../types';
 
 export const UNINSTALL_CONFIRM_MS = 4000;
 
 // Each module's own settings, shown on its page; the rest say they have none.
-export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = { home: homeSettings };
+export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {};
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never
 // enters the DOM, so nothing in the file can run.
@@ -45,7 +44,7 @@ function back(ctx: PageContext): HTMLElement {
 
 export const modulesPage: PageRender = ctx => {
   const s = ctx.strings.modules;
-  const installed = ctx.state.modules.filter(m => m.installed);
+  const installed = ctx.state.modules.filter(m => m.installed && hasPage(m));
   const total = installed.reduce((sum, m) => sum + m.size, 0);
   const page = el('div');
   page.append(head({
@@ -110,7 +109,7 @@ export const modulePage: PageRender = (ctx, route) => {
 
 export const addPage: PageRender = ctx => {
   const s = ctx.strings.modules;
-  const missing = ctx.state.modules.filter(m => !m.installed);
+  const missing = ctx.state.modules.filter(m => !m.installed && hasPage(m));
   const page = el('div');
   page.append(back(ctx), head({ title: s.addTitle, sub: s.addSub }));
   if (missing.length === 0) {

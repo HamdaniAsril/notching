@@ -24,7 +24,6 @@ export function tauriSettingsBridge(): SettingsBridge {
     searchPlaces: query => invoke<Place[]>('search_places', { query }),
     setPlace: place => invoke('set_place', { place }),
     setPrayerMethod: method => invoke('set_prayer_method', { method }),
-    setShowClock: on => invoke('set_show_clock', { on }),
     setNoticeGlow: on => invoke('set_notice_glow', { on }),
     setNoticeSeconds: seconds => invoke('set_notice_seconds', { seconds }),
     setChannel: (module, channel, { on, sound }) => invoke('set_channel', { module, channel, on, sound }),

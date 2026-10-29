@@ -14,6 +14,7 @@
       "general": "Umum",
       "look": "Tampilan notch",
       "notifications": "Notifikasi",
+      "pages": "Halaman",
       "modules": "Modul",
       "permissions": "Izin",
       "about": "Tentang"
@@ -82,7 +83,15 @@
       "trust": "Gratis. Tanpa iklan. Tanpa pelacakan.",
       "later": "Cek update dan tautan donasi hadir saat rilis publik."
     },
+    "pages": {
+      "sub": "Susun isi notch-mu dari widget.",
+      "data": "Data widget",
+      "order": "Urutan di pil",
+      "widgets": "{n} widget",
+      "modulesRow": "6 per baris"
+    },
     "home": {
+      "homeName": "Beranda",
       "place": "Kota",
       "placeHint": "Untuk cuaca dan waktu sholat. Hanya dikirim ke Open-Meteo.",
       "placeNone": "Belum diatur",
@@ -105,8 +114,6 @@
         "ummAlQura": "Umm al-Qura (Makkah)",
         "northAmerica": "ISNA (Amerika Utara)"
       },
-      "showClock": "Tampilkan jam",
-      "showClockHint": "Jam kecil di pojok kanan bawah Beranda.",
       "prayerNotice": "Notifikasi waktu sholat",
       "prayerNoticeHint": "Tanpa suara, kecuali kamu menyalakannya di Notifikasi."
     },
@@ -121,10 +128,10 @@
       "version": "versi update donasi",
       "place": "kota lokasi cuaca tempat",
       "prayerMethod": "sholat salat shalat waktu metode kemenag jadwal",
-      "showClock": "jam waktu",
       "glow": "cahaya pelangi glow warna",
       "seconds": "lama durasi detik tampil",
-      "channels": "notifikasi suara bunyi reminder sholat"
+      "channels": "notifikasi suara bunyi reminder sholat",
+      "pages": "halaman widget pil urutan beranda"
     }
   }
 }

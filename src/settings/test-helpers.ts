@@ -11,7 +11,7 @@ export const TEST_INFO: SettingsInfo = {
   screens: ['Built-in Retina Display', 'DELL U2723QE'],
   login: 'off',
   version: '0.1.0',
-  home: { place: null, prayerMethod: 'kemenag', showClock: true },
+  home: { place: null, prayerMethod: 'kemenag' },
 };
 
 // Settings bridge whose methods are mocks; emit* plays the native side's events.
@@ -37,7 +37,6 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     searchPlaces: vi.fn(async (_query: string): Promise<Place[]> => []),
     setPlace: vi.fn(async (_place: Place | null) => {}),
     setPrayerMethod: vi.fn(async (_method: PrayerMethod) => {}),
-    setShowClock: vi.fn(async (_on: boolean) => {}),
     setNoticeGlow: vi.fn(async (_on: boolean) => {}),
     setNoticeSeconds: vi.fn(async (_seconds: number) => {}),
     setChannel: vi.fn(async (_module: string, _channel: string, _pref: { on: boolean; sound: boolean }) => {}),
