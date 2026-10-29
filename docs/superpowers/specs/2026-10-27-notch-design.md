@@ -209,7 +209,8 @@ Acuan: `notif-v1.html` dan `glow-options.html`.
     - Setiap jenis punya saklar tampil dan saklar suara.
     - Bawaannya: Reminder tampil dan bersuara. Waktu sholat mati, dan tanpa suara kalau dinyalakan.
 - **Notifikasi yang terlewat (keputusan penulis):**
-  - Notifikasi tetap tampil seperti biasa. Kalau pengguna tidak sedang memakai komputer (2 menit tanpa ketikan atau gerakan mouse), atau layarnya sedang menampilkan app layar penuh, notch juga diberi titik kecil putih sebagai tanda ada notifikasi yang mungkin terlewat. Diperjelas pemilik ide pada 29 Oktober 2026.
+  - Notifikasi tetap tampil seperti biasa. Kalau pengguna tidak sedang memakai komputer (2 menit tanpa ketikan atau gerakan mouse), atau layarnya sedang menampilkan app layar penuh, notch juga diberi titik kecil sebagai tanda ada notifikasi yang mungkin terlewat. Diperjelas pemilik ide pada 29 Oktober 2026.
+  - Titiknya hitam dengan pinggiran putih tipis, supaya terlihat di menu bar terang maupun gelap. Di layar ber-notch, titik ada di sebelah kiri notch. Di layar tanpa notch, titik ada di bawah lensa. Ikon modulnya di pil juga diberi titik. Kedua titik hilang setelah panel dibuka lalu ditutup. Diputuskan pemilik ide pada 29 Oktober 2026.
   - Titik yang sama muncul di ikon modulnya di pil.
   - Titik hilang setelah panel dibuka.
 - **Mac yang tidur:** jadwal yang lewat lebih dari 10 menit saat Mac tidur atau app tidak jalan tidak dikirim lagi, supaya notch tidak dibanjiri notifikasi lama.

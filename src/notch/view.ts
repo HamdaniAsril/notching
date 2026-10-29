@@ -109,9 +109,13 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   glow.setAttribute('class', 'notice-glow');
   const dot = doc.createElementNS(SVG_NS, 'circle');
   dot.setAttribute('class', 'missed-dot');
-  dot.setAttribute('r', '2');
-  dot.setAttribute('cx', '0');
-  dot.setAttribute('fill', '#fff');
+  // Black with a white rim, so it shows on a light or a dark menu bar: beside the
+  // notch's left edge, or under the lens on a screen without one.
+  dot.setAttribute('r', '2.5');
+  dot.setAttribute('cx', String(notch ? -notch.width / 2 - 8 : 0));
+  dot.setAttribute('fill', '#000');
+  dot.setAttribute('stroke', '#fff');
+  dot.setAttribute('stroke-width', '1');
   dot.setAttribute('display', 'none');
   // Same stacking as the mockups: the lens under the panel, the physical notch over
   // it; the glow just under the panel, so only its rim shows.
@@ -211,7 +215,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   function drawDot(): void {
     const show = missed && c.phase === 'idle';
     dot.setAttribute('display', show ? 'inline' : 'none');
-    dot.setAttribute('cy', String(notch ? notch.height + 5 : c.config.thickness + 4));
+    dot.setAttribute('cy', String(notch ? notch.height / 2 : c.config.thickness + 4));
   }
 
   function setPill(items: PillItem[], active: string | null, moreLabel: string): void {

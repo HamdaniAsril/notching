@@ -213,6 +213,20 @@ test('the missed dot shows only while idle', () => {
   expect(dot.getAttribute('display')).toBe('none');
 });
 
+test('the missed dot sits left of a notch, or under the lens, black with a white rim', () => {
+  const beside = document.createElement('div');
+  mountNotch(beside, ctl({ width: 190, height: 32 }), deps(fakeRaf())).setMissed(true);
+  const a = beside.querySelector('.missed-dot')!;
+  expect([a.getAttribute('cx'), a.getAttribute('cy')]).toEqual([String(-95 - 8), '16']);
+  const under = document.createElement('div');
+  mountNotch(under, ctl(null), deps(fakeRaf())).setMissed(true);
+  const b = under.querySelector('.missed-dot')!;
+  expect([b.getAttribute('cx'), b.getAttribute('cy')]).toEqual(['0', '8']);
+  for (const d of [a, b]) {
+    expect([d.getAttribute('fill'), d.getAttribute('stroke'), d.getAttribute('stroke-width')]).toEqual(['#000', '#fff', '1']);
+  }
+});
+
 test('a pill icon wears the missed dot', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));
