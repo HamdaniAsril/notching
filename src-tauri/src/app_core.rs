@@ -4,8 +4,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::locale::{resolve_lang, Lang};
-use crate::modules::manifest::CardSize;
+use crate::modules::manifest::{CardSize, WidgetKind};
 use crate::modules::store::{ChannelEntry, ModuleEntry, ModuleStore, StoreError};
+use crate::pages::{is_route, Page, MODULE_PAGE_PREFIX};
+use crate::status::Activity;
 use crate::settings::{
     clamp_seconds, load_settings, save_settings, ChannelPref, HomeSettings, LanguageSetting, NotchConfig, Place,
     PrayerMethod, Settings,
@@ -20,6 +22,18 @@ pub struct ChannelDto {
     pub name: String,
     pub on: bool,
     pub sound: bool,
+    pub widget: Option<String>,
+}
+
+/// A widget a package offers, named in the current language.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WidgetDto {
+    pub id: String,
+    pub name: String,
+    pub entry: String,
+    pub width: u8,
+    pub kind: WidgetKind,
 }
 
 /// How notices look, shared by every overlay.
@@ -36,6 +50,7 @@ pub struct NoticeLook {
 pub struct ModuleInfoDto {
     pub id: String,
     pub name: String,
+    pub short_name: String,
     pub description: String,
     pub version: String,
     pub entry: Option<String>,
@@ -46,6 +61,10 @@ pub struct ModuleInfoDto {
     pub size: u64,
     pub icon_svg: String,
     pub channels: Vec<ChannelDto>,
+    /// Empty for a module without widgets; `entry` and `card` are None for a
+    /// package of widgets only.
+    pub widgets: Vec<WidgetDto>,
+    pub activity: Option<Activity>,
 }
 
 /// Broadcast to every window: the notch overlays and the settings window.
@@ -54,10 +73,11 @@ pub struct ModuleInfoDto {
 pub struct ModuleStateDto {
     pub lang: Lang,
     pub modules: Vec<ModuleInfoDto>,
-    pub last_card: Option<String>,
+    pub pages: Vec<Page>,
+    pub last_page: Option<String>,
     pub notch: NotchConfig,
     pub notifications: NoticeLook,
-    /// Modules with a notice the person did not see, in the order they came.
+    /// "<module>.<channel>" of notices the person did not see, in the order they came.
     pub missed: Vec<String>,
 }
 
@@ -120,6 +140,7 @@ impl AppCore {
                 .map(|e| ModuleInfoDto {
                     id: e.manifest.id.clone(),
                     name: e.name.clone(),
+                    short_name: e.short_name.clone(),
                     description: e.description.clone(),
                     version: e.manifest.version.clone(),
                     entry: e.manifest.entry.clone(),
@@ -134,13 +155,27 @@ impl AppCore {
                         .iter()
                         .map(|c| {
                             let pref = self.pref(&e.manifest.id, c);
-                            ChannelDto { id: c.id.clone(), name: c.name.clone(), on: pref.on, sound: pref.sound }
+                            let widget =
+                                e.manifest.notifications.iter().find(|s| s.id == c.id).and_then(|s| s.widget.clone());
+                            ChannelDto { id: c.id.clone(), name: c.name.clone(), on: pref.on, sound: pref.sound, widget }
                         })
                         .collect(),
+                    widgets: e
+                        .widgets
+                        .iter()
+                        .map(|w| WidgetDto {
+                            id: w.id.clone(),
+                            name: w.name.clone(),
+                            entry: w.entry.clone(),
+                            width: w.width,
+                            kind: w.kind,
+                        })
+                        .collect(),
+                    activity: None,
                 })
                 .collect(),
-            // Until the notch knows pages (Task 6): a module page reads as its card.
-            last_card: self.settings.last_page.as_deref().map(|p| p.strip_prefix("module:").unwrap_or(p).to_string()),
+            pages: self.settings.pages.clone(),
+            last_page: self.settings.last_page.clone(),
             notch: self.settings.notch,
             notifications: self.notice_look(),
             missed: self.missed.clone(),
@@ -183,10 +218,11 @@ impl AppCore {
         self.save()
     }
 
-    /// Once per module, in the order the notices came.
-    pub fn mark_missed(&mut self, module: &str) {
-        if !self.missed.iter().any(|m| m == module) {
-            self.missed.push(module.to_string());
+    /// Once per channel, in the order the notices came.
+    pub fn mark_missed(&mut self, module: &str, channel: &str) {
+        let key = format!("{module}.{channel}");
+        if !self.missed.contains(&key) {
+            self.missed.push(key);
         }
     }
 
@@ -257,11 +293,15 @@ impl AppCore {
         self.save()
     }
 
-    pub fn set_last_card(&mut self, id: &str) -> Result<(), CoreError> {
-        if self.module(id).is_none() {
-            return Err(CoreError::Store(StoreError::UnknownModule(id.to_string())));
+    /// A page, the Modul page, or the page of an installed module.
+    pub fn set_last_page(&mut self, route: &str) -> Result<(), CoreError> {
+        let module_ok = route
+            .strip_prefix(MODULE_PAGE_PREFIX)
+            .is_none_or(|id| self.module(id).is_some_and(|e| e.installed && e.manifest.has_page()));
+        if !is_route(&self.settings.pages, route) || !module_ok {
+            return Err(CoreError::Invalid("page".into()));
         }
-        self.settings.last_page = Some(if id == "home" { id.to_string() } else { format!("module:{id}") });
+        self.settings.last_page = Some(route.to_string());
         self.save()
     }
 
@@ -313,24 +353,49 @@ mod tests {
         let s = open(&d, Some("en-US")).state();
         assert_eq!(s.lang, Lang::En);
         assert_eq!(s.modules.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), ["Module A", "Module B", "Widget W"]);
-        assert_eq!(s.last_card, None);
+        assert_eq!(s.last_page, None);
         assert_eq!(s.modules[0].card, Some(CardSize { width: 400, height: 90 }));
         assert!(d.path().join("active/a/index.html").exists());
     }
 
     #[test]
-    fn the_last_card_survives_a_restart() {
+    fn state_carries_pages_widgets_and_short_names() {
         let d = setup();
-        open(&d, None).set_last_card("b").unwrap();
-        assert_eq!(open(&d, None).state().last_card, Some("b".into()));
+        let s = open(&d, Some("en-US")).state();
+        assert_eq!(s.pages, [crate::pages::beranda()]);
+        assert_eq!(s.last_page, None);
+        assert_eq!((s.modules[2].entry.as_deref(), s.modules[2].card), (None, None));
+        assert_eq!(s.modules[2].widgets[0].name, "One");
+        assert_eq!(s.modules[2].widgets[0].width, 1);
+        assert_eq!(s.modules[0].short_name, "Module A");
+        assert!(s.modules.iter().all(|m| m.activity.is_none()));
     }
 
     #[test]
-    fn an_unknown_last_card_is_refused() {
+    fn the_last_page_survives_a_restart() {
+        let d = setup();
+        open(&d, None).set_last_page("module:b").unwrap();
+        assert_eq!(open(&d, None).state().last_page, Some("module:b".into()));
+        open(&d, None).set_last_page("modules").unwrap();
+        assert_eq!(open(&d, None).state().last_page, Some("modules".into()));
+    }
+
+    #[test]
+    fn unknown_last_pages_are_refused() {
         let d = setup();
         let mut core = open(&d, None);
-        assert!(core.set_last_card("zzz").is_err());
+        for bad in ["p9", "module:w", "module:zzz", ""] {
+            assert!(matches!(core.set_last_page(bad), Err(CoreError::Invalid(_))), "{bad}");
+        }
         assert!(!d.path().join(SETTINGS_FILE).exists());
+    }
+
+    #[test]
+    fn an_uninstalled_module_page_is_refused() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.uninstall("a").unwrap();
+        assert!(core.set_last_page("module:a").is_err());
     }
 
     #[test]
@@ -433,7 +498,7 @@ mod tests {
     fn channels_resolve_defaults_and_choices() {
         let d = setup();
         let mut core = open(&d, None);
-        let ping = |on, sound| ChannelDto { id: "ping".into(), name: "Ping".into(), on, sound };
+        let ping = |on, sound| ChannelDto { id: "ping".into(), name: "Ping".into(), on, sound, widget: None };
         assert_eq!(core.state().modules[0].channels, [ping(true, false)]);
         core.set_channel("a", "ping", ChannelPref { on: false, sound: true }).unwrap();
         assert_eq!(core.state().modules[0].channels, [ping(false, true)]);
@@ -461,12 +526,20 @@ mod tests {
     }
 
     #[test]
+    fn channels_name_their_widget() {
+        let d = setup();
+        let s = open(&d, None).state();
+        assert_eq!(s.modules[2].channels[0].widget.as_deref(), Some("one"));
+        assert_eq!(s.modules[0].channels[0].widget, None);
+    }
+
+    #[test]
     fn missed_marks_are_kept_once_and_cleared() {
         let d = setup();
         let mut core = open(&d, None);
-        core.mark_missed("a");
-        core.mark_missed("a");
-        assert_eq!(core.state().missed, ["a"]);
+        core.mark_missed("a", "ping");
+        core.mark_missed("a", "ping");
+        assert_eq!(core.state().missed, ["a.ping"]);
         assert!(core.clear_missed());
         assert!(core.state().missed.is_empty());
         assert!(!core.clear_missed());

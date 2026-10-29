@@ -1,4 +1,4 @@
-//! Commands for modules: their state, the last card, switching on/off,
+//! Commands for modules: their state, the last page, switching on/off,
 //! uninstalling and reinstalling, and capability calls through the gate.
 
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -31,8 +31,8 @@ pub(crate) fn change(
 }
 
 #[tauri::command]
-pub fn set_last_card(app: AppHandle, core: State<CoreState>, id: String) -> Result<(), String> {
-    change(&app, &core, |c| c.set_last_card(&id))
+pub fn set_last_page(app: AppHandle, core: State<CoreState>, page: String) -> Result<(), String> {
+    change(&app, &core, |c| c.set_last_page(&page))
 }
 
 #[tauri::command]

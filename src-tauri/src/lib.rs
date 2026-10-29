@@ -6,6 +6,7 @@ mod module_commands;
 mod modules;
 mod pages;
 mod settings;
+mod status;
 mod system_stats;
 
 #[cfg(target_os = "macos")]
@@ -46,7 +47,7 @@ pub fn run() {
             commands::set_panel_key,
             commands::quit_app,
             module_commands::get_module_state,
-            module_commands::set_last_card,
+            module_commands::set_last_page,
             module_commands::set_module_enabled,
             module_commands::uninstall_module,
             module_commands::reinstall_module,

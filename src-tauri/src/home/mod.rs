@@ -42,17 +42,7 @@ impl Home {
 
 pub struct HomeState(pub Mutex<Home>);
 
-/// A running module's line in Beranda's bottom row, e.g. "Timer 12.30". Plan 5
-/// fills these (timer, keep awake); for now there are none.
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MiniStatus {
-    pub module: String,
-    pub label: String,
-    pub value: String,
-}
-
-/// Everything the Beranda card shows. Same shape as HomeSnapshot in modules/home/types.ts.
+/// Everything the Beranda widgets show. Same shape as HomeSnapshot in modules/home/types.ts.
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeSnapshot {
@@ -60,8 +50,6 @@ pub struct HomeSnapshot {
     pub weather: Option<Weather>,
     pub prayer: Option<PrayerDay>,
     pub reminders: Vec<Reminder>,
-    pub show_clock: bool,
-    pub statuses: Vec<MiniStatus>,
 }
 
 pub fn snapshot(settings: &HomeSettings, home: &mut Home, now: chrono::DateTime<chrono::Local>) -> HomeSnapshot {
@@ -74,8 +62,6 @@ pub fn snapshot(settings: &HomeSettings, home: &mut Home, now: chrono::DateTime<
         weather: place.as_ref().and_then(|p| home.weather.clone().filter(|w| same_place(w, p))),
         prayer: place.as_ref().and_then(|p| prayer_day(now.timestamp_millis(), today, p, settings.prayer_method)),
         reminders: home.reminders.items().to_vec(),
-        show_clock: true,
-        statuses: Vec::new(),
         place,
     }
 }
@@ -162,9 +148,8 @@ mod tests {
     fn a_snapshot_without_a_city_has_no_weather_or_prayer() {
         let d = tempfile::tempdir().unwrap();
         let s = snapshot(&HomeSettings::default(), &mut home(&d), now());
+        assert_eq!(serde_json::to_value(&s).unwrap().as_object().unwrap().len(), 4);
         assert_eq!((s.place, s.weather, s.prayer), (None, None, None));
-        assert!(s.show_clock);
-        assert!(s.statuses.is_empty());
     }
 
     #[test]

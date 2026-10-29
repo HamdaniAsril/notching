@@ -323,19 +323,20 @@ pub(crate) fn fake_bundle(dir: &std::path::Path) {
     std::fs::write(
         w.join("manifest.json"),
         r#"{"id":"w","version":"1.0.0","icon":"icon.svg","permissions":[],"capabilities":[],
-           "widgets":[{"id":"one","entry":"index.html","width":1,"kind":"time"}]}"#,
+           "widgets":[{"id":"one","entry":"index.html","width":1,"kind":"time"}],
+           "notifications":[{"id":"due","on":true,"sound":false,"widget":"one"}]}"#,
     )
     .unwrap();
     std::fs::write(w.join("index.html"), "w1").unwrap();
     std::fs::write(w.join("icon.svg"), "<svg/>").unwrap();
     std::fs::write(
         w.join("locales/id.json"),
-        r#"{"name":"Widget W","shortName":"Pendek W","description":"Isi W","widgets":{"one":"Satu"}}"#,
+        r#"{"name":"Widget W","shortName":"Pendek W","description":"Isi W","widgets":{"one":"Satu"},"channels":{"due":"Jatuh tempo"}}"#,
     )
     .unwrap();
     std::fs::write(
         w.join("locales/en.json"),
-        r#"{"name":"Widget W","description":"About W","widgets":{"one":"One"}}"#,
+        r#"{"name":"Widget W","description":"About W","widgets":{"one":"One"},"channels":{"due":"Due"}}"#,
     )
     .unwrap();
 }

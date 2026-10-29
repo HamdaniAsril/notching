@@ -29,6 +29,8 @@ pub const DETAIL_MAX: usize = 40;
 pub struct NoticeDto {
     /// None for the sample from the settings window.
     pub module_id: Option<String>,
+    /// The channel it came on; its widget decides which page a click opens.
+    pub channel: Option<String>,
     pub title: String,
     pub detail: String,
     pub glow: bool,
@@ -125,6 +127,7 @@ pub fn post(app: &AppHandle, module_id: &str, channel: &str, title: &str, detail
     }
     let dto = NoticeDto {
         module_id: Some(module_id.to_string()),
+        channel: Some(channel.to_string()),
         title: clip(title, TITLE_MAX),
         detail: clip(detail, DETAIL_MAX),
         glow: look.glow,
@@ -141,6 +144,7 @@ pub fn send_sample_notice(app: AppHandle, title: String, detail: String) {
     let look = app.state::<CoreState>().0.lock().unwrap().notice_look();
     let dto = NoticeDto {
         module_id: None,
+        channel: None,
         title: clip(&title, TITLE_MAX),
         detail: clip(&detail, DETAIL_MAX),
         glow: look.glow,
@@ -165,7 +169,7 @@ fn deliver(app: &AppHandle, dto: NoticeDto, sound: bool) {
         screens.sort_by(|a, b| a.0.cmp(&b.0));
         let p = NSEvent::mouseLocation();
         let Some(label) = screen_under(&screens, p.x, p.y) else { return };
-        if let Some(module) = &dto.module_id {
+        if let (Some(module), Some(channel)) = (&dto.module_id, &dto.channel) {
             let frame = screens.iter().find(|(l, _)| *l == label).map(|(_, f)| *f).unwrap();
             let primary = NSScreen::screens(mtm).firstObject().map_or(frame.h, |s| s.frame().size.height);
             let inset = overlays.iter().find(|(l, _, _)| *l == label).map_or(0.0, |(_, _, i)| *i);
@@ -174,7 +178,7 @@ fn deliver(app: &AppHandle, dto: NoticeDto, sound: bool) {
                 let state = {
                     let core = handle.state::<CoreState>();
                     let mut core = core.0.lock().unwrap();
-                    core.mark_missed(module);
+                    core.mark_missed(module, channel);
                     core.state()
                 };
                 let _ = handle.emit(MODULE_STATE_EVENT, state);
