@@ -55,15 +55,22 @@ pub struct WindowBox {
 }
 
 /// Another app's normal window fills the screen: a full-screen app or video.
-pub fn covers_screen(windows: &[WindowBox], screen_cg: Rect, own_pid: i32) -> bool {
-    let near = |a: f64, b: f64| (a - b).abs() <= 1.0;
+/// `top_inset` is the screen's notch strip (0 without a notch): there a
+/// full-screen window starts under the strip, like a maximised one, so it counts
+/// only in a Space without the Dock's desktop window (layer 20), which full-screen
+/// Spaces lack.
+pub fn covers_screen(windows: &[WindowBox], screen_cg: Rect, top_inset: f64, own_pid: i32) -> bool {
+    let near = |a: f64, b: f64, by: f64| (a - b).abs() <= by;
+    let spans = |b: &Rect| {
+        near(b.x, screen_cg.x, 1.0) && near(b.max_x(), screen_cg.max_x(), 1.0) && near(b.max_y(), screen_cg.max_y(), 1.0)
+    };
+    let desktop = windows.iter().any(|w| w.layer == 20 && spans(&w.bounds) && near(w.bounds.y, screen_cg.y, 1.0));
     windows.iter().any(|w| {
+        let top = w.bounds.y - screen_cg.y;
         w.layer == 0
             && w.pid != own_pid
-            && near(w.bounds.x, screen_cg.x)
-            && near(w.bounds.y, screen_cg.y)
-            && near(w.bounds.max_x(), screen_cg.max_x())
-            && near(w.bounds.max_y(), screen_cg.max_y())
+            && spans(&w.bounds)
+            && (near(top, 0.0, 1.0) || (top_inset > 0.0 && !desktop && near(top, top_inset, 2.0)))
     })
 }
 
@@ -146,21 +153,23 @@ fn deliver(app: &AppHandle, dto: NoticeDto, sound: bool) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         let Some(mtm) = MainThreadMarker::new() else { return };
-        let mut screens: Vec<(String, Rect)> = handle
+        let overlays: Vec<(String, Rect, f64)> = handle
             .state::<Overlays>()
             .0
             .lock()
             .unwrap()
             .iter()
-            .map(|(label, e)| (label.clone(), e.screen.frame))
+            .map(|(label, e)| (label.clone(), e.screen.frame, e.screen.notch.map_or(0.0, |n| n.height)))
             .collect();
+        let mut screens: Vec<(String, Rect)> = overlays.iter().map(|(l, f, _)| (l.clone(), *f)).collect();
         screens.sort_by(|a, b| a.0.cmp(&b.0));
         let p = NSEvent::mouseLocation();
         let Some(label) = screen_under(&screens, p.x, p.y) else { return };
         if let Some(module) = &dto.module_id {
             let frame = screens.iter().find(|(l, _)| *l == label).map(|(_, f)| *f).unwrap();
             let primary = NSScreen::screens(mtm).firstObject().map_or(frame.h, |s| s.frame().size.height);
-            let fullscreen = covers_screen(&window_list(), to_cg(frame, primary), std::process::id() as i32);
+            let inset = overlays.iter().find(|(l, _, _)| *l == label).map_or(0.0, |(_, _, i)| *i);
+            let fullscreen = covers_screen(&window_list(), to_cg(frame, primary), inset, std::process::id() as i32);
             if idle_seconds() >= IDLE_SECS || fullscreen {
                 let state = {
                     let core = handle.state::<CoreState>();
@@ -234,10 +243,26 @@ mod tests {
     fn a_full_screen_app_covers_the_screen() {
         let screen = Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 };
         let win = |pid, layer, bounds| [WindowBox { pid, layer, bounds }];
-        assert!(covers_screen(&win(9, 0, screen), screen, 1));
-        assert!(!covers_screen(&win(1, 0, screen), screen, 1));
-        assert!(!covers_screen(&win(9, 25, screen), screen, 1));
-        assert!(!covers_screen(&win(9, 0, Rect { h: 900.0, ..screen }), screen, 1));
-        assert!(covers_screen(&win(9, 0, Rect { x: 0.5, w: 1469.5, ..screen }), screen, 1));
+        assert!(covers_screen(&win(9, 0, screen), screen, 0.0, 1));
+        assert!(!covers_screen(&win(1, 0, screen), screen, 0.0, 1));
+        assert!(!covers_screen(&win(9, 25, screen), screen, 0.0, 1));
+        assert!(!covers_screen(&win(9, 0, Rect { h: 900.0, ..screen }), screen, 0.0, 1));
+        assert!(covers_screen(&win(9, 0, Rect { x: 0.5, w: 1469.5, ..screen }), screen, 0.0, 1));
+    }
+
+    // Seen on a MacBook Air M4 (29 Oct 2026): a full-screen Arc window starts under
+    // the notch strip, at y 33 with a 32 pt safe area, and its Space has no Dock
+    // desktop window (layer 20). A maximised window in a normal Space has the same
+    // bounds, but the Dock's desktop window is there.
+    #[test]
+    fn a_full_screen_app_under_the_notch_strip_counts() {
+        let screen = Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 };
+        let app = WindowBox { pid: 9, layer: 0, bounds: Rect { x: 0.0, y: 33.0, w: 1470.0, h: 923.0 } };
+        let desktop = WindowBox { pid: 7, layer: 20, bounds: screen };
+        assert!(covers_screen(&[app], screen, 32.0, 1));
+        assert!(!covers_screen(&[app, desktop], screen, 32.0, 1));
+        assert!(!covers_screen(&[app], screen, 0.0, 1));
+        let short = WindowBox { bounds: Rect { h: 859.0, ..app.bounds }, ..app };
+        assert!(!covers_screen(&[short], screen, 32.0, 1));
     }
 }
