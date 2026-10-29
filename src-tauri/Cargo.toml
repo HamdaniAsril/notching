@@ -24,6 +24,8 @@ serde_json = "1"
 sys-locale = "0.3"
 sysinfo = { version = "0.39", default-features = false, features = ["system", "network"] }
 chrono = "0.4"
+# HTTPS through macOS's own TLS (Security framework), no rustls.
+ureq = { version = "3", default-features = false, features = ["native-tls-no-default"] }
 
 [dev-dependencies]
 tempfile = "3"
