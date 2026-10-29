@@ -89,6 +89,12 @@ pub async fn module_call(
             app.state::<HomeState>().0.lock().unwrap().reminders.set_done(a.id, a.done)?;
             Ok(serde_json::Value::Null)
         }
+        // A module can only use its own channels: they are looked up under module_id.
+        Call::NotifyPost => {
+            let a: PostArgs = parse_args(args, "notify.post")?;
+            crate::notify::post(&app, &module_id, &a.channel, &a.title, a.detail.as_deref().unwrap_or(""))?;
+            Ok(serde_json::Value::Null)
+        }
     };
     value.map_err(|e| e.to_string())
 }
@@ -98,6 +104,13 @@ struct AddArgs {
     title: String,
     day: String,
     at: Option<i64>,
+}
+
+#[derive(serde::Deserialize)]
+struct PostArgs {
+    channel: String,
+    title: String,
+    detail: Option<String>,
 }
 
 #[derive(serde::Deserialize)]

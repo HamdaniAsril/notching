@@ -65,6 +65,7 @@ pub fn run() {
             notify::set_notice_seconds,
             notify::set_channel,
             notify::clear_missed,
+            notify::send_sample_notice,
         ])
         .setup(|app| {
             // No Dock icon.

@@ -13,6 +13,9 @@ pub enum Capability {
     HomeData,
     #[serde(rename = "reminders")]
     Reminders,
+    /// Notices from the module's own channels (plan 5 modules; spec 4.4).
+    #[serde(rename = "notify")]
+    Notify,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).

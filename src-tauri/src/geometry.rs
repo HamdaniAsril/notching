@@ -34,6 +34,18 @@ pub struct NotchGeom {
     pub height: f64,
 }
 
+/// The labelled screen that holds the point; a point on no screen (the cursor
+/// mid-switch, a screen just unplugged) goes to the first one.
+pub fn screen_under(screens: &[(String, Rect)], px: f64, py: f64) -> Option<String> {
+    screens.iter().find(|(_, r)| r.contains(px, py)).or(screens.first()).map(|(label, _)| label.clone())
+}
+
+/// AppKit (origin bottom-left of the main screen, y up) to CoreGraphics (origin
+/// top-left of the main screen, y down).
+pub fn to_cg(r: Rect, primary_height: f64) -> Rect {
+    Rect { y: primary_height - r.max_y(), ..r }
+}
+
 pub const OVERLAY_W: f64 = 640.0;
 pub const OVERLAY_H: f64 = 360.0;
 
@@ -233,5 +245,36 @@ mod tests {
     fn a_window_is_centred_on_its_screen() {
         let s = Rect { x: -1920.0, y: 0.0, w: 1920.0, h: 1080.0 };
         assert_eq!(centered_origin(s, 680.0, 600.0), (-1300.0, 240.0));
+    }
+
+    fn screens() -> Vec<(String, Rect)> {
+        vec![
+            ("notch-0".into(), Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 }),
+            ("notch-1".into(), Rect { x: 1470.0, y: 0.0, w: 1920.0, h: 1080.0 }),
+        ]
+    }
+
+    #[test]
+    fn a_notice_goes_to_the_screen_under_the_cursor() {
+        assert_eq!(screen_under(&screens(), 2000.0, 500.0), Some("notch-1".into()));
+        assert_eq!(screen_under(&screens(), 100.0, 955.0), Some("notch-0".into()));
+    }
+
+    #[test]
+    fn a_cursor_off_every_screen_falls_back_to_the_first() {
+        assert_eq!(screen_under(&screens(), -5000.0, 0.0), Some("notch-0".into()));
+        assert_eq!(screen_under(&[], 0.0, 0.0), None);
+    }
+
+    #[test]
+    fn coordinates_flip_for_core_graphics() {
+        assert_eq!(
+            to_cg(Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 }, 956.0),
+            Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 }
+        );
+        assert_eq!(
+            to_cg(Rect { x: 0.0, y: 956.0, w: 1920.0, h: 1080.0 }, 956.0),
+            Rect { x: 0.0, y: -1080.0, w: 1920.0, h: 1080.0 }
+        );
     }
 }

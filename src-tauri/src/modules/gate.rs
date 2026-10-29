@@ -11,6 +11,7 @@ pub enum Call {
     HomeRefreshWeather,
     RemindersAdd,
     RemindersSetDone,
+    NotifyPost,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -54,6 +55,7 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::HomeData, "refreshWeather") => Ok(Call::HomeRefreshWeather),
         (Capability::Reminders, "add") => Ok(Call::RemindersAdd),
         (Capability::Reminders, "setDone") => Ok(Call::RemindersSetDone),
+        (Capability::Notify, "post") => Ok(Call::NotifyPost),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -138,5 +140,16 @@ mod tests {
     fn errors_read_as_plain_sentences() {
         let e = CallError::NotDeclared { module: "home".into(), capability: "system.stats".into() };
         assert_eq!(e.to_string(), "module home did not declare system.stats");
+    }
+
+    #[test]
+    fn notify_needs_its_capability() {
+        let timer = entry("timer", &[Capability::Notify], true);
+        assert_eq!(authorize(Some(&timer), "timer", "notify", "post"), Ok(Call::NotifyPost));
+        let quiet = entry("timer", &[], true);
+        assert_eq!(
+            authorize(Some(&quiet), "timer", "notify", "post"),
+            Err(CallError::NotDeclared { module: "timer".into(), capability: "notify".into() })
+        );
     }
 }
