@@ -62,6 +62,23 @@ export function notchPath(notch: NotchSize, m: Liquid): string {
   return d + ` Q ${q(hw)} ${q(NH)} ${q(hw)} ${q(NH - NR)} L ${q(hw)} ${q(fl)} Q ${q(hw)} 0 ${q(hw + fl)} 0 Z`;
 }
 
+export interface FadeStop {
+  offset: number;
+  opacity: number;
+}
+
+// Panel fill from top to bottom (panel-gradient.html): solid down to `from`, then an
+// eased fade to `to` at the bottom edge, so no line shows where the fade begins.
+export function panelFade(from: number, to: number): FadeStop[] {
+  const N = 10;
+  const stops: FadeStop[] = [{ offset: 0, opacity: 1 }];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    stops.push({ offset: from + (1 - from) * t, opacity: 1 - (1 - to) * smooth(0, 1, t) });
+  }
+  return stops;
+}
+
 // Symmetric panel with rounded bottom corners and top corners flaring outward.
 export function panelPath(pw: number, ph: number): string {
   const w = Math.max(0, pw) / 2;

@@ -1,6 +1,6 @@
 import { EAR_W, NOTICE_PILL, type NotchController, type Phase } from './controller';
 import { containsPoint, OVERLAY_SIZE, type Rect, hitRects } from './hit';
-import { lensPath, notchPath, panelPath } from './shape';
+import { lensPath, notchPath, panelFade, panelPath } from './shape';
 
 export interface ViewDeps {
   raf: (cb: (now: number) => void) => number;
@@ -44,6 +44,11 @@ const ICON = (d: string) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const MORE_ICON = ICON('<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>');
 
+// Panel gradient, picked with the sliders in panel-gradient.html: solid for the top
+// 15 %, then down to 75 % opacity at the bottom edge.
+const PANEL_FADE_FROM = 0.15;
+const PANEL_FADE_TO = 0.75;
+
 const BELL_ICON = ICON('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>');
 
 // The G2 glow from notif-v1.html: a gradient running round the notice's rim.
@@ -66,6 +71,22 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   const panel = doc.createElementNS(SVG_NS, 'path');
   const uid = ++mounts;
   const defs = doc.createElementNS(SVG_NS, 'defs');
+  // The panel fades toward its bottom; the gradient spans the path's box, so it
+  // stretches with the panel as it opens.
+  const fade = doc.createElementNS(SVG_NS, 'linearGradient');
+  fade.id = `notch-fade-${uid}`;
+  fade.setAttribute('x1', '0');
+  fade.setAttribute('y1', '0');
+  fade.setAttribute('x2', '0');
+  fade.setAttribute('y2', '1');
+  for (const s of panelFade(PANEL_FADE_FROM, PANEL_FADE_TO)) {
+    const stop = doc.createElementNS(SVG_NS, 'stop');
+    stop.setAttribute('offset', s.offset.toFixed(3));
+    stop.setAttribute('stop-color', '#000');
+    stop.setAttribute('stop-opacity', s.opacity.toFixed(3));
+    fade.append(stop);
+  }
+  panel.setAttribute('class', 'notch-panel');
   const gradient = doc.createElementNS(SVG_NS, 'linearGradient');
   gradient.id = `notice-grad-${uid}`;
   for (const [k, v] of Object.entries({ gradientUnits: 'userSpaceOnUse', x1: '-110', y1: '0', x2: '110', y2: '0', spreadMethod: 'reflect' })) {
@@ -83,7 +104,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   const gauss = doc.createElementNS(SVG_NS, 'feGaussianBlur');
   gauss.setAttribute('stdDeviation', '3');
   blur.append(gauss);
-  defs.append(gradient, blur);
+  defs.append(fade, gradient, blur);
   const glow = doc.createElementNS(SVG_NS, 'g');
   glow.setAttribute('class', 'notice-glow');
   const dot = doc.createElementNS(SVG_NS, 'circle');
@@ -145,11 +166,18 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     if (el.style[prop] !== value) el.style[prop] = value;
   }
 
+  let panelFill = '';
+
   function draw(): void {
     const s = c.motion.springs;
     const m = { W: s.W.x, H: s.H.x, s: s.s.x, bx: s.bx.x };
     liquid.setAttribute('d', notch ? notchPath(notch, m) : lensPath(m));
     panel.setAttribute('d', c.panelVisible ? panelPath(s.pw.x, s.ph.x) : '');
+    // A notice stays solid beside the physical notch; closing keeps the last fill.
+    if (c.phase === 'open' || c.phase === 'notify') {
+      const fill = c.phase === 'open' ? `url(#${fade.id})` : '#000';
+      if (panelFill !== fill) panel.style.fill = panelFill = fill;
+    }
     setStyle(content, 'width', `${c.panelSize().w}px`);
     // Under the panel's final height, like the mockups, so it does not ride the
     // opening bounce; a card change slides it there (CSS transition on top).

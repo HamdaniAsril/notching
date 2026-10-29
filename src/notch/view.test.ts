@@ -221,3 +221,19 @@ test('a pill icon wears the missed dot', () => {
   expect(root.querySelector('.ic[data-id="system-stat"]')!.classList.contains('missed')).toBe(false);
 });
 
+
+test('the open panel fades toward its bottom; a notice stays solid like the notch', () => {
+  const { r, root, c, v } = noticeView(false);
+  const panel = root.querySelector<SVGPathElement>('.notch-panel')!;
+  r.runAll(60);
+  expect(panel.style.fill).not.toContain('url(');
+  timers.advance(3640);
+  r.runAll(5);
+  expect(c.phase).toBe('closing');
+  expect(panel.style.fill).not.toContain('url(');
+  r.runAll(600);
+  c.click();
+  v.kick();
+  r.runAll(5);
+  expect(panel.style.fill).toMatch(/^url\("?#notch-fade-\d+"?\)$/);
+});

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { liquidDepth, notchPath, panelPath } from './shape';
+import { liquidDepth, notchPath, panelFade, panelPath } from './shape';
 
 const flat = { W: 42, H: 4, s: 0, bx: 0 };
 
@@ -25,3 +25,12 @@ test('panel path for a 400 × 124 panel', () => expect(panelPath(400, 124)).toBe
 test('notch path starts at the physical notch outline', () =>
   expect(notchPath({ width: 164, height: 32 }, { W: 70, H: 0, s: 0, bx: 0 }))
     .toMatch(/^M -88\.00 0 Q -82\.00 0 -82\.00 6\.00 L -82\.00 22\.00 /));
+
+test('panel fade is solid down to its start, then eases to the bottom opacity', () => {
+  const stops = panelFade(0.15, 0.75);
+  expect(stops[0]).toEqual({ offset: 0, opacity: 1 });
+  expect(stops[1]).toEqual({ offset: 0.15, opacity: 1 });
+  expect(stops[stops.length - 1].offset).toBeCloseTo(1);
+  expect(stops[stops.length - 1].opacity).toBeCloseTo(0.75);
+  for (let i = 1; i < stops.length; i++) expect(stops[i].opacity).toBeLessThanOrEqual(stops[i - 1].opacity);
+});
