@@ -1,5 +1,6 @@
 {
   "name": "System stat",
+  "shortName": "System",
   "description": "CPU, memory, network",
   "cpu": "CPU",
   "memory": "Memory",

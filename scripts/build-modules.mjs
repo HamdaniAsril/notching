@@ -26,10 +26,14 @@ for (const id of ids) {
   await cp(join(src, id, 'manifest.json'), join(dest, 'manifest.json'));
   await cp(join(src, id, manifest.icon), join(dest, manifest.icon));
   await cp(join(src, id, 'locales'), join(dest, 'locales'), { recursive: true });
-  try {
-    await stat(join(dest, manifest.entry));
-  } catch {
-    throw new Error(`module ${id}: entry ${manifest.entry} is missing after the build`);
+  // The module page, if any, and every widget's page.
+  const entries = [manifest.entry, ...(manifest.widgets ?? []).map(w => w.entry)].filter(e => e !== undefined);
+  for (const file of new Set(entries)) {
+    try {
+      await stat(join(dest, file));
+    } catch {
+      throw new Error(`module ${id}: entry ${file} is missing after the build`);
+    }
   }
   console.log(`module ${id} built`);
 }

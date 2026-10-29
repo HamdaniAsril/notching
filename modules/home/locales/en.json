@@ -1,6 +1,6 @@
 {
-  "name": "Home",
-  "description": "Date, weather, prayer times, reminders",
+  "name": "Built-in widgets",
+  "description": "Date, weather, prayer, reminders, clock",
   "weather": "Weather",
   "next": "Next",
   "noPlace": "Set your city in Settings",
@@ -35,6 +35,18 @@
     "snow": "Snow",
     "storm": "Thunderstorm"
   },
-  "channels": { "reminder": "Reminders", "prayer": "Prayer times" },
-  "notice": { "prayer": "{name} time" }
+  "channels": {
+    "reminder": "Reminders",
+    "prayer": "Prayer times"
+  },
+  "notice": {
+    "prayer": "{name} time"
+  },
+  "widgets": {
+    "date": "Date",
+    "clock": "Clock",
+    "weather": "Weather",
+    "prayer": "Prayer times",
+    "reminders": "Reminders"
+  }
 }

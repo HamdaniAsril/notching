@@ -16,6 +16,9 @@ pub enum Capability {
     /// Notices from the module's own channels (plan 5 modules; spec 4.4).
     #[serde(rename = "notify")]
     Notify,
+    /// A short status beside the notch while the panel is closed (design 30 Oct, §8).
+    #[serde(rename = "status")]
+    Status,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).
@@ -34,6 +37,27 @@ pub struct CardSize {
     pub height: u32,
 }
 
+/// What a widget is about; the page editor filters by it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum WidgetKind {
+    Time,
+    Weather,
+    Worship,
+    Work,
+    Media,
+}
+
+/// A widget a package offers for custom pages: 1 or 2 of the row's 4 columns.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WidgetSpec {
+    pub id: String,
+    pub entry: String,
+    pub width: u8,
+    pub kind: WidgetKind,
+}
+
 /// A kind of notification a module can send, with its default switches (spec 4.4).
 /// The person can change both on the Notifikasi page.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
@@ -42,20 +66,35 @@ pub struct ChannelSpec {
     pub id: String,
     pub on: bool,
     pub sound: bool,
+    /// The widget that sent it, so a click opens the page holding that widget.
+    #[serde(default)]
+    pub widget: Option<String>,
 }
 
+/// A package has a module page (`entry` and `card`), widgets, or both.
 #[derive(Clone, Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Manifest {
     pub id: String,
     pub version: String,
-    pub entry: String,
     pub icon: String,
-    pub card: CardSize,
+    #[serde(default)]
+    pub entry: Option<String>,
+    #[serde(default)]
+    pub card: Option<CardSize>,
     pub permissions: Vec<Permission>,
     pub capabilities: Vec<Capability>,
     #[serde(default)]
     pub notifications: Vec<ChannelSpec>,
+    #[serde(default)]
+    pub widgets: Vec<WidgetSpec>,
+}
+
+impl Manifest {
+    /// A package without a page is not a module: it only offers widgets.
+    pub fn has_page(&self) -> bool {
+        self.entry.is_some() && self.card.is_some()
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -67,12 +106,16 @@ pub enum ManifestError {
     BadPath(String),
     CardSize,
     BadChannel,
+    HalfPage,
+    Empty,
+    BadWidget,
 }
 
 // The panel and the pill must fit the 640 × 360 notch overlay.
 pub const CARD_WIDTH: RangeInclusive<u32> = 280..=600;
 pub const CARD_HEIGHT: RangeInclusive<u32> = 40..=240;
 pub const CHANNELS_MAX: usize = 8;
+pub const WIDGETS_MAX: usize = 8;
 
 /// 1–32 characters: a lowercase letter, then lowercase letters, digits or dashes.
 pub fn is_module_id(s: &str) -> bool {
@@ -94,6 +137,10 @@ pub fn is_package_path(p: &str) -> bool {
         })
 }
 
+fn unique(ids: &[&str]) -> bool {
+    ids.iter().enumerate().all(|(i, id)| !ids[..i].contains(id))
+}
+
 fn is_version(v: &str) -> bool {
     let parts: Vec<&str> = v.split('.').collect();
     parts.len() == 3 && parts.iter().all(|p| p.parse::<u32>().is_ok())
@@ -110,17 +157,36 @@ pub fn parse_manifest(json: &str, folder: &str) -> Result<Manifest, ManifestErro
     if !is_version(&m.version) {
         return Err(ManifestError::BadVersion);
     }
-    for path in [&m.entry, &m.icon] {
+    if m.entry.is_some() != m.card.is_some() {
+        return Err(ManifestError::HalfPage);
+    }
+    if !m.has_page() && m.widgets.is_empty() {
+        return Err(ManifestError::Empty);
+    }
+    for path in m.entry.iter().chain([&m.icon]) {
         if !is_package_path(path) {
             return Err(ManifestError::BadPath(path.clone()));
         }
     }
-    if !CARD_WIDTH.contains(&m.card.width) || !CARD_HEIGHT.contains(&m.card.height) {
+    if m.card.is_some_and(|c| !CARD_WIDTH.contains(&c.width) || !CARD_HEIGHT.contains(&c.height)) {
         return Err(ManifestError::CardSize);
     }
+    let widgets: Vec<&str> = m.widgets.iter().map(|w| w.id.as_str()).collect();
+    let good_widgets = widgets.len() <= WIDGETS_MAX
+        && unique(&widgets)
+        && m.widgets
+            .iter()
+            .all(|w| is_module_id(&w.id) && (1..=2).contains(&w.width) && is_package_path(&w.entry));
+    if !good_widgets {
+        return Err(ManifestError::BadWidget);
+    }
     let ids: Vec<&str> = m.notifications.iter().map(|c| c.id.as_str()).collect();
-    let unique = ids.iter().enumerate().all(|(i, id)| !ids[..i].contains(id));
-    if ids.len() > CHANNELS_MAX || !unique || !ids.iter().all(|id| is_module_id(id)) {
+    let own_widget = |c: &ChannelSpec| c.widget.as_ref().is_none_or(|w| widgets.contains(&w.as_str()));
+    if ids.len() > CHANNELS_MAX
+        || !unique(&ids)
+        || !ids.iter().all(|id| is_module_id(id))
+        || !m.notifications.iter().all(own_widget)
+    {
         return Err(ManifestError::BadChannel);
     }
     Ok(m)
@@ -137,7 +203,7 @@ mod tests {
     fn a_good_manifest_parses() {
         let m = parse_manifest(GOOD, "system-stat").unwrap();
         assert_eq!(m.capabilities, vec![Capability::SystemStats]);
-        assert_eq!(m.card, CardSize { width: 400, height: 80 });
+        assert_eq!(m.card, Some(CardSize { width: 400, height: 80 }));
     }
 
     #[test]
@@ -183,7 +249,7 @@ mod tests {
             r#""notifications":[{"id":"done","on":true,"sound":true}],"capabilities""#,
         );
         let m = parse_manifest(&with, "system-stat").unwrap();
-        assert_eq!(m.notifications, vec![ChannelSpec { id: "done".into(), on: true, sound: true }]);
+        assert_eq!(m.notifications, vec![ChannelSpec { id: "done".into(), on: true, sound: true, widget: None }]);
         assert!(parse_manifest(GOOD, "system-stat").unwrap().notifications.is_empty());
     }
 
@@ -195,6 +261,66 @@ mod tests {
         for bad in [ch("Done!"), format!("{},{}", ch("done"), ch("done")), nine] {
             assert_eq!(parse_manifest(&with(&bad), "system-stat"), Err(ManifestError::BadChannel), "{bad}");
         }
+    }
+
+    const WIDGETS: &str = r#"{"id":"home","version":"2.0.0","icon":"icon.svg","permissions":[],"capabilities":[],
+      "widgets":[{"id":"date","entry":"index.html","width":1,"kind":"time"},
+                 {"id":"reminders","entry":"index.html","width":2,"kind":"work"}],
+      "notifications":[{"id":"reminder","on":true,"sound":true,"widget":"reminders"}]}"#;
+
+    #[test]
+    fn a_widget_package_needs_no_page() {
+        let m = parse_manifest(WIDGETS, "home").unwrap();
+        assert!(!m.has_page());
+        assert_eq!(m.widgets[1].width, 2);
+        assert_eq!(m.widgets[1].kind, WidgetKind::Work);
+        assert_eq!(m.notifications[0].widget.as_deref(), Some("reminders"));
+        assert!(parse_manifest(GOOD, "system-stat").unwrap().has_page());
+    }
+
+    #[test]
+    fn a_page_needs_both_entry_and_card() {
+        let no_card = GOOD.replace(r#""card":{"width":400,"height":80},"#, "");
+        assert_eq!(parse_manifest(&no_card, "system-stat"), Err(ManifestError::HalfPage));
+        let no_entry = GOOD.replace(r#""entry":"index.html","#, "");
+        assert_eq!(parse_manifest(&no_entry, "system-stat"), Err(ManifestError::HalfPage));
+    }
+
+    #[test]
+    fn a_package_with_nothing_is_refused() {
+        let bare = r#"{"id":"home","version":"1.0.0","icon":"icon.svg","permissions":[],"capabilities":[]}"#;
+        assert_eq!(parse_manifest(bare, "home"), Err(ManifestError::Empty));
+    }
+
+    #[test]
+    fn bad_widgets_are_refused() {
+        let w = |list: &str| format!(
+            r#"{{"id":"home","version":"1.0.0","icon":"icon.svg","permissions":[],"capabilities":[],"widgets":[{list}]}}"#
+        );
+        let one = |id: &str, entry: &str, width: u8| format!(r#"{{"id":"{id}","entry":"{entry}","width":{width},"kind":"time"}}"#);
+        let nine = (0..9).map(|i| one(&format!("w{i}"), "index.html", 1)).collect::<Vec<_>>().join(",");
+        for bad in [
+            one("date", "index.html", 3),
+            one("date", "index.html", 0),
+            one("Date!", "index.html", 1),
+            format!("{},{}", one("date", "index.html", 1), one("date", "index.html", 1)),
+            one("date", "../x", 1),
+            nine,
+        ] {
+            assert_eq!(parse_manifest(&w(&bad), "home"), Err(ManifestError::BadWidget), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_channel_can_only_point_at_its_own_widget() {
+        let bad = WIDGETS.replace(r#""widget":"reminders""#, r#""widget":"clock""#);
+        assert_eq!(parse_manifest(&bad, "home"), Err(ManifestError::BadChannel));
+    }
+
+    #[test]
+    fn the_status_capability_parses() {
+        let m = parse_manifest(&GOOD.replace("system.stats", "status"), "system-stat").unwrap();
+        assert_eq!(m.capabilities, vec![Capability::Status]);
     }
 
     #[test]
@@ -213,6 +339,9 @@ mod tests {
                 assert!(v["name"].is_string() && v["description"].is_string(), "{id}/{lang}");
                 for c in &m.notifications {
                     assert!(v["channels"][&c.id].is_string(), "{id}/{lang}: channel {}", c.id);
+                }
+                for w in &m.widgets {
+                    assert!(v["widgets"][&w.id].is_string(), "{id}/{lang}: widget {}", w.id);
                 }
             }
         }

@@ -70,20 +70,23 @@ mod tests {
             manifest: Manifest {
                 id: id.into(),
                 version: "1.0.0".into(),
-                entry: "index.html".into(),
+                entry: Some("index.html".into()),
                 icon: "icon.svg".into(),
-                card: CardSize { width: 400, height: 90 },
+                card: Some(CardSize { width: 400, height: 90 }),
                 permissions: vec![],
                 capabilities: caps.to_vec(),
                 notifications: vec![],
+                widgets: vec![],
             },
             name: id.into(),
+            short_name: id.into(),
             description: String::new(),
             installed: true,
             enabled,
             size: 0,
             icon_svg: String::new(),
             channels: vec![],
+            widgets: vec![],
         }
     }
 

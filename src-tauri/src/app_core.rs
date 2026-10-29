@@ -38,9 +38,9 @@ pub struct ModuleInfoDto {
     pub name: String,
     pub description: String,
     pub version: String,
-    pub entry: String,
+    pub entry: Option<String>,
     pub icon: String,
-    pub card: CardSize,
+    pub card: Option<CardSize>,
     pub installed: bool,
     pub enabled: bool,
     pub size: u64,
@@ -316,9 +316,9 @@ mod tests {
         let d = setup();
         let s = open(&d, Some("en-US")).state();
         assert_eq!(s.lang, Lang::En);
-        assert_eq!(s.modules.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), ["Module A", "Module B"]);
+        assert_eq!(s.modules.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), ["Module A", "Module B", "Widget W"]);
         assert_eq!(s.last_card, None);
-        assert_eq!(s.modules[0].card, CardSize { width: 400, height: 90 });
+        assert_eq!(s.modules[0].card, Some(CardSize { width: 400, height: 90 }));
         assert!(d.path().join("active/a/index.html").exists());
     }
 
@@ -370,7 +370,7 @@ mod tests {
         core.set_language(LanguageSetting::Id).unwrap();
         let s = core.state();
         assert_eq!(s.lang, Lang::Id);
-        assert_eq!(s.modules.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), ["Modul A", "Modul B"]);
+        assert_eq!(s.modules.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), ["Modul A", "Modul B", "Widget W"]);
         assert_eq!(open(&d, Some("en-US")).language(), LanguageSetting::Id);
     }
 

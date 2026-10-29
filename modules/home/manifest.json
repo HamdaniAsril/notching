@@ -1,13 +1,18 @@
 {
   "id": "home",
-  "version": "1.0.0",
-  "entry": "index.html",
+  "version": "2.0.0",
   "icon": "icon.svg",
-  "card": { "width": 540, "height": 156 },
   "permissions": [],
   "capabilities": ["home.data", "reminders"],
   "notifications": [
-    { "id": "reminder", "on": true, "sound": true },
-    { "id": "prayer", "on": false, "sound": false }
+    { "id": "reminder", "on": true, "sound": true, "widget": "reminders" },
+    { "id": "prayer", "on": false, "sound": false, "widget": "prayer" }
+  ],
+  "widgets": [
+    { "id": "date", "entry": "index.html", "width": 1, "kind": "time" },
+    { "id": "clock", "entry": "index.html", "width": 1, "kind": "time" },
+    { "id": "weather", "entry": "index.html", "width": 1, "kind": "weather" },
+    { "id": "prayer", "entry": "index.html", "width": 1, "kind": "worship" },
+    { "id": "reminders", "entry": "index.html", "width": 2, "kind": "work" }
   ]
 }

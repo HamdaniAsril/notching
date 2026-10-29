@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use super::manifest::{parse_manifest, Manifest};
+use super::manifest::{parse_manifest, Manifest, WidgetKind};
 use crate::locale::Lang;
 use crate::settings::Settings;
 
@@ -17,10 +17,22 @@ pub struct ChannelEntry {
     pub sound: bool,
 }
 
+/// A widget with its name in the current language.
+#[derive(Clone, Debug, PartialEq)]
+pub struct WidgetEntry {
+    pub id: String,
+    pub name: String,
+    pub entry: String,
+    pub width: u8,
+    pub kind: WidgetKind,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModuleEntry {
     pub manifest: Manifest,
     pub name: String,
+    /// For the Modul page's small tiles; the name when the locale has none.
+    pub short_name: String,
     pub description: String,
     pub installed: bool,
     pub enabled: bool,
@@ -29,11 +41,14 @@ pub struct ModuleEntry {
     /// The icon file's SVG text, read from the original package.
     pub icon_svg: String,
     pub channels: Vec<ChannelEntry>,
+    pub widgets: Vec<WidgetEntry>,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum StoreError {
     UnknownModule(String),
+    /// A widget package: it cannot be switched off, uninstalled or reinstalled.
+    NotAModule(String),
     Io(String),
 }
 
@@ -41,6 +56,7 @@ impl std::fmt::Display for StoreError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             StoreError::UnknownModule(id) => write!(f, "unknown module {id}"),
+            StoreError::NotAModule(id) => write!(f, "{id} is not a module"),
             StoreError::Io(e) => write!(f, "{e}"),
         }
     }
@@ -73,11 +89,12 @@ impl ModuleStore {
     }
 
     /// Replaces the active copy of every installed module with the bundle's, so
-    /// modules update with the app (spec 6), and removes uninstalled ones.
+    /// modules update with the app (spec 6), and removes uninstalled ones. Widget
+    /// packages are always installed.
     pub fn sync(&self, settings: &Settings) -> Vec<StoreError> {
         let mut errors = Vec::new();
         for id in self.catalog() {
-            let result = if settings.uninstalled_modules.contains(&id) {
+            let result = if settings.uninstalled_modules.contains(&id) && self.is_module(&id) {
                 remove_dir(&self.active_dir.join(&id))
             } else {
                 self.copy_in(&id)
@@ -107,9 +124,11 @@ impl ModuleStore {
                 };
                 let text = locale_text(&dir, lang).unwrap_or_default();
                 let name = text["name"].as_str().unwrap_or(&id).to_string();
+                let short_name = text["shortName"].as_str().unwrap_or(&name).to_string();
                 let description = text["description"].as_str().unwrap_or("").to_string();
-                let installed = !settings.uninstalled_modules.contains(&id);
-                let enabled = installed && !settings.disabled_modules.contains(&id);
+                let page = manifest.has_page();
+                let installed = !page || !settings.uninstalled_modules.contains(&id);
+                let enabled = !page || (installed && !settings.disabled_modules.contains(&id));
                 let icon_svg = std::fs::read_to_string(dir.join(&manifest.icon)).unwrap_or_default();
                 let size = package_size(&dir);
                 let channels = manifest
@@ -122,7 +141,29 @@ impl ModuleStore {
                         sound: c.sound,
                     })
                     .collect();
-                Some(ModuleEntry { manifest, name, description, installed, enabled, size, icon_svg, channels })
+                let widgets = manifest
+                    .widgets
+                    .iter()
+                    .map(|w| WidgetEntry {
+                        id: w.id.clone(),
+                        name: text["widgets"][&w.id].as_str().unwrap_or(&w.id).to_string(),
+                        entry: w.entry.clone(),
+                        width: w.width,
+                        kind: w.kind,
+                    })
+                    .collect();
+                Some(ModuleEntry {
+                    manifest,
+                    name,
+                    short_name,
+                    description,
+                    installed,
+                    enabled,
+                    size,
+                    icon_svg,
+                    channels,
+                    widgets,
+                })
             })
             .collect()
     }
@@ -136,7 +177,7 @@ impl ModuleStore {
     }
 
     pub fn set_enabled(&self, id: &str, enabled: bool, settings: &mut Settings) -> Result<(), StoreError> {
-        self.known(id)?;
+        self.module_only(id)?;
         settings.disabled_modules.retain(|m| m != id);
         if !enabled {
             settings.disabled_modules.push(id.to_string());
@@ -146,7 +187,7 @@ impl ModuleStore {
 
     /// Deletes the active copy; the original stays in the bundle.
     pub fn uninstall(&self, id: &str, settings: &mut Settings) -> Result<(), StoreError> {
-        self.known(id)?;
+        self.module_only(id)?;
         remove_dir(&self.active_dir.join(id))?;
         if !settings.uninstalled_modules.iter().any(|m| m == id) {
             settings.uninstalled_modules.push(id.to_string());
@@ -156,11 +197,30 @@ impl ModuleStore {
 
     /// Copies the module back from the bundle and switches it on.
     pub fn reinstall(&self, id: &str, settings: &mut Settings) -> Result<(), StoreError> {
-        self.known(id)?;
+        self.module_only(id)?;
         self.copy_in(id)?;
         settings.uninstalled_modules.retain(|m| m != id);
         settings.disabled_modules.retain(|m| m != id);
         Ok(())
+    }
+
+    // A catalog package with a module page.
+    fn module_only(&self, id: &str) -> Result<(), StoreError> {
+        self.known(id)?;
+        if self.is_module(id) {
+            Ok(())
+        } else {
+            Err(StoreError::NotAModule(id.to_string()))
+        }
+    }
+
+    // Read from the bundled manifest; a broken one counts as a module, so it can
+    // still be uninstalled.
+    fn is_module(&self, id: &str) -> bool {
+        std::fs::read_to_string(self.bundle_dir.join(id).join("manifest.json"))
+            .ok()
+            .and_then(|json| parse_manifest(&json, id).ok())
+            .is_none_or(|m| m.has_page())
     }
 
     fn known(&self, id: &str) -> Result<(), StoreError> {
@@ -228,7 +288,7 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
 #[cfg(test)]
 pub(crate) fn fake_bundle(dir: &std::path::Path) {
     std::fs::create_dir_all(dir).unwrap();
-    std::fs::write(dir.join("index.json"), r#"["a","b"]"#).unwrap();
+    std::fs::write(dir.join("index.json"), r#"["a","b","w"]"#).unwrap();
     for (id, upper) in [("a", "A"), ("b", "B")] {
         let m = dir.join(id);
         std::fs::create_dir_all(m.join("locales")).unwrap();
@@ -257,6 +317,27 @@ pub(crate) fn fake_bundle(dir: &std::path::Path) {
         )
         .unwrap();
     }
+    // A widget package: no module page.
+    let w = dir.join("w");
+    std::fs::create_dir_all(w.join("locales")).unwrap();
+    std::fs::write(
+        w.join("manifest.json"),
+        r#"{"id":"w","version":"1.0.0","icon":"icon.svg","permissions":[],"capabilities":[],
+           "widgets":[{"id":"one","entry":"index.html","width":1,"kind":"time"}]}"#,
+    )
+    .unwrap();
+    std::fs::write(w.join("index.html"), "w1").unwrap();
+    std::fs::write(w.join("icon.svg"), "<svg/>").unwrap();
+    std::fs::write(
+        w.join("locales/id.json"),
+        r#"{"name":"Widget W","shortName":"Pendek W","description":"Isi W","widgets":{"one":"Satu"}}"#,
+    )
+    .unwrap();
+    std::fs::write(
+        w.join("locales/en.json"),
+        r#"{"name":"Widget W","description":"About W","widgets":{"one":"One"}}"#,
+    )
+    .unwrap();
 }
 
 #[cfg(test)]
@@ -347,8 +428,8 @@ mod tests {
     fn list_follows_the_catalog_in_the_chosen_language() {
         let (_d, store) = setup();
         let s = Settings::default();
-        assert_eq!(names(&store, &s, Lang::Id), ["Modul A", "Modul B"]);
-        assert_eq!(names(&store, &s, Lang::En), ["Module A", "Module B"]);
+        assert_eq!(names(&store, &s, Lang::Id), ["Modul A", "Modul B", "Widget W"]);
+        assert_eq!(names(&store, &s, Lang::En), ["Module A", "Module B", "Widget W"]);
         let s = Settings { uninstalled_modules: vec!["b".into()], ..Default::default() };
         let b = &store.list(&s, Lang::En)[1];
         assert!(!b.installed && !b.enabled);
@@ -359,7 +440,7 @@ mod tests {
     fn a_module_with_a_broken_manifest_is_left_out() {
         let (d, store) = setup();
         std::fs::write(d.path().join("bundle/b/manifest.json"), "{").unwrap();
-        assert_eq!(names(&store, &Settings::default(), Lang::Id), ["Modul A"]);
+        assert_eq!(names(&store, &Settings::default(), Lang::Id), ["Modul A", "Widget W"]);
     }
 
     #[test]
@@ -379,6 +460,39 @@ mod tests {
         std::fs::write(d.path().join("sub/y"), "12345").unwrap();
         assert_eq!(package_size(d.path()), 8);
         assert_eq!(package_size(&d.path().join("missing")), 0);
+    }
+
+    #[test]
+    fn widget_packages_are_always_on() {
+        let (d, store) = setup();
+        let s = Settings { disabled_modules: vec!["w".into()], uninstalled_modules: vec!["w".into()], ..Default::default() };
+        let w = store.list(&s, Lang::Id).into_iter().find(|e| e.manifest.id == "w").unwrap();
+        assert!(w.installed && w.enabled);
+        store.sync(&s);
+        assert!(d.path().join("active/w/index.html").exists());
+    }
+
+    #[test]
+    fn widget_packages_cannot_be_switched_off() {
+        let (_d, store) = setup();
+        let mut s = Settings::default();
+        assert_eq!(store.set_enabled("w", false, &mut s), Err(StoreError::NotAModule("w".into())));
+        assert_eq!(store.uninstall("w", &mut s), Err(StoreError::NotAModule("w".into())));
+        assert_eq!(store.reinstall("w", &mut s), Err(StoreError::NotAModule("w".into())));
+        assert!(s.disabled_modules.is_empty() && s.uninstalled_modules.is_empty());
+    }
+
+    #[test]
+    fn widgets_and_short_names_come_from_the_locale() {
+        let (_d, store) = setup();
+        let list = store.list(&Settings::default(), Lang::Id);
+        let w = list.iter().find(|e| e.manifest.id == "w").unwrap();
+        assert_eq!(
+            w.widgets,
+            [WidgetEntry { id: "one".into(), name: "Satu".into(), entry: "index.html".into(), width: 1, kind: WidgetKind::Time }]
+        );
+        assert_eq!(list[0].short_name, "Modul A");
+        assert_eq!(w.short_name, "Pendek W");
     }
 
     #[test]

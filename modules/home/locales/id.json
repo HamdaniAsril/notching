@@ -1,6 +1,6 @@
 {
-  "name": "Beranda",
-  "description": "Tanggal, cuaca, sholat, reminder",
+  "name": "Widget bawaan",
+  "description": "Tanggal, cuaca, sholat, reminder, jam",
   "weather": "Cuaca",
   "next": "Berikutnya",
   "noPlace": "Atur kota di Pengaturan",
@@ -35,6 +35,18 @@
     "snow": "Salju",
     "storm": "Badai petir"
   },
-  "channels": { "reminder": "Reminder", "prayer": "Waktu sholat" },
-  "notice": { "prayer": "Waktu {name}" }
+  "channels": {
+    "reminder": "Reminder",
+    "prayer": "Waktu sholat"
+  },
+  "notice": {
+    "prayer": "Waktu {name}"
+  },
+  "widgets": {
+    "date": "Tanggal",
+    "clock": "Jam",
+    "weather": "Cuaca",
+    "prayer": "Waktu sholat",
+    "reminders": "Reminder"
+  }
 }
