@@ -8,6 +8,24 @@ export type LanguageChoice = 'auto' | 'id' | 'en';
 // Open at login, as macOS reports it; 'unavailable' outside the installed app.
 export type LoginItem = 'on' | 'off' | 'needsApproval' | 'unavailable';
 
+// Beranda's city; same shape as Place in src-tauri/src/settings.rs.
+export interface Place {
+  name: string;
+  region: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+}
+
+export type PrayerMethod =
+  | 'kemenag' | 'singapore' | 'muslimWorldLeague' | 'egyptian' | 'karachi' | 'ummAlQura' | 'northAmerica';
+
+export interface HomeSettingsInfo {
+  place: Place | null;
+  prayerMethod: PrayerMethod;
+  showClock: boolean;
+}
+
 // Same shape as SettingsDto in src-tauri/src/settings_window.rs.
 export interface SettingsInfo {
   language: LanguageChoice;
@@ -15,6 +33,7 @@ export interface SettingsInfo {
   screens: string[]; // connected screens, by name
   login: LoginItem;
   version: string;
+  home: HomeSettingsInfo;
 }
 
 export type SectionId = 'general' | 'look' | 'notifications' | 'modules' | 'permissions' | 'about';
@@ -36,6 +55,10 @@ export interface SettingsBridge {
   uninstallModule(id: string): Promise<void>;
   reinstallModule(id: string): Promise<void>;
   quit(): Promise<void>;
+  searchPlaces(query: string): Promise<Place[]>; // Open-Meteo, only when asked
+  setPlace(place: Place | null): Promise<void>;
+  setPrayerMethod(method: PrayerMethod): Promise<void>;
+  setShowClock(on: boolean): Promise<void>;
 }
 
 export interface SettingsEnv {

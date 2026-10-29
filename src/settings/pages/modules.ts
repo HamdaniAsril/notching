@@ -3,9 +3,13 @@ import { formatBytes } from '../../kit/format';
 import type { ModuleInfo } from '../../modules/types';
 import { button, el, group, head, note, toggle } from '../controls';
 import { icon } from '../icons';
+import { homeSettings } from './home';
 import type { PageContext, PageRender } from '../types';
 
 export const UNINSTALL_CONFIRM_MS = 4000;
+
+// Each module's own settings, shown on its page; the rest say they have none.
+export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = { home: homeSettings };
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never
 // enters the DOM, so nothing in the file can run.
@@ -99,7 +103,8 @@ export const modulePage: PageRender = (ctx, route) => {
 
   const foot = el('div', 'foot');
   foot.append(el('span', 'size', fill(s.versionSize, { version: m.version, size: formatBytes(m.size, ctx.lang) })), uninstall);
-  page.append(back(ctx), top, note(s.noSettings), foot, el('p', 'note small', s.uninstallNote));
+  const own = MODULE_SETTINGS[m.id];
+  page.append(back(ctx), top, own ? own(ctx) : note(s.noSettings), foot, el('p', 'note small', s.uninstallNote));
   return page;
 };
 

@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { syncUnlisten } from '../bridge';
 import type { ModuleState } from '../modules/types';
-import type { SettingsBridge, SettingsInfo } from './types';
+import type { Place, SettingsBridge, SettingsInfo } from './types';
 
 // The native side: commands in src-tauri/src/settings_window.rs and
 // module_commands.rs; both broadcasts reach every window.
@@ -21,5 +21,9 @@ export function tauriSettingsBridge(): SettingsBridge {
     uninstallModule: id => invoke('uninstall_module', { id }),
     reinstallModule: id => invoke('reinstall_module', { id }),
     quit: () => invoke('quit_app'),
+    searchPlaces: query => invoke<Place[]>('search_places', { query }),
+    setPlace: place => invoke('set_place', { place }),
+    setPrayerMethod: method => invoke('set_prayer_method', { method }),
+    setShowClock: on => invoke('set_show_clock', { on }),
   };
 }

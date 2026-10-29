@@ -2,10 +2,18 @@ import { catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
 import type { ModuleInfo, ModuleState } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
-import type { LanguageChoice, SettingsBridge, SettingsInfo } from './types';
+import type { LanguageChoice, Place, SettingsBridge, SettingsInfo } from './types';
+
+const city = (name: string, region: string, latitude: number, longitude: number): Place =>
+  ({ name, region, country: 'Indonesia', latitude, longitude });
+const PLACES = [city('Jakarta', 'Jakarta', -6.21462, 106.84513), city('Bandung', 'Jawa Barat', -6.90389, 107.61861),
+  city('Surabaya', 'Jawa Timur', -7.24917, 112.75083), city('Yogyakarta', 'Yogyakarta', -7.80139, 110.36472),
+  city('Makassar', 'Sulawesi Selatan', -5.14861, 119.43194), city('Medan', 'Sumatera Utara', 3.58333, 98.66667),
+  city('Denpasar', 'Bali', -8.65, 115.21667)];
 
 // Stand-in for the native side in a normal browser (`npm run dev`, /settings.html).
-// Everything lives in memory; `?lang=en` starts in English. Screens are made up.
+// Everything lives in memory; `?lang=en` starts in English. Screens and cities
+// are made up; searching for "gagal" fails, to show the error.
 export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   const deviceLang: Lang = params.get('lang') === 'en' ? 'en' : 'id';
   let info: SettingsInfo = {
@@ -14,6 +22,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     screens: ['Built-in Retina Display', 'DELL U2723QE'],
     login: 'off',
     version: '0.1.0',
+    home: { place: null, prayerMethod: 'kemenag', showClock: true },
   };
   let state: ModuleState = { lang: deviceLang, modules: catalog(deviceLang, []), lastCard: null, notch: DEFAULT_CONFIG };
   const stateSubs = new Set<(s: ModuleState) => void>();
@@ -48,5 +57,13 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     uninstallModule: async id => setModule(id, { installed: false, enabled: false }),
     reinstallModule: async id => setModule(id, { installed: true, enabled: true }),
     quit: async () => console.info('quit'),
+    searchPlaces: async query => {
+      if (query.trim().toLowerCase() === 'gagal') throw new Error('offline');
+      const q = query.trim().toLowerCase();
+      return q ? PLACES.filter(p => p.name.toLowerCase().startsWith(q)) : [];
+    },
+    setPlace: async place => setInfo({ ...info, home: { ...info.home, place } }),
+    setPrayerMethod: async prayerMethod => setInfo({ ...info, home: { ...info.home, prayerMethod } }),
+    setShowClock: async showClock => setInfo({ ...info, home: { ...info.home, showClock } }),
   };
 }

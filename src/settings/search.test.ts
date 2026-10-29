@@ -36,3 +36,16 @@ test('labels that start with the query come first', () =>
 test('follows the language', () => expect(search(idx(mods, 'en'), 'language')[0].key).toBe('general.language'));
 
 test('a blank query finds nothing', () => expect(search(idx(), '   ')).toEqual([]));
+
+test('finds the city setting on the Beranda page', () => {
+  const e = search(idx(), 'kota')[0];
+  expect(e.key).toBe('home.place');
+  expect(e.where).toBe('Beranda');
+  expect(e.route).toEqual({ page: 'module', id: 'home' });
+  expect(search(idx(), 'jam')[0].key).toBe('home.showClock');
+});
+
+test('Beranda settings are not offered while Beranda is uninstalled', () => {
+  const gone = [moduleInfo('home', { name: 'Beranda', installed: false, enabled: false })];
+  expect(search(idx(gone), 'kota')).toEqual([]);
+});

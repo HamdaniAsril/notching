@@ -3,7 +3,7 @@ import type { ModuleState } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
-import type { LanguageChoice, SettingsBridge, SettingsInfo } from './types';
+import type { LanguageChoice, Place, PrayerMethod, SettingsBridge, SettingsInfo } from './types';
 
 export const TEST_INFO: SettingsInfo = {
   language: 'auto',
@@ -11,6 +11,7 @@ export const TEST_INFO: SettingsInfo = {
   screens: ['Built-in Retina Display', 'DELL U2723QE'],
   login: 'off',
   version: '0.1.0',
+  home: { place: null, prayerMethod: 'kemenag', showClock: true },
 };
 
 // Settings bridge whose methods are mocks; emit* plays the native side's events.
@@ -33,6 +34,10 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     uninstallModule: vi.fn(async (_id: string) => {}),
     reinstallModule: vi.fn(async (_id: string) => {}),
     quit: vi.fn(async () => {}),
+    searchPlaces: vi.fn(async (_query: string): Promise<Place[]> => []),
+    setPlace: vi.fn(async (_place: Place | null) => {}),
+    setPrayerMethod: vi.fn(async (_method: PrayerMethod) => {}),
+    setShowClock: vi.fn(async (_on: boolean) => {}),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
   };

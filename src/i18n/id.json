@@ -70,6 +70,32 @@
       "trust": "Gratis. Tanpa iklan. Tanpa pelacakan.",
       "later": "Cek update dan tautan donasi hadir saat rilis publik."
     },
+    "home": {
+      "place": "Kota",
+      "placeHint": "Untuk cuaca dan waktu sholat. Hanya dikirim ke Open-Meteo.",
+      "placeNone": "Belum diatur",
+      "placeSet": "Atur",
+      "placeChange": "Ganti",
+      "placeSearch": "Ketik nama kota, lalu Enter",
+      "placeFind": "Cari",
+      "placeCancel": "Batal",
+      "placeSearching": "Mencari…",
+      "placeNotFound": "Kota tidak ditemukan.",
+      "placeFailed": "Tidak bisa mencari. Periksa internetmu.",
+      "prayerMethod": "Metode hitung sholat",
+      "prayerMethodHint": "Kemenag RI: Subuh 20°, Isya 18°.",
+      "methods": {
+        "kemenag": "Kemenag RI",
+        "singapore": "MUIS (Singapura)",
+        "muslimWorldLeague": "Muslim World League",
+        "egyptian": "Mesir",
+        "karachi": "Karachi",
+        "ummAlQura": "Umm al-Qura (Makkah)",
+        "northAmerica": "ISNA (Amerika Utara)"
+      },
+      "showClock": "Tampilkan jam",
+      "showClockHint": "Jam kecil di pojok kanan bawah Beranda."
+    },
     "keywords": {
       "language": "bahasa indonesia inggris english language otomatis",
       "screen": "layar monitor eksternal display screen",
@@ -78,7 +104,10 @@
       "speed": "kecepatan cepat lambat animasi speed",
       "dropDepth": "tetesan hover turun jarak drop",
       "thickness": "tebal tipis lensa garis",
-      "version": "versi update donasi"
+      "version": "versi update donasi",
+      "place": "kota lokasi cuaca tempat",
+      "prayerMethod": "sholat salat shalat waktu metode kemenag jadwal",
+      "showClock": "jam waktu"
     }
   }
 }

@@ -39,8 +39,10 @@ test('a row opens its module page; its switch does not', async () => {
   expect(app.route).toEqual({ page: 'modules' });
   click(root, 'module.home');
   expect(h1(root)).toBe('Beranda');
-  expect(root.querySelector('.pane')!.textContent).toContain('Modul ini belum punya pengaturan.');
   expect(root.querySelector('.pane')!.textContent).toContain('Versi 1.0.0 · 136 KB');
+  click(root, 'module.back');
+  click(root, 'module.system-stat');
+  expect(root.querySelector('.pane')!.textContent).toContain('Modul ini belum punya pengaturan.');
 });
 
 test('uninstalling asks once more, then returns to the list', async () => {

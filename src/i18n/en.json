@@ -70,6 +70,32 @@
       "trust": "Free. No ads. No tracking.",
       "later": "Update checks and the donation link come with the public release."
     },
+    "home": {
+      "place": "City",
+      "placeHint": "For weather and prayer times. Sent only to Open-Meteo.",
+      "placeNone": "Not set",
+      "placeSet": "Set",
+      "placeChange": "Change",
+      "placeSearch": "Type a city, then Enter",
+      "placeFind": "Search",
+      "placeCancel": "Cancel",
+      "placeSearching": "Searching…",
+      "placeNotFound": "No city found.",
+      "placeFailed": "Couldn't search. Check your internet.",
+      "prayerMethod": "Prayer time method",
+      "prayerMethodHint": "Kemenag RI: Fajr 20°, Isha 18°.",
+      "methods": {
+        "kemenag": "Kemenag RI",
+        "singapore": "MUIS (Singapore)",
+        "muslimWorldLeague": "Muslim World League",
+        "egyptian": "Egypt",
+        "karachi": "Karachi",
+        "ummAlQura": "Umm al-Qura (Makkah)",
+        "northAmerica": "ISNA (North America)"
+      },
+      "showClock": "Show the clock",
+      "showClockHint": "A small clock at the bottom right of Home."
+    },
     "keywords": {
       "language": "language english indonesian bahasa automatic",
       "screen": "screen display monitor external",
@@ -78,7 +104,10 @@
       "speed": "speed fast slow animation",
       "dropDepth": "drop hover depth droplet",
       "thickness": "thickness thin lens line",
-      "version": "version update donate"
+      "version": "version update donate",
+      "place": "city location weather place",
+      "prayerMethod": "prayer salah method kemenag schedule",
+      "showClock": "clock time"
     }
   }
 }

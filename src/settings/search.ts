@@ -39,13 +39,26 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[]): SearchEn
   };
   const entry = (key: string, label: string, where: string, route: Route, extra = ''): SearchEntry =>
     ({ key, label, where, route, text: normalize(`${label} ${where} ${extra}`) });
+  // A module's own settings, found under the module's name.
+  const moduleRows = (m: ModuleInfo): SearchEntry[] => {
+    const own: Record<string, [key: string, label: string, keywords: string][]> = {
+      home: [
+        ['home.place', s.home.place, k.place],
+        ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
+        ['home.showClock', s.home.showClock, k.showClock],
+      ],
+    };
+    return (own[m.id] ?? []).map(([key, label, keywords]) => entry(key, label, m.name, { page: 'module', id: m.id }, keywords));
+  };
 
   return SECTIONS.flatMap(page => {
     const where = s.sections[page];
     const own = rows[page].map(([key, label, keywords]) => entry(key, label, where, { page }, keywords));
     const mods = page === 'modules'
-      ? modules.map(m => entry(`module.${m.id}`, m.name, where,
-        m.installed ? { page: 'module', id: m.id } : { page: 'add' }, m.description))
+      ? modules.flatMap(m => [
+        entry(`module.${m.id}`, m.name, where, m.installed ? { page: 'module', id: m.id } : { page: 'add' }, m.description),
+        ...(m.installed ? moduleRows(m) : []),
+      ])
       : [];
     return [entry(`section.${page}`, where, '', { page }), ...own, ...mods];
   });
