@@ -4,7 +4,7 @@
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
-use chrono::{Days, Local, TimeZone};
+use chrono::{Days, Local, NaiveDate, TimeZone};
 use tauri::{AppHandle, Manager};
 
 use super::prayer::{day_times, PrayerTime};
@@ -12,6 +12,7 @@ use super::reminders::Reminder;
 use super::HomeState;
 use crate::app_core::CoreState;
 use crate::locale::Lang;
+use crate::settings::{Place, PrayerMethod};
 use crate::notify;
 
 /// A notice more than this late (the Mac was asleep) is not sent at all.
@@ -70,6 +71,13 @@ pub fn sleep_ms(now: i64, reminders: &[Reminder], prayers: &[PrayerTime]) -> i64
         .clamp(1_000, MAX_SLEEP_MS)
 }
 
+/// Prayer times from yesterday to tomorrow: yesterday's Isha can fall after
+/// midnight at high latitudes in summer.
+pub fn prayers_around(today: NaiveDate, place: &Place, method: PrayerMethod) -> Vec<PrayerTime> {
+    let days = [today.checked_sub_days(Days::new(1)), Some(today), today.checked_add_days(Days::new(1))];
+    days.into_iter().flatten().flat_map(|d| day_times(d, place, method)).collect()
+}
+
 /// Set and signalled by `poke`, so a change wakes the schedule at once.
 pub struct SchedulerState(pub Arc<(Mutex<bool>, Condvar)>);
 
@@ -116,11 +124,7 @@ fn tick(app: &AppHandle, fired: &mut Vec<i64>) -> i64 {
         (core.home().clone(), core.channel("home", "prayer").is_some_and(|p| p.on), core.lang())
     };
     let prayers: Vec<PrayerTime> = match &home.place {
-        Some(place) if prayers_on => {
-            let today = now.date_naive();
-            let days = [Some(today), today.checked_add_days(Days::new(1))];
-            days.into_iter().flatten().flat_map(|d| day_times(d, place, home.prayer_method)).collect()
-        }
+        Some(place) if prayers_on => prayers_around(now.date_naive(), place, home.prayer_method),
         _ => Vec::new(),
     };
     let reminders = app.state::<HomeState>().0.lock().unwrap().reminders.items().to_vec();
@@ -215,4 +219,23 @@ mod tests {
         assert_eq!(sleep_ms(now, &[], &[]), MAX_SLEEP_MS);
         assert_eq!(sleep_ms(now, &[r(1, Some(now + 100))], &[]), 1_000);
     }
+
+    // At high latitudes in summer Isha falls after midnight, so it belongs to
+    // yesterday's times; it must still be sent once the date has changed.
+    #[test]
+    fn isha_after_midnight_still_fires() {
+        let london = crate::settings::Place {
+            name: "London".into(), region: String::new(), country: String::new(), latitude: 51.51, longitude: -0.13,
+        };
+        let june21 = chrono::NaiveDate::from_ymd_opt(2026, 6, 21).unwrap();
+        let june22 = june21.succ_opt().unwrap();
+        let isha = day_times(june21, &london, PrayerMethod::MuslimWorldLeague)
+            .into_iter()
+            .find(|p| p.name == PrayerName::Isha)
+            .unwrap();
+        let first_of_june22 = day_times(june22, &london, PrayerMethod::MuslimWorldLeague)[0].at;
+        assert!(isha.at < first_of_june22);
+        assert!(prayers_around(june22, &london, PrayerMethod::MuslimWorldLeague).contains(&isha));
+    }
 }
+

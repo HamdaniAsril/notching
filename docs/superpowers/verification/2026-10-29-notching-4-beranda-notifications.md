@@ -129,4 +129,8 @@ Tampilan telinga, cahaya, pil, halaman Notifikasi, dan saklar sholat di Beranda 
 - **Pemilik menimbang titik pelangi beranimasi** dan memilih merah. Animasi yang terus berjalan akan membuat Notching tidak pernah benar-benar diam.
 - **Nilai "3,5 dtk" di halaman Notifikasi** sempat terpotong menjadi dua baris. Ini diperbaiki sebelum Task 12 di-commit.
 - **Sesi lain di folder yang sama** menambahkan gradasi panel (`c4d3082`) di cabang ini, di antara Task 11 dan Task 12. Perubahan itu tidak termasuk rencana ini, tetapi ikut terlihat di semua cek bagian B.
+- **Isya lewat tengah malam (pemeriksaan akhir).** Di lintang tinggi saat musim panas, Isya bisa jatuh lewat tengah malam, dan notifikasinya tidak pernah terkirim. Penyebabnya, jadwal hanya menghitung hari ini dan besok. Sekarang kemarin ikut dihitung. Diperbaiki dengan test London 21 Juni.
+- **Batas yang diketahui:**
+  - **Pengenalan layar penuh di layar ber-notch bergantung pada jendela desktop Dock.** Kalau Dock ada di monitor lain dan "Displays have separate Spaces" menyala, jendela yang dimaksimalkan di layar MacBook bisa dianggap layar penuh, sehingga muncul titik merah yang tidak perlu.
+  - **Bunyi diputar saat notifikasi datang, bukan saat telinganya muncul.** Kalau panel sedang terbuka, bunyinya terdengar sekarang, sedangkan telinganya baru muncul setelah panel ditutup.
 
