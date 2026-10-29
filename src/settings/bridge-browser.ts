@@ -68,5 +68,11 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setPlace: async place => setInfo({ ...info, home: { ...info.home, place } }),
     setPrayerMethod: async prayerMethod => setInfo({ ...info, home: { ...info.home, prayerMethod } }),
     setShowClock: async showClock => setInfo({ ...info, home: { ...info.home, showClock } }),
+    setNoticeGlow: async glow => setState({ ...state, notifications: { ...state.notifications, glow } }),
+    setNoticeSeconds: async seconds => setState({ ...state, notifications: { ...state.notifications, seconds } }),
+    setChannel: async (module, channel, pref) => setModule(module, {
+      channels: state.modules.find(m => m.id === module)!.channels.map(c => (c.id === channel ? { ...c, ...pref } : c)),
+    }),
+    sendSampleNotice: async (title, detail) => console.info('sendSampleNotice', title, detail),
   };
 }

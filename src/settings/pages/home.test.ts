@@ -7,14 +7,20 @@ import type { Place, SettingsInfo } from '../types';
 
 const STATE: ModuleState = {
   ...TEST_STATE,
-  modules: [moduleInfo('home', { name: 'Beranda' }), moduleInfo('system-stat', { name: 'System stat' })],
+  modules: [
+    moduleInfo('home', { name: 'Beranda', channels: [
+      { id: 'reminder', name: 'Reminder', on: true, sound: true },
+      { id: 'prayer', name: 'Waktu sholat', on: false, sound: false },
+    ] }),
+    moduleInfo('system-stat', { name: 'System stat' }),
+  ],
 };
 const BANDUNG: Place = { name: 'Bandung', region: 'Jawa Barat', country: 'Indonesia', latitude: -6.9175, longitude: 107.6191 };
 const key = (root: HTMLElement, k: string) => root.querySelector<HTMLElement>(`[data-key="${k}"]`);
 const searchBox = (root: HTMLElement) => key(root, 'home.placeSearch') as HTMLInputElement;
 
-async function open(info: SettingsInfo = TEST_INFO) {
-  const t = await mountForTest(STATE, info);
+async function open(info: SettingsInfo = TEST_INFO, state: ModuleState = STATE) {
+  const t = await mountForTest(state, info);
   t.app.go({ page: 'module', id: 'home' });
   return { ...t, text: () => t.root.querySelector('.pane')!.textContent! };
 }
@@ -129,3 +135,13 @@ test('the prayer method and the clock save at once', async () => {
   key(root, 'home.showClock')!.click();
   expect(bridge.setShowClock).toHaveBeenCalledWith(false);
 });
+
+test('the Beranda page has the prayer notification switch', async () => {
+  const { root, bridge, text } = await open();
+  const sw = key(root, 'home.prayerNotice')!;
+  expect(sw.getAttribute('aria-checked')).toBe('false');
+  expect(text()).toContain('Tanpa suara, kecuali kamu menyalakannya di Notifikasi.');
+  sw.click();
+  expect(bridge.setChannel).toHaveBeenCalledWith('home', 'prayer', { on: true, sound: false });
+});
+

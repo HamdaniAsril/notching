@@ -59,6 +59,10 @@ export interface SettingsBridge {
   setPlace(place: Place | null): Promise<void>;
   setPrayerMethod(method: PrayerMethod): Promise<void>;
   setShowClock(on: boolean): Promise<void>;
+  setNoticeGlow(on: boolean): Promise<void>;
+  setNoticeSeconds(seconds: number): Promise<void>;
+  setChannel(module: string, channel: string, pref: { on: boolean; sound: boolean }): Promise<void>;
+  sendSampleNotice(title: string, detail: string): Promise<void>; // always with sound, on the screen under the cursor
 }
 
 export interface SettingsEnv {

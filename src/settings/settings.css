@@ -400,7 +400,8 @@ select {
 }
 
 .range .val {
-  width: 44px;
+  min-width: 44px;
+  white-space: nowrap;
   text-align: right;
   font-size: 11px;
   color: var(--g1);
@@ -596,4 +597,34 @@ input:focus-visible,
 .place-pick:focus-visible {
   background: var(--sel);
   outline: none;
+}
+
+/* Notifikasi: a small heading over the kinds, and Tampil / Suara column names
+   lined up over each row's two switches. */
+.grp-label {
+  margin-top: 22px;
+  color: var(--g2);
+  font-size: 12px;
+}
+
+.kinds-head {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 8px 0 -14px;
+  color: var(--g2);
+}
+
+/* Each 30 px switch sits in the middle of a 44 px column. */
+.kinds-head span {
+  width: 44px;
+  text-align: center;
+}
+
+.pair {
+  gap: 10px;
+}
+
+.pair .switch {
+  margin: 0 7px;
 }

@@ -1,14 +1,7 @@
 import { el, group, head, note, row } from '../controls';
 import type { PageRender } from '../types';
 
-// Notifications and permissions have no features yet; their pages say so plainly.
-export const notificationsPage: PageRender = ctx => {
-  const page = el('div');
-  page.append(head({ title: ctx.strings.sections.notifications, sub: ctx.strings.notifications.sub }),
-    note(ctx.strings.notifications.note));
-  return page;
-};
-
+// Permissions have no features yet; the page says so plainly.
 export const permissionsPage: PageRender = ctx => {
   const page = el('div');
   page.append(head({ title: ctx.strings.sections.permissions, sub: ctx.strings.permissions.sub }),

@@ -49,3 +49,14 @@ test('Beranda settings are not offered while Beranda is uninstalled', () => {
   const gone = [moduleInfo('home', { name: 'Beranda', installed: false, enabled: false })];
   expect(search(idx(gone), 'kota')).toEqual([]);
 });
+
+test('finds the glow and the notice kinds', () => {
+  const withKinds = [
+    moduleInfo('home', { name: 'Beranda', channels: [{ id: 'prayer', name: 'Waktu sholat', on: false, sound: false }] }),
+    mods[1],
+  ];
+  expect(search(idx(withKinds), 'cahaya')[0].key).toBe('notifications.glow');
+  expect(search(idx(withKinds), 'waktu sholat').map(e => e.key)).toContain('channel.home.prayer');
+  expect(search(idx(withKinds), 'notifikasi waktu sholat').map(e => e.key)).toContain('home.prayerNotice');
+});
+

@@ -38,6 +38,10 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     setPlace: vi.fn(async (_place: Place | null) => {}),
     setPrayerMethod: vi.fn(async (_method: PrayerMethod) => {}),
     setShowClock: vi.fn(async (_on: boolean) => {}),
+    setNoticeGlow: vi.fn(async (_on: boolean) => {}),
+    setNoticeSeconds: vi.fn(async (_seconds: number) => {}),
+    setChannel: vi.fn(async (_module: string, _channel: string, _pref: { on: boolean; sound: boolean }) => {}),
+    sendSampleNotice: vi.fn(async (_title: string, _detail: string) => {}),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
   };

@@ -120,9 +120,15 @@ export function homeSettings(ctx: PageContext): HTMLElement {
     v => ctx.save('home.prayerMethod', ctx.bridge.setPrayerMethod(v as PrayerMethod)));
   const clock = toggle('home.showClock', s.showClock, home.showClock,
     on => ctx.save('home.showClock', ctx.bridge.setShowClock(on)));
+  // The same switch as "Waktu sholat · Tampil" on the Notifikasi page.
+  const prayer = ctx.state.modules.find(m => m.id === 'home')?.channels.find(c => c.id === 'prayer')
+    ?? { on: false, sound: false };
+  const prayerNotice = toggle('home.prayerNotice', s.prayerNotice, prayer.on,
+    on => ctx.save('home.prayerNotice', ctx.bridge.setChannel('home', 'prayer', { on, sound: prayer.sound })));
   return group(
     placeRow(ctx),
     row({ key: 'home.prayerMethod', label: s.prayerMethod, hint: s.prayerMethodHint, control: method }),
+    row({ key: 'home.prayerNotice', label: s.prayerNotice, hint: s.prayerNoticeHint, control: prayerNotice }),
     row({ key: 'home.showClock', label: s.showClock, hint: s.showClockHint, control: clock }),
   );
 }

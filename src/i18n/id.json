@@ -43,8 +43,18 @@
       "reset": "Kembalikan bawaan"
     },
     "notifications": {
-      "sub": "Belum ada yang mengirim notifikasi.",
-      "note": "Begitu ada modul yang memberi notifikasi, cahaya, lama tampil, dan pilihan per modul diatur di sini."
+      "sub": "Hanya dari modul Notching. Tidak dari app lain.",
+      "glow": "Cahaya pelangi",
+      "glowHint": "Pinggiran notch menyala saat ada notifikasi.",
+      "seconds": "Lama tampil",
+      "secondsValue": "{n} dtk",
+      "sample": "Kirim contoh",
+      "sampleTitle": "Contoh notifikasi",
+      "sampleDetail": "Begini tampilnya.",
+      "kinds": "Jenis notifikasi",
+      "show": "Tampil",
+      "sound": "Suara",
+      "none": "Belum ada modul yang memberi notifikasi."
     },
     "modules": {
       "summary": "{n} terpasang · {size}",
@@ -94,7 +104,9 @@
         "northAmerica": "ISNA (Amerika Utara)"
       },
       "showClock": "Tampilkan jam",
-      "showClockHint": "Jam kecil di pojok kanan bawah Beranda."
+      "showClockHint": "Jam kecil di pojok kanan bawah Beranda.",
+      "prayerNotice": "Notifikasi waktu sholat",
+      "prayerNoticeHint": "Tanpa suara, kecuali kamu menyalakannya di Notifikasi."
     },
     "keywords": {
       "language": "bahasa indonesia inggris english language otomatis",
@@ -107,7 +119,10 @@
       "version": "versi update donasi",
       "place": "kota lokasi cuaca tempat",
       "prayerMethod": "sholat salat shalat waktu metode kemenag jadwal",
-      "showClock": "jam waktu"
+      "showClock": "jam waktu",
+      "glow": "cahaya pelangi glow warna",
+      "seconds": "lama durasi detik tampil",
+      "channels": "notifikasi suara bunyi reminder sholat"
     }
   }
 }

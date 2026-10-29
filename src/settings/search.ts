@@ -32,7 +32,10 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[]): SearchEn
       ['look.dropDepth', s.look.dropDepth, k.dropDepth],
       ['look.thickness', s.look.thickness, k.thickness],
     ],
-    notifications: [],
+    notifications: [
+      ['notifications.glow', s.notifications.glow, k.glow],
+      ['notifications.seconds', s.notifications.seconds, k.seconds],
+    ],
     modules: [],
     permissions: [],
     about: [['about.version', s.about.version, k.version]],
@@ -45,6 +48,7 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[]): SearchEn
       home: [
         ['home.place', s.home.place, k.place],
         ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
+        ['home.prayerNotice', s.home.prayerNotice, k.channels],
         ['home.showClock', s.home.showClock, k.showClock],
       ],
     };
@@ -54,13 +58,18 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[]): SearchEn
   return SECTIONS.flatMap(page => {
     const where = s.sections[page];
     const own = rows[page].map(([key, label, keywords]) => entry(key, label, where, { page }, keywords));
+    // Each kind of notice an installed module sends, on the Notifikasi page.
+    const kinds = page === 'notifications'
+      ? modules.filter(m => m.installed).flatMap(m =>
+        m.channels.map(c => entry(`channel.${m.id}.${c.id}`, c.name, where, { page }, `${m.name} ${k.channels}`)))
+      : [];
     const mods = page === 'modules'
       ? modules.flatMap(m => [
         entry(`module.${m.id}`, m.name, where, m.installed ? { page: 'module', id: m.id } : { page: 'add' }, m.description),
         ...(m.installed ? moduleRows(m) : []),
       ])
       : [];
-    return [entry(`section.${page}`, where, '', { page }), ...own, ...mods];
+    return [entry(`section.${page}`, where, '', { page }), ...own, ...kinds, ...mods];
   });
 }
 
