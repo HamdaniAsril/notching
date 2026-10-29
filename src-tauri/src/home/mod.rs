@@ -1,6 +1,7 @@
 //! Beranda: its settings live in settings.json; its data lives here.
 
 pub mod prayer;
+pub mod reminders;
 pub mod weather;
 
 /// Writes a temporary file and renames it over the old one, so a crash mid-write
