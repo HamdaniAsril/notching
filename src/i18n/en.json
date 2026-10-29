@@ -1,7 +1,9 @@
 {
-  "emptyTitle": "Every module is off.",
-  "emptyHint": "Turn one on in Settings.",
-  "loadFailed": "This module didn't load.",
+  "home": "Home",
+  "modules": "Modules",
+  "pageEmpty": "This page is empty. Add widgets in Settings.",
+  "noModules": "No module is on.",
+  "loadFailed": "Didn't load.",
   "settings": "Settings",
   "settingsWindow": {
     "title": "Settings",

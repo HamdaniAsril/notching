@@ -66,24 +66,25 @@ test('the pill hit rect is centred like the pill itself', () => {
 });
 
 const ITEMS = [
-  { id: 'home', label: 'Beranda', icon: '/m/home/icon.svg' },
-  { id: 'system-stat', label: 'System stat', icon: '/m/system-stat/icon.svg' },
+  { id: 'home', label: 'Beranda', svg: '<svg data-icon="home"></svg>' },
+  { id: 'modules', label: 'Modul', svg: '<svg data-icon="grid"></svg>' },
 ];
 
-test('the pill lists the given modules and marks the active one', () => {
+test('the pill lists the given pages and marks the active one', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));
-  v.setPill(ITEMS, 'system-stat', 'Pengaturan');
+  v.setPill(ITEMS, 'modules', 'Pengaturan');
   const ics = root.querySelectorAll('.notch-pill .ic');
   expect(ics).toHaveLength(3);
   expect(ics[1].classList.contains('on')).toBe(true);
   expect(ics[0].classList.contains('on')).toBe(false);
   expect(ics[0].getAttribute('aria-label')).toBe('Beranda');
   expect(ics[2].getAttribute('aria-label')).toBe('Pengaturan');
-  expect((ics[0].querySelector('.glyph') as HTMLElement).style.getPropertyValue('--icon')).toContain('/m/home/icon.svg');
+  expect(ics[0].querySelector('svg')!.getAttribute('data-icon')).toBe('home');
+  expect(ics[0].querySelector('.glyph')).toBeNull();
 });
 
-test('clicking a module icon selects it; the ⋯ icon does not', () => {
+test('clicking a page icon selects it; the ⋯ icon does not', () => {
   const root = document.createElement('div');
   const onSelect = vi.fn();
   const v = mountNotch(root, ctl(null), { ...deps(fakeRaf()), onSelect });
@@ -92,7 +93,7 @@ test('clicking a module icon selects it; the ⋯ icon does not', () => {
   ics[1].click();
   ics[2].click();
   expect(onSelect).toHaveBeenCalledTimes(1);
-  expect(onSelect).toHaveBeenCalledWith('system-stat');
+  expect(onSelect).toHaveBeenCalledWith('modules');
 });
 
 test('the pill and the content area follow the card size', () => {
@@ -242,9 +243,9 @@ test('the missed dot is red, inside the notch widened to the left, or under the 
 test('a pill icon wears the missed dot', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));
-  v.setPill([{ ...ITEMS[0], missed: true }, ITEMS[1]], 'system-stat', 'Pengaturan');
+  v.setPill([{ ...ITEMS[0], missed: true }, ITEMS[1]], 'modules', 'Pengaturan');
   expect(root.querySelector('.ic[data-id="home"]')!.classList.contains('missed')).toBe(true);
-  expect(root.querySelector('.ic[data-id="system-stat"]')!.classList.contains('missed')).toBe(false);
+  expect(root.querySelector('.ic[data-id="modules"]')!.classList.contains('missed')).toBe(false);
 });
 
 

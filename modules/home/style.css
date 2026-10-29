@@ -26,6 +26,18 @@ body {
   min-height: 42px;
 }
 
+/* Long city names and the like end in "…" rather than run under the next widget. */
+.wd-weather .lab,
+.wd-prayer .lab {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wd-weather {
+  gap: 4px;
+}
+
 /* Same size as the date, but dimmer: the date is read first. */
 .wd-weather .wd-big {
   color: var(--g2);

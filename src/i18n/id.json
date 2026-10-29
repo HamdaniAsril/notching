@@ -1,7 +1,9 @@
 {
-  "emptyTitle": "Semua modul mati.",
-  "emptyHint": "Nyalakan lagi di Pengaturan.",
-  "loadFailed": "Modul ini gagal dimuat.",
+  "home": "Beranda",
+  "modules": "Modul",
+  "pageEmpty": "Halaman ini masih kosong. Tambah widget di Pengaturan.",
+  "noModules": "Belum ada modul yang menyala.",
+  "loadFailed": "Gagal dimuat.",
   "settings": "Pengaturan",
   "settingsWindow": {
     "title": "Pengaturan",

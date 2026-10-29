@@ -5,8 +5,8 @@ import { moduleInfo, TEST_STATE } from '../../notch/test-helpers';
 import { mountForTest } from '../test-helpers';
 
 const CHANNELS = [
-  { id: 'reminder', name: 'Reminder', on: true, sound: true },
-  { id: 'prayer', name: 'Waktu sholat', on: false, sound: false },
+  { id: 'reminder', name: 'Reminder', on: true, sound: true, widget: null },
+  { id: 'prayer', name: 'Waktu sholat', on: false, sound: false, widget: null },
 ];
 const STATE: ModuleState = {
   ...TEST_STATE,
@@ -62,7 +62,7 @@ test('a module that is not installed shows no kinds', async () => {
 });
 
 test('without kinds it says so', async () => {
-  const { text } = await open(TEST_STATE);
+  const { text } = await open({ ...TEST_STATE, modules: [moduleInfo('system-stat')] });
   expect(text()).toContain('Belum ada modul yang memberi notifikasi.');
 });
 

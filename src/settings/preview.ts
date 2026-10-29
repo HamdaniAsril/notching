@@ -1,10 +1,12 @@
-import { EMPTY_CARD } from '../modules/cards';
 import { clampConfig, type NotchConfig } from '../notch/config';
 import { connect } from '../notch/connect';
 import { NotchController } from '../notch/controller';
 import { localPointer } from '../notch/local-pointer';
 import { mountNotch } from '../notch/view';
 import type { SettingsEnv } from './types';
+
+// The preview never opens a page; this is just the panel's size if clicked.
+const PREVIEW_CARD = { width: 360, height: 56 };
 
 export interface Preview {
   readonly controller: NotchController;
@@ -22,7 +24,7 @@ export function mountPreview(box: HTMLElement, config: NotchConfig, env: Setting
   root.className = 'preview-root';
   box.append(root);
 
-  const controller = new NotchController({ notch: null, config: clampConfig(config), card: EMPTY_CARD, setTimer: env.setTimer });
+  const controller = new NotchController({ notch: null, config: clampConfig(config), card: PREVIEW_CARD, setTimer: env.setTimer });
   const pointer = localPointer(root);
   const wiring = connect(controller, { ...pointer, setPanelKey: async () => {}, quit: async () => {} }, () => view.kick());
   const view = mountNotch(root, controller, {

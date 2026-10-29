@@ -52,7 +52,7 @@ test('Beranda settings are not offered while Beranda is uninstalled', () => {
 
 test('finds the glow and the notice kinds', () => {
   const withKinds = [
-    moduleInfo('home', { name: 'Beranda', channels: [{ id: 'prayer', name: 'Waktu sholat', on: false, sound: false }] }),
+    moduleInfo('home', { name: 'Beranda', channels: [{ id: 'prayer', name: 'Waktu sholat', on: false, sound: false, widget: null }] }),
     mods[1],
   ];
   expect(search(idx(withKinds), 'cahaya')[0].key).toBe('notifications.glow');

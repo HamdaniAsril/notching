@@ -1,6 +1,6 @@
 import { beforeEach, vi } from 'vitest';
 import type { Bridge, Notice, PointerUpdate } from '../bridge';
-import type { ModuleInfo, ModuleState } from '../modules/types';
+import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
 import type { NotchSize } from './shape';
@@ -81,23 +81,50 @@ export function deps(r: ReturnType<typeof fakeRaf>): ViewDeps {
 }
 
 const MODULE_CARDS: Record<string, { width: number; height: number }> = {
-  home: { width: 540, height: 156 },
   'system-stat': { width: 400, height: 80 },
 };
 
 // A module that is installed and on, with the real modules' card sizes.
 export function moduleInfo(id: string, over: Partial<ModuleInfo> = {}): ModuleInfo {
   return {
-    id, name: id, description: '', version: '1.0.0', entry: 'index.html', icon: 'icon.svg',
+    id, name: id, shortName: id, description: '', version: '1.0.0', entry: 'index.html', icon: 'icon.svg',
     card: MODULE_CARDS[id] ?? { width: 400, height: 90 }, installed: true, enabled: true, size: 0, iconSvg: '',
-    channels: [], ...over,
+    channels: [], widgets: [], activity: null, ...over,
   };
 }
 
+const widget = (id: string, name: string, width: number, kind: WidgetInfo['kind']): WidgetInfo =>
+  ({ id, name, entry: 'index.html', width, kind });
+
+// The built-in widget package, as in modules/home/manifest.json.
+export function homeWidgets(over: Partial<ModuleInfo> = {}): ModuleInfo {
+  return moduleInfo('home', {
+    name: 'Widget bawaan', entry: null, card: null,
+    widgets: [
+      widget('date', 'Tanggal', 1, 'time'), widget('clock', 'Jam', 1, 'time'), widget('weather', 'Cuaca', 1, 'weather'),
+      widget('prayer', 'Waktu sholat', 1, 'worship'), widget('reminders', 'Reminder', 2, 'work'),
+    ],
+    channels: [
+      { id: 'reminder', name: 'Reminder', on: true, sound: true, widget: 'reminders' },
+      { id: 'prayer', name: 'Waktu sholat', on: false, sound: false, widget: 'prayer' },
+    ],
+    ...over,
+  });
+}
+
+export const BERANDA: Page = {
+  id: 'home', name: null, icon: 'home',
+  widgets: [
+    { widget: 'home/date', col: 0, width: 1 }, { widget: 'home/weather', col: 1, width: 1 },
+    { widget: 'home/reminders', col: 2, width: 2 },
+  ],
+};
+
 export const TEST_STATE: ModuleState = {
   lang: 'id',
-  modules: [moduleInfo('home'), moduleInfo('system-stat')],
-  lastCard: null,
+  modules: [homeWidgets(), moduleInfo('system-stat')],
+  pages: [BERANDA],
+  lastPage: null,
   notch: DEFAULT_CONFIG,
   notifications: { glow: true, seconds: 3.5 },
   missed: [],
@@ -119,7 +146,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     quit: vi.fn(async () => {}),
     moduleState: vi.fn(async () => state),
     onModuleState: vi.fn((cb: (s: ModuleState) => void) => { moduleSubs.add(cb); return () => { moduleSubs.delete(cb); }; }),
-    setLastCard: vi.fn(async (_id: string) => {}),
+    setLastPage: vi.fn(async (_page: string) => {}),
     moduleCall: vi.fn(async (_m: string, _c: string, _method: string, _args?: unknown): Promise<unknown> => ({})),
     moduleUrl: (id: string, file: string) => `mod://${id}/${file}`,
     moduleSandbox: 'allow-scripts',

@@ -4,8 +4,10 @@ import id from './id.json';
 
 // Text drawn by the notch itself; modules carry their own.
 export interface HostStrings {
-  emptyTitle: string;
-  emptyHint: string;
+  home: string; // Beranda's name
+  modules: string;
+  pageEmpty: string;
+  noModules: string;
   loadFailed: string;
   settings: string;
 }

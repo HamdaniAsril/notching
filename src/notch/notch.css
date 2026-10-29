@@ -83,21 +83,6 @@
   opacity: 1;
 }
 
-/* Module icons: the module's own SVG, drawn as a mask in the text colour. */
-.notch-pill .glyph {
-  display: block;
-  width: 15px;
-  height: 15px;
-  background: currentColor;
-  -webkit-mask: var(--icon) center / contain no-repeat;
-  mask: var(--icon) center / contain no-repeat;
-  opacity: 0.4;
-}
-
-.notch-pill .on .glyph {
-  opacity: 1;
-}
-
 .notch-pill .on::after {
   content: "";
   position: absolute;

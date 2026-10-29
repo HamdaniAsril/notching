@@ -9,8 +9,8 @@ const STATE: ModuleState = {
   ...TEST_STATE,
   modules: [
     moduleInfo('home', { name: 'Beranda', channels: [
-      { id: 'reminder', name: 'Reminder', on: true, sound: true },
-      { id: 'prayer', name: 'Waktu sholat', on: false, sound: false },
+      { id: 'reminder', name: 'Reminder', on: true, sound: true, widget: null },
+      { id: 'prayer', name: 'Waktu sholat', on: false, sound: false, widget: null },
     ] }),
     moduleInfo('system-stat', { name: 'System stat' }),
   ],

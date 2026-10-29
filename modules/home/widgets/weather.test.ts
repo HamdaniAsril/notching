@@ -18,8 +18,8 @@ test('weather without a city asks for one', () => {
 test('weather shows the city, temperature and range', () => {
   const root = host();
   renderWeather(root, id, 'id').update(SNAP);
-  expect(root.textContent).toContain('Jakarta');
-  expect(root.textContent).toContain('Berawan · 25°/33°');
+  // A column is narrow: the sky and the range get a line each.
+  expect([...root.querySelectorAll('.lab')].map(l => l.textContent)).toEqual(['Jakarta', 'Berawan', '25°/33°']);
   expect(root.querySelector('svg.dm')!.getAttribute('height')).toBe('42');
 });
 

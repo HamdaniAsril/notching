@@ -1,12 +1,14 @@
 import type { Bridge, Notice } from './bridge';
 import { hostStrings } from './i18n';
-import { activeModules, EMPTY_CARD, pickCard } from './modules/cards';
-import { mountFrameHost } from './modules/frame';
-import type { ModuleInfo, ModuleState } from './modules/types';
+import type { ModuleState } from './modules/types';
 import { clampConfig, type NotchConfig } from './notch/config';
 import { connect } from './notch/connect';
 import { NotchController, type Phase } from './notch/controller';
+import { mountPageView } from './notch/page-view';
 import { mountNotch, type NotchView } from './notch/view';
+import { mountFrameHost } from './pages/frames';
+import { MODULES_ICON, pageIconSvg } from './pages/icons';
+import { missedTargets, noticeTarget, pageName, pickPage, resolvePage, type PageView, viewSize } from './pages/route';
 
 // Notices that arrive while the panel is open wait; past this many, the oldest go.
 export const NOTICE_QUEUE_MAX = 5;
@@ -23,13 +25,14 @@ export interface App {
   destroy(): void;
 }
 
-// One notch overlay: the controller and view from plan 1, filled with module cards.
+// One notch overlay: the controller and view from plan 1, showing pages: Beranda,
+// the custom pages, the Modul page and module pages (design 30 Oct).
 export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): Promise<App> {
   const doc = root.ownerDocument;
   const [info, initial] = await Promise.all([bridge.screenInfo(), bridge.moduleState()]);
   let state: ModuleState = initial;
   let strings = hostStrings(state.lang);
-  let card: ModuleInfo | null = pickCard(state, null, false);
+  let page: PageView = pickPage(state, null, false);
   let lastPhase: Phase = 'idle';
   const queue: Notice[] = [];
   let showing: Notice | null = null;
@@ -38,7 +41,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   const controller = new NotchController({
     notch: info.hasNotch ? { width: info.notchWidth, height: info.notchHeight } : null,
     config: clampConfig(state.notch),
-    card: card?.card ?? EMPTY_CARD,
+    card: viewSize(page),
     setTimer: env.setTimer,
   });
   const wiring = connect(controller, bridge, () => view.kick());
@@ -48,10 +51,10 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     onHitRects: wiring.onHitRects,
     onQuit: wiring.onQuit,
     onPhase,
-    onSelect,
+    onSelect: id => go(id),
     onMore,
   });
-  const frames = mountFrameHost(view.content, {
+  const frames = mountFrameHost({
     bridge,
     setTimer: env.setTimer,
     onKey: key => {
@@ -62,26 +65,41 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       controller.escape();
       view.kick();
     },
+    onExpand: key => pages.expand(key),
+    onCollapse: () => pages.collapse(),
+  }, doc);
+  const pages = mountPageView(view.content, {
+    frames,
+    moduleUrl: bridge.moduleUrl,
+    onOpenModule: id => go(`module:${id}`),
+    onBack: () => go('modules'),
   });
 
-  // The module frame lives only while the panel is up.
+  const isOpen = () => controller.phase === 'open';
+
+  function showPage(): void {
+    if (isOpen()) pages.show(page, state, strings);
+  }
+
+  // Frames live only while the panel is up.
   function onPhase(phase: Phase): void {
     wiring.onPhase(phase);
     if (phase === 'open') {
-      // A notice clicked open shows its own module's card.
-      const from = showing && activeModules(state).find(m => m.id === showing?.moduleId);
-      if (from && from.id !== card?.id) {
-        useCard(from);
+      // A notice clicked open shows the page holding the widget that sent it.
+      const target = showing && noticeTarget(state, showing.moduleId, showing.channel);
+      const to = target ? resolvePage(state, target) : null;
+      if (to && to.key !== page.key) {
+        usePage(to);
         renderPill();
-        void bridge.setLastCard(from.id);
+        void bridge.setLastPage(to.key);
       }
-      frames.show(card, state.lang, strings);
+      pages.show(page, state, strings);
       endNotice();
     } else if (lastPhase === 'open') {
       // Seen: the pill showed the dots while the panel was open.
       if (state.missed.length > 0) void bridge.clearMissed();
     } else if (lastPhase === 'closing' && (phase === 'idle' || phase === 'hover')) {
-      frames.clear();
+      pages.clear();
       endNotice();
       pump();
     }
@@ -99,7 +117,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     if (showing || queue.length === 0 || (phase !== 'idle' && phase !== 'hover')) return;
     const next = queue.shift()!;
     showing = next;
-    const from = activeModules(state).find(m => m.id === next.moduleId);
+    const from = state.modules.find(m => m.id === next.moduleId && m.installed && m.enabled);
     view.setNotice({
       icon: from ? bridge.moduleUrl(from.id, from.icon) : null, title: next.title, detail: next.detail, glow: next.glow,
     });
@@ -114,26 +132,32 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   });
 
   function renderPill(): void {
-    const items = activeModules(state).map(m => ({
-      id: m.id, label: m.name, icon: bridge.moduleUrl(m.id, m.icon), missed: state.missed.includes(m.id),
-    }));
-    view.setPill(items, card?.id ?? null, strings.settings);
+    const missed = missedTargets(state);
+    const items = [
+      ...state.pages.map(p => ({ id: p.id, label: pageName(p, strings), svg: pageIconSvg(p.icon), missed: missed.has(p.id) })),
+      { id: 'modules', label: strings.modules, svg: MODULES_ICON, missed: missed.has('modules') },
+    ];
+    view.setPill(items, page.kind === 'custom' ? page.key : 'modules', strings.settings);
     view.setMissed(state.missed.length > 0);
   }
 
-  function useCard(next: ModuleInfo | null): void {
-    card = next;
-    controller.setCard(next?.card ?? EMPTY_CARD);
+  function usePage(next: PageView): void {
+    page = next;
+    controller.setCard(viewSize(next));
   }
 
-  function onSelect(id: string): void {
-    if (id === card?.id) return;
-    const next = activeModules(state).find(m => m.id === id);
+  // From the pill, a Modul tile or a back bar.
+  function go(key: string): void {
+    if (key === page.key) {
+      pages.collapse();
+      return;
+    }
+    const next = resolvePage(state, key);
     if (!next) return;
-    useCard(next);
-    if (controller.phase === 'open') frames.show(card, state.lang, strings);
+    usePage(next);
+    showPage();
     renderPill();
-    void bridge.setLastCard(id);
+    void bridge.setLastPage(key);
     view.kick();
   }
 
@@ -147,16 +171,15 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     a.bounce === b.bounce && a.speed === b.speed && a.dropDepth === b.dropDepth && a.thickness === b.thickness;
 
   const offState = bridge.onModuleState(next => {
-    const langChanged = next.lang !== state.lang;
     state = next;
     strings = hostStrings(next.lang);
     doc.documentElement.lang = next.lang;
-    const open = controller.phase === 'open';
-    const picked = pickCard(next, card?.id ?? null, open);
-    const changed = picked?.id !== card?.id
-      || picked?.card.width !== card?.card.width || picked?.card.height !== card?.card.height;
-    if (changed) useCard(picked);
-    if (open && (changed || langChanged)) frames.show(card, state.lang, strings);
+    const picked = pickPage(next, page.key, isOpen());
+    const size = viewSize(picked);
+    if (picked.key !== page.key || size.width !== controller.card.width || size.height !== controller.card.height) usePage(picked);
+    else page = picked;
+    // The page view keeps its frames when nothing it shows has changed.
+    showPage();
     const config = clampConfig(next.notch);
     if (!sameConfig(config, controller.config)) controller.setConfig(config);
     renderPill();
@@ -164,10 +187,10 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   });
 
   // An overlay whose screen went away is ordered out. It gets no animation frames
-  // there, so its close never reaches 'idle'; the module must stop anyway.
+  // there, so its close never reaches 'idle'; the widgets must stop anyway.
   function onVisibility(): void {
-    if (doc.visibilityState === 'hidden') frames.clear();
-    else if (controller.phase === 'open') frames.show(card, state.lang, strings);
+    if (doc.visibilityState === 'hidden') pages.clear();
+    else showPage();
   }
   doc.addEventListener('visibilitychange', onVisibility);
 

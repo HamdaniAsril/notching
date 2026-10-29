@@ -8,29 +8,66 @@ export interface Channel {
   name: string;
   on: boolean;
   sound: boolean;
+  widget: string | null; // the widget that sends it: a click opens the page holding it
 }
+
+export type WidgetKind = 'time' | 'weather' | 'worship' | 'work' | 'media';
+
+// A widget a package offers (WidgetDto), 1 or 2 of a page's 4 columns wide.
+export interface WidgetInfo {
+  id: string;
+  name: string;
+  entry: string;
+  width: number;
+  kind: WidgetKind;
+}
+
+// A widget on a page; `widget` is "<package>/<widget>".
+export interface Placement {
+  widget: string;
+  col: number;
+  width: number;
+}
+
+// Same shape as Page in src-tauri/src/pages.rs; Beranda's name is null.
+export interface Page {
+  id: string;
+  name: string | null;
+  icon: string;
+  widgets: Placement[];
+}
+
+// White tile while on, a red dot while running (design 30 Oct §7).
+export type Activity = 'on' | 'running';
 
 // Same shape as ModuleStateDto in src-tauri/src/app_core.rs.
 export interface ModuleInfo {
   id: string;
   name: string;
+  shortName: string; // for the Modul page's tiles
   description: string;
   version: string;
-  entry: string;
+  entry: string | null; // null with card: a package of widgets only, not a module
   icon: string;
-  card: CardSize;
+  card: CardSize | null;
   installed: boolean;
   enabled: boolean;
   size: number; // bytes of the original package
   iconSvg: string; // the icon file's SVG text
   channels: Channel[];
+  widgets: WidgetInfo[];
+  activity: Activity | null;
 }
+
+// A module the person sees as one: it has a page of its own.
+export const hasPage = (m: ModuleInfo): boolean => m.entry !== null && m.card !== null;
 
 export interface ModuleState {
   lang: Lang;
   modules: ModuleInfo[];
-  lastCard: string | null;
+  pages: Page[]; // Beranda first, then the custom pages
+  lastPage: string | null; // a page id, 'modules' or 'module:<id>'
   notch: NotchConfig;
   notifications: { glow: boolean; seconds: number };
-  missed: string[]; // modules with a notice nobody saw, oldest first
+  missed: string[]; // "<module>.<channel>" of notices nobody saw, oldest first
 }

@@ -22,6 +22,7 @@ export interface PointerUpdate {
 // null for the sample from the settings window.
 export interface Notice {
   moduleId: string | null;
+  channel: string | null; // its widget decides the page a click opens
   title: string;
   detail: string;
   glow: boolean;
@@ -38,7 +39,7 @@ export interface Bridge {
   quit(): Promise<void>;
   moduleState(): Promise<ModuleState>;
   onModuleState(cb: (s: ModuleState) => void): () => void;
-  setLastCard(id: string): Promise<void>;
+  setLastPage(page: string): Promise<void>; // a page id, 'modules' or 'module:<id>'
   moduleCall(moduleId: string, capability: string, method: string, args?: unknown): Promise<unknown>;
   moduleUrl(id: string, file: string): string;
   readonly moduleSandbox: string;
@@ -74,7 +75,7 @@ export function tauriBridge(): Bridge {
     moduleState: () => invoke<ModuleState>('get_module_state'),
     // Broadcast to every window, so app-wide.
     onModuleState: cb => syncUnlisten(listen<ModuleState>('notching://module-state', e => cb(e.payload))),
-    setLastCard: id => invoke('set_last_card', { id }),
+    setLastPage: page => invoke('set_last_page', { page }),
     moduleCall: (moduleId, capability, method, args) => invoke('module_call', { moduleId, capability, method, args }),
     // macOS form of a custom protocol URL; Windows will need http://notchmod.localhost/.
     moduleUrl: (id, file) => `notchmod://localhost/${id}/${file}`,

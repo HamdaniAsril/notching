@@ -1,0 +1,138 @@
+/* What the open panel shows (page-view.ts): a page's row of widgets
+   (page-layout.html, choice C), the Modul page's tiles (modules-page.html,
+   choice A), or a module's page under a back bar. */
+
+.pg-frame {
+  height: 100%;
+}
+
+/* One row, 4 equal columns; a dotted line in the gap before every widget but the first. */
+.pg-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 16px;
+}
+
+.pg-slot {
+  position: relative;
+  min-width: 0;
+}
+
+.pg-slot + .pg-slot::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -9.5px;
+  width: 3px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) center top / 3px 5px repeat-y;
+}
+
+/* A full view: one widget covers the page; the others wait, frames and all. */
+.pg-row.full .pg-slot {
+  display: none;
+}
+
+.pg-row.full .pg-slot.full {
+  display: block;
+  grid-column: 1 / -1 !important;
+}
+
+.pg-row.full .pg-slot.full::before {
+  display: none;
+}
+
+.pg-empty,
+.pg-error {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  min-height: 56px;
+  white-space: normal;
+}
+
+/* The Modul page: Control Centre-like tiles, 6 to a row. */
+.mods-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: 64px;
+  gap: 6px;
+}
+
+.mods-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 4px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+}
+
+.mods-tile .glyph {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+.mods-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--g1);
+}
+
+/* On (Keep awake): white. Running (Timer): a small red dot. */
+.mods-tile.on {
+  background: #fff;
+  color: #000;
+}
+
+.mods-tile.on .mods-name {
+  color: #000;
+}
+
+.mods-run {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+/* A module's page: "‹ Modul" over its card. */
+.pg-back {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+}
+
+.pg-back button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--g1);
+  cursor: pointer;
+}
+
+.pg-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

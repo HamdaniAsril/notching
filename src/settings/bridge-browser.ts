@@ -1,4 +1,4 @@
-import { catalog } from '../bridge-browser';
+import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
 import type { ModuleInfo, ModuleState } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
@@ -25,7 +25,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     home: { place: null, prayerMethod: 'kemenag', showClock: true },
   };
   let state: ModuleState = {
-    lang: deviceLang, modules: catalog(deviceLang, []), lastCard: null, notch: DEFAULT_CONFIG,
+    lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
     notifications: { glow: true, seconds: 3.5 }, missed: [],
   };
   const stateSubs = new Set<(s: ModuleState) => void>();

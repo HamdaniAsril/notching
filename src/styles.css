@@ -1,5 +1,6 @@
 @import './kit/kit.css';
 @import './notch/notch.css';
+@import './notch/pages.css';
 
 /* The overlay window is transparent; only the notch, panel and pill are drawn. */
 html,
@@ -27,19 +28,4 @@ body {
   width: 100%;
   border: 0;
   background: transparent;
-}
-
-.notch-empty,
-.notch-error {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  height: 56px;
-}
-
-.notch-content .big {
-  font-size: 17px;
-  font-weight: 500;
-  letter-spacing: -0.2px;
 }

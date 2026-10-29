@@ -8,16 +8,16 @@ export interface ViewDeps {
   onHitRects: (rects: Rect[]) => void; // only when the rects change (rounded to 1 px)
   onPhase: (p: Phase) => void; // only when the phase changes
   onQuit: () => void; // Cmd+Q while the panel is open
-  onSelect: (id: string) => void; // a module icon in the pill was clicked
+  onSelect: (id: string) => void; // a page icon in the pill was clicked
   onMore: () => void; // the ⋯ icon was clicked
 }
 
-// One module icon in the pill; `icon` is the URL of its SVG, drawn as a mask.
+// One page icon in the pill; `svg` is one of the fixed icons in src/pages/icons.ts.
 export interface PillItem {
   id: string;
   label: string;
-  icon: string;
-  missed?: boolean; // a notice from it went unseen
+  svg: string;
+  missed?: boolean; // a notice from a widget on it went unseen
 }
 
 // What the ears show. `icon` is the module's icon URL, null for the bell.
@@ -231,10 +231,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
       ic.dataset.id = item.id;
       ic.setAttribute('role', 'button');
       ic.setAttribute('aria-label', item.label);
-      const glyph = doc.createElement('i');
-      glyph.className = 'glyph';
-      glyph.style.setProperty('--icon', `url("${item.icon}")`);
-      ic.append(glyph);
+      ic.innerHTML = item.svg;
       return ic;
     });
     const more = doc.createElement('span');
