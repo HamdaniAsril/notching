@@ -1,0 +1,70 @@
+<style>
+  .option .content { min-width: 0; }
+  .nx-panel { width: 520px; max-width: 100%; overflow: hidden; margin-top: 10px; padding: 16px 18px 16px; border-radius: 0 0 26px 26px; background: #000; color: #fff;
+              font: 13px "Space Grotesk", -apple-system, sans-serif; box-sizing: border-box; }
+  .nx-lab { font: 10px/14px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.42); white-space: nowrap; }
+  .nx-g { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .nx-b { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 4px 10px; border-radius: 14px; background: rgba(255,255,255,.06); }
+  .nx-b svg { width: 20px; height: 20px; }
+  .nx-b .nx-lab { font-size: 9px; letter-spacing: .08em; color: rgba(255,255,255,.68); }
+  .nx-b.on { background: #fff; color: #000; }
+  .nx-b.on .nx-lab { color: #000; }
+  .nx-dot { position: absolute; top: 8px; right: 8px; width: 5px; height: 5px; border-radius: 50%; background: #e8262e; }
+  .nx-l { display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; }
+  .nx-r { display: flex; align-items: center; gap: 12px; padding: 9px 0; background: radial-gradient(circle, rgba(255,255,255,.22) .9px, transparent 1.3px) left bottom / 5px 3px repeat-x; }
+  .nx-r svg { width: 16px; height: 16px; flex: none; opacity: .8; }
+  .nx-r .nx-n { font-size: 14px; font-weight: 500; }
+  .nx-r .nx-s { margin-left: auto; }
+  .nx-red { color: #e8262e; }
+  .nx-note { margin-top: 8px; color: var(--text-secondary, #888); font-size: 13px; }
+</style>
+
+<h2>Seperti apa halaman Modul?</h2>
+<p class="subtitle">Isinya tombol ke tiap modul. Contohnya Keep awake sedang menyala dan Timer sedang berjalan.</p>
+
+<div class="options">
+  <div class="option" data-choice="tiles" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Kotak ikon</h3>
+      <p>Seperti Pusat Kontrol: ikon besar dengan nama kecil. Modul yang sedang menyala tampil putih, yang sedang berjalan diberi titik merah.</p>
+      <div class="nx-panel">
+        <div class="nx-g" id="tiles"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="list" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Daftar dua kolom</h3>
+      <p>Nama modul lebih terbaca, dan statusnya ditulis dengan kata di sebelah kanan. Lebih tenang, tapi lebih memanjang ke bawah kalau modulnya banyak.</p>
+      <div class="nx-panel">
+        <div class="nx-l" id="list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="nx-note">Klik pilihan yang paling cocok, lalu ceritakan di chat.</p>
+
+<script>
+(function () {
+  const I = {
+    timer: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4"/>',
+    awake: '<path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4"/>',
+    freeze: '<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/>',
+    mirror: '<rect x="5" y="2.5" width="14" height="19" rx="7"/><path d="M9.5 8.5l3-3M9.5 12.5l6-6"/>',
+    stat: '<path d="M4 19h16M7 16v-4M11 16V8M15 16v-6M19 16V5"/>',
+    uninstall: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/>',
+  };
+  const M = [
+    ['timer', 'Timer', 'run', '18:42'], ['awake', 'Keep awake', 'on', 'Menyala'], ['freeze', 'Freeze keyboard', '', 'Mati'],
+    ['mirror', 'Cermin', '', ''], ['stat', 'System stat', '', 'CPU 14%'], ['uninstall', 'Uninstall', '', ''],
+  ];
+  const svg = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${I[k]}</svg>`;
+  document.getElementById('tiles').innerHTML = M.map(([k, n, s]) =>
+    `<div class="nx-b${s === 'on' ? ' on' : ''}">${s === 'run' ? '<i class="nx-dot"></i>' : ''}${svg(k)}<span class="nx-lab">${n.split(' ')[0]}</span></div>`).join('');
+  document.getElementById('list').innerHTML = M.map(([k, n, s, v]) =>
+    `<div class="nx-r">${svg(k)}<span class="nx-n">${n}</span><span class="nx-lab nx-s${s ? ' nx-red' : ''}">${v}</span></div>`).join('');
+})();
+</script>

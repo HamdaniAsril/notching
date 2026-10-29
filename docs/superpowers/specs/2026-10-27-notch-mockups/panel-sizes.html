@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulasi ukuran panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  /* Page chrome. The cards below copy kit.css and both modules' style.css. */
+  :root {
+    --w: #fff; --g1: rgba(255,255,255,.68); --g2: rgba(255,255,255,.42); --g3: rgba(255,255,255,.16); --red: #e8262e;
+    --ink: #111; --ink2: #666; --page: #efefef;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.5 "Space Grotesk", -apple-system, sans-serif; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { margin: 0 0 4px; font-size: 20px; font-weight: 500; letter-spacing: -.2px; }
+  .intro { margin: 0 0 18px; color: var(--ink2); }
+  .mono { font-family: "Space Mono", ui-monospace, monospace; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+  .seg { display: inline-flex; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; }
+  .seg button { padding: 7px 18px; border: 0; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .ctl { display: grid; grid-template-columns: 9.5em 1fr 4.5em; gap: 8px 14px; align-items: center; margin: 16px 0 4px; transition: opacity .2s; }
+  .ctl.off { opacity: .3; pointer-events: none; }
+  .ctl input { width: 100%; accent-color: var(--ink); }
+  .ctl output { text-align: right; }
+  .note { margin: 6px 0 0; color: var(--ink2); font-size: 13px; }
+  .stage-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 26px 0 8px; }
+  .size { color: var(--ink2); text-align: right; }
+  .size b { color: var(--ink); font-weight: 400; }
+  .frame { width: 100%; overflow: hidden; border-radius: 12px; }
+  .stage { position: relative; width: 640px; height: 290px; transform-origin: top left; overflow: hidden;
+           background: linear-gradient(160deg, #8d99ab 0%, #5f6a7a 55%, #3d4653 100%); }
+  .menubar { position: absolute; top: 0; left: 0; right: 0; height: 32px; background: rgba(255,255,255,.3); }
+  .stage svg.shape { position: absolute; top: 0; left: 0; }
+
+  /* Inside the panel: kit.css */
+  .content { position: absolute; top: 0; left: 50%; transform: translateX(-50%); padding: 42px 18px 16px;
+             color: var(--w); font-family: "Space Grotesk", -apple-system, sans-serif; font-size: 13px; line-height: normal;
+             font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; user-select: none; }
+  .content .lab { display: flex; align-items: center; gap: 6px; color: var(--g2); font-family: "Space Mono", ui-monospace, monospace;
+                  font-size: 10px; line-height: 14px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+  .content .rd { display: inline-block; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+  .content .dm, .content .dbar { display: block; }
+  .content .vdots { flex: none; align-self: stretch; width: 3px;
+                    background: radial-gradient(circle, rgba(255,255,255,.3) .9px, transparent 1.3px) center top / 3px 5px repeat-y; }
+  .content .hdots { flex: none; height: 3px; margin: var(--hd1) 0 var(--hd2);
+                    background: radial-gradient(circle, rgba(255,255,255,.3) .9px, transparent 1.3px) left center / 5px 3px repeat-x; }
+
+  /* modules/home/style.css */
+  .hc .home { display: flex; flex-direction: column; height: var(--h); }
+  .hc .cols { display: flex; gap: 18px; }
+  .hc .col { display: flex; flex-direction: column; }
+  .hc .col .big { min-height: var(--bigh); margin: var(--bigm) 0; }
+  .hc .col[data-k="weather"] .big { color: var(--g2); }
+  .hc .col[data-k="next"] { flex: 1; min-width: 0; }
+  .hc .next { margin-top: 6px; font-size: 15px; font-weight: 500; line-height: 19px; letter-spacing: -.1px; white-space: nowrap; }
+  .hc .bar { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+  .hc .rms { margin-top: var(--rmsm); }
+  .hc .rm { display: flex; align-items: center; gap: 9px; line-height: 18px; white-space: nowrap; }
+  .hc .rm + .rm { margin-top: 4px; }
+  .hc .rm .ck { flex: none; width: 8px; height: 8px; border: 1.2px solid var(--g2); border-radius: 50%; }
+  .hc .rm .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .hc .rm .m { margin-left: auto; padding-left: 14px; color: var(--g2); font-family: "Space Mono", ui-monospace, monospace;
+               font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .hc .foot { flex: none; display: flex; align-items: center; gap: 16px; min-height: 15px; color: var(--g2);
+              font-family: "Space Mono", ui-monospace, monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+  .hc .foot b { color: var(--g1); font-weight: 400; }
+  .hc .foot .clk { margin-left: auto; color: var(--g1); font-size: 11px; }
+
+  /* modules/system-stat/style.css */
+  .sc .row { display: flex; justify-content: space-between; height: var(--h); }
+  .sc .col { display: flex; flex-direction: column; gap: 8px; }
+  .sc .col[data-k="cpu"] { flex: 0 0 var(--cpuw); }
+  .sc .col[data-k="mem"] { flex: 0 0 var(--memw); }
+  .sc .col[data-k="net"] { flex: 0 0 var(--netw); }
+  .sc .big { min-height: var(--bigh); }
+  .sc .rate { font-size: 15px; font-weight: 500; line-height: 19px; letter-spacing: -.1px; white-space: nowrap; }
+
+  /* src/notch/notch.css */
+  .pill { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; padding: 8px 16px 11px;
+          border-radius: 18px; background: #000; color: #fff; }
+  .pill .ic { position: relative; }
+  .pill svg { display: block; width: 15px; height: 15px; opacity: .4; }
+  .pill .on svg { opacity: 1; }
+  .pill .on::after { content: ""; position: absolute; left: 50%; bottom: -6px; width: 3px; height: 3px; margin-left: -1.5px;
+                     border-radius: 50%; background: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Simulasi ukuran panel</h1>
+  <p class="intro">Ukurannya mengikuti layar MacBook-mu, dengan notch 179 × 32. Datanya contoh, tapi teks cuacanya sengaja dipilih yang terpanjang, supaya kolom reminder terlihat di keadaan paling sempit. <span id="scaleNote"></span></p>
+
+  <div class="seg" role="group" aria-label="Versi">
+    <button type="button" data-mode="now" aria-pressed="false">Sekarang</button>
+    <button type="button" data-mode="new" aria-pressed="true">Usulan</button>
+  </div>
+
+  <div class="ctl" id="ctl">
+    <label class="mono" for="pitch">Ukuran angka</label><input id="pitch" type="range" min="5" max="8" step="1" value="6"><output class="mono" id="pitchV"></output>
+    <label class="mono" for="homeW">Lebar Beranda</label><input id="homeW" type="range" min="460" max="560" step="10" value="520"><output class="mono" id="homeWV"></output>
+    <label class="mono" for="statW">Lebar System stat</label><input id="statW" type="range" min="380" max="500" step="10" value="440"><output class="mono" id="statWV"></output>
+  </div>
+  <p class="note" id="note"></p>
+
+  <div class="stage-h"><span class="mono">Beranda</span><span class="size mono" id="homeSize"></span></div>
+  <div class="frame"><div class="stage" id="homeStage"></div></div>
+
+  <div class="stage-h"><span class="mono">System stat</span><span class="size mono" id="statSize"></span></div>
+  <div class="frame"><div class="stage" id="statStage"></div></div>
+</div>
+
+<script>
+(function () {
+  const NH = 32, TOP = NH + 10, OW = 640;
+
+  // src/kit/dots.ts
+  const GLYPHS = {
+    '0': ['01110','10001','10001','10001','10001','10001','01110'], '1': ['00100','01100','00100','00100','00100','00100','01110'],
+    '2': ['01110','10001','00001','00010','00100','01000','11111'], '3': ['11111','00010','00100','00010','00001','10001','01110'],
+    '4': ['00010','00110','01010','10010','11111','00010','00010'], '5': ['11111','10000','11110','00001','00001','10001','01110'],
+    '6': ['00110','01000','10000','11110','10001','10001','01110'], '7': ['11111','00001','00010','00100','01000','01000','01000'],
+    '8': ['01110','10001','10001','01110','10001','10001','01110'], '9': ['01110','10001','10001','01111','00001','00010','01100'],
+    '°': ['010','101','010','000','000','000','000'], '%': ['11000','11001','00010','00100','01000','10011','00011'],
+  };
+  function dotText(text, p) {
+    let x = 0, out = '';
+    for (const ch of text) {
+      const g = GLYPHS[ch];
+      g.forEach((row, r) => [...row].forEach((b, c) => {
+        if (b === '1') out += `<circle cx="${(x + c) * p + p / 2}" cy="${r * p + p / 2}" r="${p * 0.4}"/>`;
+      }));
+      x += g[0].length + 1;
+    }
+    const w = (x - 1) * p, h = 7 * p;
+    return `<svg class="dm" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="currentColor">${out}</svg>`;
+  }
+  function dotBar(n, lit) {
+    let out = '';
+    for (let i = 0; i < n; i++) out += `<circle cx="${i * 6 + 2.5}" cy="2.5" r="1.7" fill="${i < lit ? '#fff' : 'rgba(255,255,255,.16)'}"/>`;
+    return `<svg class="dbar" width="${n * 6 - 1}" height="5">${out}</svg>`;
+  }
+  // src/notch/shape.ts
+  function panelPath(pw, ph) {
+    const w = pw / 2, h = ph, R = Math.min(28, w, h * 0.5), fl = Math.min(12, w * 0.3), q = v => v.toFixed(2);
+    return `M ${q(-w - fl)} 0 Q ${q(-w)} 0 ${q(-w)} ${q(fl)} L ${q(-w)} ${q(h - R)} Q ${q(-w)} ${q(h)} ${q(-w + R)} ${q(h)} ` +
+      `L ${q(w - R)} ${q(h)} Q ${q(w)} ${q(h)} ${q(w)} ${q(h - R)} L ${q(w)} ${q(fl)} Q ${q(w)} 0 ${q(w + fl)} 0 Z`;
+  }
+
+  const homeHTML = p => `<div class="home"><div class="cols">
+      <div class="col" data-k="today"><div class="lab"><i class="rd"></i>Jumat</div><div class="big">${dotText('30', p)}</div><div class="lab">Oktober 2026</div></div>
+      <div class="vdots"></div>
+      <div class="col" data-k="weather"><div class="lab">Jakarta</div><div class="big">${dotText('31°', p)}</div><div class="lab">Cerah berawan · 25°/33°</div></div>
+      <div class="vdots"></div>
+      <div class="col" data-k="next"><div class="lab">Berikutnya</div><div class="next">Ashar 15.05</div>
+        <div class="bar">${dotBar(18, 11)}<span class="lab">1 j 22 m</span></div>
+        <div class="rms"><div class="rm"><span class="ck"></span><span class="t">Kirim invoice ke klien</span><span class="m">16.00</span></div>
+          <div class="rm"><span class="ck"></span><span class="t">Beli kopi</span><span class="m">Besok</span></div></div></div>
+    </div><div class="hdots"></div><div class="foot"><span>Timer <b>12:30</b></span><span class="clk">13.12</span></div></div>`;
+
+  const statHTML = p => `<div class="row">
+      <div class="col" data-k="cpu"><div class="lab">CPU</div><div class="big">${dotText('14%', p)}</div><div class="bar">${dotBar(18, 3)}</div></div>
+      <div class="vdots"></div>
+      <div class="col" data-k="mem"><div class="lab">Memori</div><div class="big">${dotText('62%', p)}</div><div class="lab">9,8 / 16 GB</div></div>
+      <div class="vdots"></div>
+      <div class="col" data-k="net"><div class="lab">Jaringan</div><div class="rate">↓ 1,2 MB/s</div><div class="rate">↑ 84 KB/s</div></div>
+    </div>`;
+
+  const HOME_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6.5 8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg>';
+  const STAT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M7 16v-4M11 16V8M15 16v-6M19 16V5"/></svg>';
+  const MORE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.5" cy="12" r="1.5"/></svg>';
+  const pill = active => `<div class="pill"><span class="ic${active === 'home' ? ' on' : ''}">${HOME_ICON}</span>` +
+    `<span class="ic${active === 'stat' ? ' on' : ''}">${STAT_ICON}</span><span class="ic">${MORE_ICON}</span></div>`;
+
+  // Today's values, from the manifests and style.css files on main.
+  const NOW = {
+    home: { w: 540, h: 156, pitch: 8, bigm: 10, hd1: 16, hd2: 10, rmsm: 12 },
+    stat: { w: 400, h: 80, pitch: 5, cpuw: 115, memw: 90, netw: 90 },
+  };
+  // The proposal: one dot size for both cards, Beranda's spacing a little tighter,
+  // heights follow the content.
+  function proposal(p, homeW, statW) {
+    return {
+      home: { w: homeW, h: null, pitch: p, bigm: 8, hd1: 12, hd2: 8, rmsm: 10 },
+      stat: { w: statW, h: null, pitch: p, cpuw: 23 * p, memw: Math.max(17 * p, 90), netw: 96 },
+    };
+  }
+
+  const $ = id => document.getElementById(id);
+  let mode = 'new';
+
+  function stage(el, kind, spec, was) {
+    const vars = kind === 'home'
+      ? `--h:${spec.h ? spec.h + 'px' : 'auto'};--bigh:${7 * spec.pitch}px;--bigm:${spec.bigm}px;--hd1:${spec.hd1}px;--hd2:${spec.hd2}px;--rmsm:${spec.rmsm}px`
+      : `--h:${spec.h ? spec.h + 'px' : 'auto'};--bigh:${7 * spec.pitch}px;--cpuw:${spec.cpuw}px;--memw:${spec.memw}px;--netw:${spec.netw}px`;
+    el.innerHTML = `<div class="menubar"></div><svg class="shape" width="${OW}" height="290" viewBox="${-OW / 2} 0 ${OW} 290"></svg>` +
+      `<div class="content" style="width:${spec.w}px"><div class="${kind === 'home' ? 'hc' : 'sc'}" style="${vars}">` +
+      `${kind === 'home' ? homeHTML(spec.pitch) : statHTML(spec.pitch)}</div></div>`;
+    const cardH = Math.round(el.querySelector('.content > div').getBoundingClientRect().height / scaleOf(el));
+    const ph = TOP + cardH + 16;
+    let shapes = `<path fill="#000" d="${panelPath(spec.w, ph)}"/>`;
+    if (was) {
+      shapes += `<path fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="0 5" ` +
+        `d="${panelPath(was.w, TOP + was.h + 16)}"/>`;
+    }
+    el.querySelector('svg.shape').innerHTML = shapes;
+    el.insertAdjacentHTML('beforeend', pill(kind));
+    el.querySelector('.pill').style.top = `${ph + 10}px`;
+    return { w: spec.w, h: cardH, ph };
+  }
+
+  function scaleOf(el) {
+    const m = /scale\(([\d.]+)\)/.exec(el.style.transform);
+    return m ? +m[1] : 1;
+  }
+
+  function render() {
+    const p = +$('pitch').value, homeW = +$('homeW').value, statW = +$('statW').value;
+    $('pitchV').textContent = `${7 * p} px`;
+    $('homeWV').textContent = homeW;
+    $('statWV').textContent = statW;
+    $('ctl').classList.toggle('off', mode === 'now');
+    document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+
+    const spec = mode === 'now' ? NOW : proposal(p, homeW, statW);
+    const home = stage($('homeStage'), 'home', spec.home, mode === 'new' ? NOW.home : null);
+    const stat = stage($('statStage'), 'stat', spec.stat, mode === 'new' ? NOW.stat : null);
+    const fmt = (r, was) => `panel <b>${r.w} × ${r.ph}</b>` + (was ? ` · dulu ${was.w} × ${TOP + was.h + 16}` : '');
+    $('homeSize').innerHTML = fmt(home, mode === 'new' && NOW.home);
+    $('statSize').innerHTML = fmt(stat, mode === 'new' && NOW.stat);
+    $('note').textContent = mode === 'now'
+      ? `Angka titik Beranda ${7 * NOW.home.pitch} px, System stat ${7 * NOW.stat.pitch} px. Teks lain sudah sama: 15 px dan label 10 px.`
+      : `Kedua kartu memakai angka titik ${7 * p} px. Garis titik-titik putih menunjukkan ukuran panel sekarang. Isi kartu: Beranda ${home.w} × ${home.h}, System stat ${stat.w} × ${stat.h}.`;
+  }
+
+  // Fit the 640 px stages into a narrow window; at full width they are real size.
+  function fit() {
+    const k = Math.min(1, $('homeStage').parentElement.clientWidth / OW);
+    for (const id of ['homeStage', 'statStage']) {
+      const s = $(id);
+      s.style.transform = k < 1 ? `scale(${k})` : '';
+      s.parentElement.style.height = `${290 * k}px`;
+    }
+    $('scaleNote').textContent = k < 1
+      ? `Jendela ini terlalu sempit, jadi gambarnya diperkecil ke ${Math.round(k * 100)}%. Lebarkan jendela untuk melihat ukuran aslinya.`
+      : 'Gambarnya ukuran asli: 1 piksel di sini sama dengan 1 titik di layarmu.';
+  }
+
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; render(); }));
+  ['pitch', 'homeW', 'statW'].forEach(id => $(id).addEventListener('input', render));
+  new ResizeObserver(() => { fit(); render(); }).observe(document.body);
+  document.fonts.ready.then(() => { fit(); render(); });
+  fit();
+  render();
+})();
+</script>
+</body>
+</html>

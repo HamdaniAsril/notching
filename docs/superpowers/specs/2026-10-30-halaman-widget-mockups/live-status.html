@@ -1,0 +1,72 @@
+<style>
+  .option .content { min-width: 0; }
+  .nx-strip { margin-top: 10px; border-radius: 10px; overflow: hidden; background: linear-gradient(160deg, #9aa6b8 0%, #6b7688 60%, #4a5361 100%); }
+  .nx-strip svg { display: block; width: 100%; height: auto; }
+  .nx-cap { margin-top: 12px; font: 10px/14px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--text-secondary, #888); }
+  .nx-note { margin-top: 8px; color: var(--text-secondary, #888); font-size: 13px; }
+</style>
+
+<h2>Timer di samping notch, bersamaan dengan titik notifikasi</h2>
+<p class="subtitle">Panel tertutup, timer berjalan (18:42), dan ada satu notifikasi terlewat. Ukurannya sama dengan layar aslinya. Bagian atas dipotong supaya fokus ke notch.</p>
+
+<div class="options">
+  <div class="option" data-choice="split" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Titik di kiri, timer di kanan</h3>
+      <p>Masing-masing punya sisinya sendiri. Notch melebar ke dua arah.</p>
+      <div class="nx-cap">MacBook, dengan notch</div>
+      <div class="nx-strip" data-scene="notch-split"></div>
+      <div class="nx-cap">Monitor, tanpa notch</div>
+      <div class="nx-strip" data-scene="lens-split"></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="left" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Titik dan timer sama-sama di kiri</h3>
+      <p>Semua tanda ada di satu sisi. Notch hanya melebar ke kiri.</p>
+      <div class="nx-cap">MacBook, dengan notch</div>
+      <div class="nx-strip" data-scene="notch-left"></div>
+      <div class="nx-cap">Monitor, tanpa notch</div>
+      <div class="nx-strip" data-scene="lens-left"></div>
+    </div>
+  </div>
+</div>
+<p class="nx-note">Klik pilihan yang paling cocok, lalu ceritakan di chat.</p>
+
+<script>
+(function () {
+  const W = 640, H = 64, NW = 179, NH = 32, q = v => v.toFixed(1);
+  const RED = '#E8262E';
+  // The notch shape from src/notch/shape.ts, spanning x0..x1 (centre 0).
+  function notchShape(x0, x1, h) {
+    const fl = 6, R = Math.min(10, h / 2);
+    return `M ${q(x0 - fl)} 0 Q ${q(x0)} 0 ${q(x0)} ${fl} L ${q(x0)} ${q(h - R)} Q ${q(x0)} ${q(h)} ${q(x0 + R)} ${q(h)} ` +
+      `L ${q(x1 - R)} ${q(h)} Q ${q(x1)} ${q(h)} ${q(x1)} ${q(h - R)} L ${q(x1)} ${fl} Q ${q(x1)} 0 ${q(x1 + fl)} 0 Z`;
+  }
+  const timer = (x, y, anchor) =>
+    `<text x="${x}" y="${y}" text-anchor="${anchor}" fill="#fff" font-family="Space Mono, ui-monospace, monospace" font-size="11" letter-spacing="0.6">18:42</text>`;
+  const dot = (x, y) => `<circle cx="${x}" cy="${y}" r="3" fill="${RED}"/>`;
+  const menubar = `<rect x="${-W / 2}" y="0" width="${W}" height="${NH}" fill="rgba(255,255,255,.32)"/>`;
+
+  const SCENES = {
+    // Missed tab: 20 px on the left (as built). Timer ear: 52 px on the right.
+    'notch-split': () => menubar + `<path fill="#000" d="${notchShape(-NW / 2 - 20, NW / 2 + 52, NH)}"/>` +
+      dot(-NW / 2 - 8, NH / 2) + timer(NW / 2 + 44, NH / 2 + 4, 'end'),
+    'notch-left': () => menubar + `<path fill="#000" d="${notchShape(-NW / 2 - 70, NW / 2, NH)}"/>` +
+      dot(-NW / 2 - 58, NH / 2) + timer(-NW / 2 - 8, NH / 2 + 4, 'end'),
+    // Without a notch: the 4 px lens; the missed dot hangs under it (as built),
+    // the timer opens the lens into a small pill.
+    'lens-split': () => menubar.replace('rgba(255,255,255,.32)', 'rgba(255,255,255,.32)') +
+      `<path fill="#000" d="${notchShape(-42, 42, 4)}"/>` + dot(0, 12) +
+      `<rect x="54" y="4" width="56" height="20" rx="10" fill="#000"/>` + timer(82, 18, 'middle'),
+    'lens-left': () => menubar +
+      `<path fill="#000" d="${notchShape(-46, 46, 22)}"/>` + dot(-26, 11) + timer(10, 15, 'middle'),
+  };
+  document.querySelectorAll('[data-scene]').forEach(el => {
+    el.innerHTML = `<svg viewBox="${-W / 2} 0 ${W} ${H}" width="${W}" height="${H}">${SCENES[el.dataset.scene]()}</svg>`;
+  });
+})();
+</script>
