@@ -102,6 +102,9 @@ Kalau salah satu hal di bawah ini terjadi, app dianggap gagal walaupun fungsinya
   - cuaca (Open-Meteo),
   - mencari nama kota,
   - mengunduh modul dan update.
+- Hanya bagian Rust app yang terhubung ke internet. Halaman notch, pengaturan, dan modul tidak punya akses jaringan. Diputuskan pemilik ide pada 29 Oktober 2026.
+  - Ke pencarian kota Open-Meteo hanya dikirim nama kota yang diketik dan bahasa. Kota dicari saat Enter ditekan, tidak sambil mengetik.
+  - Ke cuaca Open-Meteo hanya dikirim koordinat kota yang dibulatkan ke 2 desimal (sekitar 1 km).
 
 ### Hemat daya
 
@@ -201,11 +204,15 @@ Acuan: `notif-v1.html` dan `glow-options.html`.
   - Timer selesai dan reminder jatuh tempo membunyikan suara pendek bawaan sistem.
   - Notifikasi waktu sholat bawaannya tanpa suara, dan bisa diberi nada pendek lewat pengaturan.
   - Rekaman adzan tidak disertakan di versi pertama, karena ukurannya besar dan ada urusan lisensi.
-  - Pengaturan suara ada di bagian Notifikasi, satu tombol nyala/mati per modul.
+  - Pengaturan suara ada di bagian Notifikasi, satu tombol nyala/mati per jenis notifikasi. Diputuskan pemilik ide pada 29 Oktober 2026:
+    - Setiap modul mendaftarkan jenis notifikasinya. Beranda punya dua: Reminder dan Waktu sholat.
+    - Setiap jenis punya saklar tampil dan saklar suara.
+    - Bawaannya: Reminder tampil dan bersuara. Waktu sholat mati, dan tanpa suara kalau dinyalakan.
 - **Notifikasi yang terlewat (keputusan penulis):**
-  - Kalau pengguna tidak sedang memakai komputer, atau layarnya sedang menampilkan app layar penuh, notch diberi titik kecil putih sebagai tanda ada notifikasi yang belum dilihat.
+  - Notifikasi tetap tampil seperti biasa. Kalau pengguna tidak sedang memakai komputer (2 menit tanpa ketikan atau gerakan mouse), atau layarnya sedang menampilkan app layar penuh, notch juga diberi titik kecil putih sebagai tanda ada notifikasi yang mungkin terlewat. Diperjelas pemilik ide pada 29 Oktober 2026.
   - Titik yang sama muncul di ikon modulnya di pil.
   - Titik hilang setelah panel dibuka.
+- **Mac yang tidur:** jadwal yang lewat lebih dari 10 menit saat Mac tidur atau app tidak jalan tidak dikirim lagi, supaya notch tidak dibanjiri notifikasi lama.
 
 ### 4.5 Banyak monitor
 
@@ -362,14 +369,19 @@ Di bagian bawah ada garis titik-titik. Di bawah garis itu tampil status mini mod
 
 | Data | Sumber |
 |---|---|
-| Lokasi | Nama kota diketik sekali di pengaturan Beranda. Pencariannya memakai Open-Meteo Geocoding. Lokasi perangkat jadi pilihan tambahan, bawaannya mati. Cuaca dan sholat memakai kota yang sama. |
-| Cuaca | [Open-Meteo](https://open-meteo.com): gratis, tanpa akun, tanpa kunci API. Diperbarui setiap 30 menit **(keputusan penulis)**. Saat offline, tampilkan data terakhir. |
-| Waktu sholat | Dihitung di perangkat dengan [adhan-js](https://github.com/batoulapps/adhan-js) (MIT), tanpa internet. Bawaannya metode Kemenag RI (Subuh 20°, Isya 18°), bisa diganti di pengaturan. |
+| Lokasi | Nama kota diketik sekali di pengaturan Beranda. Pencariannya memakai Open-Meteo Geocoding. Lokasi perangkat jadi pilihan tambahan, bawaannya mati, dan dikerjakan di rencana 5 bersama halaman Izin (diputuskan pemilik ide pada 29 Oktober 2026). Cuaca dan sholat memakai kota yang sama. |
+| Cuaca | [Open-Meteo](https://open-meteo.com): gratis, tanpa akun, tanpa kunci API. Diperbarui setiap 30 menit **(keputusan penulis)**, hanya selama kartu Beranda terbuka. Saat offline, tampilkan data terakhir. |
+| Waktu sholat | Dihitung di perangkat, tanpa internet, dengan rumus Adhan. Bawaannya metode Kemenag RI, bisa diganti di pengaturan. Diputuskan pemilik ide pada 29 Oktober 2026: <ul><li>Dihitung di bagian Rust app dengan crate [salah](https://github.com/insha/salah) (MIT), terjemahan Rust dari Adhan. Rumusnya sama dengan [adhan-js](https://github.com/batoulapps/adhan-js), tetapi notifikasi sholat tetap jalan walau kartu Beranda tertutup.</li><li>Kemenag RI: Subuh 20°, Isya 18°, Ashar mazhab Syafi'i, ihtiyat Subuh +2, Dzuhur +3, Ashar +2, Maghrib +3, Isya +2 menit, dibulatkan ke atas. Hasilnya sama dengan jadwal resmi Kemenag untuk Jakarta pada 29 dan 30 Oktober 2026.</li></ul> |
 | Reminder | Disimpan lokal. Sinkron dengan Apple Reminders atau Google menyusul di tahap 2, bersama Kalender. |
 
 ### Cara menambah reminder (keputusan penulis)
 
 Klik kolom "Berikutnya" untuk membuka daftar reminder lengkap di dalam kartu Beranda. Di sana ada kolom isian untuk reminder baru, berisi judul dan jam. Klik lingkaran di depan reminder untuk menandainya selesai.
+
+Diputuskan pemilik ide pada 29 Oktober 2026:
+- Jam boleh kosong. Reminder tanpa jam berlaku untuk hari dibuatnya dan tidak memberi notifikasi.
+- Jam yang sudah lewat hari ini berarti besok.
+- Reminder yang selesai hilang mulai hari berikutnya.
 
 ## 8. Pengaturan
 
@@ -390,7 +402,7 @@ Acuan: `settings.html`, pilihan **S1**.
 |---|---|
 | Umum | Bahasa, mulai saat login, layar tempat notch muncul. Ekspor dan impor pengaturan (ide dari Vorssaint) ditunda sampai pengaturan modul lebih banyak; diputuskan pemilik ide pada 28 Oktober 2026. |
 | Tampilan notch | Empat slider dengan pratinjau langsung |
-| Notifikasi | Cahaya G2 nyala/mati, lama tampil (bawaan 3,5 detik), notifikasi per modul nyala/mati |
+| Notifikasi | Cahaya G2 nyala/mati, lama tampil (bawaan 3,5 detik), tombol kirim contoh, dan saklar tampil serta suara per jenis notifikasi |
 | Modul | Daftar modul terpasang: ikon, nama, keterangan singkat, ukuran, tombol nyala/mati. Klik untuk masuk ke halaman modul. Ada tombol "+ Tambah modul". |
 | Izin | Setiap izin sistem, keterangan gunanya, modul yang memakainya, statusnya, dan tombol ke pengaturan sistem. Contohnya: Aksesibilitas untuk Freeze keyboard, Kamera untuk Kamera cermin, Lokasi untuk Beranda (opsional). Ide ini dari Vorssaint. |
 | Tentang | Versi, cek update, tautan donasi |
