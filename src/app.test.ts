@@ -202,10 +202,17 @@ test('a notice from a module that is off opens the usual card', async () => {
   expect(frame()!.getAttribute('src')).toContain('system-stat');
 });
 
-test('opening the panel clears the missed dots', async () => {
+test('the missed dots stay while the panel is open and go when it closes', async () => {
   const { root, app, bridge, r } = await start({ ...TEST_STATE, missed: ['home'] });
   expect(root.querySelector('.notch-pill .ic[data-id="home"].missed')).not.toBeNull();
   open(app, r);
+  // The pill only shows once the panel is open, so the dot must still be there.
+  expect(app.controller.pillVisible).toBe(true);
+  expect(root.querySelector('.notch-pill .ic[data-id="home"].missed')).not.toBeNull();
+  expect(bridge.clearMissed).not.toHaveBeenCalled();
+  app.controller.escape();
+  app.view.kick();
+  r.runAll(1);
   expect(bridge.clearMissed).toHaveBeenCalledTimes(1);
 });
 

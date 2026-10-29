@@ -77,6 +77,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       }
       frames.show(card, state.lang, strings);
       endNotice();
+    } else if (lastPhase === 'open') {
+      // Seen: the pill showed the dots while the panel was open.
       if (state.missed.length > 0) void bridge.clearMissed();
     } else if (lastPhase === 'closing' && (phase === 'idle' || phase === 'hover')) {
       frames.clear();
