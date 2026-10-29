@@ -105,14 +105,7 @@ impl ModuleStore {
                         return None;
                     }
                 };
-                let file = match lang {
-                    Lang::Id => "locales/id.json",
-                    Lang::En => "locales/en.json",
-                };
-                let text: serde_json::Value = std::fs::read_to_string(dir.join(file))
-                    .ok()
-                    .and_then(|t| serde_json::from_str(&t).ok())
-                    .unwrap_or_default();
+                let text = locale_text(&dir, lang).unwrap_or_default();
                 let name = text["name"].as_str().unwrap_or(&id).to_string();
                 let description = text["description"].as_str().unwrap_or("").to_string();
                 let installed = !settings.uninstalled_modules.contains(&id);
@@ -132,6 +125,14 @@ impl ModuleStore {
                 Some(ModuleEntry { manifest, name, description, installed, enabled, size, icon_svg, channels })
             })
             .collect()
+    }
+
+    /// A text from a module's language file in the bundle, by dotted key
+    /// ("notice.prayer"). None for an unknown module, key or non-text value.
+    pub fn module_text(&self, id: &str, lang: Lang, key: &str) -> Option<String> {
+        self.known(id).ok()?;
+        let text = locale_text(&self.bundle_dir.join(id), lang)?;
+        key.split('.').try_fold(&text, |v, k| v.get(k))?.as_str().map(String::from)
     }
 
     pub fn set_enabled(&self, id: &str, enabled: bool, settings: &mut Settings) -> Result<(), StoreError> {
@@ -179,6 +180,14 @@ impl ModuleStore {
         remove_dir(&target)?;
         std::fs::rename(&tmp, &target).map_err(io)
     }
+}
+
+fn locale_text(dir: &Path, lang: Lang) -> Option<serde_json::Value> {
+    let file = match lang {
+        Lang::Id => "locales/id.json",
+        Lang::En => "locales/en.json",
+    };
+    serde_json::from_str(&std::fs::read_to_string(dir.join(file)).ok()?).ok()
 }
 
 fn remove_dir(dir: &Path) -> Result<(), StoreError> {
@@ -236,7 +245,10 @@ pub(crate) fn fake_bundle(dir: &std::path::Path) {
         std::fs::write(m.join("icon.svg"), "<svg/>").unwrap();
         std::fs::write(
             m.join("locales/id.json"),
-            format!(r#"{{"name":"Modul {upper}","description":"Isi {upper}","channels":{{"ping":"Ping"}}}}"#),
+            format!(
+                r#"{{"name":"Modul {upper}","description":"Isi {upper}","channels":{{"ping":"Ping"}},
+                    "notice":{{"ping":"Ping {{name}}"}}}}"#
+            ),
         )
         .unwrap();
         std::fs::write(
@@ -367,5 +379,14 @@ mod tests {
         std::fs::write(d.path().join("sub/y"), "12345").unwrap();
         assert_eq!(package_size(d.path()), 8);
         assert_eq!(package_size(&d.path().join("missing")), 0);
+    }
+
+    #[test]
+    fn module_text_reads_nested_keys() {
+        let (_d, store) = setup();
+        assert_eq!(store.module_text("a", Lang::Id, "notice.ping"), Some("Ping {name}".into()));
+        assert_eq!(store.module_text("a", Lang::Id, "name"), Some("Modul A".into()));
+        assert_eq!(store.module_text("a", Lang::Id, "notice.zzz"), None);
+        assert_eq!(store.module_text("zzz", Lang::Id, "name"), None);
     }
 }

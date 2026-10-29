@@ -82,11 +82,13 @@ pub async fn module_call(
         Call::RemindersAdd => {
             let a: AddArgs = parse_args(args, "reminders.add")?;
             let added = app.state::<HomeState>().0.lock().unwrap().reminders.add(&a.title, &a.day, a.at)?;
+            crate::home::schedule::poke(&app);
             serde_json::to_value(added)
         }
         Call::RemindersSetDone => {
             let a: DoneArgs = parse_args(args, "reminders.setDone")?;
             app.state::<HomeState>().0.lock().unwrap().reminders.set_done(a.id, a.done)?;
+            crate::home::schedule::poke(&app);
             Ok(serde_json::Value::Null)
         }
         // A module can only use its own channels: they are looked up under module_id.

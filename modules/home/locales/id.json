@@ -35,5 +35,6 @@
     "snow": "Salju",
     "storm": "Badai petir"
   },
-  "channels": { "reminder": "Reminder", "prayer": "Waktu sholat" }
+  "channels": { "reminder": "Reminder", "prayer": "Waktu sholat" },
+  "notice": { "prayer": "Waktu {name}" }
 }

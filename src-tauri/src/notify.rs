@@ -86,7 +86,9 @@ pub fn set_channel(
     on: bool,
     sound: bool,
 ) -> Result<(), String> {
-    change(&app, &core, |c| c.set_channel(&module, &channel, ChannelPref { on, sound }))
+    change(&app, &core, |c| c.set_channel(&module, &channel, ChannelPref { on, sound }))?;
+    crate::home::schedule::poke(&app);
+    Ok(())
 }
 
 /// The person looked: the dots go. Broadcasts only if there were any.

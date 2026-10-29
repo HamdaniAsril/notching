@@ -5,6 +5,7 @@
 pub mod commands;
 pub mod prayer;
 pub mod reminders;
+pub mod schedule;
 pub mod weather;
 
 use std::path::{Path, PathBuf};

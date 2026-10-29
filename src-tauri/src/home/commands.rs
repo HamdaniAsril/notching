@@ -25,6 +25,7 @@ pub fn set_place(app: AppHandle, core: State<CoreState>, home: State<HomeState>,
     change(&app, &core, |c| c.set_place(place))?;
     home.0.lock().unwrap().last_try = None;
     emit_settings(&app);
+    super::schedule::poke(&app);
     Ok(())
 }
 
@@ -32,6 +33,7 @@ pub fn set_place(app: AppHandle, core: State<CoreState>, home: State<HomeState>,
 pub fn set_prayer_method(app: AppHandle, core: State<CoreState>, method: PrayerMethod) -> Result<(), String> {
     change(&app, &core, |c| c.set_prayer_method(method))?;
     emit_settings(&app);
+    super::schedule::poke(&app);
     Ok(())
 }
 

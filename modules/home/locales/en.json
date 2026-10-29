@@ -35,5 +35,6 @@
     "snow": "Snow",
     "storm": "Thunderstorm"
   },
-  "channels": { "reminder": "Reminders", "prayer": "Prayer times" }
+  "channels": { "reminder": "Reminders", "prayer": "Prayer times" },
+  "notice": { "prayer": "{name} time" }
 }

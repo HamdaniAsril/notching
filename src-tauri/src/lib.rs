@@ -84,6 +84,7 @@ pub fn run() {
             let home = home::Home::open(&paths.app_data_dir()?, &paths.app_cache_dir()?);
             app.manage(home::HomeState(std::sync::Mutex::new(home)));
             overlay::rebuild_overlays(app.handle())?;
+            home::schedule::start(app.handle().clone());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             pointer::start_pointer_monitor(app.handle().clone());

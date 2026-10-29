@@ -196,6 +196,11 @@ impl AppCore {
         had
     }
 
+    /// A module's text in the language in use, by dotted key.
+    pub fn module_text(&self, id: &str, key: &str) -> Option<String> {
+        self.store.module_text(id, self.lang(), key)
+    }
+
     pub fn module(&self, id: &str) -> Option<&ModuleEntry> {
         self.modules.iter().find(|e| e.manifest.id == id)
     }
