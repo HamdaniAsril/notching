@@ -75,7 +75,7 @@ impl AppCore {
         core
     }
 
-    fn lang(&self) -> Lang {
+    pub fn lang(&self) -> Lang {
         resolve_lang(self.settings.language, self.device_locale.as_deref())
     }
 

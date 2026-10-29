@@ -8,6 +8,11 @@ use std::ops::RangeInclusive;
 pub enum Capability {
     #[serde(rename = "system.stats")]
     SystemStats,
+    /// Beranda's snapshot: city, weather, prayer times, reminders, clock.
+    #[serde(rename = "home.data")]
+    HomeData,
+    #[serde(rename = "reminders")]
+    Reminders,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).

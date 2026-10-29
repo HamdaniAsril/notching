@@ -4,7 +4,8 @@
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::app_core::{AppCore, CoreError, CoreState, ModuleStateDto, StatsState};
-use crate::modules::gate::{authorize, Call};
+use crate::home::{current_snapshot, refresh_weather, HomeState};
+use crate::modules::gate::{authorize, Call, CallError};
 
 /// Broadcast to every window whenever module state changes.
 pub const MODULE_STATE_EVENT: &str = "notching://module-state";
@@ -49,8 +50,8 @@ pub fn reinstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     change(&app, &core, |c| c.reinstall(&id))
 }
 
-/// A module's capability call, checked against its installed manifest. The first
-/// stats read may sleep ~200 ms, so it runs off the main thread.
+/// A module's capability call, checked against its installed manifest. Stats and
+/// weather may block, so they run off the main thread.
 #[tauri::command]
 pub async fn module_call(
     app: AppHandle,
@@ -59,19 +60,53 @@ pub async fn module_call(
     method: String,
     args: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
-    let _ = args; // no capability takes arguments yet
     let call = {
         let core = app.state::<CoreState>();
         let core = core.0.lock().unwrap();
         authorize(core.module(&module_id), &module_id, &capability, &method).map_err(|e| e.to_string())?
     };
-    match call {
+    let value = match call {
         Call::SystemStatsRead => {
             let handle = app.clone();
             let stats = tauri::async_runtime::spawn_blocking(move || handle.state::<StatsState>().0.lock().unwrap().read())
                 .await
                 .map_err(|e| e.to_string())?;
-            serde_json::to_value(stats).map_err(|e| e.to_string())
+            serde_json::to_value(stats)
         }
-    }
+        Call::HomeRead => serde_json::to_value(current_snapshot(&app)),
+        Call::HomeRefreshWeather => {
+            let handle = app.clone();
+            tauri::async_runtime::spawn_blocking(move || refresh_weather(&handle)).await.map_err(|e| e.to_string())??;
+            serde_json::to_value(current_snapshot(&app))
+        }
+        Call::RemindersAdd => {
+            let a: AddArgs = parse_args(args, "reminders.add")?;
+            let added = app.state::<HomeState>().0.lock().unwrap().reminders.add(&a.title, &a.day, a.at)?;
+            serde_json::to_value(added)
+        }
+        Call::RemindersSetDone => {
+            let a: DoneArgs = parse_args(args, "reminders.setDone")?;
+            app.state::<HomeState>().0.lock().unwrap().reminders.set_done(a.id, a.done)?;
+            Ok(serde_json::Value::Null)
+        }
+    };
+    value.map_err(|e| e.to_string())
+}
+
+#[derive(serde::Deserialize)]
+struct AddArgs {
+    title: String,
+    day: String,
+    at: Option<i64>,
+}
+
+#[derive(serde::Deserialize)]
+struct DoneArgs {
+    id: u64,
+    done: bool,
+}
+
+fn parse_args<T: serde::de::DeserializeOwned>(args: Option<serde_json::Value>, call: &str) -> Result<T, String> {
+    serde_json::from_value(args.unwrap_or_default())
+        .map_err(|_| CallError::Failed(format!("bad arguments for {call}")).to_string())
 }

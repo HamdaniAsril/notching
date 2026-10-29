@@ -55,6 +55,10 @@ pub fn run() {
             settings_window::set_screen,
             login_item::set_launch_at_login,
             login_item::open_login_items,
+            home::commands::search_places,
+            home::commands::set_place,
+            home::commands::set_prayer_method,
+            home::commands::set_show_clock,
         ])
         .setup(|app| {
             // No Dock icon.
@@ -70,6 +74,8 @@ pub fn run() {
             let core = app_core::AppCore::open(settings, store, locale::device_locale());
             app.manage(app_core::CoreState(std::sync::Mutex::new(core)));
             app.manage(app_core::StatsState(std::sync::Mutex::new(system_stats::SystemStats::new())));
+            let home = home::Home::open(&paths.app_data_dir()?, &paths.app_cache_dir()?);
+            app.manage(home::HomeState(std::sync::Mutex::new(home)));
             overlay::rebuild_overlays(app.handle())?;
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());

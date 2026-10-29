@@ -11,7 +11,7 @@ use crate::app_core::CoreState;
 use crate::geometry::centered_origin;
 use crate::module_commands::change;
 use crate::overlay::{ConnectedScreens, Overlays};
-use crate::settings::{LanguageSetting, NotchConfig};
+use crate::settings::{HomeSettings, LanguageSetting, NotchConfig};
 
 pub const SETTINGS_LABEL: &str = "settings";
 /// Broadcast whenever anything in SettingsDto changes.
@@ -47,14 +47,15 @@ pub struct SettingsDto {
     pub screens: Vec<String>,
     pub login: LoginItem,
     pub version: String,
+    pub home: HomeSettings,
 }
 
 // One lock at a time, so this is safe to call from anywhere.
 pub fn settings_dto(app: &AppHandle) -> SettingsDto {
-    let (language, screen) = {
+    let (language, screen, home) = {
         let core = app.state::<CoreState>();
         let core = core.0.lock().unwrap();
-        (core.language(), core.screen().map(String::from))
+        (core.language(), core.screen().map(String::from), core.home().clone())
     };
     let screens = app.state::<ConnectedScreens>().0.lock().unwrap().clone();
     SettingsDto {
@@ -63,6 +64,7 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         screens,
         login: crate::login_item::state(),
         version: app.package_info().version.to_string(),
+        home,
     }
 }
 

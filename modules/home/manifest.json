@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "entry": "index.html",
   "icon": "icon.svg",
-  "card": { "width": 540, "height": 72 },
+  "card": { "width": 540, "height": 148 },
   "permissions": [],
-  "capabilities": []
+  "capabilities": ["home.data", "reminders"]
 }

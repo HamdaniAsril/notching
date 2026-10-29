@@ -7,6 +7,10 @@ use super::store::ModuleEntry;
 #[derive(Debug, PartialEq, Eq)]
 pub enum Call {
     SystemStatsRead,
+    HomeRead,
+    HomeRefreshWeather,
+    RemindersAdd,
+    RemindersSetDone,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -46,6 +50,10 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
     }
     match (cap, method) {
         (Capability::SystemStats, "read") => Ok(Call::SystemStatsRead),
+        (Capability::HomeData, "read") => Ok(Call::HomeRead),
+        (Capability::HomeData, "refreshWeather") => Ok(Call::HomeRefreshWeather),
+        (Capability::Reminders, "add") => Ok(Call::RemindersAdd),
+        (Capability::Reminders, "setDone") => Ok(Call::RemindersSetDone),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -111,6 +119,17 @@ mod tests {
             authorize(Some(&m), "system-stat", "system.stats", "write"),
             Err(CallError::UnknownMethod("write".into()))
         );
+    }
+
+    #[test]
+    fn beranda_capabilities() {
+        let home = entry("home", &[Capability::HomeData, Capability::Reminders], true);
+        assert_eq!(authorize(Some(&home), "home", "home.data", "read"), Ok(Call::HomeRead));
+        assert_eq!(authorize(Some(&home), "home", "home.data", "refreshWeather"), Ok(Call::HomeRefreshWeather));
+        assert_eq!(authorize(Some(&home), "home", "reminders", "add"), Ok(Call::RemindersAdd));
+        assert_eq!(authorize(Some(&home), "home", "reminders", "setDone"), Ok(Call::RemindersSetDone));
+        let stat = entry("system-stat", &[Capability::SystemStats], true);
+        assert!(matches!(authorize(Some(&stat), "system-stat", "reminders", "add"), Err(CallError::NotDeclared { .. })));
     }
 
     #[test]
