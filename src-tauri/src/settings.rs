@@ -117,6 +117,41 @@ impl Default for HomeSettings {
     }
 }
 
+/// The person's choice for one notification channel.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ChannelPref {
+    pub on: bool,
+    pub sound: bool,
+}
+
+/// The Notifikasi page (spec 4.4): the glow, how long a notice stays, and each
+/// channel's switches, keyed "<module>.<channel>". A channel without an entry
+/// uses its manifest defaults.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NotificationSettings {
+    #[serde(deserialize_with = "lenient_true")]
+    pub glow: bool,
+    #[serde(deserialize_with = "lenient_seconds")]
+    pub seconds: f64,
+    #[serde(deserialize_with = "lenient")]
+    pub channels: std::collections::BTreeMap<String, ChannelPref>,
+}
+
+impl Default for NotificationSettings {
+    fn default() -> Self {
+        NotificationSettings { glow: true, seconds: NOTICE_SECONDS, channels: Default::default() }
+    }
+}
+
+const NOTICE_SECONDS: f64 = 3.5;
+
+/// 2 to 8 seconds in steps of half a second; anything else that is not a number
+/// is the default.
+pub fn clamp_seconds(s: f64) -> f64 {
+    if s.is_finite() { ((s * 2.0).round() / 2.0).clamp(2.0, 8.0) } else { NOTICE_SECONDS }
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -137,6 +172,8 @@ pub struct Settings {
     pub screen: Option<String>,
     #[serde(deserialize_with = "lenient")]
     pub home: HomeSettings,
+    #[serde(deserialize_with = "lenient")]
+    pub notifications: NotificationSettings,
 }
 
 impl Default for Settings {
@@ -150,6 +187,7 @@ impl Default for Settings {
             notch: NotchConfig::default(),
             screen: None,
             home: HomeSettings::default(),
+            notifications: NotificationSettings::default(),
         }
     }
 }
@@ -176,6 +214,10 @@ where
 // Switches that are on unless turned off.
 fn lenient_true<'de, D: serde::Deserializer<'de>>(d: D) -> Result<bool, D::Error> {
     lenient_or(d, true)
+}
+
+fn lenient_seconds<'de, D: serde::Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+    lenient_or(d, NOTICE_SECONDS).map(clamp_seconds)
 }
 
 // The version's default is not its type's default either.
@@ -379,5 +421,27 @@ mod tests {
         .unwrap();
         assert_eq!(load_settings(&p).home, HomeSettings::default());
         assert!(!d.path().join("settings.json.broken").exists());
+    }
+
+    #[test]
+    fn notification_defaults() {
+        let n = Settings::default().notifications;
+        assert_eq!((n.glow, n.seconds, n.channels.len()), (true, 3.5, 0));
+    }
+
+    #[test]
+    fn notice_seconds_are_clamped() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        let read = |json: &str| {
+            std::fs::write(&p, json).unwrap();
+            load_settings(&p).notifications
+        };
+        assert_eq!(read(r#"{"notifications":{"seconds":100}}"#).seconds, 8.0);
+        assert_eq!(read(r#"{"notifications":{"seconds":"x"}}"#).seconds, 3.5);
+        assert_eq!(read(r#"{"notifications":{"seconds":2.2}}"#).seconds, 2.0);
+        assert_eq!(read(r#"{"notifications":{"seconds":3.74}}"#).seconds, 3.5);
+        assert!(read(r#"{"notifications":{"glow":"ya"}}"#).glow);
+        assert_eq!((clamp_seconds(f64::NAN), clamp_seconds(1.0), clamp_seconds(5.3)), (3.5, 2.0, 5.5));
     }
 }

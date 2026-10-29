@@ -7,6 +7,16 @@ use super::manifest::{parse_manifest, Manifest};
 use crate::locale::Lang;
 use crate::settings::Settings;
 
+/// A notification channel with its name in the current language and its
+/// defaults from the manifest.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ChannelEntry {
+    pub id: String,
+    pub name: String,
+    pub on: bool,
+    pub sound: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ModuleEntry {
     pub manifest: Manifest,
@@ -18,6 +28,7 @@ pub struct ModuleEntry {
     pub size: u64,
     /// The icon file's SVG text, read from the original package.
     pub icon_svg: String,
+    pub channels: Vec<ChannelEntry>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -108,7 +119,17 @@ impl ModuleStore {
                 let enabled = installed && !settings.disabled_modules.contains(&id);
                 let icon_svg = std::fs::read_to_string(dir.join(&manifest.icon)).unwrap_or_default();
                 let size = package_size(&dir);
-                Some(ModuleEntry { manifest, name, description, installed, enabled, size, icon_svg })
+                let channels = manifest
+                    .notifications
+                    .iter()
+                    .map(|c| ChannelEntry {
+                        id: c.id.clone(),
+                        name: text["channels"][&c.id].as_str().unwrap_or(&c.id).to_string(),
+                        on: c.on,
+                        sound: c.sound,
+                    })
+                    .collect();
+                Some(ModuleEntry { manifest, name, description, installed, enabled, size, icon_svg, channels })
             })
             .collect()
     }
@@ -206,7 +227,8 @@ pub(crate) fn fake_bundle(dir: &std::path::Path) {
             m.join("manifest.json"),
             format!(
                 r#"{{"id":"{id}","version":"1.0.0","entry":"index.html","icon":"icon.svg",
-                   "card":{{"width":400,"height":90}},"permissions":[],"capabilities":[]}}"#
+                   "card":{{"width":400,"height":90}},"permissions":[],"capabilities":[],
+                   "notifications":[{{"id":"ping","on":true,"sound":false}}]}}"#
             ),
         )
         .unwrap();
@@ -214,12 +236,12 @@ pub(crate) fn fake_bundle(dir: &std::path::Path) {
         std::fs::write(m.join("icon.svg"), "<svg/>").unwrap();
         std::fs::write(
             m.join("locales/id.json"),
-            format!(r#"{{"name":"Modul {upper}","description":"Isi {upper}"}}"#),
+            format!(r#"{{"name":"Modul {upper}","description":"Isi {upper}","channels":{{"ping":"Ping"}}}}"#),
         )
         .unwrap();
         std::fs::write(
             m.join("locales/en.json"),
-            format!(r#"{{"name":"Module {upper}","description":"About {upper}"}}"#),
+            format!(r#"{{"name":"Module {upper}","description":"About {upper}","channels":{{"ping":"Ping"}}}}"#),
         )
         .unwrap();
     }

@@ -34,5 +34,6 @@
     "showers": "Hujan sesaat",
     "snow": "Salju",
     "storm": "Badai petir"
-  }
+  },
+  "channels": { "reminder": "Reminder", "prayer": "Waktu sholat" }
 }

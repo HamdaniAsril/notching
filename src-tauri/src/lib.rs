@@ -12,6 +12,8 @@ mod commands;
 #[cfg(target_os = "macos")]
 mod login_item;
 #[cfg(target_os = "macos")]
+mod notify;
+#[cfg(target_os = "macos")]
 mod overlay;
 #[cfg(target_os = "macos")]
 mod pointer;
@@ -59,6 +61,10 @@ pub fn run() {
             home::commands::set_place,
             home::commands::set_prayer_method,
             home::commands::set_show_clock,
+            notify::set_notice_glow,
+            notify::set_notice_seconds,
+            notify::set_channel,
+            notify::clear_missed,
         ])
         .setup(|app| {
             // No Dock icon.

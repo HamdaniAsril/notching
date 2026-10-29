@@ -31,6 +31,16 @@ pub struct CardSize {
     pub height: u32,
 }
 
+/// A kind of notification a module can send, with its default switches (spec 4.4).
+/// The person can change both on the Notifikasi page.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChannelSpec {
+    pub id: String,
+    pub on: bool,
+    pub sound: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Manifest {
@@ -41,6 +51,8 @@ pub struct Manifest {
     pub card: CardSize,
     pub permissions: Vec<Permission>,
     pub capabilities: Vec<Capability>,
+    #[serde(default)]
+    pub notifications: Vec<ChannelSpec>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -51,11 +63,13 @@ pub enum ManifestError {
     BadVersion,
     BadPath(String),
     CardSize,
+    BadChannel,
 }
 
 // The panel and the pill must fit the 640 × 360 notch overlay.
 pub const CARD_WIDTH: RangeInclusive<u32> = 280..=600;
 pub const CARD_HEIGHT: RangeInclusive<u32> = 40..=240;
+pub const CHANNELS_MAX: usize = 8;
 
 /// 1–32 characters: a lowercase letter, then lowercase letters, digits or dashes.
 pub fn is_module_id(s: &str) -> bool {
@@ -100,6 +114,11 @@ pub fn parse_manifest(json: &str, folder: &str) -> Result<Manifest, ManifestErro
     }
     if !CARD_WIDTH.contains(&m.card.width) || !CARD_HEIGHT.contains(&m.card.height) {
         return Err(ManifestError::CardSize);
+    }
+    let ids: Vec<&str> = m.notifications.iter().map(|c| c.id.as_str()).collect();
+    let unique = ids.iter().enumerate().all(|(i, id)| !ids[..i].contains(id));
+    if ids.len() > CHANNELS_MAX || !unique || !ids.iter().all(|id| is_module_id(id)) {
+        return Err(ManifestError::BadChannel);
     }
     Ok(m)
 }
@@ -155,6 +174,27 @@ mod tests {
     }
 
     #[test]
+    fn notification_channels_parse() {
+        let with = GOOD.replace(
+            "\"capabilities\"",
+            r#""notifications":[{"id":"done","on":true,"sound":true}],"capabilities""#,
+        );
+        let m = parse_manifest(&with, "system-stat").unwrap();
+        assert_eq!(m.notifications, vec![ChannelSpec { id: "done".into(), on: true, sound: true }]);
+        assert!(parse_manifest(GOOD, "system-stat").unwrap().notifications.is_empty());
+    }
+
+    #[test]
+    fn bad_channels_are_refused() {
+        let with = |list: &str| GOOD.replace("\"capabilities\"", &format!(r#""notifications":[{list}],"capabilities""#));
+        let ch = |id: &str| format!(r#"{{"id":"{id}","on":true,"sound":false}}"#);
+        let nine = (0..9).map(|i| ch(&format!("c{i}"))).collect::<Vec<_>>().join(",");
+        for bad in [ch("Done!"), format!("{},{}", ch("done"), ch("done")), nine] {
+            assert_eq!(parse_manifest(&with(&bad), "system-stat"), Err(ManifestError::BadChannel), "{bad}");
+        }
+    }
+
+    #[test]
     fn repo_modules_are_valid() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../modules");
         let index: Vec<String> =
@@ -163,11 +203,14 @@ mod tests {
         for id in index {
             let dir = root.join(&id);
             let json = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
-            parse_manifest(&json, &id).unwrap_or_else(|e| panic!("{id}: {e:?}"));
+            let m = parse_manifest(&json, &id).unwrap_or_else(|e| panic!("{id}: {e:?}"));
             for lang in ["id", "en"] {
                 let text = std::fs::read_to_string(dir.join(format!("locales/{lang}.json"))).unwrap();
                 let v: serde_json::Value = serde_json::from_str(&text).unwrap();
                 assert!(v["name"].is_string() && v["description"].is_string(), "{id}/{lang}");
+                for c in &m.notifications {
+                    assert!(v["channels"][&c.id].is_string(), "{id}/{lang}: channel {}", c.id);
+                }
             }
         }
     }

@@ -5,9 +5,30 @@ use std::sync::Mutex;
 
 use crate::locale::{resolve_lang, Lang};
 use crate::modules::manifest::CardSize;
-use crate::modules::store::{ModuleEntry, ModuleStore, StoreError};
-use crate::settings::{load_settings, save_settings, HomeSettings, LanguageSetting, NotchConfig, Place, PrayerMethod, Settings};
+use crate::modules::store::{ChannelEntry, ModuleEntry, ModuleStore, StoreError};
+use crate::settings::{
+    clamp_seconds, load_settings, save_settings, ChannelPref, HomeSettings, LanguageSetting, NotchConfig, Place,
+    PrayerMethod, Settings,
+};
 use crate::system_stats::SystemStats;
+
+/// A module's notification channel with the person's switches applied.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChannelDto {
+    pub id: String,
+    pub name: String,
+    pub on: bool,
+    pub sound: bool,
+}
+
+/// How notices look, shared by every overlay.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoticeLook {
+    pub glow: bool,
+    pub seconds: f64,
+}
 
 /// Same shape as ModuleInfo in src/modules/types.ts.
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -24,6 +45,7 @@ pub struct ModuleInfoDto {
     pub enabled: bool,
     pub size: u64,
     pub icon_svg: String,
+    pub channels: Vec<ChannelDto>,
 }
 
 /// Broadcast to every window: the notch overlays and the settings window.
@@ -34,6 +56,9 @@ pub struct ModuleStateDto {
     pub modules: Vec<ModuleInfoDto>,
     pub last_card: Option<String>,
     pub notch: NotchConfig,
+    pub notifications: NoticeLook,
+    /// Modules with a notice the person did not see, in the order they came.
+    pub missed: Vec<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -59,6 +84,8 @@ pub struct AppCore {
     store: ModuleStore,
     device_locale: Option<String>,
     modules: Vec<ModuleEntry>,
+    // Kept in memory only: a restart forgets missed notices.
+    missed: Vec<String>,
 }
 
 pub struct CoreState(pub Mutex<AppCore>);
@@ -70,7 +97,8 @@ impl AppCore {
     pub fn open(settings_path: PathBuf, store: ModuleStore, device_locale: Option<String>) -> AppCore {
         let settings = load_settings(&settings_path);
         store.sync(&settings);
-        let mut core = AppCore { settings_path, settings, store, device_locale, modules: Vec::new() };
+        let mut core =
+            AppCore { settings_path, settings, store, device_locale, modules: Vec::new(), missed: Vec::new() };
         core.relist();
         core
     }
@@ -101,11 +129,71 @@ impl AppCore {
                     enabled: e.enabled,
                     size: e.size,
                     icon_svg: e.icon_svg.clone(),
+                    channels: e
+                        .channels
+                        .iter()
+                        .map(|c| {
+                            let pref = self.pref(&e.manifest.id, c);
+                            ChannelDto { id: c.id.clone(), name: c.name.clone(), on: pref.on, sound: pref.sound }
+                        })
+                        .collect(),
                 })
                 .collect(),
             last_card: self.settings.last_card.clone(),
             notch: self.settings.notch,
+            notifications: self.notice_look(),
+            missed: self.missed.clone(),
         }
+    }
+
+    fn pref(&self, module: &str, c: &ChannelEntry) -> ChannelPref {
+        let defaults = ChannelPref { on: c.on, sound: c.sound };
+        self.settings.notifications.channels.get(&format!("{module}.{}", c.id)).copied().unwrap_or(defaults)
+    }
+
+    /// The person's switches for a channel of a module that is switched on.
+    /// None: the module is off or gone, or has no such channel.
+    pub fn channel(&self, module: &str, channel: &str) -> Option<ChannelPref> {
+        let e = self.module(module).filter(|e| e.enabled)?;
+        let c = e.channels.iter().find(|c| c.id == channel)?;
+        Some(self.pref(module, c))
+    }
+
+    pub fn notice_look(&self) -> NoticeLook {
+        NoticeLook { glow: self.settings.notifications.glow, seconds: self.settings.notifications.seconds }
+    }
+
+    pub fn set_glow(&mut self, on: bool) -> Result<(), CoreError> {
+        self.settings.notifications.glow = on;
+        self.save()
+    }
+
+    pub fn set_notice_seconds(&mut self, seconds: f64) -> Result<(), CoreError> {
+        self.settings.notifications.seconds = clamp_seconds(seconds);
+        self.save()
+    }
+
+    pub fn set_channel(&mut self, module: &str, channel: &str, pref: ChannelPref) -> Result<(), CoreError> {
+        let e = self.module(module).ok_or_else(|| CoreError::Store(StoreError::UnknownModule(module.to_string())))?;
+        if !e.channels.iter().any(|c| c.id == channel) {
+            return Err(CoreError::Invalid(format!("channel {module}.{channel}")));
+        }
+        self.settings.notifications.channels.insert(format!("{module}.{channel}"), pref);
+        self.save()
+    }
+
+    /// Once per module, in the order the notices came.
+    pub fn mark_missed(&mut self, module: &str) {
+        if !self.missed.iter().any(|m| m == module) {
+            self.missed.push(module.to_string());
+        }
+    }
+
+    /// True if there was something to clear.
+    pub fn clear_missed(&mut self) -> bool {
+        let had = !self.missed.is_empty();
+        self.missed.clear();
+        had
     }
 
     pub fn module(&self, id: &str) -> Option<&ModuleEntry> {
@@ -339,5 +427,60 @@ mod tests {
         let s = open(&d, None).state();
         assert_eq!(s.modules[0].icon_svg, "<svg/>");
         assert!(s.modules[0].size > 0);
+    }
+
+    #[test]
+    fn channels_resolve_defaults_and_choices() {
+        let d = setup();
+        let mut core = open(&d, None);
+        let ping = |on, sound| ChannelDto { id: "ping".into(), name: "Ping".into(), on, sound };
+        assert_eq!(core.state().modules[0].channels, [ping(true, false)]);
+        core.set_channel("a", "ping", ChannelPref { on: false, sound: true }).unwrap();
+        assert_eq!(core.state().modules[0].channels, [ping(false, true)]);
+        assert_eq!(open(&d, None).state().modules[0].channels, [ping(false, true)]);
+        assert_eq!(core.channel("a", "ping"), Some(ChannelPref { on: false, sound: true }));
+    }
+
+    #[test]
+    fn a_switched_off_module_has_no_live_channels() {
+        let d = setup();
+        let mut core = open(&d, None);
+        assert!(core.channel("a", "ping").is_some());
+        core.set_enabled("a", false).unwrap();
+        assert_eq!(core.channel("a", "ping"), None);
+    }
+
+    #[test]
+    fn unknown_channels_are_refused() {
+        let d = setup();
+        let mut core = open(&d, None);
+        let pref = ChannelPref { on: true, sound: true };
+        assert!(core.set_channel("a", "zzz", pref).is_err());
+        assert!(core.set_channel("zzz", "ping", pref).is_err());
+        assert!(!d.path().join(SETTINGS_FILE).exists());
+    }
+
+    #[test]
+    fn missed_marks_are_kept_once_and_cleared() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.mark_missed("a");
+        core.mark_missed("a");
+        assert_eq!(core.state().missed, ["a"]);
+        assert!(core.clear_missed());
+        assert!(core.state().missed.is_empty());
+        assert!(!core.clear_missed());
+    }
+
+    #[test]
+    fn the_notice_look_is_shared() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.set_glow(false).unwrap();
+        core.set_notice_seconds(6.0).unwrap();
+        let want = NoticeLook { glow: false, seconds: 6.0 };
+        assert_eq!(core.state().notifications, want);
+        assert_eq!(core.notice_look(), want);
+        assert_eq!(open(&d, None).notice_look(), want);
     }
 }

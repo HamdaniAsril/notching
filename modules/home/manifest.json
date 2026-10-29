@@ -5,5 +5,9 @@
   "icon": "icon.svg",
   "card": { "width": 540, "height": 156 },
   "permissions": [],
-  "capabilities": ["home.data", "reminders"]
+  "capabilities": ["home.data", "reminders"],
+  "notifications": [
+    { "id": "reminder", "on": true, "sound": true },
+    { "id": "prayer", "on": false, "sound": false }
+  ]
 }

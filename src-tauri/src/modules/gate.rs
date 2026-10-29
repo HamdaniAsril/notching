@@ -73,6 +73,7 @@ mod tests {
                 card: CardSize { width: 400, height: 90 },
                 permissions: vec![],
                 capabilities: caps.to_vec(),
+                notifications: vec![],
             },
             name: id.into(),
             description: String::new(),
@@ -80,6 +81,7 @@ mod tests {
             enabled,
             size: 0,
             icon_svg: String::new(),
+            channels: vec![],
         }
     }
 
