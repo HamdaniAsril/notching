@@ -1,4 +1,4 @@
-import type { NotchController, Phase } from './controller';
+import { EAR_W, NOTICE_PILL, type NotchController, type Phase } from './controller';
 import { containsPoint, OVERLAY_SIZE, type Rect, hitRects } from './hit';
 import { lensPath, notchPath, panelPath } from './shape';
 
@@ -17,6 +17,15 @@ export interface PillItem {
   id: string;
   label: string;
   icon: string;
+  missed?: boolean; // a notice from it went unseen
+}
+
+// What the ears show. `icon` is the module's icon URL, null for the bell.
+export interface NoticeView {
+  icon: string | null;
+  title: string;
+  detail: string;
+  glow: boolean;
 }
 
 export interface NotchView {
@@ -24,6 +33,8 @@ export interface NotchView {
   destroy(): void;
   readonly content: HTMLElement; // holds the card
   setPill(items: PillItem[], active: string | null, moreLabel: string): void;
+  setNotice(n: NoticeView | null): void;
+  setMissed(on: boolean): void; // the dot under the notch while idle
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -32,6 +43,14 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const ICON = (d: string) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const MORE_ICON = ICON('<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>');
+
+const BELL_ICON = ICON('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>');
+
+// The G2 glow from notif-v1.html: a gradient running round the notice's rim.
+const GLOW_STOPS = ['#ff6ec4', '#7873f5', '#4adede', '#ffd166'];
+
+// The settings window's preview mounts a second notch, so ids get a suffix.
+let mounts = 0;
 
 export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps): NotchView {
   const doc = root.ownerDocument;
@@ -45,9 +64,38 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   svg.setAttribute('viewBox', `${-OW / 2} 0 ${OW} ${OH}`);
   const liquid = doc.createElementNS(SVG_NS, 'path');
   const panel = doc.createElementNS(SVG_NS, 'path');
-  // Same stacking as the mockups: the lens under the panel, the physical notch over it.
-  if (notch) svg.append(panel, liquid);
-  else svg.append(liquid, panel);
+  const uid = ++mounts;
+  const defs = doc.createElementNS(SVG_NS, 'defs');
+  const gradient = doc.createElementNS(SVG_NS, 'linearGradient');
+  gradient.id = `notice-grad-${uid}`;
+  for (const [k, v] of Object.entries({ gradientUnits: 'userSpaceOnUse', x1: '-110', y1: '0', x2: '110', y2: '0', spreadMethod: 'reflect' })) {
+    gradient.setAttribute(k, v);
+  }
+  GLOW_STOPS.forEach((color, i) => {
+    const stop = doc.createElementNS(SVG_NS, 'stop');
+    stop.setAttribute('offset', String(i / (GLOW_STOPS.length - 1)));
+    stop.setAttribute('stop-color', color);
+    gradient.append(stop);
+  });
+  const blur = doc.createElementNS(SVG_NS, 'filter');
+  blur.id = `notice-blur-${uid}`;
+  for (const [k, v] of Object.entries({ x: '-20%', y: '-50%', width: '140%', height: '300%' })) blur.setAttribute(k, v);
+  const gauss = doc.createElementNS(SVG_NS, 'feGaussianBlur');
+  gauss.setAttribute('stdDeviation', '3');
+  blur.append(gauss);
+  defs.append(gradient, blur);
+  const glow = doc.createElementNS(SVG_NS, 'g');
+  glow.setAttribute('class', 'notice-glow');
+  const dot = doc.createElementNS(SVG_NS, 'circle');
+  dot.setAttribute('class', 'missed-dot');
+  dot.setAttribute('r', '2');
+  dot.setAttribute('cx', '0');
+  dot.setAttribute('fill', '#fff');
+  dot.setAttribute('display', 'none');
+  // Same stacking as the mockups: the lens under the panel, the physical notch over
+  // it; the glow just under the panel, so only its rim shows.
+  if (notch) svg.append(defs, glow, panel, liquid, dot);
+  else svg.append(defs, liquid, glow, panel, dot);
 
   // Styles are set through CSSOM only, never as style="" markup, so the page's CSP
   // needs no inline styles.
@@ -58,12 +106,33 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   const pill = doc.createElement('div');
   pill.className = 'notch-pill';
 
-  root.append(svg, content, pill);
+  // The ears: an icon on the left, title and detail on the right (notif-v1.html).
+  const notice = doc.createElement('div');
+  notice.className = 'notch-notice';
+  const earL = doc.createElement('div');
+  earL.className = 'ear l';
+  const earR = doc.createElement('div');
+  earR.className = 'ear r';
+  const ears = notch
+    ? { l: OW / 2 - notch.width / 2 - EAR_W + 14, r: OW / 2 + notch.width / 2 + 12, w: EAR_W - 24, h: notch.height }
+    : { l: OW / 2 - NOTICE_PILL.w / 2 + 14, r: OW / 2 - NOTICE_PILL.w / 2 + 44, w: NOTICE_PILL.w - 58, h: NOTICE_PILL.h };
+  earL.style.left = `${ears.l}px`;
+  earL.style.height = `${ears.h}px`;
+  earR.style.left = `${ears.r}px`;
+  earR.style.width = `${ears.w}px`;
+  earR.style.height = `${ears.h}px`;
+  earR.style.lineHeight = `${ears.h}px`;
+  notice.append(earL, earR);
+
+  root.append(svg, content, pill, notice);
 
   let rafId: number | null = null;
   let last: number | null = null;
   let lastRects = '';
   let lastPhase = c.phase;
+  let noticeGlow = false;
+  let glowA = 0;
+  let missed = false;
 
   // Layout box, not getBoundingClientRect(): the entrance animation scales the pill.
   // offsetLeft ignores the translateX(-50%) that centres it, so subtract half the width.
@@ -87,12 +156,40 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     setStyle(pill, 'top', `${c.panelSize().h + 10}px`);
     content.classList.toggle('show', c.contentVisible);
     pill.classList.toggle('show', c.pillVisible);
+    notice.classList.toggle('show', c.noticeVisible);
+    drawGlow();
+    drawDot();
+  }
+
+  function drawGlow(): void {
+    if (glowA <= 0.02 || !c.panelVisible) {
+      if (glow.firstChild) glow.replaceChildren();
+      return;
+    }
+    const d = panelPath(c.motion.springs.pw.x, c.motion.springs.ph.x);
+    const rim = (width: string, filter: boolean) => {
+      const path = doc.createElementNS(SVG_NS, 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', `url(#${gradient.id})`);
+      path.setAttribute('stroke-width', width);
+      if (filter) path.setAttribute('filter', `url(#${blur.id})`);
+      return path;
+    };
+    glow.setAttribute('opacity', glowA.toFixed(3));
+    glow.replaceChildren(rim('5', true), rim('2.2', false));
+  }
+
+  function drawDot(): void {
+    const show = missed && c.phase === 'idle';
+    dot.setAttribute('display', show ? 'inline' : 'none');
+    dot.setAttribute('cy', String(notch ? notch.height + 5 : c.config.thickness + 4));
   }
 
   function setPill(items: PillItem[], active: string | null, moreLabel: string): void {
     const icons = items.map(item => {
       const ic = doc.createElement('span');
-      ic.className = item.id === active ? 'ic on' : 'ic';
+      ic.className = ['ic', item.id === active ? 'on' : '', item.missed ? 'missed' : ''].filter(Boolean).join(' ');
       ic.dataset.id = item.id;
       ic.setAttribute('role', 'button');
       ic.setAttribute('aria-label', item.label);
@@ -110,6 +207,35 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     icons.push(more);
     icons.forEach((ic, i) => { ic.style.animationDelay = `${0.06 + i * 0.045}s`; });
     pill.replaceChildren(...icons);
+  }
+
+  function setNotice(n: NoticeView | null): void {
+    noticeGlow = n?.glow ?? false;
+    if (!n) {
+      earL.replaceChildren();
+      earR.replaceChildren();
+      return;
+    }
+    if (n.icon) {
+      const glyph = doc.createElement('i');
+      glyph.className = 'glyph';
+      glyph.style.setProperty('--icon', `url("${n.icon}")`);
+      earL.replaceChildren(glyph);
+    } else {
+      earL.innerHTML = BELL_ICON;
+    }
+    const t1 = doc.createElement('span');
+    t1.className = 't1';
+    t1.textContent = n.title;
+    const t2 = doc.createElement('span');
+    t2.className = 't2';
+    t2.textContent = n.detail;
+    earR.replaceChildren(t1, t2);
+  }
+
+  function setMissed(on: boolean): void {
+    missed = on;
+    drawDot();
   }
 
   function onPillClick(e: MouseEvent): void {
@@ -137,9 +263,13 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     const dt = last === null ? 1 / 60 : (now - last) / 1000;
     last = now;
     c.frame(dt);
+    const want = c.phase === 'notify' && noticeGlow ? 1 : 0;
+    glowA += (want - glowA) * Math.min(1, dt * 6);
+    gradient.setAttribute('gradientTransform', `translate(${((now / 1000) * 110) % 440} 0)`);
     draw();
     report();
-    if (c.needsFrames()) {
+    // The glow fades on after the notch has come to rest.
+    if (c.needsFrames() || glowA > 0.02) {
       rafId = deps.raf(tick);
     } else {
       rafId = null;
@@ -179,6 +309,8 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     kick,
     content,
     setPill,
+    setNotice,
+    setMissed,
     destroy(): void {
       if (rafId !== null) deps.caf(rafId);
       rafId = null;
@@ -187,6 +319,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
       svg.remove();
       content.remove();
       pill.remove();
+      notice.remove();
     },
   };
 }

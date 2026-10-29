@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { DEFAULT_CONFIG } from './config';
+import { EAR_W, NOTICE_FADE_MS } from './controller';
 import { ctl, frames, runUntilNear, timers } from './test-helpers';
 
 test('rest targets without a notch', () =>
@@ -126,3 +127,67 @@ test('a new config applies from the next frame', () => {
   expect(c.targets().H).toBe(10);
   expect(c.config.thickness).toBe(10);
 });
+
+test('a notice grows ears beside the notch, then folds back', () => {
+  const c = ctl({ width: 190, height: 32 });
+  expect(c.notify(3500)).toBe(true);
+  expect(c.phase).toBe('notify');
+  frames(c, 120);
+  expect(c.targets().pw).toBe(190 + 2 * EAR_W);
+  expect(c.targets().ph).toBe(32);
+  expect(c.noticeVisible).toBe(true);
+  timers.advance(3500);
+  expect(c.noticeVisible).toBe(false);
+  expect(c.phase).toBe('notify');
+  timers.advance(NOTICE_FADE_MS);
+  expect(c.phase).toBe('closing');
+  frames(c, 240);
+  expect(c.phase).toBe('idle');
+  expect(c.panelVisible).toBe(false);
+});
+
+test('without a notch the lens opens into a small pill', () => {
+  const c = ctl(null);
+  c.notify(3500);
+  frames(c, 120);
+  expect(c.noticeSize()).toEqual({ w: 300, h: 38 });
+  expect(c.targets().pw).toBe(300);
+  expect(c.noticeVisible).toBe(true);
+});
+
+test('no notice while the panel is open', () => {
+  const c = ctl(null);
+  c.click();
+  expect(c.notify(3500)).toBe(false);
+  expect(c.phase).toBe('open');
+});
+
+test('clicking a notice opens the panel and keeps it open', () => {
+  const c = ctl(null);
+  c.notify(3500);
+  frames(c, 60);
+  c.click();
+  timers.advance(5000);
+  expect(c.phase).toBe('open');
+});
+
+test('a notice keeps the frame loop running', () => {
+  const c = ctl(null);
+  c.notify(3500);
+  frames(c, 600);
+  expect(c.needsFrames()).toBe(true);
+});
+
+test('hovering during a notice is remembered for afterwards', () => {
+  const c = ctl(null);
+  c.notify(3500);
+  c.pointer(true, 0);
+  expect(c.phase).toBe('notify');
+  c.escape();
+  c.resignKey();
+  expect(c.phase).toBe('notify');
+  timers.advance(3500 + NOTICE_FADE_MS);
+  frames(c, 240);
+  expect(c.phase).toBe('hover');
+});
+

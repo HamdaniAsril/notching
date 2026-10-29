@@ -2,7 +2,7 @@ import type { NotchConfig } from './config';
 import { NotchMotion, type Targets, timeScale } from './motion';
 import type { NotchSize } from './shape';
 
-export type Phase = 'idle' | 'hover' | 'open' | 'closing';
+export type Phase = 'idle' | 'hover' | 'notify' | 'open' | 'closing';
 
 export interface CardSize {
   width: number;
@@ -19,6 +19,12 @@ export interface ControllerDeps {
 // Pill delay at speed 100 (spec 4.2); divided by the time scale.
 const PILL_DELAY_MS = 320;
 
+// A notice (notif-v1.html): ears this wide on each side of a notch, or the lens
+// opening into a small pill. Its text fades out this long before it folds back.
+export const EAR_W = 150;
+export const NOTICE_PILL = { w: 300, h: 38 } as const;
+export const NOTICE_FADE_MS = 140;
+
 // Notch state machine. Targets follow setTargets() in full-flow-v3.html (no notch)
 // and full-flow-notch.html (notch, idle "tak terlihat").
 export class NotchController {
@@ -31,6 +37,9 @@ export class NotchController {
   private _contentVisible = false;
   private _pillVisible = false;
   private cancelPill: (() => void) | null = null;
+  private _noticeVisible = false;
+  private noticeOver = false;
+  private noticeTimers: (() => void)[] = [];
   private _card: CardSize;
   private _config: NotchConfig;
 
@@ -45,6 +54,7 @@ export class NotchController {
   get pillVisible(): boolean { return this._pillVisible; }
   get contentVisible(): boolean { return this._contentVisible; }
   get panelVisible(): boolean { return this._panelVisible; }
+  get noticeVisible(): boolean { return this._noticeVisible; }
   get notch(): NotchSize | null { return this.deps.notch; }
   get config(): NotchConfig { return this._config; }
   get card(): CardSize { return this._card; }
@@ -67,23 +77,58 @@ export class NotchController {
 
   click(): void {
     if (this._phase === 'open') return;
+    // A notice clicked open grows from its ears.
+    this.endNotice();
     // Reopening a panel that is still closing keeps its current size instead of
     // snapping back to the notch.
-    if (!this._panelVisible) {
-      const { pw, ph, W, H } = this.motion.springs;
-      const notch = this.deps.notch;
-      if (notch) {
-        pw.x = notch.width;
-        ph.x = notch.height + Math.max(0, H.x);
-      } else {
-        pw.x = Math.max(16, W.x * 0.9);
-        ph.x = Math.max(8, H.x);
-      }
-      pw.v = 0;
-      ph.v = 60;
-    }
+    if (!this._panelVisible) this.startPanel(60);
     this._panelVisible = true;
     this._phase = 'open';
+  }
+
+  // Shows a notice for durationMs, only from rest: a notice never interrupts an
+  // open or closing panel. True if it started.
+  notify(durationMs: number): boolean {
+    if (this._phase !== 'idle' && this._phase !== 'hover') return false;
+    if (!this._panelVisible) this.startPanel(0);
+    this._panelVisible = true;
+    this._phase = 'notify';
+    this.noticeOver = false;
+    this.noticeTimers = [this.deps.setTimer(() => {
+      this.noticeOver = true;
+      this._noticeVisible = false;
+      this.noticeTimers = [this.deps.setTimer(() => {
+        this.noticeTimers = [];
+        if (this._phase === 'notify') this._phase = 'closing';
+      }, NOTICE_FADE_MS)];
+    }, durationMs)];
+    return true;
+  }
+
+  noticeSize(): { w: number; h: number } {
+    const notch = this.deps.notch;
+    return notch ? { w: notch.width + 2 * EAR_W, h: notch.height } : { ...NOTICE_PILL };
+  }
+
+  // The panel springs out of the notch or the lens.
+  private startPanel(heightSpeed: number): void {
+    const { pw, ph, W, H } = this.motion.springs;
+    const notch = this.deps.notch;
+    if (notch) {
+      pw.x = notch.width;
+      ph.x = notch.height + Math.max(0, H.x);
+    } else {
+      pw.x = Math.max(16, W.x * 0.9);
+      ph.x = Math.max(8, H.x);
+    }
+    pw.v = 0;
+    ph.v = heightSpeed;
+  }
+
+  private endNotice(): void {
+    this.noticeTimers.forEach(cancel => cancel());
+    this.noticeTimers = [];
+    this._noticeVisible = false;
   }
 
   escape(): void {
@@ -110,6 +155,11 @@ export class NotchController {
       }
     }
 
+    if (this._phase === 'notify' && !this.noticeOver) {
+      const n = this.noticeSize();
+      if (Math.abs(pw.x - n.w) < 24 && Math.abs(ph.x - n.h) < 8) this._noticeVisible = true;
+    }
+
     const size = this.panelSize();
     const near = this._phase === 'open' && Math.abs(pw.x - size.w) < 40 && Math.abs(ph.x - size.h) < 20;
     this._contentVisible = near;
@@ -132,8 +182,10 @@ export class NotchController {
     const breathe = 1 + 0.035 * Math.sin(t * 2.2);
     const bias = (limit: number) => Math.max(-limit, Math.min(limit, this.cursorX * 0.08));
     const open = this._phase === 'open';
+    const notice = this._phase === 'notify' ? this.noticeSize() : null;
 
     if (notch) {
+      if (notice) return { W: 70, H: 0, s: 0, bx: 0, pw: notice.w, ph: notice.h };
       if (open) {
         const size = this.panelSize();
         return { W: 70, H: 0, s: 0, bx: 0, pw: size.w, ph: size.h };
@@ -145,6 +197,7 @@ export class NotchController {
     }
 
     const T = config.thickness;
+    if (notice) return { W: 42, H: T, s: 0, bx: 0, pw: notice.w, ph: notice.h };
     if (open) {
       const size = this.panelSize();
       return { W: 42, H: T, s: 0, bx: 0, pw: size.w, ph: size.h };
@@ -160,9 +213,10 @@ export class NotchController {
   }
 
   // The frame loop may stop only when nothing moves: idle at rest, or open at rest
-  // with the pill already shown. Hover keeps running for the breathing droplet.
+  // with the pill already shown. Hover keeps running for the breathing droplet,
+  // a notice for its glow.
   needsFrames(): boolean {
-    if (this._phase === 'hover' || this._phase === 'closing') return true;
+    if (this._phase === 'hover' || this._phase === 'notify' || this._phase === 'closing') return true;
     if (this.cancelPill) return true;
     return !this.motion.atRest();
   }

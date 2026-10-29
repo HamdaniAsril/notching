@@ -141,3 +141,83 @@ test('the ⋯ icon opens settings', () => {
   expect(onMore).toHaveBeenCalledTimes(1);
   expect(onSelect).not.toHaveBeenCalled();
 });
+
+function noticeView(glow = true) {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  document.body.append(root);
+  const c = ctl(null);
+  const v = mountNotch(root, c, deps(r));
+  v.setNotice({ icon: 'mod://home/icon.svg', title: '<b>Kirim</b>', detail: '14.00', glow });
+  c.notify(3500);
+  v.kick();
+  return { r, root, c, v };
+}
+
+test('the notice shows its icon, title and detail as text', () => {
+  const { r, root } = noticeView();
+  r.runAll(120);
+  expect(root.querySelector('.notch-notice')!.classList.contains('show')).toBe(true);
+  expect(root.querySelector('.ear.r .t1')!.textContent).toBe('<b>Kirim</b>');
+  expect(root.querySelector('.ear.r b')).toBeNull();
+  expect(root.querySelector('.ear.r .t2')!.textContent).toBe('14.00');
+  const glyph = root.querySelector<HTMLElement>('.ear.l .glyph')!;
+  expect(glyph.style.getPropertyValue('--icon')).toContain('mod://home/icon.svg');
+});
+
+test('a notice without a module icon shows the bell', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setNotice({ icon: null, title: 'Contoh', detail: '', glow: false });
+  expect(root.querySelector('.ear.l .glyph')).toBeNull();
+  expect(root.querySelector('.ear.l svg')).not.toBeNull();
+});
+
+test('the glow appears with the notice and fades after it', () => {
+  const { r, root } = noticeView();
+  r.runAll(60);
+  expect(root.querySelectorAll('.notice-glow path')).toHaveLength(2);
+  timers.advance(3640);
+  r.runAll(600);
+  expect(root.querySelectorAll('.notice-glow path')).toHaveLength(0);
+  expect(r.pending()).toBe(0);
+});
+
+test('no glow when it is switched off', () => {
+  const { r, root } = noticeView(false);
+  r.runAll(60);
+  expect(root.querySelectorAll('.notice-glow path')).toHaveLength(0);
+});
+
+test('each notch has its own glow ids', () => {
+  const a = document.createElement('div');
+  const b = document.createElement('div');
+  mountNotch(a, ctl(null), deps(fakeRaf()));
+  mountNotch(b, ctl(null), deps(fakeRaf()));
+  const id = (root: HTMLElement) => root.querySelector('linearGradient')!.id;
+  expect(id(a)).not.toBe(id(b));
+});
+
+test('the missed dot shows only while idle', () => {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  const c = ctl(null);
+  const v = mountNotch(root, c, deps(r));
+  const dot = root.querySelector('.missed-dot')!;
+  expect(dot.getAttribute('display')).toBe('none');
+  v.setMissed(true);
+  expect(dot.getAttribute('display')).toBe('inline');
+  c.click();
+  v.kick();
+  r.runAll(1);
+  expect(dot.getAttribute('display')).toBe('none');
+});
+
+test('a pill icon wears the missed dot', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setPill([{ ...ITEMS[0], missed: true }, ITEMS[1]], 'system-stat', 'Pengaturan');
+  expect(root.querySelector('.ic[data-id="home"]')!.classList.contains('missed')).toBe(true);
+  expect(root.querySelector('.ic[data-id="system-stat"]')!.classList.contains('missed')).toBe(false);
+});
+

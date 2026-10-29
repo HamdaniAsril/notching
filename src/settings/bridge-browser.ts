@@ -24,7 +24,10 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     version: '0.1.0',
     home: { place: null, prayerMethod: 'kemenag', showClock: true },
   };
-  let state: ModuleState = { lang: deviceLang, modules: catalog(deviceLang, []), lastCard: null, notch: DEFAULT_CONFIG };
+  let state: ModuleState = {
+    lang: deviceLang, modules: catalog(deviceLang, []), lastCard: null, notch: DEFAULT_CONFIG,
+    notifications: { glow: true, seconds: 3.5 }, missed: [],
+  };
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();
 

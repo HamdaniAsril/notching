@@ -32,6 +32,12 @@ export function hitRects(c: NotchController, pill: Rect | null): Rect[] {
     return pill ? [panel, pill] : [panel];
   }
 
+  if (c.phase === 'notify') {
+    // The ears, so a click on the notice opens the panel.
+    const { w, h } = c.noticeSize();
+    return [{ x: CX - w / 2 - 12, y: 0, w: w + 24, h: h + 4 }];
+  }
+
   const { notch, config } = c;
   const hover = c.phase === 'hover';
   if (notch) {

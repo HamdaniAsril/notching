@@ -18,6 +18,16 @@ export interface PointerUpdate {
   y: number;
 }
 
+// A notice for this screen (NoticeDto in src-tauri/src/notify.rs). moduleId is
+// null for the sample from the settings window.
+export interface Notice {
+  moduleId: string | null;
+  title: string;
+  detail: string;
+  glow: boolean;
+  seconds: number;
+}
+
 // What the notch needs from the native side.
 export interface Bridge {
   screenInfo(): Promise<ScreenInfo>;
@@ -33,6 +43,8 @@ export interface Bridge {
   moduleUrl(id: string, file: string): string;
   readonly moduleSandbox: string;
   openSettings(): Promise<void>;
+  onNotice(cb: (n: Notice) => void): () => void;
+  clearMissed(): Promise<void>;
 }
 
 // Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
@@ -68,5 +80,8 @@ export function tauriBridge(): Bridge {
     moduleUrl: (id, file) => `notchmod://localhost/${id}/${file}`,
     moduleSandbox: 'allow-scripts',
     openSettings: () => invoke('open_settings'),
+    // Sent to the overlay on the screen under the cursor only.
+    onNotice: cb => syncUnlisten(win.listen<Notice>('notching://notice', e => cb(e.payload))),
+    clearMissed: () => invoke('clear_missed'),
   };
 }

@@ -1,4 +1,4 @@
-import type { Bridge } from './bridge';
+import type { Bridge, Notice } from './bridge';
 import { fakeHome } from './bridge-browser-home';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
@@ -12,10 +12,17 @@ interface ManifestJson {
   icon: string;
   card: { width: number; height: number };
   capabilities: string[];
+  notifications?: { id: string; on: boolean; sound: boolean }[];
+}
+
+interface LocaleJson {
+  name?: string;
+  description?: string;
+  channels?: Record<string, string>;
 }
 
 const manifests = import.meta.glob<ManifestJson>('../modules/*/manifest.json', { eager: true, import: 'default' });
-const locales = import.meta.glob<Record<string, string>>('../modules/*/locales/*.json', { eager: true, import: 'default' });
+const locales = import.meta.glob<LocaleJson>('../modules/*/locales/*.json', { eager: true, import: 'default' });
 const icons = import.meta.glob<string>('../modules/*/icon.svg', { query: '?raw', eager: true, import: 'default' });
 const manifestOf = (id: string) => manifests[`../modules/${id}/manifest.json`];
 
@@ -30,6 +37,7 @@ export function catalog(lang: Lang, off: string[]): ModuleInfo[] {
       id, name: t.name ?? id, description: t.description ?? '', version: m.version, entry: m.entry, icon: m.icon,
       card: m.card, installed: true, enabled: !off.includes(id),
       size: FAKE_SIZE, iconSvg: icons[`../modules/${id}/${m.icon}`] ?? '',
+      channels: (m.notifications ?? []).map(c => ({ ...c, name: t.channels?.[c.id] ?? c.id })),
     };
   });
 }
@@ -44,9 +52,10 @@ function fakeStats() {
 
 // Stand-in for the native side in a normal browser (`npm run dev`).
 // `?notch=1` fakes a 164 × 32 notch, `?lang=en` switches to English and
-// `?off=home,system-stat` switches modules off; Beranda's own switches are in
-// bridge-browser-home.ts. Pointer and clicks come from
-// localPointer().
+// `?off=home,system-stat` switches modules off, `?notice=1` sends a sample notice
+// a second after loading (the n key sends another) and `?missed=home` starts with
+// a missed dot; Beranda's own switches are in bridge-browser-home.ts. Pointer and
+// clicks come from localPointer().
 export function browserBridge(root: HTMLElement): Bridge {
   const doc = root.ownerDocument;
   const params = new URLSearchParams(doc.defaultView?.location.search ?? '');
@@ -56,10 +65,20 @@ export function browserBridge(root: HTMLElement): Bridge {
     modules: catalog(params.get('lang') === 'en' ? 'en' : 'id', (params.get('off') ?? '').split(',')),
     lastCard: null,
     notch: DEFAULT_CONFIG,
+    notifications: { glow: true, seconds: 3.5 },
+    missed: (params.get('missed') ?? '').split(',').filter(Boolean),
   };
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);
   const stateSubs = new Set<(s: ModuleState) => void>();
+  const noticeSubs = new Set<(n: Notice) => void>();
+  const sample = () => noticeSubs.forEach(cb => cb({
+    moduleId: 'home', title: 'Kirim invoice', detail: '14.00', glow: state.notifications.glow, seconds: 3.5,
+  }));
+  if (params.get('notice') === '1') {
+    doc.defaultView?.setTimeout(sample, 1000);
+    doc.addEventListener('keydown', e => { if (e.key === 'n') sample(); });
+  }
 
   return {
     screenInfo: async () => ({ label: 'browser', hasNotch, notchWidth: hasNotch ? 164 : 0, notchHeight: hasNotch ? 32 : 0 }),
@@ -88,5 +107,10 @@ export function browserBridge(root: HTMLElement): Bridge {
     // module's scripts from the Vite server are blocked by CORS.
     moduleSandbox: 'allow-scripts allow-same-origin',
     openSettings: async () => void doc.defaultView?.open(`/settings.html${doc.defaultView.location.search}`, 'notching-settings'),
+    onNotice: cb => { noticeSubs.add(cb); return () => noticeSubs.delete(cb); },
+    clearMissed: async () => {
+      state = { ...state, missed: [] };
+      stateSubs.forEach(cb => cb(state));
+    },
   };
 }

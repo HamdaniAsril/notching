@@ -1,4 +1,4 @@
-import type { Bridge } from './bridge';
+import type { Bridge, Notice } from './bridge';
 import { hostStrings } from './i18n';
 import { activeModules, EMPTY_CARD, pickCard } from './modules/cards';
 import { mountFrameHost } from './modules/frame';
@@ -7,6 +7,9 @@ import { clampConfig, type NotchConfig } from './notch/config';
 import { connect } from './notch/connect';
 import { NotchController, type Phase } from './notch/controller';
 import { mountNotch, type NotchView } from './notch/view';
+
+// Notices that arrive while the panel is open wait; past this many, the oldest go.
+export const NOTICE_QUEUE_MAX = 5;
 
 export interface AppEnv {
   raf: (cb: (now: number) => void) => number;
@@ -28,6 +31,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   let strings = hostStrings(state.lang);
   let card: ModuleInfo | null = pickCard(state, null, false);
   let lastPhase: Phase = 'idle';
+  const queue: Notice[] = [];
+  let showing: Notice | null = null;
   doc.documentElement.lang = state.lang;
 
   const controller = new NotchController({
@@ -62,14 +67,56 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   // The module frame lives only while the panel is up.
   function onPhase(phase: Phase): void {
     wiring.onPhase(phase);
-    if (phase === 'open') frames.show(card, state.lang, strings);
-    else if (lastPhase === 'closing' && (phase === 'idle' || phase === 'hover')) frames.clear();
+    if (phase === 'open') {
+      // A notice clicked open shows its own module's card.
+      const from = showing && activeModules(state).find(m => m.id === showing?.moduleId);
+      if (from && from.id !== card?.id) {
+        useCard(from);
+        renderPill();
+        void bridge.setLastCard(from.id);
+      }
+      frames.show(card, state.lang, strings);
+      endNotice();
+      if (state.missed.length > 0) void bridge.clearMissed();
+    } else if (lastPhase === 'closing' && (phase === 'idle' || phase === 'hover')) {
+      frames.clear();
+      endNotice();
+      pump();
+    }
     lastPhase = phase;
   }
 
+  function endNotice(): void {
+    showing = null;
+    view.setNotice(null);
+  }
+
+  // Shows the next waiting notice, once the notch is at rest.
+  function pump(): void {
+    const phase = controller.phase;
+    if (showing || queue.length === 0 || (phase !== 'idle' && phase !== 'hover')) return;
+    const next = queue.shift()!;
+    showing = next;
+    const from = activeModules(state).find(m => m.id === next.moduleId);
+    view.setNotice({
+      icon: from ? bridge.moduleUrl(from.id, from.icon) : null, title: next.title, detail: next.detail, glow: next.glow,
+    });
+    controller.notify(next.seconds * 1000);
+    view.kick();
+  }
+
+  const offNotice = bridge.onNotice(n => {
+    queue.push(n);
+    if (queue.length > NOTICE_QUEUE_MAX) queue.shift();
+    pump();
+  });
+
   function renderPill(): void {
-    const items = activeModules(state).map(m => ({ id: m.id, label: m.name, icon: bridge.moduleUrl(m.id, m.icon) }));
+    const items = activeModules(state).map(m => ({
+      id: m.id, label: m.name, icon: bridge.moduleUrl(m.id, m.icon), missed: state.missed.includes(m.id),
+    }));
     view.setPill(items, card?.id ?? null, strings.settings);
+    view.setMissed(state.missed.length > 0);
   }
 
   function useCard(next: ModuleInfo | null): void {
@@ -131,6 +178,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     destroy(): void {
       doc.removeEventListener('visibilitychange', onVisibility);
       offState();
+      offNotice();
       frames.destroy();
       view.destroy();
       wiring.dispose();

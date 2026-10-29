@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test, vi } from 'vitest';
 import { type App, startApp } from './app';
+import type { Notice } from './bridge';
 import type { ModuleState } from './modules/types';
 import { DEFAULT_CONFIG } from './notch/config';
 import { fakeBridge, fakeRaf, moduleInfo, TEST_STATE, timers } from './notch/test-helpers';
@@ -139,3 +140,87 @@ test('a new look from settings reaches the notch, clamped', async () => {
   bridge.emitModuleState({ ...TEST_STATE, notch: { ...DEFAULT_CONFIG, thickness: 10, bounce: 400 } });
   expect(app.controller.config).toEqual({ ...DEFAULT_CONFIG, thickness: 10, bounce: 100 });
 });
+
+const notice = (title: string, moduleId: string | null = 'home'): Notice =>
+  ({ moduleId, title, detail: '14.00', glow: true, seconds: 3.5 });
+const earText = (root: HTMLElement) => root.querySelector('.ear.r')!.textContent;
+
+test('a notice shows on this notch', async () => {
+  const { root, app, bridge, r } = await start();
+  bridge.emitNotice(notice('Kirim invoice'));
+  r.runAll(120);
+  expect(app.controller.phase).toBe('notify');
+  expect(earText(root)).toContain('Kirim invoice');
+  expect(root.querySelector<HTMLElement>('.ear.l .glyph')!.style.getPropertyValue('--icon')).toContain('mod://home/icon.svg');
+});
+
+test('a notice waits while the panel is open', async () => {
+  const { app, bridge, r } = await start();
+  open(app, r);
+  bridge.emitNotice(notice('Kirim invoice'));
+  expect(app.controller.phase).toBe('open');
+  app.controller.escape();
+  app.view.kick();
+  r.runAll(600);
+  expect(app.controller.phase).toBe('notify');
+});
+
+test('several notices take turns', async () => {
+  const { root, bridge, r } = await start();
+  bridge.emitNotice(notice('Satu'));
+  bridge.emitNotice(notice('Dua'));
+  r.runAll(60);
+  expect(earText(root)).toContain('Satu');
+  timers.advance(3640);
+  r.runAll(600);
+  expect(earText(root)).toContain('Dua');
+});
+
+test('clicking a notice opens its module card', async () => {
+  const { app, bridge, r, frame } = await start({ ...TEST_STATE, lastCard: 'system-stat' });
+  bridge.emitNotice(notice('Kirim invoice'));
+  r.runAll(30);
+  app.controller.click();
+  app.view.kick();
+  r.runAll(600);
+  timers.advance(1000);
+  expect(frame()!.getAttribute('src')).toContain('home');
+  expect(bridge.setLastCard).toHaveBeenCalledWith('home');
+});
+
+test('a notice from a module that is off opens the usual card', async () => {
+  const off = { ...TEST_STATE, lastCard: 'system-stat',
+    modules: [moduleInfo('home', { enabled: false }), moduleInfo('system-stat')] };
+  const { root, app, bridge, r, frame } = await start(off);
+  bridge.emitNotice(notice('Kirim invoice'));
+  r.runAll(30);
+  expect(earText(root)).toContain('Kirim invoice');
+  expect(root.querySelector('.ear.l .glyph')).toBeNull();
+  app.controller.click();
+  app.view.kick();
+  r.runAll(600);
+  expect(frame()!.getAttribute('src')).toContain('system-stat');
+});
+
+test('opening the panel clears the missed dots', async () => {
+  const { root, app, bridge, r } = await start({ ...TEST_STATE, missed: ['home'] });
+  expect(root.querySelector('.notch-pill .ic[data-id="home"].missed')).not.toBeNull();
+  open(app, r);
+  expect(bridge.clearMissed).toHaveBeenCalledTimes(1);
+});
+
+test('the queue keeps the five newest', async () => {
+  const { root, app, bridge, r } = await start();
+  open(app, r);
+  for (let i = 1; i <= 7; i++) bridge.emitNotice(notice(String(i)));
+  app.controller.escape();
+  app.view.kick();
+  const seen: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    r.runAll(600);
+    seen.push(root.querySelector('.ear.r .t1')!.textContent!);
+    timers.advance(3640);
+  }
+  expect(seen).toEqual(['3', '4', '5', '6', '7']);
+});
+

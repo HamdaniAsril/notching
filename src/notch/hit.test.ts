@@ -45,3 +45,10 @@ test('containsPoint uses half-open edges', () => {
   expect(containsPoint(r, 0, 0)).toBe(true);
   expect(containsPoint(r, 10, 5)).toBe(false);
 });
+
+test('a notice catches clicks on its ears', () => {
+  const c = ctl({ width: 190, height: 32 });
+  c.notify(3500);
+  expect(hitRects(c, null)).toEqual([{ x: 320 - 245 - 12, y: 0, w: 490 + 24, h: 36 }]);
+});
+
