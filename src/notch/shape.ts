@@ -62,6 +62,18 @@ export function notchPath(notch: NotchSize, m: Liquid): string {
   return d + ` Q ${q(hw)} ${q(NH)} ${q(hw)} ${q(NH - NR)} L ${q(hw)} ${q(fl)} Q ${q(hw)} 0 ${q(hw + fl)} 0 Z`;
 }
 
+// The notch widened to the left by `ext` px, drawn over its left side with the
+// same shoulder and corner, for the missed-notice dot to sit in.
+export function notchTabPath(notch: NotchSize, ext: number): string {
+  const hw = notch.width / 2;
+  const NH = notch.height;
+  const fl = 6;
+  const NR = 10;
+  const x0 = -hw - ext;
+  return `M ${q(x0 - fl)} 0 Q ${q(x0)} 0 ${q(x0)} ${q(fl)} L ${q(x0)} ${q(NH - NR)} Q ${q(x0)} ${q(NH)} ${q(x0 + NR)} ${q(NH)}`
+    + ` L ${q(-hw + NR)} ${q(NH)} L ${q(-hw + NR)} 0 Z`;
+}
+
 export interface FadeStop {
   offset: number;
   opacity: number;

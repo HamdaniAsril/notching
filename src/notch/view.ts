@@ -1,6 +1,6 @@
 import { EAR_W, NOTICE_PILL, type NotchController, type Phase } from './controller';
 import { containsPoint, OVERLAY_SIZE, type Rect, hitRects } from './hit';
-import { lensPath, notchPath, panelFade, panelPath } from './shape';
+import { lensPath, notchPath, notchTabPath, panelFade, panelPath } from './shape';
 
 export interface ViewDeps {
   raf: (cb: (now: number) => void) => number;
@@ -50,6 +50,9 @@ const PANEL_FADE_FROM = 0.15;
 const PANEL_FADE_TO = 0.75;
 
 const BELL_ICON = ICON('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>');
+
+// How far the notch widens to the left to hold the missed-notice dot.
+const MISSED_TAB = 20;
 
 // The G2 glow from notif-v1.html: a gradient running round the notice's rim.
 const GLOW_STOPS = ['#ff6ec4', '#7873f5', '#4adede', '#ffd166'];
@@ -107,19 +110,21 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   defs.append(fade, gradient, blur);
   const glow = doc.createElementNS(SVG_NS, 'g');
   glow.setAttribute('class', 'notice-glow');
+  // A missed notice: the accent red dot (spec 5), inside the notch widened to the
+  // left, or under the lens on a screen without a notch.
   const dot = doc.createElementNS(SVG_NS, 'circle');
   dot.setAttribute('class', 'missed-dot');
-  // Black with a white rim, so it shows on a light or a dark menu bar: beside the
-  // notch's left edge, or under the lens on a screen without one.
-  dot.setAttribute('r', '2.5');
-  dot.setAttribute('cx', String(notch ? -notch.width / 2 - 8 : 0));
-  dot.setAttribute('fill', '#000');
-  dot.setAttribute('stroke', '#fff');
-  dot.setAttribute('stroke-width', '1');
+  dot.setAttribute('r', '3');
+  dot.setAttribute('cx', String(notch ? -notch.width / 2 - MISSED_TAB / 2 + 2 : 0));
+  dot.setAttribute('fill', '#E8262E');
   dot.setAttribute('display', 'none');
+  const tab = doc.createElementNS(SVG_NS, 'path');
+  tab.setAttribute('class', 'missed-tab');
+  tab.setAttribute('display', 'none');
+  if (notch) tab.setAttribute('d', notchTabPath(notch, MISSED_TAB));
   // Same stacking as the mockups: the lens under the panel, the physical notch over
   // it; the glow just under the panel, so only its rim shows.
-  if (notch) svg.append(defs, glow, panel, liquid, dot);
+  if (notch) svg.append(defs, glow, panel, liquid, tab, dot);
   else svg.append(defs, liquid, glow, panel, dot);
 
   // Styles are set through CSSOM only, never as style="" markup, so the page's CSP
@@ -213,9 +218,10 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   }
 
   function drawDot(): void {
-    const show = missed && c.phase === 'idle';
-    dot.setAttribute('display', show ? 'inline' : 'none');
-    dot.setAttribute('cy', String(notch ? notch.height / 2 : c.config.thickness + 4));
+    const show = missed && c.phase === 'idle' ? 'inline' : 'none';
+    dot.setAttribute('display', show);
+    tab.setAttribute('display', show);
+    dot.setAttribute('cy', String(notch ? notch.height / 2 : c.config.thickness + 5));
   }
 
   function setPill(items: PillItem[], active: string | null, moreLabel: string): void {

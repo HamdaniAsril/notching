@@ -213,17 +213,29 @@ test('the missed dot shows only while idle', () => {
   expect(dot.getAttribute('display')).toBe('none');
 });
 
-test('the missed dot sits left of a notch, or under the lens, black with a white rim', () => {
+test('the missed dot is red, inside the notch widened to the left, or under the lens', () => {
+  const r = fakeRaf();
   const beside = document.createElement('div');
-  mountNotch(beside, ctl({ width: 190, height: 32 }), deps(fakeRaf())).setMissed(true);
+  const c = ctl({ width: 190, height: 32 });
+  const v = mountNotch(beside, c, deps(r));
+  const tab = beside.querySelector('.missed-tab')!;
+  expect(tab.getAttribute('display')).toBe('none');
+  v.setMissed(true);
   const a = beside.querySelector('.missed-dot')!;
-  expect([a.getAttribute('cx'), a.getAttribute('cy')]).toEqual([String(-95 - 8), '16']);
+  expect([a.getAttribute('cx'), a.getAttribute('cy'), a.getAttribute('r')]).toEqual([String(-95 - 8), '16', '3']);
+  expect(tab.getAttribute('display')).toBe('inline');
+  expect(tab.getAttribute('d')).toMatch(/^M -121.00 0 /);
+  c.click();
+  v.kick();
+  r.runAll(1);
+  expect(tab.getAttribute('display')).toBe('none');
   const under = document.createElement('div');
   mountNotch(under, ctl(null), deps(fakeRaf())).setMissed(true);
   const b = under.querySelector('.missed-dot')!;
-  expect([b.getAttribute('cx'), b.getAttribute('cy')]).toEqual(['0', '8']);
+  expect([b.getAttribute('cx'), b.getAttribute('cy')]).toEqual(['0', '9']);
+  expect(under.querySelector('.missed-tab')).toBeNull();
   for (const d of [a, b]) {
-    expect([d.getAttribute('fill'), d.getAttribute('stroke'), d.getAttribute('stroke-width')]).toEqual(['#000', '#fff', '1']);
+    expect([d.getAttribute('fill'), d.getAttribute('stroke')]).toEqual(['#E8262E', null]);
   }
 });
 
