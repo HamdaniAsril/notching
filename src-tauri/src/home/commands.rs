@@ -36,10 +36,3 @@ pub fn set_prayer_method(app: AppHandle, core: State<CoreState>, method: PrayerM
     super::schedule::poke(&app);
     Ok(())
 }
-
-#[tauri::command]
-pub fn set_show_clock(app: AppHandle, core: State<CoreState>, on: bool) -> Result<(), String> {
-    change(&app, &core, |c| c.set_show_clock(on))?;
-    emit_settings(&app);
-    Ok(())
-}

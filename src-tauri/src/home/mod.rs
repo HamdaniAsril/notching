@@ -74,7 +74,7 @@ pub fn snapshot(settings: &HomeSettings, home: &mut Home, now: chrono::DateTime<
         weather: place.as_ref().and_then(|p| home.weather.clone().filter(|w| same_place(w, p))),
         prayer: place.as_ref().and_then(|p| prayer_day(now.timestamp_millis(), today, p, settings.prayer_method)),
         reminders: home.reminders.items().to_vec(),
-        show_clock: settings.show_clock,
+        show_clock: true,
         statuses: Vec::new(),
         place,
     }

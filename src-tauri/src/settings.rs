@@ -2,6 +2,9 @@
 
 use std::path::Path;
 
+use crate::modules::manifest::is_module_id;
+use crate::pages::{beranda, is_route, repair, Page, HOME_PAGE, MODULE_PAGE_PREFIX};
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LanguageSetting {
@@ -107,13 +110,11 @@ pub struct HomeSettings {
     pub place: Option<Place>,
     #[serde(deserialize_with = "lenient")]
     pub prayer_method: PrayerMethod,
-    #[serde(deserialize_with = "lenient_true")]
-    pub show_clock: bool,
 }
 
 impl Default for HomeSettings {
     fn default() -> Self {
-        HomeSettings { place: None, prayer_method: PrayerMethod::Kemenag, show_clock: true }
+        HomeSettings { place: None, prayer_method: PrayerMethod::Kemenag }
     }
 }
 
@@ -160,8 +161,6 @@ pub struct Settings {
     #[serde(deserialize_with = "lenient")]
     pub language: LanguageSetting,
     #[serde(deserialize_with = "lenient")]
-    pub last_card: Option<String>,
-    #[serde(deserialize_with = "lenient")]
     pub disabled_modules: Vec<String>,
     #[serde(deserialize_with = "lenient")]
     pub uninstalled_modules: Vec<String>,
@@ -174,20 +173,27 @@ pub struct Settings {
     pub home: HomeSettings,
     #[serde(deserialize_with = "lenient")]
     pub notifications: NotificationSettings,
+    /// Beranda first, then the custom pages, in pill order.
+    #[serde(deserialize_with = "lenient_pages")]
+    pub pages: Vec<Page>,
+    /// What the panel opens: a page id, "modules", or "module:<id>".
+    #[serde(deserialize_with = "lenient")]
+    pub last_page: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            version: 1,
+            version: SETTINGS_VERSION,
             language: LanguageSetting::Auto,
-            last_card: None,
             disabled_modules: Vec::new(),
             uninstalled_modules: Vec::new(),
             notch: NotchConfig::default(),
             screen: None,
             home: HomeSettings::default(),
             notifications: NotificationSettings::default(),
+            pages: vec![beranda()],
+            last_page: None,
         }
     }
 }
@@ -220,29 +226,76 @@ fn lenient_seconds<'de, D: serde::Deserializer<'de>>(d: D) -> Result<f64, D::Err
     lenient_or(d, NOTICE_SECONDS).map(clamp_seconds)
 }
 
+fn lenient_pages<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<Page>, D::Error> {
+    lenient_or(d, vec![beranda()])
+}
+
 // The version's default is not its type's default either.
 fn lenient_version<'de, D: serde::Deserializer<'de>>(d: D) -> Result<u32, D::Error> {
     lenient_or(d, Settings::default().version)
 }
 
 pub const SETTINGS_FILE: &str = "settings.json";
+/// 2: pages and the last page (plan 5) replace the last card and the clock switch.
+pub const SETTINGS_VERSION: u32 = 2;
 
 /// Missing file: defaults. Unreadable or broken file: kept aside as
-/// settings.json.broken, then defaults, so a bad file never stops the app.
+/// settings.json.broken, then defaults, so a bad file never stops the app. A
+/// version 1 file is moved over once, its text kept as settings.json.v1.
 pub fn load_settings(path: &Path) -> Settings {
     let text = match std::fs::read_to_string(path) {
         Ok(text) => text,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Settings::default(),
         Err(e) => return keep_aside(path, &e.to_string()),
     };
-    match serde_json::from_str::<Settings>(&text) {
-        Ok(mut settings) => {
-            settings.notch = settings.notch.clamped();
-            settings.home.place = settings.home.place.filter(Place::is_valid);
-            settings
-        }
-        Err(e) => keep_aside(path, &e.to_string()),
+    let parsed = serde_json::from_str::<serde_json::Value>(&text)
+        .and_then(|raw| serde_json::from_value::<Settings>(raw.clone()).map(|s| (raw, s)));
+    let (raw, mut settings) = match parsed {
+        Ok(both) => both,
+        Err(e) => return keep_aside(path, &e.to_string()),
+    };
+    settings.notch = settings.notch.clamped();
+    settings.home.place = settings.home.place.filter(Place::is_valid);
+    let old = raw.get("version").and_then(serde_json::Value::as_u64).unwrap_or(1) < u64::from(SETTINGS_VERSION);
+    if old {
+        migrate_v1(&raw, &mut settings);
     }
+    settings.pages = repair(std::mem::take(&mut settings.pages));
+    settings.last_page = settings.last_page.filter(|r| is_route(&settings.pages, r));
+    if old {
+        let v1 = path.with_extension("json.v1");
+        if !v1.exists() {
+            if let Err(e) = std::fs::write(&v1, &text) {
+                eprintln!("notching: keeping the old settings failed: {e}");
+            }
+        }
+        if let Err(e) = save_settings(path, &settings) {
+            eprintln!("notching: saving the moved settings failed: {e}");
+        }
+    }
+    settings
+}
+
+/// Plan 4's settings to plan 5's: Beranda becomes a page of widgets (empty if
+/// the old Beranda module was off), the last card becomes the last page, and the
+/// widget package can no longer be off.
+pub fn migrate_v1(raw: &serde_json::Value, settings: &mut Settings) {
+    let listed = |key: &str| {
+        raw.get(key).and_then(serde_json::Value::as_array).is_some_and(|a| a.iter().any(|v| v == HOME_PAGE))
+    };
+    let mut home = beranda();
+    if listed("disabledModules") || listed("uninstalledModules") {
+        home.widgets.clear();
+    }
+    settings.pages = vec![home];
+    settings.last_page = match raw.get("lastCard").and_then(serde_json::Value::as_str) {
+        Some(HOME_PAGE) => Some(HOME_PAGE.into()),
+        Some(id) if is_module_id(id) => Some(format!("{MODULE_PAGE_PREFIX}{id}")),
+        _ => None,
+    };
+    settings.disabled_modules.retain(|m| m != HOME_PAGE);
+    settings.uninstalled_modules.retain(|m| m != HOME_PAGE);
+    settings.version = SETTINGS_VERSION;
 }
 
 fn keep_aside(path: &Path, why: &str) -> Settings {
@@ -272,7 +325,7 @@ mod tests {
     fn a_missing_file_gives_the_defaults() {
         let d = tempfile::tempdir().unwrap();
         assert_eq!(load_settings(&d.path().join(SETTINGS_FILE)), Settings::default());
-        assert_eq!(Settings::default().version, 1);
+        assert!(!d.path().join("settings.json.v1").exists());
     }
 
     #[test]
@@ -281,8 +334,8 @@ mod tests {
         let p = d.path().join(SETTINGS_FILE);
         let s = Settings {
             language: LanguageSetting::En,
-            last_card: Some("system-stat".into()),
-            disabled_modules: vec!["home".into()],
+            last_page: Some("module:system-stat".into()),
+            disabled_modules: vec!["system-stat".into()],
             ..Default::default()
         };
         save_settings(&p, &s).unwrap();
@@ -319,11 +372,12 @@ mod tests {
     fn an_unknown_value_keeps_the_rest() {
         let d = tempfile::tempdir().unwrap();
         let p = d.path().join(SETTINGS_FILE);
-        std::fs::write(&p, r#"{"language":"ja","lastCard":"system-stat","disabledModules":["home"]}"#).unwrap();
+        std::fs::write(&p, r#"{"version":2,"language":"ja","lastPage":"modules","disabledModules":["system-stat"]}"#)
+            .unwrap();
         let s = load_settings(&p);
         assert_eq!(s.language, LanguageSetting::Auto);
-        assert_eq!(s.last_card, Some("system-stat".into()));
-        assert_eq!(s.disabled_modules, vec!["home".to_string()]);
+        assert_eq!(s.last_page, Some("modules".into()));
+        assert_eq!(s.disabled_modules, vec!["system-stat".to_string()]);
         assert!(!d.path().join("settings.json.broken").exists());
     }
 
@@ -351,13 +405,14 @@ mod tests {
         let p = d.path().join(SETTINGS_FILE);
         std::fs::write(
             &p,
-            r#"{"language":"en","lastCard":"system-stat","notch":{"bounce":"x","speed":150},
-                "disabledModules":"home","screen":5}"#,
+            r#"{"version":2,"language":"en","lastPage":"modules","notch":{"bounce":"x","speed":150},
+                "disabledModules":"home","screen":5,"pages":"x"}"#,
         )
         .unwrap();
         let s = load_settings(&p);
         assert_eq!(s.language, LanguageSetting::En);
-        assert_eq!(s.last_card, Some("system-stat".into()));
+        assert_eq!(s.last_page, Some("modules".into()));
+        assert_eq!(s.pages, [beranda()]);
         assert_eq!((s.notch.bounce, s.notch.speed), (100.0, 150.0));
         assert!(s.disabled_modules.is_empty());
         assert_eq!(s.screen, None);
@@ -391,10 +446,9 @@ mod tests {
 
     #[test]
     fn home_defaults() {
-        assert_eq!(
-            Settings::default().home,
-            HomeSettings { place: None, prayer_method: PrayerMethod::Kemenag, show_clock: true }
-        );
+        assert_eq!(Settings::default().home, HomeSettings { place: None, prayer_method: PrayerMethod::Kemenag });
+        assert_eq!(Settings::default().pages, [beranda()]);
+        assert_eq!(Settings::default().version, 2);
     }
 
     #[test]
@@ -402,7 +456,7 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
         let p = d.path().join(SETTINGS_FILE);
         let s = Settings {
-            home: HomeSettings { place: Some(jakarta()), prayer_method: PrayerMethod::Karachi, show_clock: false },
+            home: HomeSettings { place: Some(jakarta()), prayer_method: PrayerMethod::Karachi },
             ..Default::default()
         };
         save_settings(&p, &s).unwrap();
@@ -415,12 +469,94 @@ mod tests {
         let p = d.path().join(SETTINGS_FILE);
         std::fs::write(
             &p,
-            r#"{"home":{"prayerMethod":"jafari",
+            r#"{"version":2,"home":{"prayerMethod":"jafari",
                 "place":{"name":"X","region":"","country":"","latitude":200,"longitude":0},"showClock":"no"}}"#,
         )
         .unwrap();
         assert_eq!(load_settings(&p).home, HomeSettings::default());
         assert!(!d.path().join("settings.json.broken").exists());
+    }
+
+    fn plan_4_file(d: &tempfile::TempDir, json: &str) -> Settings {
+        let p = d.path().join(SETTINGS_FILE);
+        std::fs::write(&p, json).unwrap();
+        load_settings(&p)
+    }
+
+    const PLAN_4: &str = r#"{"version":1,"language":"en","lastCard":"system-stat","disabledModules":[],
+      "uninstalledModules":[],"screen":"DELL","notch":{"bounce":80,"speed":150,"dropDepth":9,"thickness":4},
+      "home":{"place":{"name":"Bandung","region":"Jawa Barat","country":"Indonesia","latitude":-6.9,"longitude":107.6},
+              "prayerMethod":"karachi","showClock":false},
+      "notifications":{"glow":false,"seconds":5,"channels":{"home.prayer":{"on":true,"sound":false}}}}"#;
+
+    #[test]
+    fn a_plan_4_file_moves_to_pages_and_keeps_everything() {
+        let d = tempfile::tempdir().unwrap();
+        let s = plan_4_file(&d, PLAN_4);
+        assert_eq!(s.version, 2);
+        assert_eq!(s.pages, [beranda()]);
+        assert_eq!(s.last_page, Some("module:system-stat".into()));
+        assert_eq!((s.language, s.screen.as_deref()), (LanguageSetting::En, Some("DELL")));
+        assert_eq!(s.notch.bounce, 80.0);
+        assert_eq!(s.home.place.as_ref().map(|p| p.name.as_str()), Some("Bandung"));
+        assert_eq!(s.home.prayer_method, PrayerMethod::Karachi);
+        assert!(s.notifications.channels["home.prayer"].on);
+        assert!(!s.notifications.glow);
+        assert_eq!(s.notifications.seconds, 5.0);
+    }
+
+    #[test]
+    fn a_switched_off_beranda_starts_empty() {
+        let d = tempfile::tempdir().unwrap();
+        let s = plan_4_file(&d, r#"{"version":1,"disabledModules":["home","system-stat"]}"#);
+        assert!(s.pages[0].widgets.is_empty());
+        assert_eq!(s.pages[0].id, "home");
+        assert_eq!(s.disabled_modules, ["system-stat"]);
+    }
+
+    #[test]
+    fn an_uninstalled_beranda_starts_empty_too() {
+        let d = tempfile::tempdir().unwrap();
+        let s = plan_4_file(&d, r#"{"version":1,"uninstalledModules":["home"]}"#);
+        assert!(s.pages[0].widgets.is_empty());
+        assert!(s.uninstalled_modules.is_empty());
+    }
+
+    #[test]
+    fn last_card_home_becomes_beranda() {
+        let d = tempfile::tempdir().unwrap();
+        assert_eq!(plan_4_file(&d, r#"{"version":1,"lastCard":"home"}"#).last_page, Some("home".into()));
+        let d = tempfile::tempdir().unwrap();
+        assert_eq!(plan_4_file(&d, r#"{"version":1,"lastCard":5}"#).last_page, None);
+    }
+
+    #[test]
+    fn migration_runs_once_and_keeps_the_old_file() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        let v1 = d.path().join("settings.json.v1");
+        let mut s = plan_4_file(&d, PLAN_4);
+        assert_eq!(std::fs::read_to_string(&v1).unwrap(), PLAN_4);
+        assert!(std::fs::read_to_string(&p).unwrap().contains("\"version\": 2"));
+        s.pages[0].widgets.clear();
+        save_settings(&p, &s).unwrap();
+        let again = load_settings(&p);
+        assert!(again.pages[0].widgets.is_empty());
+        assert_eq!(std::fs::read_to_string(&v1).unwrap(), PLAN_4);
+    }
+
+    #[test]
+    fn a_file_without_a_version_is_version_1() {
+        let d = tempfile::tempdir().unwrap();
+        let s = plan_4_file(&d, r#"{"lastCard":"home"}"#);
+        assert_eq!(s.last_page, Some("home".into()));
+        assert!(d.path().join("settings.json.v1").exists());
+    }
+
+    #[test]
+    fn a_bad_last_page_is_dropped() {
+        let d = tempfile::tempdir().unwrap();
+        assert_eq!(plan_4_file(&d, r#"{"version":2,"lastPage":"p7"}"#).last_page, None);
     }
 
     #[test]

@@ -139,7 +139,8 @@ impl AppCore {
                         .collect(),
                 })
                 .collect(),
-            last_card: self.settings.last_card.clone(),
+            // Until the notch knows pages (Task 6): a module page reads as its card.
+            last_card: self.settings.last_page.as_deref().map(|p| p.strip_prefix("module:").unwrap_or(p).to_string()),
             notch: self.settings.notch,
             notifications: self.notice_look(),
             missed: self.missed.clone(),
@@ -256,16 +257,11 @@ impl AppCore {
         self.save()
     }
 
-    pub fn set_show_clock(&mut self, on: bool) -> Result<(), CoreError> {
-        self.settings.home.show_clock = on;
-        self.save()
-    }
-
     pub fn set_last_card(&mut self, id: &str) -> Result<(), CoreError> {
         if self.module(id).is_none() {
             return Err(CoreError::Store(StoreError::UnknownModule(id.to_string())));
         }
-        self.settings.last_card = Some(id.to_string());
+        self.settings.last_page = Some(if id == "home" { id.to_string() } else { format!("module:{id}") });
         self.save()
     }
 
@@ -410,8 +406,7 @@ mod tests {
         let mut core = open(&d, None);
         core.set_place(Some(jakarta())).unwrap();
         core.set_prayer_method(PrayerMethod::Karachi).unwrap();
-        core.set_show_clock(false).unwrap();
-        let want = HomeSettings { place: Some(jakarta()), prayer_method: PrayerMethod::Karachi, show_clock: false };
+        let want = HomeSettings { place: Some(jakarta()), prayer_method: PrayerMethod::Karachi };
         assert_eq!(core.home(), &want);
         assert_eq!(open(&d, None).home(), &want);
     }

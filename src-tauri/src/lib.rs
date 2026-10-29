@@ -4,6 +4,7 @@ mod home;
 mod locale;
 mod module_commands;
 mod modules;
+mod pages;
 mod settings;
 mod system_stats;
 
@@ -60,7 +61,6 @@ pub fn run() {
             home::commands::search_places,
             home::commands::set_place,
             home::commands::set_prayer_method,
-            home::commands::set_show_clock,
             notify::set_notice_glow,
             notify::set_notice_seconds,
             notify::set_channel,
