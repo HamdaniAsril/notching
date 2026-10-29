@@ -506,7 +506,7 @@ Run: `cargo test --manifest-path src-tauri/Cargo.toml` → PASS (+7)
   - `src-tauri/src/home/mod.rs`: `Home`, `HomeState`, `HomeSnapshot`, `snapshot`, dan `refresh_weather`.
   - `src-tauri/src/settings_window.rs`: `SettingsDto.home`.
   - `src-tauri/src/lib.rs`: `HomeState` dikelola dan perintah baru didaftarkan.
-  - `modules/home/manifest.json`: `"card": { "width": 540, "height": 148 }` dan `"capabilities": ["home.data", "reminders"]`.
+  - `modules/home/manifest.json`: `"card": { "width": 540, "height": 156 }` dan `"capabilities": ["home.data", "reminders"]`.
 - Test: di dalam `gate.rs` dan `home/mod.rs`
 
 **Interfaces:**
@@ -617,7 +617,7 @@ Run: `cargo test --manifest-path src-tauri/Cargo.toml && npx tsc --noEmit && npm
   - `modules/home/main.ts`, `modules/home/style.css`, `modules/home/locales/id.json`, `modules/home/locales/en.json`
   - `src/kit/dots.ts`: huruf `-`.
   - `src/bridge-browser.ts`: `moduleCall` meneruskan `home.data` dan `reminders` ke `fakeHomeCall`.
-  - `src/notch/test-helpers.ts`: `MODULE_CARDS.home = { width: 540, height: 148 }`.
+  - `src/notch/test-helpers.ts`: `MODULE_CARDS.home = { width: 540, height: 156 }`.
 - Test: `modules/home/format.test.ts`, `modules/home/card.test.ts`, `modules/home/ticks.test.ts`, `src/kit/dots.test.ts`
 
 **Interfaces:**
@@ -723,7 +723,7 @@ Pemilik meninjau teks ini di Task 6.
     - Satu `span` per status: `label` lalu `<b>value</b>`, keduanya lewat `textContent`.
     - `.clk` berisi `clock(now)` di kanan, hanya kalau `showClock`.
     - Baris ini tetap ada walau kosong, supaya tinggi kartu tidak berubah.
-  - Tinggi seluruh kartu 148 px, lebar mengikuti panel 540 px. Ukuran lain mengikuti CSS N2 di mockup.
+  - Tinggi seluruh kartu 156 px (kolom N2 setinggi 112 px), lebar mengikuti panel 540 px. Ukuran lain mengikuti CSS N2 di mockup.
 - **Daftar reminder** (`.list`), dibuka dengan klik atau Enter di kolom ketiga:
   - `.head`:
     - `.lab` "Reminder · n", dengan n = jumlah yang belum selesai,
