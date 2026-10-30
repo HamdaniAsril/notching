@@ -34,6 +34,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   let strings = hostStrings(state.lang);
   let page: PageView = pickPage(state, null, false);
   let lastPhase: Phase = 'idle';
+  let fullHeight: number | undefined; // what the open full view asked for
+
   const queue: Notice[] = [];
   let showing: Notice | null = null;
   doc.documentElement.lang = state.lang;
@@ -65,8 +67,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       controller.escape();
       view.kick();
     },
-    onExpand: key => pages.expand(key),
-    onCollapse: () => pages.collapse(),
+    onExpand: (key, height) => expand(key, height),
+    onCollapse: () => collapse(),
   }, doc);
   const pages = mountPageView(view.content, {
     frames,
@@ -100,6 +102,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       if (state.missed.length > 0) void bridge.clearMissed();
     } else if (lastPhase === 'closing' && (phase === 'idle' || phase === 'hover')) {
       pages.clear();
+      if (fullHeight !== undefined) usePage(page);
       endNotice();
       pump();
     }
@@ -143,13 +146,32 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
 
   function usePage(next: PageView): void {
     page = next;
+    fullHeight = undefined;
     controller.setCard(viewSize(next));
+  }
+
+  // A full view may ask for a taller page; the panel springs back when it ends.
+  function expand(key: string, height?: number): void {
+    const size = viewSize(page, height);
+    pages.expand(key, size.height);
+    if (pages.full !== key) return;
+    fullHeight = height;
+    controller.setCard(size);
+    view.kick();
+  }
+
+  function collapse(): void {
+    pages.collapse();
+    if (fullHeight === undefined) return;
+    fullHeight = undefined;
+    controller.setCard(viewSize(page));
+    view.kick();
   }
 
   // From the pill, a Modul tile or a back bar.
   function go(key: string): void {
     if (key === page.key) {
-      pages.collapse();
+      collapse();
       return;
     }
     const next = resolvePage(state, key);
@@ -175,7 +197,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     strings = hostStrings(next.lang);
     doc.documentElement.lang = next.lang;
     const picked = pickPage(next, page.key, isOpen());
-    const size = viewSize(picked);
+    const size = viewSize(picked, picked.key === page.key ? fullHeight : undefined);
     if (picked.key !== page.key || size.width !== controller.card.width || size.height !== controller.card.height) usePage(picked);
     else page = picked;
     // The page view keeps its frames when nothing it shows has changed.

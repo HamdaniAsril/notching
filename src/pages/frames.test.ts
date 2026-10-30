@@ -108,7 +108,9 @@ test('expand and collapse come only from a known frame', () => {
   expect(deps.onExpand).not.toHaveBeenCalled();
   say({ type: 'notching:expand' }, f.contentWindow);
   say({ type: 'notching:collapse' }, f.contentWindow);
-  expect(deps.onExpand).toHaveBeenCalledWith('home/2/home/reminders');
+  expect(deps.onExpand).toHaveBeenCalledWith('home/2/home/reminders', undefined);
+  say({ type: 'notching:expand', height: 193 }, f.contentWindow);
+  expect(deps.onExpand).toHaveBeenCalledWith('home/2/home/reminders', 193);
   expect(deps.onCollapse).toHaveBeenCalledWith('home/2/home/reminders');
 });
 

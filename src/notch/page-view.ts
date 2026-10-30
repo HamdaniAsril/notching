@@ -14,7 +14,7 @@ export interface PageViewDeps {
 export interface PageViewHost {
   show(v: PageView, s: ModuleState, strings: HostStrings): void;
   readonly full: string | null; // the frame covering the whole page, if any
-  expand(key: string): void;
+  expand(key: string, height?: number): void; // height: the page's, while it is full
   collapse(): void;
   clear(): void;
 }
@@ -24,6 +24,13 @@ function el<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, cls = 
   if (cls) e.className = cls;
   if (text) e.textContent = text;
   return e;
+}
+
+// The row and the full frame follow the page's height (route.ts viewSize).
+function setHeight(row: HTMLElement, slot: HTMLElement | undefined, height: number): void {
+  row.style.height = `${height}px`;
+  const frame = slot?.querySelector<HTMLElement>('iframe');
+  if (frame) frame.style.height = `${height}px`;
 }
 
 // What the open panel shows: a page's row of widgets, the Modul page's tiles,
@@ -110,18 +117,22 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
       content.replaceChildren(body);
     },
     get full() { return full; },
-    expand(key) {
+    expand(key, height = CUSTOM_PAGE.height) {
       if (!row || !slotKeys.includes(key) || full === key) return;
       if (full) this.collapse();
       full = key;
       row.classList.add('full');
-      [...row.querySelectorAll<HTMLElement>('.pg-slot')].find(x => x.dataset.key === key)?.classList.add('full');
+      const slot = [...row.querySelectorAll<HTMLElement>('.pg-slot')].find(x => x.dataset.key === key);
+      slot?.classList.add('full');
+      setHeight(row, slot, height);
       deps.frames.setFull(key, true);
     },
     collapse() {
       if (!row || !full) return;
       row.classList.remove('full');
-      row.querySelector('.pg-slot.full')?.classList.remove('full');
+      const slot = row.querySelector<HTMLElement>('.pg-slot.full');
+      slot?.classList.remove('full');
+      setHeight(row, slot ?? undefined, CUSTOM_PAGE.height);
       deps.frames.setFull(full, false);
       full = null;
     },

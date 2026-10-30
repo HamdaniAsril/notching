@@ -6,7 +6,7 @@ export interface Kit {
   readonly lang: Lang;
   readonly widget: string | null; // the widget this frame shows; null on a module page
   call<T>(capability: string, method: string, args?: unknown): Promise<T>;
-  expand(): void; // asks to cover the whole page
+  expand(height?: number): void; // asks to cover the whole page, made this tall if it can
   collapse(): void;
   onView(cb: (full: boolean) => void): void;
 }
@@ -32,7 +32,7 @@ export function connectKit(win: Window = window): Promise<Kit> {
           moduleId: msg.moduleId,
           lang: msg.lang,
           widget: msg.widget ?? null,
-          expand: () => post({ type: 'notching:expand' }),
+          expand: height => post(height === undefined ? { type: 'notching:expand' } : { type: 'notching:expand', height }),
           collapse: () => post({ type: 'notching:collapse' }),
           onView: cb => { views.push(cb); },
           call<T>(capability: string, method: string, args?: unknown): Promise<T> {

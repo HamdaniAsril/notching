@@ -57,6 +57,8 @@ test('clicking the widget asks to expand', () => {
   w.click();
   enter(w);
   expect(actions.expand).toHaveBeenCalledTimes(2);
+  // Room for six rows under the heading and the field.
+  expect(actions.expand).toHaveBeenCalledWith(193);
   expect(widget.full).toBe(false);
 });
 

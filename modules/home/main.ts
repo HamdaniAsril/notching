@@ -47,7 +47,7 @@ async function start(): Promise<void> {
           await kit.call('reminders', 'setDone', { id: reminder, done });
           await ticks?.refresh();
         },
-        expand: () => kit.expand(),
+        expand: height => kit.expand(height),
         collapse: () => kit.collapse(),
       });
       kit.onView(full => w.setFull(full));

@@ -42,6 +42,14 @@ test('sizes follow the kind of page', () => {
   expect(viewSize(resolvePage(state(), 'module:system-stat')!)).toEqual({ width: 400, height: 104 });
 });
 
+test('a full view may ask for a taller page, within limits', () => {
+  const home = pickPage(state(), null, false);
+  expect(viewSize(home, 193)).toEqual({ width: 520, height: 193 });
+  expect(viewSize(home, 999)).toEqual({ width: 520, height: 240 });
+  expect(viewSize(home, 40)).toEqual({ width: 520, height: 104 });
+  expect(viewSize(resolvePage(state(), 'module:system-stat')!, 193)).toEqual({ width: 400, height: 104 });
+});
+
 test('Beranda is named after the language', () => {
   expect(pageName(BERANDA, hostStrings('id'))).toBe('Beranda');
   expect(pageName(BERANDA, hostStrings('en'))).toBe('Home');

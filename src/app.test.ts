@@ -186,6 +186,25 @@ test('a full view covers the page and Kembali brings the row back', async () => 
   expect(root.querySelector('.pg-row.full')).toBeNull();
 });
 
+test('a full view that asks for room makes the panel taller until it closes', async () => {
+  const { app, r, frames, pick, bridge } = await start();
+  open(app, r);
+  const reminders = () => frames().find(f => f.title === 'Reminder')!;
+  fromFrame(reminders(), { type: 'notching:expand', height: 193 });
+  expect(app.controller.card.height).toBe(193);
+  bridge.emitModuleState({ ...TEST_STATE });
+  expect(app.controller.card.height).toBe(193);
+  fromFrame(reminders(), { type: 'notching:collapse' });
+  expect(app.controller.card.height).toBe(104);
+  fromFrame(reminders(), { type: 'notching:expand', height: 193 });
+  pick('home');
+  expect(app.controller.card.height).toBe(104);
+  fromFrame(reminders(), { type: 'notching:expand', height: 193 });
+  close(app, r);
+  open(app, r);
+  expect(app.controller.card.height).toBe(104);
+});
+
 test('picking the open page again closes its full view', async () => {
   const { root, app, r, frames, pick } = await start();
   open(app, r);

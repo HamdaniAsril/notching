@@ -6,7 +6,7 @@ import { el, type HomeStrings } from './shared';
 export interface ReminderActions {
   add(title: string, day: string, at: number | null): Promise<void>;
   setDone(id: number, done: boolean): Promise<void>;
-  expand(): void; // asks the notch for the full view
+  expand(height: number): void; // asks the notch for the full view
   collapse(): void;
 }
 
@@ -15,6 +15,10 @@ export interface RemindersWidget {
   setFull(full: boolean): void;
   update(s: HomeSnapshot, now: Date): void;
 }
+
+// The full view's height: heading and field (53 px) plus six rows 20 px tall
+// with 4 px between them; more rows scroll.
+const FULL_HEIGHT = 53 + 6 * 20 + 5 * 4;
 
 // Reminder (2 columns): the two nearest reminders. A click asks for the full
 // view, which lists them all with a field to add one and circles to mark them done.
@@ -51,8 +55,8 @@ export function renderReminders(root: HTMLElement, strings: HomeStrings, lang: L
     if (two.length === 0) rms.append(el('div', 'rm empty', strings.noReminders));
     else rms.append(...two.map(r => reminderRow(r, false)));
     w.append(el('div', 'lab', count()), rms);
-    w.addEventListener('click', () => actions.expand());
-    w.addEventListener('keydown', e => { if (e.key === 'Enter') actions.expand(); });
+    w.addEventListener('click', () => actions.expand(FULL_HEIGHT));
+    w.addEventListener('keydown', e => { if (e.key === 'Enter') actions.expand(FULL_HEIGHT); });
     root.replaceChildren(w);
   }
 

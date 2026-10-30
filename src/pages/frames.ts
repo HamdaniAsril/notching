@@ -19,7 +19,7 @@ export interface FrameHostDeps {
   bridge: Pick<Bridge, 'moduleCall' | 'moduleUrl' | 'moduleSandbox'>;
   setTimer: (fn: () => void, ms: number) => () => void;
   onKey: (key: 'Escape' | 'Quit') => void;
-  onExpand: (key: string) => void;
+  onExpand: (key: string, height?: number) => void;
   onCollapse: (key: string) => void;
 }
 
@@ -71,7 +71,7 @@ export function mountFrameHost(deps: FrameHostDeps, doc: Document): FrameHost {
     } else if (msg.type === 'notching:key') {
       deps.onKey(msg.key);
     } else if (msg.type === 'notching:expand') {
-      deps.onExpand(e.spec.key);
+      deps.onExpand(e.spec.key, msg.height);
     } else if (msg.type === 'notching:collapse') {
       deps.onCollapse(e.spec.key);
     } else {

@@ -31,3 +31,9 @@ test('a frame may ask to expand or collapse', () => {
   expect(isFrameMessage({ type: 'notching:expand' })).toBe(true);
   expect(isFrameMessage({ type: 'notching:collapse' })).toBe(true);
 });
+
+test('an expand may ask for a height', () => {
+  expect(isFrameMessage({ type: 'notching:expand', height: 193 })).toBe(true);
+  expect(isFrameMessage({ type: 'notching:expand', height: '193' })).toBe(false);
+  expect(isFrameMessage({ type: 'notching:expand', height: Number.NaN })).toBe(false);
+});

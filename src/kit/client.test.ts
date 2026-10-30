@@ -60,6 +60,8 @@ test('the kit knows its widget and passes expand and view', async () => {
   kit.collapse();
   expect(posted).toContainEqual({ type: 'notching:expand' });
   expect(posted).toContainEqual({ type: 'notching:collapse' });
+  kit.expand(193);
+  expect(posted).toContainEqual({ type: 'notching:expand', height: 193 });
   const seen: boolean[] = [];
   kit.onView(full => seen.push(full));
   hostSays(win, { type: 'notching:view', full: true });

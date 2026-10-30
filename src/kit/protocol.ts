@@ -14,7 +14,7 @@ export type FrameMessage =
   | { type: 'notching:ready' }
   | { type: 'notching:call'; id: number; capability: string; method: string; args?: unknown }
   | { type: 'notching:key'; key: 'Escape' | 'Quit' }
-  | { type: 'notching:expand' }
+  | { type: 'notching:expand'; height?: number } // height: the page height the full view wants
   | { type: 'notching:collapse' };
 
 type Loose = Record<string, unknown>;
@@ -37,9 +37,10 @@ export function isFrameMessage(x: unknown): x is FrameMessage {
   if (!isObject(x)) return false;
   switch (x.type) {
     case 'notching:ready':
-    case 'notching:expand':
     case 'notching:collapse':
       return true;
+    case 'notching:expand':
+      return x.height === undefined || (typeof x.height === 'number' && Number.isFinite(x.height));
     case 'notching:call':
       return typeof x.id === 'number' && typeof x.capability === 'string' && typeof x.method === 'string';
     case 'notching:key':

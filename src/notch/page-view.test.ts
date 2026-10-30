@@ -59,6 +59,18 @@ test('expanding covers the row and collapsing brings the others back', () => {
   expect(content.querySelectorAll('.pg-slot.full')).toHaveLength(0);
 });
 
+test('a taller full view stretches its row and frame, and collapsing puts them back', () => {
+  const { content, pv, show } = mount();
+  show(TEST_STATE);
+  const key = 'home/2/home/reminders';
+  const row = () => content.querySelector<HTMLElement>('.pg-row')!;
+  const frame = () => content.querySelector<HTMLElement>(`.pg-slot[data-key="${key}"] iframe`)!;
+  pv.expand(key, 193);
+  expect([row().style.height, frame().style.height]).toEqual(['193px', '193px']);
+  pv.collapse();
+  expect([row().style.height, frame().style.height]).toEqual(['104px', '104px']);
+});
+
 test('expanding a frame of another page does nothing', () => {
   const { pv, show } = mount();
   show(TEST_STATE);

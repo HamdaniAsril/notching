@@ -6,6 +6,8 @@ import type { CardSize } from '../notch/controller';
 export const CUSTOM_PAGE: CardSize = { width: 520, height: 104 };
 // "‹ Modul" above a module's own card.
 export const BACK_BAR = 24;
+// The tallest a full view may make a page.
+export const FULL_PAGE_MAX = 240;
 export const MODULES_GRID = { columns: 6, gap: 6, tile: 64, width: 520, empty: 56 } as const;
 
 const MODULE_PREFIX = 'module:';
@@ -48,8 +50,13 @@ export function pickPage(s: ModuleState, current: string | null, panelOpen: bool
   return beranda(s);
 }
 
-export function viewSize(v: PageView): CardSize {
-  if (v.kind === 'custom') return CUSTOM_PAGE;
+// `fullHeight`: what a widget's full view asked for, kept between the page's own
+// height and FULL_PAGE_MAX.
+export function viewSize(v: PageView, fullHeight?: number): CardSize {
+  if (v.kind === 'custom') {
+    if (fullHeight === undefined) return CUSTOM_PAGE;
+    return { ...CUSTOM_PAGE, height: Math.round(Math.min(FULL_PAGE_MAX, Math.max(CUSTOM_PAGE.height, fullHeight))) };
+  }
   if (v.kind === 'module') return { width: v.module.card!.width, height: BACK_BAR + v.module.card!.height };
   const { columns, gap, tile, width, empty } = MODULES_GRID;
   const rows = Math.ceil(v.modules.length / columns);
