@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use crate::modules::manifest::is_module_id;
-use crate::pages::{beranda, is_route, repair, Page, HOME_PAGE, MODULE_PAGE_PREFIX};
+use crate::pages::{beranda, is_route, repair, Page, Placement, HOME_PAGE, MODULE_PAGE_PREFIX};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -230,8 +230,24 @@ fn lenient_seconds<'de, D: serde::Deserializer<'de>>(d: D) -> Result<f64, D::Err
     lenient_or(d, NOTICE_SECONDS).map(clamp_seconds)
 }
 
+// Page by page, and inside a page widget by widget: one bad entry in a
+// hand-edited file goes alone instead of taking every page with it.
 fn lenient_pages<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Vec<Page>, D::Error> {
-    lenient_or(d, vec![beranda()])
+    let value = <serde_json::Value as serde::Deserialize>::deserialize(d)?;
+    Ok(match value.as_array() {
+        Some(items) => items.iter().filter_map(page_from).collect(),
+        None => vec![beranda()],
+    })
+}
+
+fn page_from(value: &serde_json::Value) -> Option<Page> {
+    let mut value = value.clone();
+    let widgets = value.get_mut("widgets")?.take();
+    let widgets: Vec<Placement> =
+        widgets.as_array()?.iter().filter_map(|w| serde_json::from_value(w.clone()).ok()).collect();
+    value["widgets"] = serde_json::Value::Array(Vec::new());
+    let page: Page = serde_json::from_value(value).ok()?;
+    Some(Page { widgets, ..page })
 }
 
 // The version's default is not its type's default either.
@@ -260,7 +276,12 @@ pub fn load_settings(path: &Path) -> Settings {
     };
     settings.notch = settings.notch.clamped();
     settings.home.place = settings.home.place.filter(Place::is_valid);
-    let old = raw.get("version").and_then(serde_json::Value::as_u64).unwrap_or(1) < u64::from(SETTINGS_VERSION);
+    // A file that already has pages is never moved again, whatever its version says.
+    let has_pages = raw.get("pages").is_some_and(serde_json::Value::is_array);
+    let old = !has_pages && raw.get("version").and_then(serde_json::Value::as_u64).unwrap_or(1) < u64::from(SETTINGS_VERSION);
+    if has_pages {
+        settings.version = SETTINGS_VERSION;
+    }
     if old {
         migrate_v1(&raw, &mut settings);
     }
@@ -362,6 +383,54 @@ mod tests {
         std::fs::write(&p, "{not json").unwrap();
         assert_eq!(load_settings(&p), Settings::default());
         assert_eq!(std::fs::read_to_string(d.path().join("settings.json.broken")).unwrap(), "{not json");
+    }
+
+    fn load(text: &str) -> (tempfile::TempDir, Settings) {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(SETTINGS_FILE);
+        std::fs::write(&p, text).unwrap();
+        let s = load_settings(&p);
+        (d, s)
+    }
+
+    fn page_ids(s: &Settings) -> Vec<&str> {
+        s.pages.iter().map(|p| p.id.as_str()).collect()
+    }
+
+    const KERJA: &str = r#"{"id":"p1","name":"Kerja","icon":"briefcase","widgets":[{"widget":"home/clock","col":3,"width":1}]}"#;
+
+    #[test]
+    fn one_broken_page_does_not_take_the_others_with_it() {
+        for broken in [
+            r#"{"id":"p2","name":5,"icon":"star","widgets":[]}"#,
+            r#"{"id":"p2","name":"X","icon":null,"widgets":[]}"#,
+            r#"{"id":"p2","name":"X","icon":"star"}"#,
+            r#""not a page""#,
+        ] {
+            let (_d, s) = load(&format!(r#"{{"version":2,"pages":[{KERJA},{broken}]}}"#));
+            assert_eq!(page_ids(&s), ["home", "p1"], "{broken}");
+            assert_eq!(s.pages[1].widgets.len(), 1);
+        }
+    }
+
+    #[test]
+    fn one_broken_widget_does_not_take_its_page_with_it() {
+        let page = r#"{"id":"p1","name":"Kerja","icon":"briefcase","widgets":[
+            {"widget":"home/clock","col":-1,"width":1},{"widget":"home/date","col":"2","width":1},
+            {"widget":"home/prayer","col":1,"width":1}]}"#;
+        let (_d, s) = load(&format!(r#"{{"version":2,"pages":[{page}]}}"#));
+        assert_eq!(page_ids(&s), ["home", "p1"]);
+        assert_eq!(s.pages[1].widgets.iter().map(|w| w.widget.as_str()).collect::<Vec<_>>(), ["home/prayer"]);
+    }
+
+    #[test]
+    fn a_file_with_pages_is_never_moved_again() {
+        for version in [r#""2""#, "null", "1.5"] {
+            let (d, s) = load(&format!(r#"{{"version":{version},"pages":[{KERJA}],"lastPage":"p1"}}"#));
+            assert_eq!(page_ids(&s), ["home", "p1"], "{version}");
+            assert_eq!(s.last_page.as_deref(), Some("p1"));
+            assert!(!d.path().join("settings.json.v1").exists());
+        }
     }
 
     #[test]

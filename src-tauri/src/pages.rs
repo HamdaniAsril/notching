@@ -45,7 +45,10 @@ pub fn beranda() -> Page {
 pub fn fits(widgets: &[Placement]) -> bool {
     let mut taken = [false; COLUMNS as usize];
     for (i, p) in widgets.iter().enumerate() {
-        if !(1..=2).contains(&p.width) || p.col + p.width > COLUMNS || widgets[..i].iter().any(|q| q.widget == p.widget) {
+        // Subtracting, so a column near 255 cannot overflow the byte.
+        if !(1..=2).contains(&p.width) || p.col >= COLUMNS || p.width > COLUMNS - p.col
+            || widgets[..i].iter().any(|q| q.widget == p.widget)
+        {
             return false;
         }
         for c in p.col..p.col + p.width {
@@ -84,7 +87,8 @@ pub fn repair(pages: Vec<Page>) -> Vec<Page> {
         } else {
             let name: String = page.name.unwrap_or_default().trim().chars().take(PAGE_NAME_MAX).collect();
             let name = if name.trim().is_empty() { "?".to_string() } else { name.trim_end().to_string() };
-            let icon = if is_module_id(&page.icon) { page.icon } else { "dot".into() };
+            // Only the fixed icons: the editor sends the icon back with every save.
+            let icon = if PAGE_ICONS.contains(&page.icon.as_str()) { page.icon } else { "dot".into() };
             Page { name: Some(name), icon, widgets, ..page }
         };
         out.push(fixed);
@@ -243,6 +247,10 @@ mod tests {
         assert!(!fits(&[p("a/a", 0, 3)]));
         assert!(fits(&[p("a/a", 1, 2), p("b/b", 3, 1)]));
         assert!(fits(&[]));
+        // Past the row, even where col + width would not fit in a byte.
+        assert!(!fits(&[p("a/a", 255, 1)]));
+        assert!(!fits(&[p("a/a", 254, 2)]));
+        assert!(!fits(&[p("a/a", 4, 1)]));
     }
 
     #[test]
@@ -263,6 +271,16 @@ mod tests {
                 Page { id: "p1".into(), name: Some("Kerja".into()), icon: "dot".into(), widgets: vec![p("a/a", 0, 2)] },
             ]
         );
+    }
+
+    #[test]
+    fn an_icon_not_in_the_list_becomes_the_dot() {
+        let rocket = Page { icon: "rocket".into(), ..custom("p1", vec![]) };
+        let fixed = repair(vec![beranda(), rocket]);
+        assert_eq!(fixed[1].icon, "dot");
+        // So the page can be saved again with the icon it shows.
+        let mut pages = fixed;
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![], &|_| None), Ok(()));
     }
 
     #[test]
