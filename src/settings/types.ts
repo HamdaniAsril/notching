@@ -1,6 +1,6 @@
 import type { SettingsStrings } from '../i18n';
 import type { Lang } from '../kit/protocol';
-import type { ModuleState } from '../modules/types';
+import type { ModuleState, Placement } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 
 export type LanguageChoice = 'auto' | 'id' | 'en';
@@ -37,7 +37,7 @@ export interface SettingsInfo {
 
 export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'permissions' | 'about';
 
-export type Route = { page: SectionId } | { page: 'module'; id: string } | { page: 'add' };
+export type Route = { page: SectionId } | { page: 'module'; id: string } | { page: 'add' } | { page: 'pageEdit'; id: string };
 
 // What the settings window needs from the native side.
 export interface SettingsBridge {
@@ -61,6 +61,10 @@ export interface SettingsBridge {
   setNoticeSeconds(seconds: number): Promise<void>;
   setChannel(module: string, channel: string, pref: { on: boolean; sound: boolean }): Promise<void>;
   sendSampleNotice(title: string, detail: string): Promise<void>; // always with sound, on the screen under the cursor
+  addPage(name: string, icon: string): Promise<string>; // the new page's id
+  setPage(id: string, name: string | null, icon: string, widgets: Placement[]): Promise<void>; // the whole page
+  deletePage(id: string): Promise<void>;
+  movePage(id: string, to: number): Promise<void>; // `to` counts among the custom pages
 }
 
 export interface SettingsEnv {

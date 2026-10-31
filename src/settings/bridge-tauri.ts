@@ -4,8 +4,8 @@ import { syncUnlisten } from '../bridge';
 import type { ModuleState } from '../modules/types';
 import type { Place, SettingsBridge, SettingsInfo } from './types';
 
-// The native side: commands in src-tauri/src/settings_window.rs and
-// module_commands.rs; both broadcasts reach every window.
+// The native side: commands in src-tauri/src/settings_window.rs,
+// module_commands.rs and page_commands.rs; both broadcasts reach every window.
 export function tauriSettingsBridge(): SettingsBridge {
   return {
     moduleState: () => invoke<ModuleState>('get_module_state'),
@@ -28,5 +28,9 @@ export function tauriSettingsBridge(): SettingsBridge {
     setNoticeSeconds: seconds => invoke('set_notice_seconds', { seconds }),
     setChannel: (module, channel, { on, sound }) => invoke('set_channel', { module, channel, on, sound }),
     sendSampleNotice: (title, detail) => invoke('send_sample_notice', { title, detail }),
+    addPage: (name, icon) => invoke<string>('add_page', { name, icon }),
+    setPage: (id, name, icon, widgets) => invoke('set_page', { id, name, icon, widgets }),
+    deletePage: id => invoke('delete_page', { id }),
+    movePage: (id, to) => invoke('move_page', { id, to }),
   };
 }

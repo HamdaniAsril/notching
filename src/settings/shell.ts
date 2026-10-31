@@ -7,7 +7,8 @@ import { aboutPage, permissionsPage } from './pages/info';
 import { notificationsPage } from './pages/notifications';
 import { lookPage } from './pages/look';
 import { addPage, modulePage, modulesPage } from './pages/modules';
-import { pagesPage } from './pages/pages';
+import { pageEditor } from './pages/page-editor';
+import { pagesPage, waitingFor } from './pages/pages';
 import { hasPage } from '../modules/types';
 import { search, searchIndex } from './search';
 import type {
@@ -25,6 +26,7 @@ export const PAGES: Partial<Record<Route['page'], PageRender>> = {
   look: lookPage,
   notifications: notificationsPage,
   pages: pagesPage,
+  pageEdit: pageEditor,
   modules: modulesPage,
   module: modulePage,
   add: addPage,
@@ -89,6 +91,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   const strings = () => settingsStrings(state.lang);
 
   function section(): SectionId {
+    if (route.page === 'pageEdit') return 'pages';
     return route.page === 'module' || route.page === 'add' ? 'modules' : route.page;
   }
 
@@ -137,6 +140,11 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
     if (route.page === 'module') {
       const id = route.id;
       if (!state.modules.some(m => m.id === id && m.installed)) route = { page: 'modules' };
+    }
+    // So does a page deleted elsewhere, but not one just added whose state is still on its way.
+    if (route.page === 'pageEdit') {
+      const id = route.id;
+      if (!state.pages.some(p => p.id === id) && !waitingFor(id)) route = { page: 'pages' };
     }
     const ctx: PageContext = {
       strings: strings(), lang: state.lang, state, info, bridge, env, go, save,

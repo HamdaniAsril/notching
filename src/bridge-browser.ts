@@ -102,6 +102,13 @@ export function browserBridge(root: HTMLElement): Bridge {
   const sample = () => noticeSubs.forEach(cb => cb({
     moduleId: 'home', channel: 'reminder', title: 'Kirim invoice', detail: '14.00', glow: state.notifications.glow, seconds: 3.5,
   }));
+  // Pages edited in settings.html in another tab (settings/bridge-browser.ts).
+  if (typeof BroadcastChannel !== 'undefined') {
+    new BroadcastChannel('notching-pages').addEventListener('message', (e: MessageEvent<Page[]>) => {
+      state = { ...state, pages: e.data };
+      stateSubs.forEach(cb => cb(state));
+    });
+  }
   if (params.get('notice') === '1') {
     doc.defaultView?.setTimeout(sample, 1000);
     doc.addEventListener('keydown', e => { if (e.key === 'n') sample(); });

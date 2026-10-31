@@ -1,6 +1,6 @@
 import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
-import type { ModuleInfo, ModuleState } from '../modules/types';
+import type { ModuleInfo, ModuleState, Page } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
 import type { LanguageChoice, Place, SettingsBridge, SettingsInfo } from './types';
 
@@ -13,7 +13,10 @@ const PLACES = [city('Jakarta', 'Jakarta', -6.21462, 106.84513), city('Bandung',
 
 // Stand-in for the native side in a normal browser (`npm run dev`, /settings.html).
 // Everything lives in memory; `?lang=en` starts in English. Screens and cities
-// are made up; searching for "gagal" fails, to show the error.
+// are made up; searching for "gagal" fails, to show the error. Page changes go
+// to a notch open in another tab over PAGES_CHANNEL.
+export const PAGES_CHANNEL = 'notching-pages';
+
 export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   const deviceLang: Lang = params.get('lang') === 'en' ? 'en' : 'id';
   let info: SettingsInfo = {
@@ -31,7 +34,12 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();
 
+  const channel = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(PAGES_CHANNEL);
   const setState = (next: ModuleState) => { state = next; stateSubs.forEach(cb => cb(state)); };
+  const setPages = (pages: Page[]) => {
+    setState({ ...state, pages });
+    channel?.postMessage(pages);
+  };
   const setInfo = (next: SettingsInfo) => { info = next; infoSubs.forEach(cb => cb(info)); };
   const setModule = (id: string, over: Partial<ModuleInfo>) =>
     setState({ ...state, modules: state.modules.map(m => (m.id === id ? { ...m, ...over } : m)) });
@@ -73,5 +81,20 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
       channels: state.modules.find(m => m.id === module)!.channels.map(c => (c.id === channel ? { ...c, ...pref } : c)),
     }),
     sendSampleNotice: async (title, detail) => console.info('sendSampleNotice', title, detail),
+    addPage: async (name, icon) => {
+      const n = Math.max(0, ...state.pages.map(p => Number(p.id.slice(1)) || 0)) + 1;
+      setPages([...state.pages, { id: `p${n}`, name, icon, widgets: [] }]);
+      return `p${n}`;
+    },
+    setPage: async (id, name, icon, widgets) =>
+      setPages(state.pages.map(p => (p.id === id ? { ...p, name, icon, widgets } : p))),
+    deletePage: async id => setPages(state.pages.filter(p => p.id !== id)),
+    movePage: async (id, to) => {
+      const [home, ...custom] = state.pages;
+      const moving = custom.find(p => p.id === id)!;
+      const rest = custom.filter(p => p.id !== id);
+      rest.splice(Math.min(to, rest.length), 0, moving);
+      setPages([home, ...rest]);
+    },
   };
 }

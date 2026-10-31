@@ -88,7 +88,31 @@
       "data": "Widget data",
       "order": "Order in the pill",
       "widgets": "{n} widgets",
-      "modulesRow": "6 per row"
+      "modulesRow": "6 per row",
+      "add": "+ Add page",
+      "newName": "New page",
+      "name": "Name",
+      "icon": "Icon",
+      "delete": "Delete page",
+      "deleteConfirm": "Sure? Click again",
+      "preview": "Preview",
+      "empty": "Empty",
+      "remove": "Remove {name}",
+      "all": "All",
+      "kinds": {
+        "time": "Time",
+        "weather": "Weather",
+        "worship": "Worship",
+        "work": "Work",
+        "media": "Media"
+      },
+      "cols": "{n} columns",
+      "placed": "Already here",
+      "noRoom": "No room",
+      "sourceOff": "Module is off",
+      "fixedHint": "Beranda comes first, Modul last.",
+      "widgetList": "Widgets",
+      "move": "Drag to reorder"
     },
     "home": {
       "homeName": "Home",

@@ -160,3 +160,65 @@ test('the Halaman page has the prayer notification switch', async () => {
   expect(bridge.setChannel).toHaveBeenCalledWith('home', 'prayer', { on: true, sound: false });
 });
 
+
+const KERJA = { id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [] };
+const IBADAH = { id: 'p2', name: 'Ibadah', icon: 'moon', widgets: [] };
+
+test('a page row opens its editor', async () => {
+  const { root, app } = await open(TEST_INFO, { ...STATE, pages: [BERANDA, KERJA] });
+  key(root, 'page.p1')!.click();
+  expect(app.route).toEqual({ page: 'pageEdit', id: 'p1' });
+  app.go({ page: 'pages' });
+  enter(key(root, 'page.home')!);
+  expect(app.route).toEqual({ page: 'pageEdit', id: 'home' });
+  app.go({ page: 'pages' });
+  key(root, 'page.modules')!.click();
+  expect(app.route).toEqual({ page: 'modules' });
+});
+
+test('Tambah halaman makes a page and opens it', async () => {
+  const { root, app, bridge } = await open();
+  // The native side broadcasts the new page before the command returns.
+  bridge.addPage.mockImplementation(async () => {
+    bridge.emitModuleState({ ...STATE, pages: [BERANDA, { id: 'p1', name: 'Halaman baru', icon: 'star', widgets: [] }] });
+    return 'p1';
+  });
+  key(root, 'pages.add')!.click();
+  expect(bridge.addPage).toHaveBeenCalledWith('Halaman baru', 'star');
+  await settle();
+  expect(app.route).toEqual({ page: 'pageEdit', id: 'p1' });
+  expect(root.querySelector('.pane h1')!.textContent).toBe('Halaman baru');
+  expect((key(root, 'pageEdit.name') as HTMLInputElement).value).toBe('Halaman baru');
+});
+
+test('a new page whose state is still on its way waits for it', async () => {
+  const { root, app, bridge } = await open();
+  key(root, 'pages.add')!.click();
+  await settle();
+  expect(app.route).toEqual({ page: 'pageEdit', id: 'p1' });
+  bridge.emitModuleState({ ...STATE, pages: [BERANDA, { id: 'p1', name: 'Halaman baru', icon: 'star', widgets: [] }] });
+  expect(app.route).toEqual({ page: 'pageEdit', id: 'p1' });
+  expect(root.querySelector('.pane h1')!.textContent).toBe('Halaman baru');
+});
+
+test('Alt+Down moves a custom page', async () => {
+  const { root, bridge } = await open(TEST_INFO, { ...STATE, pages: [BERANDA, KERJA, IBADAH] });
+  const alt = (k: string, dir: string) =>
+    key(root, k)!.dispatchEvent(new KeyboardEvent('keydown', { key: dir, altKey: true, bubbles: true }));
+  alt('page.p1', 'ArrowDown');
+  expect(bridge.movePage).toHaveBeenCalledWith('p1', 1);
+  alt('page.p2', 'ArrowUp');
+  expect(bridge.movePage).toHaveBeenCalledWith('p2', 0);
+  alt('page.p1', 'ArrowUp');
+  expect(bridge.movePage).toHaveBeenCalledTimes(2);
+  expect(root.querySelectorAll('[data-row="page.p1"] .ed-grip')).toHaveLength(1);
+});
+
+test('Beranda has no grip and cannot move', async () => {
+  const { root, bridge } = await open(TEST_INFO, { ...STATE, pages: [BERANDA, KERJA] });
+  expect(root.querySelector('[data-row="page.home"] .ed-grip')).toBeNull();
+  expect(root.querySelector('[data-row="page.modules"] .ed-grip')).toBeNull();
+  key(root, 'page.home')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }));
+  expect(bridge.movePage).not.toHaveBeenCalled();
+  expect(root.querySelector('.pane')!.textContent).toContain('Beranda selalu pertama, Modul selalu terakhir.');
+});

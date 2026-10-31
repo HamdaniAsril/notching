@@ -1,5 +1,5 @@
 import { afterEach, vi } from 'vitest';
-import type { ModuleState } from '../modules/types';
+import type { ModuleState, Placement } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
@@ -41,6 +41,10 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     setNoticeSeconds: vi.fn(async (_seconds: number) => {}),
     setChannel: vi.fn(async (_module: string, _channel: string, _pref: { on: boolean; sound: boolean }) => {}),
     sendSampleNotice: vi.fn(async (_title: string, _detail: string) => {}),
+    addPage: vi.fn(async (_name: string, _icon: string) => 'p1'),
+    setPage: vi.fn(async (_id: string, _name: string | null, _icon: string, _widgets: Placement[]) => {}),
+    deletePage: vi.fn(async (_id: string) => {}),
+    movePage: vi.fn(async (_id: string, _to: number) => {}),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
   };

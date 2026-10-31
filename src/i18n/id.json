@@ -88,7 +88,31 @@
       "data": "Data widget",
       "order": "Urutan di pil",
       "widgets": "{n} widget",
-      "modulesRow": "6 per baris"
+      "modulesRow": "6 per baris",
+      "add": "+ Tambah halaman",
+      "newName": "Halaman baru",
+      "name": "Nama",
+      "icon": "Ikon",
+      "delete": "Hapus halaman",
+      "deleteConfirm": "Yakin? Klik lagi",
+      "preview": "Pratinjau",
+      "empty": "Kosong",
+      "remove": "Lepas {name}",
+      "all": "Semua",
+      "kinds": {
+        "time": "Waktu",
+        "weather": "Cuaca",
+        "worship": "Ibadah",
+        "work": "Kerja",
+        "media": "Media"
+      },
+      "cols": "{n} kolom",
+      "placed": "Sudah dipasang",
+      "noRoom": "Tidak muat",
+      "sourceOff": "Modul dimatikan",
+      "fixedHint": "Beranda selalu pertama, Modul selalu terakhir.",
+      "widgetList": "Widget",
+      "move": "Seret untuk mengurutkan"
     },
     "home": {
       "homeName": "Beranda",
