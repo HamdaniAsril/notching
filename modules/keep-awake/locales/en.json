@@ -7,7 +7,7 @@
   "hour1": "1 hr",
   "hour2": "2 hrs",
   "minutes": "min",
-  "boxHint": "Click the box: 1 hr",
+  "boxHint": "Click the box: no limit",
   "until": "On until {time}",
   "forever": "On with no limit",
   "stopHint": "Click the box to turn off",

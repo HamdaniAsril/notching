@@ -17,7 +17,6 @@ export interface Actions {
 
 export type Strings = typeof id;
 
-const BOX_MINUTES = 60;
 const MAX_MINUTES = 1440;
 // The coffee cup of icon.svg, in the text colour.
 const CUP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
@@ -41,7 +40,8 @@ export function endClock(until: number, lang: Lang): string {
 type Mode = 'off' | 'timed' | 'forever';
 const modeOf = (v: AwakeView): Mode => (!v.on ? 'off' : v.forever ? 'forever' : 'timed');
 
-// Mockup B (design 31 Oct §3): the big box turns it on for an hour or off; the
+// Mockup B (design 31 Oct §3): the big box turns it on with no limit (the
+// owner's default, 31 Oct) or off; the
 // column beside it starts, or adds time. The column is rebuilt only when the
 // mode changes, so a reading every second keeps what is being typed.
 export function renderPage(root: HTMLElement, s: Strings, lang: Lang, act: Actions): { update(v: AwakeView): void } {
@@ -53,7 +53,7 @@ export function renderPage(root: HTMLElement, s: Strings, lang: Lang, act: Actio
   box.innerHTML = CUP;
   const boxText = el('span', 'ka-box-text');
   box.append(boxText);
-  box.addEventListener('click', () => (view.on ? act.stop() : act.start(BOX_MINUTES)));
+  box.addEventListener('click', () => (view.on ? act.stop() : act.start(null)));
 
   const head = el('span', 'lab ka-head');
   const chips = el('div', 'ka-chips');

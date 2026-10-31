@@ -31,14 +31,14 @@ test('off shows Mati, the start buttons and the hint, but no add buttons', () =>
   expect(box.getAttribute('aria-pressed')).toBe('false');
   for (const t of ['1 jam', '2 jam', '∞']) expect(button(t)).toBeDefined();
   expect(root.textContent).toContain('menit');
-  expect(root.textContent).toContain('Klik kotak: 1 jam');
+  expect(root.textContent).toContain('Klik kotak: tanpa batas');
   expect(button('+15 m')).toBeUndefined();
 });
 
-test('clicking the box when off starts one hour', () => {
+test('clicking the box when off starts with no limit', () => {
   const { act, box } = page(OFF);
   box.click();
-  expect(act.start).toHaveBeenCalledWith(60);
+  expect(act.start).toHaveBeenCalledWith(null);
   expect(act.stop).not.toHaveBeenCalled();
 });
 

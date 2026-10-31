@@ -35,9 +35,9 @@ Pemilik sering menjalankan prompt yang lama di Mac. Kadang layar mati di tengah 
 Halaman ini dibuka dari kotak Keep awake di halaman Modul. Di atasnya ada bar "‹ Modul", sama seperti System stat.
 
 **Saat mati**
-- Di kiri ada kotak besar berisi ikon cangkir kopi dan tulisan "Mati". Klik kotak ini untuk menyalakan Keep awake selama **1 jam**.
+- Di kiri ada kotak besar berisi ikon cangkir kopi dan tulisan "Mati". Klik kotak ini untuk menyalakan Keep awake **tanpa batas**. Semula 1 jam; diganti atas permintaan pemilik saat cek di Mac pada 31 Oktober.
 - Di kanan ada tombol "Nyalakan selama": **1 jam**, **2 jam**, **∞** (tanpa batas), dan kolom angka **menit**. Durasi di kolom mulai berjalan saat Enter ditekan.
-- Di bawahnya ada keterangan kecil: "Klik kotak: 1 jam".
+- Di bawahnya ada keterangan kecil: "Klik kotak: tanpa batas".
 
 **Saat menyala dengan batas waktu**
 - Kotak berwarna putih dan menampilkan sisa waktu, misalnya "1:42".

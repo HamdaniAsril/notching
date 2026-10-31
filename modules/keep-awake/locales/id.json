@@ -7,7 +7,7 @@
   "hour1": "1 jam",
   "hour2": "2 jam",
   "minutes": "menit",
-  "boxHint": "Klik kotak: 1 jam",
+  "boxHint": "Klik kotak: tanpa batas",
   "until": "Menyala sampai {time}",
   "forever": "Menyala tanpa batas",
   "stopHint": "Klik kotak untuk mematikan",
