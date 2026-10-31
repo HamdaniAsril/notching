@@ -15,9 +15,11 @@ export type FrameMessage =
   | { type: 'notching:call'; id: number; capability: string; method: string; args?: unknown }
   | { type: 'notching:key'; key: 'Escape' | 'Quit' }
   | { type: 'notching:expand'; height?: number } // height: the page height the full view wants
-  | { type: 'notching:collapse' };
+  | { type: 'notching:collapse' }
+  | { type: 'notching:lamp'; on: boolean; color?: string; glow?: string }; // Cermin's lamp: its wings' and glow's "#rrggbb"
 
 type Loose = Record<string, unknown>;
+const HEX = /^#[0-9a-f]{6}$/i;
 const isObject = (x: unknown): x is Loose => typeof x === 'object' && x !== null;
 
 export function isHostMessage(x: unknown): x is HostMessage {
@@ -45,6 +47,8 @@ export function isFrameMessage(x: unknown): x is FrameMessage {
       return typeof x.id === 'number' && typeof x.capability === 'string' && typeof x.method === 'string';
     case 'notching:key':
       return x.key === 'Escape' || x.key === 'Quit';
+    case 'notching:lamp':
+      return typeof x.on === 'boolean' && [x.color, x.glow].every(c => c === undefined || (typeof c === 'string' && HEX.test(c)));
     default:
       return false;
   }

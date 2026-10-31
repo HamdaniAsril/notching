@@ -11,6 +11,7 @@ mod settings;
 mod status;
 mod system_stats;
 mod keyclean;
+mod lamp;
 mod timer;
 
 #[cfg(target_os = "macos")]
@@ -25,6 +26,8 @@ mod keyclean_dim;
 mod keyclean_service;
 #[cfg(target_os = "macos")]
 mod keyclean_tap;
+#[cfg(target_os = "macos")]
+mod lamp_service;
 #[cfg(target_os = "macos")]
 mod login_item;
 #[cfg(target_os = "macos")]
@@ -114,6 +117,7 @@ pub fn run() {
             awake_service::start(app.handle().clone());
             timer_service::start(app.handle().clone());
             keyclean_service::start(app.handle().clone());
+            lamp_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             pointer::start_pointer_monitor(app.handle().clone());
@@ -121,10 +125,10 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app, event| {
+        .run(|app, event| match event {
             // Overlays come and go with screens; only an explicit quit ends the app.
-            if let tauri::RunEvent::ExitRequested { code: None, api, .. } = event {
-                api.prevent_exit();
-            }
+            tauri::RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
+            tauri::RunEvent::Exit => lamp_service::quitting(app),
+            _ => {}
         });
 }

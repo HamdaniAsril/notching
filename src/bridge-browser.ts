@@ -154,6 +154,8 @@ export function browserBridge(root: HTMLElement): Bridge {
       if (capability === 'timer') return timerCall(method, args);
       // Keyboard Cleaning Mode locks nothing in a browser.
       if (capability === 'keyclean') return null;
+      // A browser cannot change the screen's brightness; the lamp is only the panel's light.
+      if (capability === 'lamp') return null;
       throw new Error(`unknown method ${method}`);
     },
     // Vite serves the module sources directly.

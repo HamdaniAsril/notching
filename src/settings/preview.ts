@@ -15,7 +15,7 @@ export interface Preview {
 }
 
 // A lens without a notch, driven by the same controller and view as the real one,
-// so the sliders feel exactly as they will on screen. The 640 × 360 root sits
+// so the sliders feel exactly as they will on screen. The 960 × 560 root sits
 // centred in the box without a transform, so click coordinates stay true.
 export function mountPreview(box: HTMLElement, config: NotchConfig, env: SettingsEnv, label: string): Preview {
   const doc = box.ownerDocument;

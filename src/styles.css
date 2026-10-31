@@ -15,9 +15,9 @@ body {
 #notch-root {
   position: absolute;
   top: 0;
-  left: calc(50% - 320px);
-  width: 640px;
-  height: 360px;
+  left: calc(50% - 480px);
+  width: 960px;
+  height: 560px;
   background: transparent;
   overflow: hidden;
 }

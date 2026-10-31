@@ -17,10 +17,10 @@ function setup() {
 
 test('hovering the preview lens grows the droplet; a click opens the panel', () => {
   const { r, preview } = setup();
-  document.dispatchEvent(new MouseEvent('mousemove', { clientX: 320, clientY: 5 }));
+  document.dispatchEvent(new MouseEvent('mousemove', { clientX: 480, clientY: 5 }));
   expect(preview.controller.phase).toBe('hover');
   r.runAll(5);
-  document.dispatchEvent(new MouseEvent('click', { clientX: 320, clientY: 5 }));
+  document.dispatchEvent(new MouseEvent('click', { clientX: 480, clientY: 5 }));
   expect(preview.controller.phase).toBe('open');
   preview.destroy();
 });
@@ -40,6 +40,6 @@ test('destroy leaves nothing behind', () => {
   const { box, r, preview } = setup();
   preview.destroy();
   expect(box.children).toHaveLength(0);
-  document.dispatchEvent(new MouseEvent('mousemove', { clientX: 320, clientY: 5 }));
+  document.dispatchEvent(new MouseEvent('mousemove', { clientX: 480, clientY: 5 }));
   expect(r.pending()).toBe(0);
 });

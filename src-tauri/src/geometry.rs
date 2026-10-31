@@ -46,8 +46,9 @@ pub fn to_cg(r: Rect, primary_height: f64) -> Rect {
     Rect { y: primary_height - r.max_y(), ..r }
 }
 
-pub const OVERLAY_W: f64 = 640.0;
-pub const OVERLAY_H: f64 = 360.0;
+// Room for Cermin's 600 × 400 card with its lamp wings and glow (design 31 Oct).
+pub const OVERLAY_W: f64 = 960.0;
+pub const OVERLAY_H: f64 = 560.0;
 
 /// The notch is the strip between the two auxiliary top areas, as tall as the top safe inset.
 pub fn notch_from_screen(frame: Rect, safe_top: f64, aux_left: Rect, aux_right: Rect) -> Option<NotchGeom> {
@@ -150,7 +151,7 @@ mod tests {
         OverlayHit {
             label: label.to_string(),
             frame: overlay_frame(Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 }),
-            css_rects: vec![Rect { x: 260.0, y: 0.0, w: 120.0, h: 34.0 }],
+            css_rects: vec![Rect { x: 420.0, y: 0.0, w: 120.0, h: 34.0 }],
         }
     }
 
@@ -167,11 +168,11 @@ mod tests {
     fn overlay_is_centred_at_the_top_of_any_screen() {
         assert_eq!(
             overlay_frame(Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 }),
-            Rect { x: 415.0, y: 596.0, w: 640.0, h: 360.0 }
+            Rect { x: 255.0, y: 396.0, w: 960.0, h: 560.0 }
         );
         assert_eq!(
             overlay_frame(Rect { x: -1920.0, y: 0.0, w: 1920.0, h: 1080.0 }),
-            Rect { x: -1280.0, y: 720.0, w: 640.0, h: 360.0 }
+            Rect { x: -1440.0, y: 520.0, w: 960.0, h: 560.0 }
         );
     }
 
@@ -186,7 +187,7 @@ mod tests {
         // Monitor to the left of the main screen.
         let left = overlay_frame(Rect { x: -1920.0, y: 0.0, w: 1920.0, h: 1080.0 });
         let g = css_rect_to_global(left, Rect { x: 260.0, y: 0.0, w: 120.0, h: 34.0 });
-        assert_eq!(g, Rect { x: -1020.0, y: 1046.0, w: 120.0, h: 34.0 });
+        assert_eq!(g, Rect { x: -1180.0, y: 1046.0, w: 120.0, h: 34.0 });
         assert_eq!(global_to_css(left, g.x + 60.0, g.y + 17.0), (320.0, 17.0));
     }
 

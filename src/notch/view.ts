@@ -36,7 +36,20 @@ export interface NotchView {
   setNotice(n: NoticeView | null): void;
   setMissed(on: boolean): void; // the dot under the notch while idle
   setStatus(text: string | null, icon?: string | null): void; // beside the notch, or in a pill on a lens; icon: the module's icon URL
+  setLamp(lamp: LampView | null): void; // Cermin's lamp; null: the usual panel
 }
+
+// Cermin's lamp (design 31 Oct, Cermin §4, cermin-v6.html): a white panel whose
+// added wings take the light's color, with a thin glow of a stronger one.
+export interface LampView {
+  color: string;
+  glow: string;
+}
+
+// How far the lamp widens the panel on each side.
+export const LAMP_WING = 130;
+// The wings' color is solid this far in from the edge, then blends to white.
+const LAMP_SOLID = 40;
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -129,7 +142,15 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   matrix.setAttribute('type', 'matrix');
   matrix.setAttribute('values', '0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0');
   white.append(matrix);
-  defs.append(fade, gradient, blur, white);
+  const lampFill = doc.createElementNS(SVG_NS, 'linearGradient');
+  lampFill.id = `notch-lamp-${uid}`;
+  const lampGlow = doc.createElementNS(SVG_NS, 'filter');
+  lampGlow.id = `notch-lamp-glow-${uid}`;
+  for (const [k, v] of Object.entries({ x: '-10%', y: '-10%', width: '120%', height: '125%' })) lampGlow.setAttribute(k, v);
+  lampGlow.innerHTML = '<feFlood result="c"/><feComposite in="c" in2="SourceAlpha" operator="in" result="s"/>'
+    + '<feGaussianBlur in="s" stdDeviation="2" result="near"/><feGaussianBlur in="s" stdDeviation="6" result="far"/>'
+    + '<feMerge><feMergeNode in="far"/><feMergeNode in="near"/><feMergeNode in="SourceGraphic"/></feMerge>';
+  defs.append(fade, gradient, blur, white, lampFill, lampGlow);
   const glow = doc.createElementNS(SVG_NS, 'g');
   glow.setAttribute('class', 'notice-glow');
   // A missed notice: the accent red dot (spec 5), inside the notch widened to the
@@ -227,6 +248,28 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   }
 
   let panelFill = '';
+  let lamp: LampView | null = null;
+
+  function setLamp(next: LampView | null): void {
+    lamp = next;
+    content.classList.toggle('lamp', next !== null);
+    if (!next) {
+      panel.removeAttribute('filter');
+      kick();
+      return;
+    }
+    // The stops are fractions of the lit panel's width.
+    const w = c.panelSize().w;
+    const at = (px: number) => Math.min(0.5, px / w);
+    const stops: [number, string][] = [
+      [0, next.color], [at(LAMP_SOLID), next.color], [at(LAMP_WING), '#fff'],
+      [1 - at(LAMP_WING), '#fff'], [1 - at(LAMP_SOLID), next.color], [1, next.color],
+    ];
+    lampFill.innerHTML = stops.map(([o, col]) => `<stop offset="${o.toFixed(4)}" stop-color="${col}"/>`).join('');
+    lampGlow.querySelector('feFlood')!.setAttribute('flood-color', next.glow);
+    panel.setAttribute('filter', `url(#${lampGlow.id})`);
+    kick();
+  }
 
   function draw(): void {
     const s = c.motion.springs;
@@ -235,7 +278,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     panel.setAttribute('d', c.panelVisible ? panelPath(s.pw.x, s.ph.x) : '');
     // A notice stays solid beside the physical notch; closing keeps the last fill.
     if (c.phase === 'open' || c.phase === 'notify') {
-      const fill = c.phase === 'open' ? `url(#${fade.id})` : '#000';
+      const fill = c.phase !== 'open' ? '#000' : lamp ? `url(#${lampFill.id})` : `url(#${fade.id})`;
       if (panelFill !== fill) panel.style.fill = panelFill = fill;
     }
     setStyle(content, 'width', `${c.panelSize().w}px`);
@@ -456,6 +499,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     setNotice,
     setMissed,
     setStatus,
+    setLamp,
     destroy(): void {
       if (rafId !== null) deps.caf(rafId);
       rafId = null;

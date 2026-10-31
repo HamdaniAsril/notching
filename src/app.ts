@@ -5,8 +5,9 @@ import { clampConfig, type NotchConfig } from './notch/config';
 import { connect } from './notch/connect';
 import { NotchController, type Phase } from './notch/controller';
 import { mountPageView } from './notch/page-view';
-import { mountNotch, type NotchView } from './notch/view';
-import { mountFrameHost } from './pages/frames';
+import type { CardSize } from './notch/controller';
+import { LAMP_WING, mountNotch, type LampView, type NotchView } from './notch/view';
+import { type FrameSpec, mountFrameHost } from './pages/frames';
 import { MODULES_ICON, pageIconSvg } from './pages/icons';
 import { missedTargets, noticeTarget, pageName, pickPage, resolvePage, type PageView, viewSize } from './pages/route';
 
@@ -35,6 +36,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   let page: PageView = pickPage(state, null, false);
   let lastPhase: Phase = 'idle';
   let fullHeight: number | undefined; // what the open full view asked for
+  let lamp: (LampView & { key: string }) | null = null; // Cermin's lamp, on the page with this key
+  let lampSeq = 0; // the latest lamp change; an older answer from the core is dropped
 
   const queue: Notice[] = [];
   let showing: Notice | null = null;
@@ -69,6 +72,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     },
     onExpand: (key, height) => expand(key, height),
     onCollapse: () => collapse(),
+    onLamp: (spec, on, color, glow) => setLamp(spec, on, color, glow),
   }, doc);
   const pages = mountPageView(view.content, {
     frames,
@@ -161,10 +165,38 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     view.setMissed(state.missed.length > 0);
   }
 
+  // The page's size, widened by the lamp's wings while it is lit there.
+  function sized(v: PageView, full?: number): CardSize {
+    const size = viewSize(v, full);
+    return lamp?.key === v.key ? { ...size, width: size.width + 2 * LAMP_WING } : size;
+  }
+
   function usePage(next: PageView): void {
     page = next;
     fullHeight = undefined;
-    controller.setCard(viewSize(next));
+    controller.setCard(sized(next));
+  }
+
+  // The lamp lights the panel only once the core has turned the brightness up;
+  // off, or the lit frame gone, puts both back.
+  function setLamp(spec: FrameSpec, on: boolean, color = '#ffffff', glow = color): void {
+    const seq = ++lampSeq;
+    const show = (next: LampView | null) => {
+      lamp = next && { ...next, key: spec.key };
+      controller.setCard(sized(page, fullHeight));
+      view.setLamp(next);
+      view.kick();
+    };
+    if (!on) {
+      if (lamp) show(null);
+      bridge.moduleCall(spec.moduleId, 'lamp', 'off').catch(() => {});
+    } else if (lamp?.key === spec.key) {
+      show({ color, glow });
+    } else if (spec.key === page.key) {
+      bridge.moduleCall(spec.moduleId, 'lamp', 'on').then(() => {
+        if (seq === lampSeq && spec.key === page.key) show({ color, glow });
+      }, () => {});
+    }
   }
 
   // A full view may ask for a taller page; the panel springs back when it ends.
@@ -214,7 +246,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     strings = hostStrings(next.lang);
     doc.documentElement.lang = next.lang;
     const picked = pickPage(next, page.key, isOpen());
-    const size = viewSize(picked, picked.key === page.key ? fullHeight : undefined);
+    const size = sized(picked, picked.key === page.key ? fullHeight : undefined);
     if (picked.key !== page.key || size.width !== controller.card.width || size.height !== controller.card.height) usePage(picked);
     else page = picked;
     // The page view keeps its frames when nothing it shows has changed.

@@ -53,7 +53,7 @@ test('the pill hit rect is centred like the pill itself', () => {
   // jsdom has no layout: give the pill the box a browser computes. It is centred with
   // left: 50% plus translateX(-50%), and offsetLeft ignores the transform.
   const pill = root.querySelector('.notch-pill')!;
-  for (const [key, value] of Object.entries({ offsetLeft: 320, offsetTop: 134, offsetWidth: 78, offsetHeight: 34 })) {
+  for (const [key, value] of Object.entries({ offsetLeft: 480, offsetTop: 134, offsetWidth: 78, offsetHeight: 34 })) {
     Object.defineProperty(pill, key, { value });
   }
   c.click();
@@ -62,7 +62,7 @@ test('the pill hit rect is centred like the pill itself', () => {
   timers.advance(1000);
   r.runAll(600);
   expect(c.pillVisible).toBe(true);
-  expect(spy).toHaveBeenLastCalledWith([{ x: 108, y: 0, w: 424, h: 134 }, { x: 281, y: 134, w: 78, h: 34 }]);
+  expect(spy).toHaveBeenLastCalledWith([{ x: 268, y: 0, w: 424, h: 134 }, { x: 441, y: 134, w: 78, h: 34 }]);
 });
 
 const ITEMS = [

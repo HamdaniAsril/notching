@@ -13,6 +13,7 @@ export interface FrameSpec {
   widget: string | null;
   title: string;
   height: number;
+  camera?: boolean; // the module lists the camera permission (Cermin)
 }
 
 export interface FrameHostDeps {
@@ -21,6 +22,8 @@ export interface FrameHostDeps {
   onKey: (key: 'Escape' | 'Quit') => void;
   onExpand: (key: string, height?: number) => void;
   onCollapse: (key: string) => void;
+  // Cermin's lamp, from its frame; on: false also when a lit frame goes away.
+  onLamp: (spec: FrameSpec, on: boolean, color?: string, glow?: string) => void;
 }
 
 export interface FrameHost {
@@ -37,6 +40,7 @@ interface Entry {
   box: HTMLElement;
   iframe: HTMLIFrameElement | null;
   cancelReady: (() => void) | null;
+  lamp: boolean;
 }
 
 // Each frame has an opaque origin: it cannot reach Tauri or this page. It talks
@@ -52,6 +56,7 @@ export function mountFrameHost(deps: FrameHostDeps, doc: Document): FrameHost {
     e.iframe = null;
     e.box.remove();
     entries.delete(e.spec.key);
+    if (e.lamp) deps.onLamp(e.spec, false);
   }
 
   // Only to a frame that is still up.
@@ -74,6 +79,9 @@ export function mountFrameHost(deps: FrameHostDeps, doc: Document): FrameHost {
       deps.onExpand(e.spec.key, msg.height);
     } else if (msg.type === 'notching:collapse') {
       deps.onCollapse(e.spec.key);
+    } else if (msg.type === 'notching:lamp') {
+      e.lamp = msg.on;
+      deps.onLamp(e.spec, msg.on, msg.color, msg.glow);
     } else {
       deps.bridge.moduleCall(e.spec.moduleId, msg.capability, msg.method, msg.args).then(
         value => reply(e, from, { type: 'notching:result', id: msg.id, ok: true, value }),
@@ -94,12 +102,15 @@ export function mountFrameHost(deps: FrameHostDeps, doc: Document): FrameHost {
       const f = doc.createElement('iframe');
       f.className = 'module-frame';
       f.setAttribute('sandbox', deps.bridge.moduleSandbox);
+      // Any origin: the frame's own is opaque (sandbox without allow-same-origin), so
+      // the default allowlist, the src's origin, never matches it and WebKit denies.
+      if (spec.camera) f.setAttribute('allow', 'camera *');
       f.title = spec.title;
       f.style.height = `${spec.height}px`;
       const init: HostMessage = spec.widget === null
         ? { type: 'notching:init', moduleId: spec.moduleId, lang }
         : { type: 'notching:init', moduleId: spec.moduleId, lang, widget: spec.widget };
-      const e: Entry = { spec, lang, box, iframe: f, cancelReady: null };
+      const e: Entry = { spec, lang, box, iframe: f, cancelReady: null, lamp: false };
       f.addEventListener('load', () => reply(e, f, init));
       f.src = deps.bridge.moduleUrl(spec.moduleId, spec.entry);
       box.append(f);

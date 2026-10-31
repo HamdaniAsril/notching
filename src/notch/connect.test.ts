@@ -7,7 +7,7 @@ test('pointer events drive hover with a centred cursor x', () => {
   const kick = vi.fn();
   const c = ctl(null);
   connect(c, b, kick);
-  b.emitPointer({ inside: true, x: 420, y: 10 });
+  b.emitPointer({ inside: true, x: 580, y: 10 });
   expect(c.phase).toBe('hover');
   expect(c.targets().bx).toBe(6);
   expect(kick).toHaveBeenCalled();

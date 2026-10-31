@@ -107,6 +107,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     const m = v.module;
     const spec: FrameSpec = {
       key: v.key, moduleId: m.id, entry: m.entry!, widget: null, title: m.name, height: m.card!.height,
+      camera: m.permissions.includes('camera'),
     };
     deps.frames.keep([spec.key]);
     const wrap = el(doc, 'div', 'pg-module');

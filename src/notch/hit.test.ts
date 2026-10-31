@@ -3,10 +3,10 @@ import { containsPoint, hitRects } from './hit';
 import { ctl, frames } from './test-helpers';
 
 test('idle rects stay within the hot zone (no notch)', () =>
-  expect(hitRects(ctl(null), null)).toEqual([{ x: 260, y: 0, w: 120, h: 34 }]));
+  expect(hitRects(ctl(null), null)).toEqual([{ x: 420, y: 0, w: 120, h: 34 }]));
 
 test('idle rects stay within the hot zone (notch)', () =>
-  expect(hitRects(ctl({ width: 164, height: 32 }), null)).toEqual([{ x: 228, y: 0, w: 184, h: 42 }]));
+  expect(hitRects(ctl({ width: 164, height: 32 }), null)).toEqual([{ x: 388, y: 0, w: 184, h: 42 }]));
 
 test('hover zone grows with drop depth', () => {
   const c = ctl(null, { dropDepth: 28 });
@@ -17,8 +17,8 @@ test('hover zone grows with drop depth', () => {
 test('open rects cover the panel and the visible pill', () => {
   const c = ctl(null);
   c.click();
-  const pill = { x: 280, y: 134, w: 80, h: 34 };
-  expect(hitRects(c, pill)).toEqual([{ x: 108, y: 0, w: 424, h: 134 }, pill]);
+  const pill = { x: 440, y: 134, w: 80, h: 34 };
+  expect(hitRects(c, pill)).toEqual([{ x: 268, y: 0, w: 424, h: 134 }, pill]);
 });
 
 test('a shrinking panel keeps its hit area until it has shrunk', () => {
@@ -29,7 +29,7 @@ test('a shrinking panel keeps its hit area until it has shrunk', () => {
   expect(hitRects(c, null)[0].w).toBeGreaterThan(324);
   frames(c, 240);
   const r = hitRects(c, null)[0];
-  expect(r.x).toBeCloseTo(158, 0);
+  expect(r.x).toBeCloseTo(318, 0);
   expect(r.w).toBeCloseTo(324, 0);
   expect(r.h).toBeCloseTo(94, 0);
 });
@@ -49,6 +49,6 @@ test('containsPoint uses half-open edges', () => {
 test('a notice catches clicks on its ears', () => {
   const c = ctl({ width: 190, height: 32 });
   c.notify(3500);
-  expect(hitRects(c, null)).toEqual([{ x: 320 - 245 - 12, y: 0, w: 490 + 24, h: 36 }]);
+  expect(hitRects(c, null)).toEqual([{ x: 480 - 245 - 12, y: 0, w: 490 + 24, h: 36 }]);
 });
 

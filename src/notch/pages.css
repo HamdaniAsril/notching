@@ -153,3 +153,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Cermin's lamp: the panel is white, so its text goes dark, and the module's
+   page keeps its width between the lit wings (view.ts, LAMP_WING). */
+.notch-content.lamp {
+  --w: #000;
+  --g1: rgba(0, 0, 0, 0.68);
+  --g2: rgba(0, 0, 0, 0.45);
+  --g3: rgba(0, 0, 0, 0.18);
+  color: #000;
+}
+
+.notch-content.lamp .pg-module {
+  padding: 0 112px;
+}

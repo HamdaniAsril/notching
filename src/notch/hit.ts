@@ -8,7 +8,8 @@ export interface Rect {
   h: number;
 }
 
-export const OVERLAY_SIZE = { w: 640, h: 360 } as const;
+// Same as OVERLAY_W and OVERLAY_H in src-tauri/src/geometry.rs.
+export const OVERLAY_SIZE = { w: 960, h: 560 } as const;
 
 const CX = OVERLAY_SIZE.w / 2;
 

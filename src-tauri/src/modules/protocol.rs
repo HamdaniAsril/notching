@@ -10,7 +10,7 @@ pub const SCHEME: &str = "notchmod";
 
 /// Sent with every module page: a module can load only its own package files and
 /// has no network at all; anything else goes through a declared capability.
-pub const MODULE_CSP: &str = "default-src 'none'; script-src notchmod:; style-src notchmod: 'unsafe-inline'; img-src notchmod: data:; font-src notchmod:; connect-src 'none'";
+pub const MODULE_CSP: &str = "default-src 'none'; script-src notchmod:; style-src notchmod: 'unsafe-inline'; img-src notchmod: data:; font-src notchmod:; connect-src 'none'; media-src mediastream: blob:";
 
 /// "/<id>/<file…>" → (id, file inside the active folder), or None for any path
 /// that could leave the module's folder. '%' is refused outright, so encoded dots

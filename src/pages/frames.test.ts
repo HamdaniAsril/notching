@@ -14,7 +14,7 @@ const spec = (key: string, moduleId: string, widget: string | null = null): Fram
 
 function host() {
   const bridge = fakeBridge();
-  const deps = { bridge, setTimer: timers.setTimer, onKey: vi.fn(), onExpand: vi.fn(), onCollapse: vi.fn() };
+  const deps = { bridge, setTimer: timers.setTimer, onKey: vi.fn(), onExpand: vi.fn(), onCollapse: vi.fn(), onLamp: vi.fn() };
   const h = mountFrameHost(deps, document);
   const put = (s: FrameSpec, lang: 'id' | 'en' = 'id') => {
     const box = h.frame(s, lang, STR);
@@ -112,6 +112,32 @@ test('expand and collapse come only from a known frame', () => {
   say({ type: 'notching:expand', height: 193 }, f.contentWindow);
   expect(deps.onExpand).toHaveBeenCalledWith('home/2/home/reminders', 193);
   expect(deps.onCollapse).toHaveBeenCalledWith('home/2/home/reminders');
+});
+
+test('a frame with the camera permission may use the camera', () => {
+  const { put, iframe } = host();
+  expect(iframe(put(spec('m', 'system-stat'))).hasAttribute('allow')).toBe(false);
+  expect(iframe(put({ ...spec('c', 'mirror'), camera: true })).getAttribute('allow')).toBe('camera *');
+});
+
+test('the lamp comes from its frame and goes out with it', () => {
+  const { deps, h, put, iframe, say } = host();
+  const s = spec('module:mirror', 'mirror');
+  const f = iframe(put(s));
+  say({ type: 'notching:lamp', on: true, color: '#ffd6a0', glow: '#ffa040' }, f.contentWindow);
+  expect(deps.onLamp).toHaveBeenLastCalledWith(s, true, '#ffd6a0', '#ffa040');
+  h.keep([]);
+  expect(deps.onLamp).toHaveBeenLastCalledWith(s, false);
+  expect(deps.onLamp).toHaveBeenCalledTimes(2);
+});
+
+test('a frame whose lamp is off goes away quietly', () => {
+  const { deps, h, put, iframe, say } = host();
+  const f = iframe(put(spec('module:mirror', 'mirror')));
+  say({ type: 'notching:lamp', on: true }, f.contentWindow);
+  say({ type: 'notching:lamp', on: false }, f.contentWindow);
+  h.clear();
+  expect(deps.onLamp).toHaveBeenCalledTimes(2);
 });
 
 test('setFull sends the view message', () => {

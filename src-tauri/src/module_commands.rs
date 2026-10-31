@@ -42,6 +42,7 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
         crate::awake_service::module_gone(&app, &id);
         crate::timer_service::module_gone(&app, &id);
         crate::keyclean_service::module_gone(&app, &id);
+        crate::lamp_service::module_gone(&app, &id);
     }
     crate::status::publish(&app);
     Ok(())
@@ -53,6 +54,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     crate::awake_service::module_gone(&app, &id);
     crate::timer_service::module_gone(&app, &id);
     crate::keyclean_service::module_gone(&app, &id);
+    crate::lamp_service::module_gone(&app, &id);
     crate::status::publish(&app);
     Ok(())
 }
@@ -133,6 +135,14 @@ pub async fn module_call(
         Call::TimerStop => serde_json::to_value(crate::timer_service::stop(&app)),
         Call::KeyCleanToggle => {
             crate::keyclean_service::toggle(&app, &module_id)?;
+            Ok(serde_json::Value::Null)
+        }
+        Call::LampOn => {
+            crate::lamp_service::turn_on(&app, &module_id);
+            Ok(serde_json::Value::Null)
+        }
+        Call::LampOff => {
+            crate::lamp_service::turn_off(&app);
             Ok(serde_json::Value::Null)
         }
     };

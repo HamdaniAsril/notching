@@ -517,9 +517,9 @@ input:focus-visible,
   position: absolute;
   top: 0;
   left: 50%;
-  width: 640px;
-  height: 360px;
-  margin-left: -320px;
+  width: 960px;
+  height: 560px;
+  margin-left: -480px;
 }
 
 /* The panel is black in both themes, so its text keeps the dark-theme greys. */

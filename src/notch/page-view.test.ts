@@ -15,7 +15,7 @@ function mount() {
   const content = document.createElement('div');
   document.body.append(content);
   const bridge = fakeBridge();
-  const frames = mountFrameHost({ bridge, setTimer: timers.setTimer, onKey: vi.fn(), onExpand: vi.fn(), onCollapse: vi.fn() }, document);
+  const frames = mountFrameHost({ bridge, setTimer: timers.setTimer, onKey: vi.fn(), onExpand: vi.fn(), onCollapse: vi.fn(), onLamp: vi.fn() }, document);
   const deps = { frames, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onAction: vi.fn(), onBack: vi.fn() };
   const pv = mountPageView(content, deps);
   const show = (s: ModuleState, key: string | null = null) => pv.show(key ? resolvePage(s, key)! : pickPage(s, null, false), s, STR);

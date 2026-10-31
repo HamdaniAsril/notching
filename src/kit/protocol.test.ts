@@ -32,6 +32,14 @@ test('a frame may ask to expand or collapse', () => {
   expect(isFrameMessage({ type: 'notching:collapse' })).toBe(true);
 });
 
+test('the lamp carries hex colors only', () => {
+  expect(isFrameMessage({ type: 'notching:lamp', on: false })).toBe(true);
+  expect(isFrameMessage({ type: 'notching:lamp', on: true, color: '#FFD6A0', glow: '#ffa040' })).toBe(true);
+  expect(isFrameMessage({ type: 'notching:lamp', on: 'yes' })).toBe(false);
+  expect(isFrameMessage({ type: 'notching:lamp', on: true, color: 'red' })).toBe(false);
+  expect(isFrameMessage({ type: 'notching:lamp', on: true, glow: 'url(x)' })).toBe(false);
+});
+
 test('an expand may ask for a height', () => {
   expect(isFrameMessage({ type: 'notching:expand', height: 193 })).toBe(true);
   expect(isFrameMessage({ type: 'notching:expand', height: '193' })).toBe(false);

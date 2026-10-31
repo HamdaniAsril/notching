@@ -22,6 +22,8 @@ pub enum Call {
     TimerResume,
     TimerStop,
     KeyCleanToggle,
+    LampOn,
+    LampOff,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -76,6 +78,8 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Timer, "resume") => Ok(Call::TimerResume),
         (Capability::Timer, "stop") => Ok(Call::TimerStop),
         (Capability::KeyClean, "toggle") => Ok(Call::KeyCleanToggle),
+        (Capability::Lamp, "on") => Ok(Call::LampOn),
+        (Capability::Lamp, "off") => Ok(Call::LampOff),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -197,6 +201,16 @@ mod tests {
         assert_eq!(authorize(Some(&k), "keyboard-clean", "keyclean", "start"), Err(CallError::UnknownMethod("start".into())));
         let t = entry("timer", &[Capability::Timer], true);
         assert!(matches!(authorize(Some(&t), "timer", "keyclean", "toggle"), Err(CallError::NotDeclared { .. })));
+    }
+
+    #[test]
+    fn the_lamp_needs_its_capability() {
+        let m = entry("mirror", &[Capability::Lamp], true);
+        assert_eq!(authorize(Some(&m), "mirror", "lamp", "on"), Ok(Call::LampOn));
+        assert_eq!(authorize(Some(&m), "mirror", "lamp", "off"), Ok(Call::LampOff));
+        assert_eq!(authorize(Some(&m), "mirror", "lamp", "dim"), Err(CallError::UnknownMethod("dim".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        assert!(matches!(authorize(Some(&t), "timer", "lamp", "on"), Err(CallError::NotDeclared { .. })));
     }
 
     #[test]

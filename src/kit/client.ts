@@ -8,6 +8,7 @@ export interface Kit {
   call<T>(capability: string, method: string, args?: unknown): Promise<T>;
   expand(height?: number): void; // asks to cover the whole page, made this tall if it can
   collapse(): void;
+  lamp(on: boolean, color?: string, glow?: string): void; // Cermin's lamp on the panel; colors "#rrggbb"
   onView(cb: (full: boolean) => void): void;
 }
 
@@ -34,6 +35,7 @@ export function connectKit(win: Window = window): Promise<Kit> {
           widget: msg.widget ?? null,
           expand: height => post(height === undefined ? { type: 'notching:expand' } : { type: 'notching:expand', height }),
           collapse: () => post({ type: 'notching:collapse' }),
+          lamp: (on, color, glow) => post({ type: 'notching:lamp', on, ...(color && { color }), ...(glow && { glow }) }),
           onView: cb => { views.push(cb); },
           call<T>(capability: string, method: string, args?: unknown): Promise<T> {
             const id = nextId++;

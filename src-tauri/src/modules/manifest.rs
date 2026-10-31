@@ -30,6 +30,9 @@ pub enum Capability {
     /// Locks the keyboard and dims the screens (Keyboard Cleaning Mode, design 31 Oct).
     #[serde(rename = "keyclean")]
     KeyClean,
+    /// Screen brightness to the maximum and back, for Cermin's lamp (design 31 Oct).
+    #[serde(rename = "lamp")]
+    Lamp,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).
@@ -141,9 +144,10 @@ pub enum ManifestError {
     BadAction,
 }
 
-// The panel and the pill must fit the 640 × 360 notch overlay.
+// The panel and the pill must fit the 960 × 560 notch overlay; Cermin's card is
+// 600 × 400 and its lamp widens the panel by 260 (design 31 Oct, Cermin §3).
 pub const CARD_WIDTH: RangeInclusive<u32> = 280..=600;
-pub const CARD_HEIGHT: RangeInclusive<u32> = 40..=240;
+pub const CARD_HEIGHT: RangeInclusive<u32> = 40..=420;
 pub const CHANNELS_MAX: usize = 8;
 pub const WIDGETS_MAX: usize = 8;
 
@@ -260,7 +264,7 @@ mod tests {
     fn card_size_must_fit_the_notch_overlay() {
         assert_eq!(parse_manifest(&GOOD.replace("400", "700"), "system-stat"), Err(ManifestError::CardSize));
         assert_eq!(
-            parse_manifest(&GOOD.replace("\"height\":80", "\"height\":300"), "system-stat"),
+            parse_manifest(&GOOD.replace("\"height\":80", "\"height\":440"), "system-stat"),
             Err(ManifestError::CardSize)
         );
     }
