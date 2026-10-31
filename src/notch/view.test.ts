@@ -311,7 +311,11 @@ test('a status icon sits just left of its text beside a notch, drawn white', () 
   expect(icon.getAttribute('href')).toBe('/k/icon.svg');
   // The text ends at 163; 4 characters of 7 px, a 5 px gap, a 12 px icon.
   expect([icon.getAttribute('x'), icon.getAttribute('y'), icon.getAttribute('width')]).toEqual(['118', '10', '12']);
-  expect(icon.style.filter).toBe('brightness(0) invert(1)');
+  // An SVG filter, not CSS: WebKit ignores CSS filter functions on SVG parts.
+  expect(icon.style.filter).toBe('');
+  const id = icon.getAttribute('filter')!.match(/^url\(#(.+)\)$/)![1];
+  const matrix = root.querySelector(`filter[id="${id}"] feColorMatrix`)!;
+  expect(matrix.getAttribute('values')).toBe('0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0');
   v.setStatus('42m');
   expect(icon.getAttribute('display')).toBe('none');
   v.setStatus(null);

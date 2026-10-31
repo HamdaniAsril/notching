@@ -120,7 +120,16 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   const gauss = doc.createElementNS(SVG_NS, 'feGaussianBlur');
   gauss.setAttribute('stdDeviation', '3');
   blur.append(gauss);
-  defs.append(fade, gradient, blur);
+  // Turns a module's black line icon white for the status, keeping its alpha. An
+  // SVG filter: WebKit ignores CSS filter functions on parts of an SVG.
+  const white = doc.createElementNS(SVG_NS, 'filter');
+  white.id = `notch-white-${uid}`;
+  white.setAttribute('color-interpolation-filters', 'sRGB');
+  const matrix = doc.createElementNS(SVG_NS, 'feColorMatrix');
+  matrix.setAttribute('type', 'matrix');
+  matrix.setAttribute('values', '0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0');
+  white.append(matrix);
+  defs.append(fade, gradient, blur, white);
   const glow = doc.createElementNS(SVG_NS, 'g');
   glow.setAttribute('class', 'notice-glow');
   // A missed notice: the accent red dot (spec 5), inside the notch widened to the
@@ -147,13 +156,13 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   for (const [k, v] of Object.entries({
     fill: '#fff', 'font-family': '"Space Mono", ui-monospace, monospace', 'font-size': '11', 'letter-spacing': '0.6',
   })) stText.setAttribute(k, v);
-  // Module icons are black line drawings: drawn white here.
+  // Module icons are black line drawings: drawn white through the filter above.
   const stIcon = doc.createElementNS(SVG_NS, 'image');
   stIcon.setAttribute('class', 'st-icon');
   stIcon.setAttribute('display', 'none');
   stIcon.setAttribute('width', String(ST_ICON));
   stIcon.setAttribute('height', String(ST_ICON));
-  stIcon.style.filter = 'brightness(0) invert(1)';
+  stIcon.setAttribute('filter', `url(#${white.id})`);
   if (notch) {
     stText.setAttribute('text-anchor', 'end');
     stText.setAttribute('x', String(notch.width / 2 + STATUS_TAB - 8));
