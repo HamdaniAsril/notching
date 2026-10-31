@@ -37,17 +37,27 @@ pub fn set_last_page(app: AppHandle, core: State<CoreState>, page: String) -> Re
 
 #[tauri::command]
 pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, enabled: bool) -> Result<(), String> {
-    change(&app, &core, |c| c.set_enabled(&id, enabled))
+    change(&app, &core, |c| c.set_enabled(&id, enabled))?;
+    if !enabled {
+        crate::awake_service::module_gone(&app, &id);
+    }
+    crate::status::publish(&app);
+    Ok(())
 }
 
 #[tauri::command]
 pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> Result<(), String> {
-    change(&app, &core, |c| c.uninstall(&id))
+    change(&app, &core, |c| c.uninstall(&id))?;
+    crate::awake_service::module_gone(&app, &id);
+    crate::status::publish(&app);
+    Ok(())
 }
 
 #[tauri::command]
 pub fn reinstall_module(app: AppHandle, core: State<CoreState>, id: String) -> Result<(), String> {
-    change(&app, &core, |c| c.reinstall(&id))
+    change(&app, &core, |c| c.reinstall(&id))?;
+    crate::status::publish(&app);
+    Ok(())
 }
 
 /// A module's capability call, checked against its installed manifest. Stats and
@@ -97,6 +107,17 @@ pub async fn module_call(
             crate::notify::post(&app, &module_id, &a.channel, &a.title, a.detail.as_deref().unwrap_or(""))?;
             Ok(serde_json::Value::Null)
         }
+        Call::AwakeRead => serde_json::to_value(crate::awake_service::read(&app)),
+        // The run belongs to the module that started it: its status and notice.
+        Call::AwakeStart => {
+            let a: StartArgs = parse_args(args, "awake.start")?;
+            serde_json::to_value(crate::awake_service::turn_on(&app, &module_id, a.minutes)?)
+        }
+        Call::AwakeAdd => {
+            let a: ExtendArgs = parse_args(args, "awake.add")?;
+            serde_json::to_value(crate::awake_service::extend(&app, a.minutes)?)
+        }
+        Call::AwakeStop => serde_json::to_value(crate::awake_service::turn_off(&app)),
     };
     value.map_err(|e| e.to_string())
 }
@@ -113,6 +134,17 @@ struct PostArgs {
     channel: String,
     title: String,
     detail: Option<String>,
+}
+
+/// `minutes` null: no limit.
+#[derive(serde::Deserialize)]
+struct StartArgs {
+    minutes: Option<u32>,
+}
+
+#[derive(serde::Deserialize)]
+struct ExtendArgs {
+    minutes: u32,
 }
 
 #[derive(serde::Deserialize)]

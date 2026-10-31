@@ -18,7 +18,6 @@ pub const SAMPLE_TEXT: &str = "18:42";
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Activity {
-    #[allow(dead_code)] // Keep awake reports it from step 3 on
     On,
     Running,
 }
@@ -91,9 +90,10 @@ pub struct StatusDto {
     pub screen: String,
 }
 
-// Works out the status on the main thread, where the cursor's screen is known,
-// and sends it when it changed.
-fn publish(app: &AppHandle) {
+/// Works out the status on the main thread, where the cursor's screen is known,
+/// and sends it when it changed. Also after a module is switched off or removed
+/// and after overlays are rebuilt, which change what shows where.
+pub fn publish(app: &AppHandle) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         let screen = cursor_screen(&handle);
@@ -125,7 +125,6 @@ fn update(app: &AppHandle, f: impl FnOnce(&mut crate::app_core::AppCore) -> bool
 }
 
 /// A module's status; it must declare the "status" capability.
-#[allow(dead_code)] // the gate calls it from step 3 on
 pub fn set(app: &AppHandle, module: &str, activity: Activity, text: Option<&str>) -> Result<(), String> {
     let mut result = Ok(());
     update(app, |core| match core.set_status(Some(module), activity, text) {
@@ -138,7 +137,6 @@ pub fn set(app: &AppHandle, module: &str, activity: Activity, text: Option<&str>
     result
 }
 
-#[allow(dead_code)] // the gate calls it from step 3 on
 pub fn clear(app: &AppHandle, module: &str) {
     update(app, |core| core.clear_status(Some(module)));
 }

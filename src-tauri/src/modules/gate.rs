@@ -12,6 +12,10 @@ pub enum Call {
     RemindersAdd,
     RemindersSetDone,
     NotifyPost,
+    AwakeRead,
+    AwakeStart,
+    AwakeAdd,
+    AwakeStop,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -56,6 +60,10 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Reminders, "add") => Ok(Call::RemindersAdd),
         (Capability::Reminders, "setDone") => Ok(Call::RemindersSetDone),
         (Capability::Notify, "post") => Ok(Call::NotifyPost),
+        (Capability::Awake, "read") => Ok(Call::AwakeRead),
+        (Capability::Awake, "start") => Ok(Call::AwakeStart),
+        (Capability::Awake, "add") => Ok(Call::AwakeAdd),
+        (Capability::Awake, "stop") => Ok(Call::AwakeStop),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -143,6 +151,18 @@ mod tests {
     fn errors_read_as_plain_sentences() {
         let e = CallError::NotDeclared { module: "home".into(), capability: "system.stats".into() };
         assert_eq!(e.to_string(), "module home did not declare system.stats");
+    }
+
+    #[test]
+    fn keep_awake_needs_its_capability() {
+        let k = entry("keep-awake", &[Capability::Awake, Capability::Status, Capability::Notify], true);
+        assert_eq!(authorize(Some(&k), "keep-awake", "awake", "read"), Ok(Call::AwakeRead));
+        assert_eq!(authorize(Some(&k), "keep-awake", "awake", "start"), Ok(Call::AwakeStart));
+        assert_eq!(authorize(Some(&k), "keep-awake", "awake", "add"), Ok(Call::AwakeAdd));
+        assert_eq!(authorize(Some(&k), "keep-awake", "awake", "stop"), Ok(Call::AwakeStop));
+        assert_eq!(authorize(Some(&k), "keep-awake", "awake", "hold"), Err(CallError::UnknownMethod("hold".into())));
+        let stat = entry("system-stat", &[Capability::SystemStats], true);
+        assert!(matches!(authorize(Some(&stat), "system-stat", "awake", "start"), Err(CallError::NotDeclared { .. })));
     }
 
     #[test]

@@ -78,7 +78,10 @@ fn slot_action(panel_exists: bool, previous: Option<&ScreenInfo>, now: &ScreenIn
 /// away only hides its panel, and the panel is reused when a screen takes its index again.
 pub fn rebuild_overlays(app: &AppHandle) -> tauri::Result<()> {
     let mtm = MainThreadMarker::new().expect("rebuild_overlays must run on the main thread");
-    apply_screens(app, current_screens(mtm))
+    apply_screens(app, current_screens(mtm))?;
+    // A new overlay, or the cursor's screen gone, can change where the status shows.
+    crate::status::publish(app);
+    Ok(())
 }
 
 fn apply_screens(app: &AppHandle, screens: Vec<ScreenInfo>) -> tauri::Result<()> {

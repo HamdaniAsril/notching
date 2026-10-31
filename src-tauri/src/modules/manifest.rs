@@ -19,6 +19,9 @@ pub enum Capability {
     /// A short status beside the notch while the panel is closed (design 30 Oct, §8).
     #[serde(rename = "status")]
     Status,
+    /// Keeps the screen on and the Mac awake (Keep awake, design 31 Oct).
+    #[serde(rename = "awake")]
+    Awake,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).

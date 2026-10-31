@@ -14,6 +14,8 @@ mod system_stats;
 #[cfg(target_os = "macos")]
 mod awake_hold;
 #[cfg(target_os = "macos")]
+mod awake_service;
+#[cfg(target_os = "macos")]
 mod commands;
 #[cfg(target_os = "macos")]
 mod login_item;
@@ -97,6 +99,7 @@ pub fn run() {
             app.manage(home::HomeState(std::sync::Mutex::new(home)));
             overlay::rebuild_overlays(app.handle())?;
             home::schedule::start(app.handle().clone());
+            awake_service::start(app.handle().clone());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             pointer::start_pointer_monitor(app.handle().clone());
