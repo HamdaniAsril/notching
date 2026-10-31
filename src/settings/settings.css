@@ -671,25 +671,97 @@ input:focus-visible,
 }
 
 /* Page editor: the row preview, 4 columns like the notch (design 30 Oct §9). */
-.ed-name-field {
-  max-width: 260px;
+/* The name is typed in the title; it looks like one until it has focus. */
+.head .titles {
+  flex: 1;
+  min-width: 0;
 }
 
-.ed-icon-row {
-  align-items: flex-start;
+.ed-title {
+  width: 100%;
+  max-width: 320px;
+  box-sizing: border-box;
+  margin: 0 0 0 -6px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 7px;
+  outline: 0;
+  background: transparent;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.ed-title:hover {
+  background: var(--sel);
+}
+
+.ed-title:focus {
+  background: var(--field);
+}
+
+/* The icon is a button with a pencil mark; it opens the icons in a popup. */
+.ed-icon-wrap {
+  position: relative;
+  flex: none;
+}
+
+.ed-icon-btn {
+  position: relative;
+  border: 0;
+  padding: 0;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.ed-icon-btn:hover {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.ed-icon-btn .pg-icon svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+}
+
+.ed-edit {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--fg);
+  color: var(--bg);
+  display: grid;
+  place-items: center;
+}
+
+.ed-edit svg {
+  width: 9px;
+  height: 9px;
 }
 
 .ed-icons {
-  flex: 1;
-  min-width: 0;
+  position: absolute;
+  z-index: 5;
+  top: 42px;
+  left: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, 26px);
+  grid-template-columns: repeat(6, 30px);
   gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--side);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
 }
 
 .ed-icons button {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 7px;
   background: transparent;

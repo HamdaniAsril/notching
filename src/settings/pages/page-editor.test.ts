@@ -95,18 +95,44 @@ test('renaming saves on Enter, not when unchanged', async () => {
 test('a page name is text, never markup', async () => {
   const evil = { ...KERJA, name: '<img src=x onerror=1>' };
   const { root } = await edit('p1', { ...STATE, pages: [BERANDA, evil] });
-  expect(root.querySelector('.pane h1')!.textContent).toBe('<img src=x onerror=1>');
-  expect((key(root, 'pageEdit.name') as HTMLInputElement).value).toBe('<img src=x onerror=1>');
+  expect(root.querySelector<HTMLInputElement>('.pane h1 [data-key="pageEdit.name"]')!.value).toBe('<img src=x onerror=1>');
   expect(root.querySelector('.pane img')).toBeNull();
 });
 
-test('picking an icon saves it', async () => {
+test('the name and icon are edited in the head, with no rows below', async () => {
+  const { root } = await edit('p1');
+  const labels = [...root.querySelectorAll('.pane .row .label')].map(l => l.textContent);
+  expect(labels).not.toContain('Nama');
+  expect(labels).not.toContain('Ikon');
+  const iconButton = key(root, 'pageEdit.icon')!;
+  expect(iconButton.closest('.head')).not.toBeNull();
+  expect(iconButton.querySelector('.ed-edit')).not.toBeNull();
+  expect(iconButton.getAttribute('aria-label')).toBe('Ganti ikon');
+});
+
+test('clicking the icon opens a popup of icons; picking one saves it', async () => {
   const { root, bridge } = await edit('p1');
-  const icons = [...root.querySelectorAll<HTMLElement>('.ed-icons button')];
-  expect(icons).toHaveLength(24);
+  const iconButton = key(root, 'pageEdit.icon')!;
+  expect(root.querySelector('.ed-icons')).toBeNull();
+  expect(iconButton.getAttribute('aria-expanded')).toBe('false');
+  iconButton.click();
+  expect(iconButton.getAttribute('aria-expanded')).toBe('true');
+  expect(root.querySelectorAll('.ed-icons button')).toHaveLength(24);
   expect(key(root, 'pageEdit.icon.briefcase')!.getAttribute('aria-pressed')).toBe('true');
   key(root, 'pageEdit.icon.book')!.click();
   expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kerja', 'book', [at('home/clock', 0)]);
+  expect(root.querySelector('.ed-icons')).toBeNull();
+});
+
+test('the icon popup closes with Escape or a click elsewhere', async () => {
+  const { root, bridge } = await edit('p1');
+  key(root, 'pageEdit.icon')!.click();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  expect(root.querySelector('.ed-icons')).toBeNull();
+  key(root, 'pageEdit.icon')!.click();
+  root.querySelector<HTMLElement>('.ed-row')!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+  expect(root.querySelector('.ed-icons')).toBeNull();
+  expect(bridge.setPage).not.toHaveBeenCalled();
 });
 
 test('deleting takes a second click', async () => {
@@ -124,7 +150,7 @@ test('deleting takes a second click', async () => {
 test('Beranda has no name field, icon picker or delete button', async () => {
   const { root } = await edit('home');
   expect(key(root, 'pageEdit.name')).toBeNull();
-  expect(root.querySelector('.ed-icons')).toBeNull();
+  expect(key(root, 'pageEdit.icon')).toBeNull();
   expect(key(root, 'pageEdit.delete')).toBeNull();
   expect(root.querySelector('.nav.on')!.textContent).toContain('Halaman');
 });

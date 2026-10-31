@@ -112,7 +112,8 @@
       "sourceOff": "Modul dimatikan",
       "fixedHint": "Beranda selalu pertama, Modul selalu terakhir.",
       "widgetList": "Widget",
-      "move": "Seret untuk mengurutkan"
+      "move": "Seret untuk mengurutkan",
+      "changeIcon": "Ganti ikon"
     },
     "home": {
       "homeName": "Beranda",

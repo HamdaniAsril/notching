@@ -112,7 +112,8 @@
       "sourceOff": "Module is off",
       "fixedHint": "Beranda comes first, Modul last.",
       "widgetList": "Widgets",
-      "move": "Drag to reorder"
+      "move": "Drag to reorder",
+      "changeIcon": "Change icon"
     },
     "home": {
       "homeName": "Home",

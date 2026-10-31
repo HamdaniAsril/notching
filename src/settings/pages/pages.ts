@@ -10,8 +10,11 @@ import { sharedData } from './home';
 // instead of going back to the list.
 let added: string | null = null;
 export const waitingFor = (id: string): boolean => id === added;
-export function arrived(id: string): void {
-  if (id === added) added = null;
+// True once, for the page just added: its editor puts the cursor in the name.
+export function arrived(id: string): boolean {
+  if (id !== added) return false;
+  added = null;
+  return true;
 }
 
 // A page's fixed line icon. The SVG is one of src/pages/icons.ts, never the

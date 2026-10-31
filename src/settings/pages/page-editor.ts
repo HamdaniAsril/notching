@@ -24,38 +24,92 @@ function back(ctx: PageContext): HTMLElement {
   return b;
 }
 
-// Name, icon and delete for a custom page; Beranda keeps all three.
-function identity(ctx: PageContext, page: Page, save: (next: Page) => void): HTMLElement[] {
-  const s = ctx.strings.pages;
-  const name = el('input', 'field ed-name-field');
+// The name, typed straight into the title.
+function titleField(ctx: PageContext, page: Page, save: (next: Page) => void): HTMLInputElement {
+  const name = el('input', 'ed-title');
   name.dataset.key = 'pageEdit.name';
   name.maxLength = 24;
   name.value = page.name ?? '';
-  name.setAttribute('aria-label', s.name);
+  name.spellcheck = false;
+  name.setAttribute('aria-label', ctx.strings.pages.name);
   const commit = () => {
     const v = name.value.trim();
     if (!v || v === page.name) return;
     page = { ...page, name: v };
     save(page);
   };
-  name.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); });
+  name.addEventListener('keydown', e => {
+    if (e.key === 'Enter') commit();
+    if (e.key === 'Escape') name.value = page.name ?? '';
+  });
   name.addEventListener('blur', commit);
+  return name;
+}
 
-  const icons = el('div', 'ed-icons');
-  icons.setAttribute('role', 'group');
-  icons.setAttribute('aria-label', s.icon);
-  for (const n of PAGE_ICON_NAMES) {
-    const b = el('button', n === page.icon ? 'on' : undefined);
-    b.type = 'button';
-    b.dataset.key = `pageEdit.icon.${n}`;
-    b.setAttribute('aria-pressed', String(n === page.icon));
-    b.setAttribute('aria-label', n);
-    b.innerHTML = pageIconSvg(n); // one of the fixed icons, never the person's text
-    b.addEventListener('click', () => { if (n !== page.icon) save({ ...page, icon: n }); });
-    icons.append(b);
-  }
+// The page's icon with a pencil mark; a click opens the 24 icons in a popup.
+function iconPicker(ctx: PageContext, page: Page, save: (next: Page) => void): HTMLElement {
+  const s = ctx.strings.pages;
+  const wrap = el('div', 'ed-icon-wrap');
+  const open = el('button', 'ico ed-icon-btn');
+  open.type = 'button';
+  open.dataset.key = 'pageEdit.icon';
+  open.setAttribute('aria-label', s.changeIcon);
+  open.setAttribute('aria-haspopup', 'true');
+  open.setAttribute('aria-expanded', 'false');
+  const mark = icon('pencil');
+  mark.classList.add('ed-edit');
+  open.append(pageIcon(pageIconSvg(page.icon)), mark);
+  wrap.append(open);
 
-  // Deleting takes a second click within a few seconds, like uninstalling a module.
+  const doc = wrap.ownerDocument;
+  let popup: HTMLElement | null = null;
+  const close = () => {
+    popup?.remove();
+    popup = null;
+    open.setAttribute('aria-expanded', 'false');
+    doc.removeEventListener('keydown', onKey);
+    doc.removeEventListener('pointerdown', onOutside);
+  };
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Escape') return;
+    close();
+    open.focus();
+  };
+  const onOutside = (e: Event) => { if (!wrap.contains(e.target as Node)) close(); };
+  open.addEventListener('click', () => {
+    if (popup) {
+      close();
+      return;
+    }
+    popup = el('div', 'ed-icons');
+    popup.setAttribute('role', 'group');
+    popup.setAttribute('aria-label', s.icon);
+    for (const n of PAGE_ICON_NAMES) {
+      const b = el('button', n === page.icon ? 'on' : undefined);
+      b.type = 'button';
+      b.dataset.key = `pageEdit.icon.${n}`;
+      b.setAttribute('aria-pressed', String(n === page.icon));
+      b.setAttribute('aria-label', n);
+      b.innerHTML = pageIconSvg(n); // one of the fixed icons, never the person's text
+      b.addEventListener('click', () => {
+        close();
+        if (n !== page.icon) save({ ...page, icon: n });
+      });
+      popup.append(b);
+    }
+    wrap.append(popup);
+    open.setAttribute('aria-expanded', 'true');
+    doc.addEventListener('keydown', onKey);
+    doc.addEventListener('pointerdown', onOutside);
+    popup.querySelector<HTMLElement>('.on')?.focus();
+  });
+  ctx.onCleanup(close);
+  return wrap;
+}
+
+// Deleting takes a second click within a few seconds, like uninstalling a module.
+function deleteButton(ctx: PageContext, id: string): HTMLElement {
+  const s = ctx.strings.pages;
   let cancel: (() => void) | null = null;
   const reset = () => {
     cancel = null;
@@ -71,19 +125,14 @@ function identity(ctx: PageContext, page: Page, save: (next: Page) => void): HTM
     }
     cancel();
     reset();
-    const pending = ctx.bridge.deletePage(page.id);
-    ctx.save(`page.${page.id}`, pending);
+    const pending = ctx.bridge.deletePage(id);
+    ctx.save(`page.${id}`, pending);
     pending.then(() => ctx.go({ page: 'pages' }), () => {});
   });
   ctx.onCleanup(() => cancel?.());
-
-  const nameRow = el('div', 'row');
-  nameRow.append(el('span', 'label', s.name), name);
-  const iconRow = el('div', 'row ed-icon-row');
-  iconRow.append(el('span', 'label', s.icon), icons);
   const foot = el('div', 'foot');
   foot.append(el('span'), del);
-  return [nameRow, iconRow, foot];
+  return foot;
 }
 
 // Highlights the cell a drag would land on.
@@ -216,17 +265,11 @@ export const pageEditor: PageRender = (ctx, route) => {
   const found = ctx.state.pages.find(p => p.id === id);
   // A page just added whose state is still on its way.
   if (!found) return out;
-  arrived(id);
+  const fresh = arrived(id);
 
   let page = found;
   const home = id === 'home';
   const catalog = widgetCatalog(ctx.state);
-  const top = head({
-    title: page.name ?? ctx.strings.home.homeName,
-    sub: home ? s.fixedHint : undefined,
-    icon: pageIcon(pageIconSvg(page.icon)),
-  });
-  top.dataset.row = `page.${id}`;
   const body = el('div', 'ed-body');
 
   const save = (next: Page) => {
@@ -245,13 +288,29 @@ export const pageEditor: PageRender = (ctx, route) => {
   }
   draw();
 
-  out.append(top);
   if (home) {
-    out.append(body);
+    const top = head({ title: ctx.strings.home.homeName, sub: s.fixedHint, icon: pageIcon(pageIconSvg(page.icon)) });
+    top.dataset.row = `page.${id}`;
+    out.append(top, body);
     return out;
   }
-  // Name and icon come from the editor's copy; the widgets are always the latest.
-  const [nameRow, iconRow, foot] = identity(ctx, page, next => save({ ...next, widgets: page.widgets }));
-  out.append(nameRow, iconRow, body, foot);
+  // Name and icon are edited in the head itself; the widgets sent with them are always the latest.
+  const keepWidgets = (next: Page) => save({ ...next, widgets: page.widgets });
+  const top = el('div', 'head');
+  top.dataset.row = `page.${id}`;
+  const title = el('h1');
+  const name = titleField(ctx, page, keepWidgets);
+  title.append(name);
+  const titles = el('div', 'titles');
+  titles.append(title);
+  top.append(iconPicker(ctx, page, keepWidgets), titles);
+  out.append(top, body, deleteButton(ctx, id));
+  // A page just added: ready to type its name over the placeholder one.
+  if (fresh) {
+    queueMicrotask(() => {
+      name.focus();
+      name.select();
+    });
+  }
   return out;
 };

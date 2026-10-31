@@ -187,8 +187,11 @@ test('Tambah halaman makes a page and opens it', async () => {
   expect(bridge.addPage).toHaveBeenCalledWith('Halaman baru', 'star');
   await settle();
   expect(app.route).toEqual({ page: 'pageEdit', id: 'p1' });
-  expect(root.querySelector('.pane h1')!.textContent).toBe('Halaman baru');
-  expect((key(root, 'pageEdit.name') as HTMLInputElement).value).toBe('Halaman baru');
+  // The name is typed in the title itself, ready to be replaced.
+  const name = root.querySelector<HTMLInputElement>('.pane h1 [data-key="pageEdit.name"]')!;
+  expect(name.value).toBe('Halaman baru');
+  expect(document.activeElement).toBe(name);
+  expect([name.selectionStart, name.selectionEnd]).toEqual([0, 'Halaman baru'.length]);
 });
 
 test('a new page whose state is still on its way waits for it', async () => {
@@ -198,7 +201,7 @@ test('a new page whose state is still on its way waits for it', async () => {
   expect(app.route).toEqual({ page: 'pageEdit', id: 'p1' });
   bridge.emitModuleState({ ...STATE, pages: [BERANDA, { id: 'p1', name: 'Halaman baru', icon: 'star', widgets: [] }] });
   expect(app.route).toEqual({ page: 'pageEdit', id: 'p1' });
-  expect(root.querySelector('.pane h1')!.textContent).toBe('Halaman baru');
+  expect((key(root, 'pageEdit.name') as HTMLInputElement).value).toBe('Halaman baru');
 });
 
 test('Alt+Down moves a custom page', async () => {
