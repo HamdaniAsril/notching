@@ -20,7 +20,7 @@ export interface RemindersWidget {
 // with 4 px between them; more rows scroll.
 const FULL_HEIGHT = 53 + 6 * 20 + 5 * 4;
 
-// Reminder (2 columns): the two nearest reminders. A click asks for the full
+// Reminder (2 columns): the three nearest reminders. A click asks for the full
 // view, which lists them all with a field to add one and circles to mark them done.
 export function renderReminders(root: HTMLElement, strings: HomeStrings, lang: Lang, actions: ReminderActions):
   RemindersWidget {
@@ -51,9 +51,9 @@ export function renderReminders(root: HTMLElement, strings: HomeStrings, lang: L
     w.setAttribute('role', 'button');
     w.tabIndex = 0;
     const rms = el('div', 'rms');
-    const two = nearest(snap.reminders, 2);
-    if (two.length === 0) rms.append(el('div', 'rm empty', strings.noReminders));
-    else rms.append(...two.map(r => reminderRow(r, false)));
+    const near = nearest(snap.reminders, 3);
+    if (near.length === 0) rms.append(el('div', 'rm empty', strings.noReminders));
+    else rms.append(...near.map(r => reminderRow(r, false)));
     w.append(el('div', 'lab', count()), rms);
     w.addEventListener('click', () => actions.expand(FULL_HEIGHT));
     w.addEventListener('keydown', e => { if (e.key === 'Enter') actions.expand(FULL_HEIGHT); });

@@ -11,7 +11,7 @@ Cara cek: checklist dicoba pemilik di build dev (`npm run tauri dev`) dari workt
 ### Test otomatis
 
 - `npx tsc --noEmit`: lulus.
-- `npm test`: 284 lulus (228 di awal rencana).
+- `npm test`: 285 lulus (228 di awal rencana).
 - `npm run build:modules && cargo test --manifest-path src-tauri/Cargo.toml`: 149 lulus, 1 diabaikan (122 di awal rencana). Yang diabaikan masih `live_search_and_forecast_through_macos_tls`, yang memanggil Open-Meteo sungguhan.
 
 ### Pindahan pengaturan
@@ -67,6 +67,7 @@ Semua keadaan diam ada di bawah 1,0. Lonjakan hanya terjadi saat panel bergerak 
 ### Temuan dan catatan
 
 - **Daftar Reminder lengkap terlalu pendek.** Di halaman 104 px hanya 2 reminder yang terlihat. Atas permintaan pemilik, widget sekarang meminta tinggi saat membuka tampilan penuh. `notching:expand` membawa `height` (opsional). Reminder meminta 193 px: kepala dan isian 53 px, ditambah 6 baris 20 px dengan jarak 4 px. Host membatasinya antara 104 dan 240 px (`FULL_PAGE_MAX`). Panel kembali ke 104 px saat "Kembali", saat pindah halaman, atau saat ditutup. Dibuat di `789065a` dengan test.
+- **Widget Reminder di Beranda menampilkan 3 reminder, bukan 2.** Pemilik melihat ruang kosong di bawah dua baris. Tiga baris muat di halaman 104 px (baris ketiga berakhir di 86 px). Spec bagian 3 ikut diubah.
 - **Font tidak termuat di build dev worktree.** `node_modules` worktree semula berupa tautan ke folder utama, sehingga Vite menolak file font di luar daftar izinnya. Tautan diganti dengan `npm ci` di worktree. Ini hanya terjadi di build dev worktree; build rilis membawa fontnya sendiri.
 - **Notching lama sempat dipakai setelah salinan data dibuat.** Tidak ada yang hilang. Pindahan dicocokkan dengan file tepat sebelum app baru jalan.
 - **Bahasa masih English** setelah cek 6.

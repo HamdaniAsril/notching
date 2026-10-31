@@ -30,13 +30,20 @@ function typeIn(input: HTMLInputElement, value: string): void {
 
 const enter = (el: Element) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 
-test('the widget shows the two nearest reminders', () => {
+test('the widget shows the nearest reminders', () => {
   const { root, text } = mount();
   expect(text('.wd-reminders .lab')).toBe('Reminder · 2');
   const rows = [...root.querySelectorAll('.wd-reminders .rm')];
   expect(rows.map(r => r.querySelector('.t')!.textContent)).toEqual(['Kirim invoice', 'Bayar listrik']);
   expect(rows.map(r => r.querySelector('.m')!.textContent)).toEqual(['14.00', 'Hari ini']);
   expect(root.querySelector('.wd-reminders button')).toBeNull();
+});
+
+test('the widget shows at most the three nearest reminders', () => {
+  const more = { ...SNAP, reminders: [...SNAP.reminders, rem(4, 'Telepon ibu', '2026-10-28', null), rem(5, 'Servis motor', '2026-10-29', null)] };
+  const { root } = mount(more);
+  const rows = [...root.querySelectorAll('.wd-reminders .rm')];
+  expect(rows.map(r => r.querySelector('.t')!.textContent)).toEqual(['Kirim invoice', 'Bayar listrik', 'Telepon ibu']);
 });
 
 test('English labels', () => {

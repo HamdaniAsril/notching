@@ -99,7 +99,7 @@ Panel tetap membuka halaman terakhir yang dibuka, seperti sekarang. Titik putih 
 | Tanggal | Waktu | 1 | Titik merah dan nama hari, tanggal dengan huruf titik-titik, bulan dan tahun | 1 |
 | Cuaca | Cuaca | 1 | Kota, suhu dengan huruf titik-titik, kondisi, terendah/tertinggi | 1 |
 | Waktu sholat | Ibadah | 1 | Sholat berikutnya dan jamnya, baris titik, sisa waktu | 1 |
-| Reminder | Kerja | 2 | Dua reminder terdekat. Klik untuk membuka daftar lengkap dan menambah reminder, sebagai tampilan penuh (bagian 4) | 1 |
+| Reminder | Kerja | 2 | Tiga reminder terdekat (semula dua; diubah atas permintaan pemilik saat cek bagian A). Klik untuk membuka daftar lengkap dan menambah reminder, sebagai tampilan penuh (bagian 4) | 1 |
 | Jam | Waktu | 1 | Jam dengan huruf titik-titik | 1 |
 | Jam + tanggal | Waktu | 2 | Jam dan tanggal dalam satu widget | 2 |
 | Jam kerja | Kerja | 1 | Lihat bawah | 2 |
