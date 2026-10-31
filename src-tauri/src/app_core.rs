@@ -7,7 +7,8 @@ use crate::locale::{resolve_lang, Lang};
 use crate::modules::manifest::{CardSize, WidgetKind};
 use crate::modules::store::{ChannelEntry, ModuleEntry, ModuleStore, StoreError};
 use crate::pages::{self, is_route, Page, PageError, Placement, MODULE_PAGE_PREFIX};
-use crate::status::Activity;
+use crate::modules::manifest::Capability;
+use crate::status::{Activity, LiveStatus, StatusDto, SAMPLE_TEXT};
 use crate::settings::{
     clamp_seconds, load_settings, save_settings, ChannelPref, HomeSettings, LanguageSetting, NotchConfig, Place,
     PrayerMethod, Settings,
@@ -65,6 +66,9 @@ pub struct ModuleInfoDto {
     /// package of widgets only.
     pub widgets: Vec<WidgetDto>,
     pub activity: Option<Activity>,
+    /// Declares the "status" capability, so it may show a status beside the notch.
+    pub status: bool,
+    pub status_shown: bool,
 }
 
 /// Broadcast to every window: the notch overlays and the settings window.
@@ -79,6 +83,8 @@ pub struct ModuleStateDto {
     pub notifications: NoticeLook,
     /// "<module>.<channel>" of notices the person did not see, in the order they came.
     pub missed: Vec<String>,
+    /// The sample status from Notifikasi is showing.
+    pub sample_status: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -106,8 +112,11 @@ pub struct AppCore {
     store: ModuleStore,
     device_locale: Option<String>,
     modules: Vec<ModuleEntry>,
-    // Kept in memory only: a restart forgets missed notices.
+    // Kept in memory only: a restart forgets missed notices and statuses.
     missed: Vec<String>,
+    live: LiveStatus,
+    // The status last sent beside the notch, to send only changes.
+    shown_status: Option<StatusDto>,
 }
 
 pub struct CoreState(pub Mutex<AppCore>);
@@ -120,7 +129,16 @@ impl AppCore {
         let settings = load_settings(&settings_path);
         store.sync(&settings);
         let mut core =
-            AppCore { settings_path, settings, store, device_locale, modules: Vec::new(), missed: Vec::new() };
+            AppCore {
+            settings_path,
+            settings,
+            store,
+            device_locale,
+            modules: Vec::new(),
+            missed: Vec::new(),
+            live: LiveStatus::default(),
+            shown_status: None,
+        };
         core.relist();
         core
     }
@@ -173,7 +191,9 @@ impl AppCore {
                             kind: w.kind,
                         })
                         .collect(),
-                    activity: None,
+                    activity: self.live.activity(&e.manifest.id),
+                    status: e.manifest.capabilities.contains(&Capability::Status),
+                    status_shown: !self.settings.status_off.contains(&e.manifest.id),
                 })
                 .collect(),
             pages: self.settings.pages.clone(),
@@ -181,7 +201,63 @@ impl AppCore {
             notch: self.settings.notch,
             notifications: self.notice_look(),
             missed: self.missed.clone(),
+            sample_status: self.live.has_sample(),
         }
+    }
+
+    /// A module's status (it must declare "status"), or the sample's when `module`
+    /// is None. True when its activity changed.
+    pub fn set_status(&mut self, module: Option<&str>, activity: Activity, text: Option<&str>) -> Result<bool, CoreError> {
+        if let Some(id) = module {
+            if !self.module(id).is_some_and(|e| e.manifest.capabilities.contains(&Capability::Status)) {
+                return Err(CoreError::Invalid("status".into()));
+            }
+        }
+        Ok(self.live.set(module, activity, text))
+    }
+
+    pub fn clear_status(&mut self, module: Option<&str>) -> bool {
+        self.live.clear(module)
+    }
+
+    pub fn set_sample_status(&mut self, on: bool) {
+        if on {
+            self.live.set(None, Activity::Running, Some(SAMPLE_TEXT));
+        } else {
+            self.live.clear(None);
+        }
+    }
+
+    pub fn set_status_shown(&mut self, id: &str, on: bool) -> Result<(), CoreError> {
+        if self.module(id).is_none() {
+            return Err(CoreError::Store(StoreError::UnknownModule(id.into())));
+        }
+        self.settings.status_off.retain(|m| m != id);
+        if !on {
+            self.settings.status_off.push(id.to_string());
+        }
+        self.save()
+    }
+
+    /// The status beside the notch on `screen`, when it differs from the one last
+    /// sent. Switched-off statuses and modules that are off or gone do not show.
+    pub fn status_change(&mut self, screen: &str) -> Option<Option<StatusDto>> {
+        let off: Vec<String> = self
+            .modules
+            .iter()
+            .filter(|e| !e.installed || !e.enabled || self.settings.status_off.contains(&e.manifest.id))
+            .map(|e| e.manifest.id.clone())
+            .collect();
+        let next = self.live.shown(&off).map(|(module_id, text)| StatusDto { module_id, text, screen: screen.into() });
+        if next == self.shown_status {
+            return None;
+        }
+        self.shown_status = next.clone();
+        Some(next)
+    }
+
+    pub fn status(&self) -> Option<StatusDto> {
+        self.shown_status.clone()
     }
 
     fn pref(&self, module: &str, c: &ChannelEntry) -> ChannelPref {
@@ -418,6 +494,62 @@ mod tests {
 
     fn at(widget: &str, col: u8, width: u8) -> Placement {
         Placement { widget: widget.into(), col, width }
+    }
+
+    #[test]
+    fn status_switches_are_saved() {
+        let d = setup();
+        let mut core = open(&d, None);
+        assert!(core.state().modules[0].status_shown);
+        core.set_status_shown("a", false).unwrap();
+        assert_eq!(core.settings.status_off, ["a"]);
+        assert!(!open(&d, None).state().modules[0].status_shown);
+        core.set_status_shown("a", true).unwrap();
+        assert!(open(&d, None).state().modules[0].status_shown);
+        assert!(matches!(core.set_status_shown("zzz", false), Err(CoreError::Store(_))));
+    }
+
+    #[test]
+    fn only_declared_modules_may_show_a_status() {
+        let d = setup();
+        let mut core = open(&d, None);
+        let s = core.state();
+        assert_eq!((s.modules[0].status, s.modules[1].status), (true, false));
+        assert!(core.set_status(Some("a"), Activity::Running, Some("18:42")).is_ok());
+        assert_eq!(core.set_status(Some("b"), Activity::Running, Some("1")), Err(CoreError::Invalid("status".into())));
+        assert_eq!(core.state().modules[0].activity, Some(Activity::Running));
+        assert_eq!(core.state().modules[1].activity, None);
+    }
+
+    #[test]
+    fn the_status_shown_is_sent_only_when_it_changes() {
+        let d = setup();
+        let mut core = open(&d, None);
+        assert_eq!(core.status_change("Built-in"), None);
+        core.set_status(Some("a"), Activity::Running, Some("18:42")).unwrap();
+        let dto = StatusDto { module_id: Some("a".into()), text: "18:42".into(), screen: "Built-in".into() };
+        assert_eq!(core.status_change("Built-in"), Some(Some(dto.clone())));
+        assert_eq!(core.status_change("Built-in"), None);
+        assert_eq!(core.status(), Some(dto.clone()));
+        assert_eq!(core.status_change("DELL"), Some(Some(StatusDto { screen: "DELL".into(), ..dto })));
+        // Switched off, uninstalled or turned off, the module's status is not shown.
+        core.set_status_shown("a", false).unwrap();
+        assert_eq!(core.status_change("DELL"), Some(None));
+        core.set_status_shown("a", true).unwrap();
+        core.set_enabled("a", false).unwrap();
+        assert_eq!(core.status_change("DELL"), None);
+    }
+
+    #[test]
+    fn the_sample_status_shows_until_turned_off() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.set_sample_status(true);
+        assert!(core.state().sample_status);
+        assert_eq!(core.status_change("Built-in").unwrap().unwrap().text, "18:42");
+        core.set_sample_status(false);
+        assert!(!core.state().sample_status);
+        assert_eq!(core.status_change("Built-in"), Some(None));
     }
 
     #[test]

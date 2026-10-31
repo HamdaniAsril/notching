@@ -179,6 +179,9 @@ pub struct Settings {
     /// What the panel opens: a page id, "modules", or "module:<id>".
     #[serde(deserialize_with = "lenient")]
     pub last_page: Option<String>,
+    /// Modules whose status is not shown beside the notch.
+    #[serde(deserialize_with = "lenient")]
+    pub status_off: Vec<String>,
 }
 
 impl Default for Settings {
@@ -194,6 +197,7 @@ impl Default for Settings {
             notifications: NotificationSettings::default(),
             pages: vec![beranda()],
             last_page: None,
+            status_off: Vec::new(),
         }
     }
 }

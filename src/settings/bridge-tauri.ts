@@ -32,5 +32,7 @@ export function tauriSettingsBridge(): SettingsBridge {
     setPage: (id, name, icon, widgets) => invoke('set_page', { id, name, icon, widgets }),
     deletePage: id => invoke('delete_page', { id }),
     movePage: (id, to) => invoke('move_page', { id, to }),
+    setSampleStatus: on => invoke('set_sample_status', { on }),
+    setStatusShown: (module, on) => invoke('set_status_shown', { module, on }),
   };
 }

@@ -290,14 +290,18 @@ pub(crate) fn fake_bundle(dir: &std::path::Path) {
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join("index.json"), r#"["a","b","w"]"#).unwrap();
     // "b" also has a widget, so a switched-off module's widget can be tried.
-    for (id, upper, widgets) in [("a", "A", ""), ("b", "B", r#","widgets":[{"id":"big","entry":"index.html","width":2,"kind":"work"}]"#)] {
+    // "a" may show a status beside the notch.
+    for (id, upper, caps, widgets) in [
+        ("a", "A", r#""status""#, ""),
+        ("b", "B", "", r#","widgets":[{"id":"big","entry":"index.html","width":2,"kind":"work"}]"#),
+    ] {
         let m = dir.join(id);
         std::fs::create_dir_all(m.join("locales")).unwrap();
         std::fs::write(
             m.join("manifest.json"),
             format!(
                 r#"{{"id":"{id}","version":"1.0.0","entry":"index.html","icon":"icon.svg",
-                   "card":{{"width":400,"height":90}},"permissions":[],"capabilities":[],
+                   "card":{{"width":400,"height":90}},"permissions":[],"capabilities":[{caps}],
                    "notifications":[{{"id":"ping","on":true,"sound":false}}]{widgets}}}"#
             ),
         )

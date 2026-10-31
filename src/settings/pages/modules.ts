@@ -1,7 +1,7 @@
 import { fill } from '../../i18n';
 import { formatBytes } from '../../kit/format';
 import { hasPage, type ModuleInfo } from '../../modules/types';
-import { button, el, group, head, note, toggle } from '../controls';
+import { button, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
 import type { PageContext, PageRender } from '../types';
 
@@ -103,7 +103,19 @@ export const modulePage: PageRender = (ctx, route) => {
   const foot = el('div', 'foot');
   foot.append(el('span', 'size', fill(s.versionSize, { version: m.version, size: formatBytes(m.size, ctx.lang) })), uninstall);
   const own = MODULE_SETTINGS[m.id];
-  page.append(back(ctx), top, own ? own(ctx) : note(s.noSettings), foot, el('p', 'note small', s.uninstallNote));
+  const statusKey = `module.${m.id}.status`;
+  const status = m.status
+    ? group(row({
+      key: statusKey, label: s.status, hint: s.statusHint,
+      control: toggle(statusKey, s.status, m.statusShown, on => ctx.save(statusKey, ctx.bridge.setStatusShown(m.id, on))),
+    }))
+    : null;
+  // "No settings" only when there is not even the status switch.
+  page.append(back(ctx), top);
+  if (status) page.append(status);
+  if (own) page.append(own(ctx));
+  else if (!status) page.append(note(s.noSettings));
+  page.append(foot, el('p', 'note small', s.uninstallNote));
   return page;
 };
 

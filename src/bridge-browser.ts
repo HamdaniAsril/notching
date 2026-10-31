@@ -45,6 +45,8 @@ export function catalog(lang: Lang, off: string[]): ModuleInfo[] {
       channels: (m.notifications ?? []).map(c => ({ ...c, widget: c.widget ?? null, name: t.channels?.[c.id] ?? c.id })),
       widgets: (m.widgets ?? []).map(w => ({ ...w, name: t.widgets?.[w.id] ?? w.id })),
       activity: null,
+      status: (m.capabilities ?? []).includes('status'),
+      statusShown: true,
     };
   });
 }
@@ -94,6 +96,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     notch: DEFAULT_CONFIG,
     notifications: { glow: true, seconds: 3.5 },
     missed: (params.get('missed') ?? '').split(',').filter(Boolean),
+    sampleStatus: false,
   };
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);

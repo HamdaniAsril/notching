@@ -70,3 +70,15 @@ test('English seconds', async () => {
   const { text } = await open({ ...STATE, lang: 'en' });
   expect(text()).toContain('3.5 s');
 });
+
+test('the sample status switch follows the state', async () => {
+  const { root, bridge, text } = await open();
+  expect(text()).toContain('Contoh status di samping notch');
+  expect(text()).toContain('Untuk mencoba tampilannya. Tidak disimpan.');
+  const sw = key(root, 'notifications.sampleStatus');
+  expect(sw.getAttribute('aria-checked')).toBe('false');
+  sw.click();
+  expect(bridge.setSampleStatus).toHaveBeenCalledWith(true);
+  bridge.emitModuleState({ ...STATE, sampleStatus: true });
+  expect(key(root, 'notifications.sampleStatus').getAttribute('aria-checked')).toBe('true');
+});

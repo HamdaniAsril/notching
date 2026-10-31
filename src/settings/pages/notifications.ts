@@ -22,12 +22,15 @@ export const notificationsPage: PageRender = ctx => {
   });
   const sample = button('notifications.sample', s.sample,
     () => void ctx.bridge.sendSampleNotice(s.sampleTitle, s.sampleDetail), true);
+  const sampleStatus = toggle('notifications.sampleStatus', s.sampleStatus, ctx.state.sampleStatus,
+    on => ctx.save('notifications.sampleStatus', ctx.bridge.setSampleStatus(on)));
 
   const page = el('div');
   page.append(
     head({ title: ctx.strings.sections.notifications, sub: s.sub }),
     group(row({ key: 'notifications.glow', label: s.glow, hint: s.glowHint, control: glow }), seconds,
-      row({ key: 'notifications.sample', label: s.sampleTitle, control: sample })),
+      row({ key: 'notifications.sample', label: s.sampleTitle, control: sample }),
+      row({ key: 'notifications.sampleStatus', label: s.sampleStatus, hint: s.sampleStatusHint, control: sampleStatus })),
   );
 
   const kinds = ctx.state.modules.filter(m => m.installed).flatMap(m => m.channels.map(c => kindRow(m, c)));

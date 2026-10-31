@@ -57,7 +57,9 @@
       "kinds": "Jenis notifikasi",
       "show": "Tampil",
       "sound": "Suara",
-      "none": "Belum ada modul yang memberi notifikasi."
+      "none": "Belum ada modul yang memberi notifikasi.",
+      "sampleStatus": "Contoh status di samping notch",
+      "sampleStatusHint": "Untuk mencoba tampilannya. Tidak disimpan."
     },
     "modules": {
       "summary": "{n} terpasang · {size}",
@@ -71,7 +73,9 @@
       "addTitle": "Tambah modul",
       "addSub": "Modul bawaan yang pernah kamu copot.",
       "addOne": "Pasang",
-      "addNone": "Semua modul bawaan sudah terpasang."
+      "addNone": "Semua modul bawaan sudah terpasang.",
+      "status": "Status di samping notch",
+      "statusHint": "Tampil saat panel tertutup."
     },
     "permissions": {
       "sub": "Belum ada modul yang butuh izin sistem.",

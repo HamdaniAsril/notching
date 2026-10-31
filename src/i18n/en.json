@@ -57,7 +57,9 @@
       "kinds": "Kinds of notices",
       "show": "Show",
       "sound": "Sound",
-      "none": "No module sends notices yet."
+      "none": "No module sends notices yet.",
+      "sampleStatus": "Sample status beside the notch",
+      "sampleStatusHint": "To try how it looks. Not saved."
     },
     "modules": {
       "summary": "{n} installed · {size}",
@@ -71,7 +73,9 @@
       "addTitle": "Add module",
       "addSub": "Built-in modules you've uninstalled.",
       "addOne": "Add",
-      "addNone": "Every built-in module is installed."
+      "addNone": "Every built-in module is installed.",
+      "status": "Status beside the notch",
+      "statusHint": "Shows while the panel is closed."
     },
     "permissions": {
       "sub": "No module needs a system permission yet.",

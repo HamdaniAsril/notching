@@ -57,6 +57,8 @@ export interface ModuleInfo {
   channels: Channel[];
   widgets: WidgetInfo[];
   activity: Activity | null;
+  status: boolean; // declares "status": may show a status beside the notch
+  statusShown: boolean; // its status switch in Pengaturan
 }
 
 // A module the person sees as one: it has a page of its own.
@@ -70,4 +72,5 @@ export interface ModuleState {
   notch: NotchConfig;
   notifications: { glow: boolean; seconds: number };
   missed: string[]; // "<module>.<channel>" of notices nobody saw, oldest first
+  sampleStatus: boolean; // the sample status from Notifikasi is showing
 }

@@ -29,7 +29,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   };
   let state: ModuleState = {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
-    notifications: { glow: true, seconds: 3.5 }, missed: [],
+    notifications: { glow: true, seconds: 3.5 }, missed: [], sampleStatus: false,
   };
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();
@@ -89,6 +89,8 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setPage: async (id, name, icon, widgets) =>
       setPages(state.pages.map(p => (p.id === id ? { ...p, name, icon, widgets } : p))),
     deletePage: async id => setPages(state.pages.filter(p => p.id !== id)),
+    setSampleStatus: async on => setState({ ...state, sampleStatus: on }),
+    setStatusShown: async (id, on) => setModule(id, { statusShown: on }),
     movePage: async (id, to) => {
       const [home, ...custom] = state.pages;
       const moving = custom.find(p => p.id === id)!;

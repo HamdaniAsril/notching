@@ -153,22 +153,37 @@ pub fn send_sample_notice(app: AppHandle, title: String, detail: String) {
     deliver(&app, dto, true);
 }
 
+// Each overlay window: its label, its screen's frame and the notch's height there.
+fn overlays(app: &AppHandle) -> Vec<(String, Rect, f64)> {
+    app.state::<Overlays>()
+        .0
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|(label, e)| (label.clone(), e.screen.frame, e.screen.notch.map_or(0.0, |n| n.height)))
+        .collect()
+}
+
+fn under_cursor(overlays: &[(String, Rect, f64)]) -> (Vec<(String, Rect)>, Option<String>) {
+    let mut screens: Vec<(String, Rect)> = overlays.iter().map(|(l, f, _)| (l.clone(), *f)).collect();
+    screens.sort_by(|a, b| a.0.cmp(&b.0));
+    let p = NSEvent::mouseLocation();
+    let label = screen_under(&screens, p.x, p.y);
+    (screens, label)
+}
+
+/// The overlay window of the screen under the cursor. Call on the main thread.
+pub fn cursor_screen(app: &AppHandle) -> Option<String> {
+    under_cursor(&overlays(app)).1
+}
+
 fn deliver(app: &AppHandle, dto: NoticeDto, sound: bool) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         let Some(mtm) = MainThreadMarker::new() else { return };
-        let overlays: Vec<(String, Rect, f64)> = handle
-            .state::<Overlays>()
-            .0
-            .lock()
-            .unwrap()
-            .iter()
-            .map(|(label, e)| (label.clone(), e.screen.frame, e.screen.notch.map_or(0.0, |n| n.height)))
-            .collect();
-        let mut screens: Vec<(String, Rect)> = overlays.iter().map(|(l, f, _)| (l.clone(), *f)).collect();
-        screens.sort_by(|a, b| a.0.cmp(&b.0));
-        let p = NSEvent::mouseLocation();
-        let Some(label) = screen_under(&screens, p.x, p.y) else { return };
+        let overlays = overlays(&handle);
+        let (screens, label) = under_cursor(&overlays);
+        let Some(label) = label else { return };
         if let (Some(module), Some(channel)) = (&dto.module_id, &dto.channel) {
             let frame = screens.iter().find(|(l, _)| *l == label).map(|(_, f)| *f).unwrap();
             let primary = NSScreen::screens(mtm).firstObject().map_or(frame.h, |s| s.frame().size.height);

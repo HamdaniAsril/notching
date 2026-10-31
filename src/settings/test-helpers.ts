@@ -45,6 +45,8 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     setPage: vi.fn(async (_id: string, _name: string | null, _icon: string, _widgets: Placement[]) => {}),
     deletePage: vi.fn(async (_id: string) => {}),
     movePage: vi.fn(async (_id: string, _to: number) => {}),
+    setSampleStatus: vi.fn(async (_on: boolean) => {}),
+    setStatusShown: vi.fn(async (_module: string, _on: boolean) => {}),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
   };

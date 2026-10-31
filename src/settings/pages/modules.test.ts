@@ -118,3 +118,16 @@ test('the widget package is not listed as a module', async () => {
   app.go({ page: 'add' });
   expect(root.querySelector('.module')).toBeNull();
 });
+
+test('a module with a status gets a status switch', async () => {
+  const timer = moduleInfo('timer', { name: 'Timer', status: true, statusShown: true });
+  const { root, app, bridge } = await mountForTest({ ...STATE, modules: [...STATE.modules, timer] });
+  app.go({ page: 'module', id: 'timer' });
+  const row = root.querySelector<HTMLElement>('[data-row="module.timer.status"]')!;
+  expect(row.textContent).toContain('Status di samping notch');
+  expect(row.textContent).toContain('Tampil saat panel tertutup.');
+  click(root, 'module.timer.status');
+  expect(bridge.setStatusShown).toHaveBeenCalledWith('timer', false);
+  app.go({ page: 'module', id: 'system-stat' });
+  expect(root.querySelector('[data-key="module.system-stat.status"]')).toBeNull();
+});
