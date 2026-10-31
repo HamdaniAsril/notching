@@ -274,7 +274,7 @@ Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
 | Tahap | Modul |
 |---|---|
 | 1 (versi pertama) | Beranda, Timer, Keep awake, Freeze keyboard, Kamera cermin, System stat. Modul Catatan dibatalkan pemilik ide pada 31 Oktober 2026. |
-| 2 | Music player dan lirik, Kalender, Pantau agent |
+| 2 | Kalender, Pantau agent. Music bukan lagi modul. Pada 1 November 2026 pemilik ide mengubahnya menjadi widget Now playing, tanpa lirik (lihat desain halaman 30 Oktober). |
 | 3 | Uninstall app dibatalkan pemilik ide pada 1 November 2026. Tahap ini kosong. |
 
 - **Tahap 1** berisi modul harian yang relatif mudah dibuat sama baiknya di Mac dan Windows.

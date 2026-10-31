@@ -105,7 +105,7 @@ Panel tetap membuka halaman terakhir yang dibuka, seperti sekarang. Titik putih 
 | Jam kerja | Kerja | 1 | Lihat bawah | 2 |
 | Catatan cepat | Kerja | 2 | Catatan teks yang disimpan lokal. Fokus keyboard boleh masuk ke panel saat mengetik. | 2 |
 | Timer | Kerja | strip | Hitung mundur dari modul Timer. Dibuat sebagai strip tipis selebar 4 kolom di bawah baris (desain Timer 31 Oktober). Bentuk 1 kolom menyusul. | 3 |
-| Now playing | Media | 2 | Lagu yang sedang diputar | Tahap 2, bersama modul Music |
+| Now playing | Media | 2 | Lihat bawah | Tahap 2 |
 
 Widget langkah 1 berasal dari isi Beranda yang sekarang. Datanya tetap sama:
 - Kota yang diketik sekali.
@@ -122,6 +122,18 @@ Widget langkah 1 berasal dari isi Beranda yang sekarang. Datanya tetap sama:
 - Hitungannya memakai jam yang kamu isi, bukan waktu kamu mulai memakai Mac.
 - Di luar jam kerja, widget menampilkan keadaan yang tenang, misalnya "Selesai", bukan angka negatif.
 - Akhir pekan juga ditampilkan tenang, misalnya "Libur". Hari kerja bawaannya Senin–Jumat dan bisa diubah di editor **(keputusan penulis)**.
+
+### Now playing
+
+Pada 1 November 2026 pemilik ide memutuskan bahwa Music bukan modul. Music menjadi widget Now playing saja, tanpa lirik.
+
+- **Di baris:**
+  - judul lagu, artis, dan sampul kecil,
+  - tombol putar/jeda, sebelumnya, dan berikutnya.
+- **Tampilan penuh** terbuka dengan klik, seperti daftar lengkap Reminder. Isinya sampul yang lebih besar, judul, artis, garis waktu lagu, dan tombol yang sama.
+- **Tanpa lirik.**
+- **Tidak menampilkan status di samping notch,** karena aturannya tetap hanya modul yang boleh **(keputusan penulis;** bisa diubah kalau pemilik ide menginginkannya).
+- **Data lagu dibaca oleh inti app** sebagai kemampuan sistem. macOS versi baru membatasi app lain membaca lagu yang sedang diputar, jadi cara membacanya harus dicoba dulu di Mac pemilik ide sebelum widget dibuat.
 
 ## 6. Beranda baru
 
@@ -225,7 +237,7 @@ Simulasi ukuran panel tanggal 29 Oktober (`2026-10-27-notch-mockups/panel-sizes.
 
    Detail tiap modul mengikuti §6 desain awal.
 4. **Sesudah itu, seperti rencana awal:**
-   - tahap 2 (Music dan Now playing, Kalender, Pantau agent, katalog modul),
+   - tahap 2 (widget Now playing, Kalender, Pantau agent, katalog modul),
    - versi Windows,
    - rilis publik.
 
