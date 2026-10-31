@@ -145,6 +145,8 @@ pub async fn module_call(
             crate::lamp_service::turn_off(&app);
             Ok(serde_json::Value::Null)
         }
+        // The notch opens the shelf itself; the call has nothing to do.
+        Call::ShelfOpen => Ok(serde_json::Value::Null),
     };
     value.map_err(|e| e.to_string())
 }

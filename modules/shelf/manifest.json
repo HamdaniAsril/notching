@@ -1,0 +1,8 @@
+{
+  "id": "shelf",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "permissions": [],
+  "capabilities": ["shelf", "status"],
+  "action": { "capability": "shelf", "method": "open" }
+}

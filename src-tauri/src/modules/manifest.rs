@@ -33,6 +33,9 @@ pub enum Capability {
     /// Screen brightness to the maximum and back, for Cermin's lamp (design 31 Oct).
     #[serde(rename = "lamp")]
     Lamp,
+    /// Titipan's tile opens the shelf, which the notch itself draws (design 1 Nov).
+    #[serde(rename = "shelf")]
+    Shelf,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).

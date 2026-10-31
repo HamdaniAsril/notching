@@ -24,6 +24,7 @@ pub enum Call {
     KeyCleanToggle,
     LampOn,
     LampOff,
+    ShelfOpen,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -80,6 +81,7 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::KeyClean, "toggle") => Ok(Call::KeyCleanToggle),
         (Capability::Lamp, "on") => Ok(Call::LampOn),
         (Capability::Lamp, "off") => Ok(Call::LampOff),
+        (Capability::Shelf, "open") => Ok(Call::ShelfOpen),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -201,6 +203,15 @@ mod tests {
         assert_eq!(authorize(Some(&k), "keyboard-clean", "keyclean", "start"), Err(CallError::UnknownMethod("start".into())));
         let t = entry("timer", &[Capability::Timer], true);
         assert!(matches!(authorize(Some(&t), "timer", "keyclean", "toggle"), Err(CallError::NotDeclared { .. })));
+    }
+
+    #[test]
+    fn the_shelf_tile_needs_its_capability() {
+        let s = entry("shelf", &[Capability::Shelf, Capability::Status], true);
+        assert_eq!(authorize(Some(&s), "shelf", "shelf", "open"), Ok(Call::ShelfOpen));
+        assert_eq!(authorize(Some(&s), "shelf", "shelf", "drop"), Err(CallError::UnknownMethod("drop".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        assert!(matches!(authorize(Some(&t), "timer", "shelf", "open"), Err(CallError::NotDeclared { .. })));
     }
 
     #[test]
