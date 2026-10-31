@@ -104,7 +104,7 @@ Panel tetap membuka halaman terakhir yang dibuka, seperti sekarang. Titik putih 
 | Jam + tanggal | Waktu | 2 | Jam dan tanggal dalam satu widget | 2 |
 | Jam kerja | Kerja | 1 | Lihat bawah | 2 |
 | Catatan cepat | Kerja | 2 | Catatan teks yang disimpan lokal. Fokus keyboard boleh masuk ke panel saat mengetik. | 2 |
-| Timer | Kerja | 1 | Hitung mundur dari modul Timer | 3 |
+| Timer | Kerja | strip | Hitung mundur dari modul Timer. Dibuat sebagai strip tipis selebar 4 kolom di bawah baris (desain Timer 31 Oktober). Bentuk 1 kolom menyusul. | 3 |
 | Now playing | Media | 2 | Lagu yang sedang diputar | Tahap 2, bersama modul Music |
 
 Widget langkah 1 berasal dari isi Beranda yang sekarang. Datanya tetap sama:
