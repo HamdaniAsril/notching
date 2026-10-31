@@ -105,7 +105,9 @@ test('shelf size by rows', () => {
   expect(viewSize(v(1))).toEqual({ width: 520, height: head + tile });
   expect(viewSize(v(7))).toEqual({ width: 520, height: head + 2 * tile + gap });
   expect(viewSize(v(30))).toEqual({ width: 520, height: head + 3 * tile + 2 * gap });
-  expect(viewSize(v(0))).toEqual({ width: 520, height: head + empty });
+  // Empty, as tall as one row (owner, on the Mac, 1 Nov: too thin before).
+  expect(viewSize(v(0))).toEqual({ width: 520, height: head + tile });
+  expect(empty).toBe(tile);
 });
 
 test('dropping size is 104', () => {

@@ -201,7 +201,11 @@
 .sh-empty {
   display: flex;
   align-items: center;
-  height: 56px;
+  justify-content: center;
+  height: 84px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  box-sizing: border-box;
 }
 
 .sh-grid {

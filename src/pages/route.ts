@@ -18,7 +18,7 @@ export const STRIP_HEIGHT = 40;
 // Titipan's shelf (design 1 Nov §4, titipan-tempat.html A): a head line, then 6
 // tiles a row; past 3 rows the grid scrolls. While a drag is over the notch it is
 // the drop zone, as tall as a custom page.
-export const SHELF = { width: 520, head: 22, tile: 84, gap: 8, columns: 6, maxRows: 3, drop: 104, empty: 56 } as const;
+export const SHELF = { width: 520, head: 22, tile: 84, gap: 8, columns: 6, maxRows: 3, drop: 104, empty: 84 } as const;
 export const SHELF_KEY = 'shelf';
 
 const MODULE_PREFIX = 'module:';
