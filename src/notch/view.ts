@@ -28,6 +28,12 @@ export interface NoticeView {
   glow: boolean;
 }
 
+// One status: its text (empty: the icon alone) and its module's icon URL (null: none).
+export interface StatusView {
+  text: string;
+  icon: string | null;
+}
+
 export interface NotchView {
   kick(): void;
   destroy(): void;
@@ -35,7 +41,7 @@ export interface NotchView {
   setPill(items: PillItem[], active: string | null, moreLabel: string): void;
   setNotice(n: NoticeView | null): void;
   setMissed(on: boolean): void; // the dot under the notch while idle
-  setStatus(text: string | null, icon?: string | null): void; // beside the notch, or in a pill on a lens; icon: the module's icon URL
+  setStatus(items: StatusView[]): void; // beside the notch, or in a pill on a lens; [] hides it
   setLamp(lamp: LampView | null): void; // Cermin's lamp; null: the usual panel
 }
 
@@ -79,6 +85,8 @@ const PILL_H = 22;
 const PILL_PAD = 12;
 const PILL_CHAR = 7;
 const PILL_DOT = 14;
+// Between two statuses (status-banyak.html, B): a dotted line in a 12 px gap.
+const ST_SEP = 12;
 
 // The G2 glow from notif-v1.html: a gradient running round the notice's rim.
 const GLOW_STOPS = ['#ff6ec4', '#7873f5', '#4adede', '#ffd166'];
@@ -171,31 +179,15 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   stShape.setAttribute('class', notch ? 'st-tab' : 'st-pill');
   stShape.setAttribute('display', 'none');
   if (notch) stShape.setAttribute('d', notchTabPath(notch, STATUS_TAB, 'right'));
-  const stText = doc.createElementNS(SVG_NS, 'text');
-  stText.setAttribute('class', 'st-text');
-  stText.setAttribute('display', 'none');
-  for (const [k, v] of Object.entries({
-    fill: '#fff', 'font-family': '"Space Mono", ui-monospace, monospace', 'font-size': '11', 'letter-spacing': '0.6',
-  })) stText.setAttribute(k, v);
-  // Module icons are black line drawings: drawn white through the filter above.
-  const stIcon = doc.createElementNS(SVG_NS, 'image');
-  stIcon.setAttribute('class', 'st-icon');
-  stIcon.setAttribute('display', 'none');
-  stIcon.setAttribute('width', String(ST_ICON));
-  stIcon.setAttribute('height', String(ST_ICON));
-  stIcon.setAttribute('filter', `url(#${white.id})`);
-  if (notch) {
-    stText.setAttribute('text-anchor', 'end');
-    stText.setAttribute('x', String(notch.width / 2 + STATUS_TAB - 8));
-    stText.setAttribute('y', String(notch.height / 2 + 4));
-  } else {
-    stText.setAttribute('text-anchor', 'middle');
-    stText.setAttribute('y', '15');
-  }
+  // The statuses, side by side, rebuilt on each change. Module icons are black
+  // line drawings: drawn white through the filter above.
+  const stItems = doc.createElementNS(SVG_NS, 'g');
+  stItems.setAttribute('class', 'st-items');
+  stItems.setAttribute('display', 'none');
   // Same stacking as the mockups: the lens under the panel, the physical notch over
   // it; the glow just under the panel, so only its rim shows.
-  if (notch) svg.append(defs, glow, panel, liquid, tab, dot, stShape, stText, stIcon);
-  else svg.append(defs, liquid, glow, panel, stShape, stText, stIcon, dot);
+  if (notch) svg.append(defs, glow, panel, liquid, tab, dot, stShape, stItems);
+  else svg.append(defs, liquid, glow, panel, stShape, stItems, dot);
 
   // Styles are set through CSSOM only, never as style="" markup, so the page's CSP
   // needs no inline styles.
@@ -233,8 +225,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   let noticeGlow = false;
   let glowA = 0;
   let missed = false;
-  let status: string | null = null;
-  let statusIcon: string | null = null;
+  let statuses: StatusView[] = [];
 
   // Layout box, not getBoundingClientRect(): the entrance animation scales the pill.
   // offsetLeft ignores the translateX(-50%) that centres it, so subtract half the width.
@@ -314,7 +305,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   // The status shows while the notch rests: beside a notch also under the
   // pointer, on a lens only while idle, as the lens grows under the pointer.
   function statusShown(): boolean {
-    return status !== null && (c.phase === 'idle' || (notch !== null && c.phase === 'hover'));
+    return statuses.length > 0 && (c.phase === 'idle' || (notch !== null && c.phase === 'hover'));
   }
 
   function drawDot(): void {
@@ -323,8 +314,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     dot.setAttribute('display', show);
     tab.setAttribute('display', show);
     stShape.setAttribute('display', st);
-    stText.setAttribute('display', st);
-    stIcon.setAttribute('display', statusIcon ? st : 'none');
+    stItems.setAttribute('display', st);
     if (notch) {
       dot.setAttribute('cy', String(notch.height / 2));
     } else if (st === 'inline') {
@@ -338,32 +328,75 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   }
 
   function pillHalf(): number {
-    return (2 * PILL_PAD + PILL_CHAR * (status ?? '').length + (missed ? PILL_DOT : 0) + iconRoom()) / 2;
+    return (2 * PILL_PAD + contentWidth() + (missed ? PILL_DOT : 0)) / 2;
   }
 
   // An empty status is the icon alone (Keyboard Cleaning Mode): no gap after it.
-  function iconRoom(): number {
-    return statusIcon ? ST_ICON + (status ? ST_GAP : 0) : 0;
+  const iconRoom = (s: StatusView) => (s.icon ? ST_ICON + (s.text ? ST_GAP : 0) : 0);
+  const itemWidth = (s: StatusView) => PILL_CHAR * s.text.length + iconRoom(s);
+  const contentWidth = () =>
+    statuses.reduce((w, s) => w + itemWidth(s), 0) + ST_SEP * Math.max(0, statuses.length - 1);
+
+  function svgEl(tag: string, attrs: Record<string, string | number>): SVGElement {
+    const e = doc.createElementNS(SVG_NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+    return e;
   }
 
-  // Lays the lens pill out for the dot, the icon and the text; the notch tab never
-  // changes, and the icon follows the right-aligned text (monospace: PILL_CHAR a character).
-  function layoutStatus(): void {
-    stText.textContent = status ?? '';
-    if (statusIcon) stIcon.setAttribute('href', statusIcon);
-    if (status === null) return;
-    if (notch) {
-      const end = notch.width / 2 + STATUS_TAB - 8;
-      stIcon.setAttribute('x', String(end - PILL_CHAR * status.length - iconRoom()));
-      stIcon.setAttribute('y', String(notch.height / 2 - ST_ICON / 2));
-      return;
+  // One status at x (its left edge): the icon, then the text (monospace:
+  // PILL_CHAR a character). Text is set as text, never markup.
+  function drawItem(s: StatusView, x: number, cy: number): SVGElement[] {
+    const out: SVGElement[] = [];
+    if (s.icon) {
+      const icon = svgEl('image', {
+        class: 'st-icon', x, y: cy - ST_ICON / 2, width: ST_ICON, height: ST_ICON, filter: `url(#${white.id})`,
+      });
+      icon.setAttribute('href', s.icon);
+      out.push(icon);
     }
-    const half = pillHalf();
-    stShape.setAttribute('d', topPillPath(half, PILL_H));
-    const left = -half + PILL_PAD + (missed ? PILL_DOT : 0);
-    stIcon.setAttribute('x', String(left));
-    stIcon.setAttribute('y', String((PILL_H - ST_ICON) / 2));
-    stText.setAttribute('x', String((left + iconRoom() + half - PILL_PAD) / 2));
+    const text = svgEl('text', {
+      class: 'st-text', x: x + iconRoom(s), y: cy + 4, 'text-anchor': 'start', fill: '#fff',
+      'font-family': '"Space Mono", ui-monospace, monospace', 'font-size': 11, 'letter-spacing': 0.6,
+    });
+    text.textContent = s.text;
+    out.push(text);
+    return out;
+  }
+
+  // Five small dots, 4 px apart, centred in the gap at x.
+  function drawSep(x: number, cy: number): SVGElement {
+    const g = svgEl('g', { class: 'st-sep' });
+    for (let i = -2; i <= 2; i++) g.append(svgEl('circle', { cx: x, cy: cy + 4 * i, r: 0.9, fill: 'rgba(255,255,255,.4)' }));
+    return g;
+  }
+
+  // Lays the statuses out left to right from x: beside a notch they end 8 px
+  // inside the tab, which grows past STATUS_TAB only when they need it; on a lens
+  // the pill fits the dot, the icons and the texts.
+  function layoutStatus(): void {
+    stItems.replaceChildren();
+    if (statuses.length === 0) return;
+    let x: number;
+    let cy: number;
+    if (notch) {
+      const width = Math.max(STATUS_TAB, contentWidth() + 16);
+      stShape.setAttribute('d', notchTabPath(notch, width, 'right'));
+      x = notch.width / 2 + width - 8 - contentWidth();
+      cy = notch.height / 2;
+    } else {
+      const half = pillHalf();
+      stShape.setAttribute('d', topPillPath(half, PILL_H));
+      x = -half + PILL_PAD + (missed ? PILL_DOT : 0);
+      cy = PILL_H / 2;
+    }
+    statuses.forEach((s, i) => {
+      if (i > 0) {
+        stItems.append(drawSep(x + ST_SEP / 2, cy));
+        x += ST_SEP;
+      }
+      stItems.append(...drawItem(s, x, cy));
+      x += itemWidth(s);
+    });
   }
 
   function setPill(items: PillItem[], active: string | null, moreLabel: string): void {
@@ -417,9 +450,8 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   }
 
   // Changes the SVG and asks for one frame; nothing runs while the status rests.
-  function setStatus(text: string | null, icon: string | null = null): void {
-    status = text;
-    statusIcon = text === null ? null : icon;
+  function setStatus(items: StatusView[]): void {
+    statuses = items;
     layoutStatus();
     drawDot();
     kick();

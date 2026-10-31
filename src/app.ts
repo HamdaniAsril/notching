@@ -144,13 +144,15 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     pump();
   });
 
-  // The status beside the notch shows on the cursor's screen only, with its
-  // module's icon (the sample has none); the view hides it while a notice or the
-  // panel is up.
+  // The statuses beside the notch show on the cursor's screen only, each with its
+  // module's icon (the sample has none); the view hides them while a notice or
+  // the panel is up.
   const showStatus = (s: LiveStatus | null) => {
-    const here = s && s.screen === info.label ? s : null;
-    const m = here && state.modules.find(x => x.id === here.moduleId);
-    view.setStatus(here?.text ?? null, m ? bridge.moduleUrl(m.id, m.icon) : null);
+    const items = s && s.screen === info.label ? s.items : [];
+    view.setStatus(items.map(i => {
+      const m = state.modules.find(x => x.id === i.moduleId);
+      return { text: i.text, icon: m ? bridge.moduleUrl(m.id, m.icon) : null };
+    }));
   };
   const offStatus = bridge.onStatus(showStatus);
   showStatus(await bridge.status());

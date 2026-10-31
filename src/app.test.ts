@@ -327,7 +327,7 @@ test('the queue keeps the five newest', async () => {
   expect(seen).toEqual(['3', '4', '5', '6', '7']);
 });
 
-const status = (screen: string) => ({ moduleId: 'timer', text: '18:42', screen });
+const status = (screen: string) => ({ screen, items: [{ moduleId: 'timer', text: '18:42' }] });
 const statusShown = (root: HTMLElement) => root.querySelector('.st-pill')?.getAttribute('display') === 'inline';
 
 test('the status shows only on its screen', async () => {
@@ -344,11 +344,19 @@ test('the status shows only on its screen', async () => {
 test('a module status carries its module icon; the sample has none', async () => {
   const { root, bridge } = await start();
   const icon = () => root.querySelector('.st-icon')!;
-  bridge.emitStatus({ moduleId: 'system-stat', text: '1:42', screen: 'test' });
-  expect(icon().getAttribute('display')).toBe('inline');
+  bridge.emitStatus({ screen: 'test', items: [{ moduleId: 'system-stat', text: '1:42' }] });
   expect(icon().getAttribute('href')).toBe('mod://system-stat/icon.svg');
-  bridge.emitStatus({ moduleId: null, text: '18:42', screen: 'test' });
-  expect(icon().getAttribute('display')).toBe('none');
+  bridge.emitStatus({ screen: 'test', items: [{ moduleId: null, text: '18:42' }] });
+  expect(root.querySelector('.st-icon')).toBeNull();
+});
+
+test('only this screen\'s list shows, every status in it', async () => {
+  const { root, bridge } = await start();
+  bridge.emitStatus({ screen: 'test', items: [{ moduleId: 'timer', text: '18:42' }, { moduleId: null, text: '3' }] });
+  expect([...root.querySelectorAll('.st-text')].map(t => t.textContent)).toEqual(['18:42', '3']);
+  bridge.emitStatus({ screen: 'other', items: [{ moduleId: 'timer', text: '18:42' }] });
+  expect(statusShown(root)).toBe(false);
+  expect(root.querySelectorAll('.st-text')).toHaveLength(0);
 });
 
 test('a status already on at start shows', async () => {

@@ -267,29 +267,52 @@ test('the open panel fades toward its bottom; a notice stays solid like the notc
 
 const shown = (root: HTMLElement, sel: string) => root.querySelector(sel)?.getAttribute('display') === 'inline';
 
+const st = (text: string, icon: string | null = null) => ({ text, icon });
+
 test('a status sits right of the notch, the missed dot left', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
   expect(shown(root, '.st-tab')).toBe(false);
-  v.setStatus('18:42');
+  v.setStatus([st('18:42')]);
   v.setMissed(true);
   expect(shown(root, '.st-tab')).toBe(true);
   expect(shown(root, '.missed-tab')).toBe(true);
   const text = root.querySelector('.st-text')!;
   expect(text.textContent).toBe('18:42');
-  expect([text.getAttribute('x'), text.getAttribute('y'), text.getAttribute('text-anchor')]).toEqual([String(95 + 76 - 8), '20', 'end']);
+  // One status keeps the 76 px tab and ends 8 px inside it: 95 + 76 − 8 − 35.
+  expect([text.getAttribute('x'), text.getAttribute('y'), text.getAttribute('text-anchor')]).toEqual(['128', '20', 'start']);
   expect(root.querySelector('.st-tab')!.getAttribute('d')).toMatch(/^M 177\.00 0 /);
   expect(root.querySelector('.st-pill')).toBeNull();
-  v.setStatus(null);
+  v.setStatus([]);
   expect(shown(root, '.st-tab')).toBe(false);
-  expect(shown(root, '.st-text')).toBe(false);
+  expect(shown(root, '.st-items')).toBe(false);
+});
+
+test('several statuses widen the tab and get dotted separators', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setStatus([st('18:42')]);
+  const one = root.querySelector('.st-tab')!.getAttribute('d')!;
+  v.setStatus([st('18:42', '/t/icon.svg'), st('1:42', '/k/icon.svg'), st('3', '/s/icon.svg')]);
+  expect(shown(root, '.st-items')).toBe(true);
+  expect(root.querySelectorAll('.st-sep')).toHaveLength(2);
+  expect(root.querySelectorAll('.st-sep circle')).toHaveLength(10);
+  expect([...root.querySelectorAll('.st-text')].map(t => t.textContent)).toEqual(['18:42', '1:42', '3']);
+  expect([...root.querySelectorAll('.st-icon')].map(i => i.getAttribute('href'))).toEqual(['/t/icon.svg', '/k/icon.svg', '/s/icon.svg']);
+  const many = root.querySelector('.st-tab')!.getAttribute('d')!;
+  const right = (d: string) => Math.max(...d.split(/[ ,]/).map(Number).filter(n => !Number.isNaN(n)));
+  expect(right(many)).toBeGreaterThan(right(one));
+  // The first started sits next to the notch.
+  const xs = [...root.querySelectorAll('.st-text')].map(t => Number(t.getAttribute('x')));
+  expect(xs[0]).toBeLessThan(xs[1]);
+  expect(xs[1]).toBeLessThan(xs[2]);
 });
 
 test('without a notch a status opens one small pill with the dot inside', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));
   v.setMissed(true);
-  v.setStatus('18:42');
+  v.setStatus([st('18:42')]);
   expect(shown(root, '.st-pill')).toBe(true);
   const dot = root.querySelector('.missed-dot')!;
   expect(shown(root, '.missed-dot')).toBe(true);
@@ -297,17 +320,27 @@ test('without a notch a status opens one small pill with the dot inside', () => 
   expect(dot.getAttribute('cy')).toBe('11');
   // 24 + 7 × 5 characters + 14 for the dot, centred: the shoulders reach 6 px further.
   expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -42\.50 0 /);
-  v.setStatus(null);
+  v.setStatus([]);
   expect(shown(root, '.st-pill')).toBe(false);
   expect([dot.getAttribute('cx'), dot.getAttribute('cy')]).toEqual(['0', '9']);
+});
+
+test('lens pill holds every status', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setStatus([st('18:42')]);
+  expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -35\.50 0 /);
+  // 24 + 35 + 12 + 7, centred, and the shoulders 6 px further.
+  v.setStatus([st('18:42'), st('3')]);
+  expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -45\.00 0 /);
+  expect(root.querySelectorAll('.st-sep')).toHaveLength(1);
 });
 
 test('a status icon sits just left of its text beside a notch, drawn white', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
-  v.setStatus('1:42', '/k/icon.svg');
+  v.setStatus([st('1:42', '/k/icon.svg')]);
   const icon = root.querySelector<SVGImageElement>('.st-icon')!;
-  expect(icon.getAttribute('display')).toBe('inline');
   expect(icon.getAttribute('href')).toBe('/k/icon.svg');
   // The text ends at 163; 4 characters of 7 px, a 5 px gap, a 12 px icon.
   expect([icon.getAttribute('x'), icon.getAttribute('y'), icon.getAttribute('width')]).toEqual(['118', '10', '12']);
@@ -316,38 +349,34 @@ test('a status icon sits just left of its text beside a notch, drawn white', () 
   const id = icon.getAttribute('filter')!.match(/^url\(#(.+)\)$/)![1];
   const matrix = root.querySelector(`filter[id="${id}"] feColorMatrix`)!;
   expect(matrix.getAttribute('values')).toBe('0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0');
-  v.setStatus('42m');
-  expect(icon.getAttribute('display')).toBe('none');
-  v.setStatus(null);
-  expect(icon.getAttribute('display')).toBe('none');
+  v.setStatus([st('42m')]);
+  expect(root.querySelector('.st-icon')).toBeNull();
 });
 
 test('on a lens the pill makes room for the icon left of the text', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));
-  v.setStatus('18:42', '/k/icon.svg');
+  v.setStatus([st('18:42', '/k/icon.svg')]);
   // 24 + 7 × 5 characters + 17 for the icon, centred.
   expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -44\.00 0 /);
   const icon = root.querySelector('.st-icon')!;
   expect([icon.getAttribute('x'), icon.getAttribute('y')]).toEqual(['-26', '5']);
-  expect(root.querySelector('.st-text')!.getAttribute('x')).toBe('8.5');
+  expect(root.querySelector('.st-text')!.getAttribute('x')).toBe('-9');
 });
 
 test('an empty status shows the icon alone, right-aligned beside a notch', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
-  v.setStatus('', '/k/icon.svg');
+  v.setStatus([st('', '/k/icon.svg')]);
   expect(shown(root, '.st-tab')).toBe(true);
-  const icon = root.querySelector('.st-icon')!;
-  expect(icon.getAttribute('display')).toBe('inline');
   // The text would end at 163; with no text the icon ends there instead.
-  expect(icon.getAttribute('x')).toBe('151');
+  expect(root.querySelector('.st-icon')!.getAttribute('x')).toBe('151');
 });
 
 test('an empty status on a lens is a pill just wide enough for the icon', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));
-  v.setStatus('', '/k/icon.svg');
+  v.setStatus([st('', '/k/icon.svg')]);
   // 24 + 12 for the icon, centred: the shoulders reach 6 px further.
   expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -24\.00 0 /);
   expect(root.querySelector('.st-icon')!.getAttribute('x')).toBe('-6');
@@ -356,16 +385,15 @@ test('an empty status on a lens is a pill just wide enough for the icon', () => 
 test('a status alone on a lens screen leaves no dot', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));
-  v.setStatus('18:42');
+  v.setStatus([st('18:42')]);
   expect(shown(root, '.st-pill')).toBe(true);
   expect(shown(root, '.missed-dot')).toBe(false);
-  expect(root.querySelector('.st-text')!.getAttribute('text-anchor')).toBe('middle');
 });
 
 test('status text is drawn as text', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
-  v.setStatus('<b>');
+  v.setStatus([st('<b>')]);
   expect(root.querySelector('.st-text')!.textContent).toBe('<b>');
   expect(root.querySelector('b')).toBeNull();
 });
@@ -377,7 +405,7 @@ test('the status hides while the panel is open and starts no frame loop', () => 
   const v = mountNotch(root, c, deps(r));
   v.kick();
   r.runAll(600);
-  v.setStatus('18:42');
+  v.setStatus([st('18:42')]);
   r.runAll(600);
   expect(r.pending()).toBe(0);
   c.click();

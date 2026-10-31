@@ -167,7 +167,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     onNotice: cb => { noticeSubs.add(cb); return () => noticeSubs.delete(cb); },
     status: async (): Promise<LiveStatus | null> => {
       const text = params.get('status');
-      return text ? { moduleId: params.get('statusModule'), text, screen: 'browser' } : null;
+      return text ? { screen: 'browser', items: [{ moduleId: params.get('statusModule'), text }] } : null;
     },
     onStatus: () => () => {},
     clearMissed: async () => {

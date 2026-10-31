@@ -29,12 +29,12 @@ export interface Notice {
   seconds: number;
 }
 
-// The status beside the notch (StatusDto in src-tauri/src/status.rs); `screen` is
-// the overlay window it shows on. moduleId is null for the sample.
+// The statuses beside the notch, in the order they started (StatusDto in
+// src-tauri/src/status.rs); `screen` is the overlay window they show on. moduleId
+// is null for the sample.
 export interface LiveStatus {
-  moduleId: string | null;
-  text: string;
   screen: string;
+  items: { moduleId: string | null; text: string }[];
 }
 
 // What the notch needs from the native side.
