@@ -16,7 +16,11 @@ await mkdir(out, { recursive: true });
 for (const id of ids) {
   const manifest = JSON.parse(await readFile(join(src, id, 'manifest.json'), 'utf8'));
   const dest = join(out, id);
-  await build({
+  // The module page, if any, and every widget's page.
+  const entries = [manifest.entry, ...(manifest.widgets ?? []).map(w => w.entry)].filter(e => e !== undefined);
+  // A package with no page and no widget (a tile that runs an action) has nothing to build.
+  if (entries.length === 0) await mkdir(dest, { recursive: true });
+  else await build({
     configFile: false,
     root: join(src, id),
     base: './',
@@ -26,8 +30,6 @@ for (const id of ids) {
   await cp(join(src, id, 'manifest.json'), join(dest, 'manifest.json'));
   await cp(join(src, id, manifest.icon), join(dest, manifest.icon));
   await cp(join(src, id, 'locales'), join(dest, 'locales'), { recursive: true });
-  // The module page, if any, and every widget's page.
-  const entries = [manifest.entry, ...(manifest.widgets ?? []).map(w => w.entry)].filter(e => e !== undefined);
   for (const file of new Set(entries)) {
     try {
       await stat(join(dest, file));

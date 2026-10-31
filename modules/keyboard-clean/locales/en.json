@@ -1,0 +1,14 @@
+{
+  "name": "Keyboard Cleaning Mode",
+  "shortName": "Keyboard",
+  "description": "Locks the keyboard for cleaning",
+  "channels": {
+    "permission": "Accessibility permission"
+  },
+  "notice": {
+    "permission": {
+      "title": "Allow Accessibility",
+      "detail": "So Notching can lock the keyboard"
+    }
+  }
+}

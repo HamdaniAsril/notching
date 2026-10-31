@@ -1,0 +1,9 @@
+{
+  "id": "keyboard-clean",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "permissions": ["accessibility"],
+  "capabilities": ["keyclean", "status", "notify"],
+  "action": { "capability": "keyclean", "method": "toggle" },
+  "notifications": [{ "id": "permission", "on": true, "sound": false }]
+}

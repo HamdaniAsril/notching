@@ -152,6 +152,8 @@ export function browserBridge(root: HTMLElement): Bridge {
       if (capability === 'home.data' || capability === 'reminders') return homeCall(capability, method, args);
       if (capability === 'awake') return awakeCall(method, args);
       if (capability === 'timer') return timerCall(method, args);
+      // Keyboard Cleaning Mode locks nothing in a browser.
+      if (capability === 'keyclean') return null;
       throw new Error(`unknown method ${method}`);
     },
     // Vite serves the module sources directly.

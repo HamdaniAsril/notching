@@ -1,0 +1,14 @@
+{
+  "name": "Keyboard Cleaning Mode",
+  "shortName": "Keyboard",
+  "description": "Kunci keyboard untuk dibersihkan",
+  "channels": {
+    "permission": "Izin Aksesibilitas"
+  },
+  "notice": {
+    "permission": {
+      "title": "Izinkan Aksesibilitas",
+      "detail": "Agar Notching bisa mengunci keyboard"
+    }
+  }
+}
