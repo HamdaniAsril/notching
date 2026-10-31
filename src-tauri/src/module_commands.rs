@@ -43,6 +43,7 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
         crate::timer_service::module_gone(&app, &id);
         crate::keyclean_service::module_gone(&app, &id);
         crate::lamp_service::module_gone(&app, &id);
+        crate::shelf_service::module_gone(&app, &id);
     }
     crate::status::publish(&app);
     Ok(())
@@ -55,6 +56,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     crate::timer_service::module_gone(&app, &id);
     crate::keyclean_service::module_gone(&app, &id);
     crate::lamp_service::module_gone(&app, &id);
+    crate::shelf_service::module_gone(&app, &id);
     crate::status::publish(&app);
     Ok(())
 }

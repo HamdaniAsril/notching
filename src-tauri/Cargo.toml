@@ -49,11 +49,17 @@ objc2-foundation = { version = "0.3", default-features = false, features = [
   "NSDictionary",
   "NSValue",
   "NSDistributedNotificationCenter",
+  "NSURL",
+  "NSData",
+  "NSError",
+  "NSFileManager",
 ] }
 objc2-app-kit = { version = "0.3", default-features = false, features = [
   "std",
   "block2",
   "objc2-core-foundation",
+  "objc2-core-graphics",
+  "NSGraphicsContext",
   "NSScreen",
   "NSEvent",
   "NSWindow",
@@ -66,8 +72,28 @@ objc2-app-kit = { version = "0.3", default-features = false, features = [
   "NSColor",
   "NSSound",
   "NSWorkspace",
+  "NSImage",
+  "NSImageRep",
+  "NSBitmapImageRep",
+  "NSPasteboard",
+  "NSPasteboardItem",
+  "NSDragging",
+  "NSDraggingItem",
+  "NSDraggingSession",
+  "NSFilePromiseReceiver",
 ] }
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow"] }
+objc2-quick-look-thumbnailing = { version = "0.3", default-features = false, features = [
+  "std",
+  "block2",
+  "bitflags",
+  "objc2-app-kit",
+  "objc2-core-foundation",
+  "objc2-core-graphics",
+  "QLThumbnailGenerator",
+  "QLThumbnailGenerationRequest",
+  "QLThumbnailRepresentation",
+] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage"] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

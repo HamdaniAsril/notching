@@ -150,6 +150,10 @@ impl Shelf {
         self.items.iter().filter(|i| ids.contains(&i.id) && i.state == ItemState::Ready).collect()
     }
 
+    pub fn item(&self, id: u64) -> Option<&ShelfItem> {
+        self.items.iter().find(|i| i.id == id)
+    }
+
     pub fn len(&self) -> usize {
         self.items.len()
     }

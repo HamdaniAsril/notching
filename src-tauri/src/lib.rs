@@ -44,6 +44,8 @@ mod sensor;
 #[cfg(target_os = "macos")]
 mod settings_window;
 #[cfg(target_os = "macos")]
+mod shelf_service;
+#[cfg(target_os = "macos")]
 mod timer_service;
 
 #[cfg(target_os = "macos")]
@@ -96,6 +98,9 @@ pub fn run() {
             notify::set_channel,
             notify::clear_missed,
             notify::send_sample_notice,
+            shelf_service::shelf_state,
+            shelf_service::shelf_remove,
+            shelf_service::shelf_clear,
         ])
         .setup(|app| {
             // No Dock icon.
@@ -113,6 +118,8 @@ pub fn run() {
             app.manage(app_core::StatsState(std::sync::Mutex::new(system_stats::SystemStats::new())));
             let home = home::Home::open(&paths.app_data_dir()?, &paths.app_cache_dir()?);
             app.manage(home::HomeState(std::sync::Mutex::new(home)));
+            app.manage(shelf_service::ShelfState(std::sync::Mutex::new(shelf::Shelf::default())));
+            shelf_service::start(app.handle());
             overlay::rebuild_overlays(app.handle())?;
             home::schedule::start(app.handle().clone());
             awake_service::start(app.handle().clone());
@@ -129,7 +136,10 @@ pub fn run() {
         .run(|app, event| match event {
             // Overlays come and go with screens; only an explicit quit ends the app.
             tauri::RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
-            tauri::RunEvent::Exit => lamp_service::quitting(app),
+            tauri::RunEvent::Exit => {
+                lamp_service::quitting(app);
+                shelf_service::quitting(app);
+            }
             _ => {}
         });
 }
