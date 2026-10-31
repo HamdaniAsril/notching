@@ -2,6 +2,7 @@
 //! icon in the pill, and the settings commands it uses.
 
 use tauri::webview::PageLoadEvent;
+use tauri::window::{Effect, EffectState, EffectsBuilder};
 use tauri::{
     ActivationPolicy, AppHandle, Emitter, Manager, State, TitleBarStyle, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder, WindowEvent,
@@ -130,6 +131,15 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
         .min_inner_size(600.0, 480.0)
         .title_bar_style(TitleBarStyle::Overlay)
         .hidden_title(true)
+        // Frosted glass under the page's see-through backgrounds (settings.css),
+        // kept on while another app is in front (owner's decision, 31 Oct 2026).
+        .transparent(true)
+        .effects(
+            EffectsBuilder::new()
+                .effect(Effect::UnderWindowBackground)
+                .state(EffectState::Active)
+                .build(),
+        )
         .visible(false)
         .on_page_load(|w, payload| {
             if payload.event() == PageLoadEvent::Finished {
