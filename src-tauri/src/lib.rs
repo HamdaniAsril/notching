@@ -8,6 +8,7 @@ mod modules;
 mod page_commands;
 mod pages;
 mod settings;
+mod shelf;
 mod status;
 mod system_stats;
 mod keyclean;

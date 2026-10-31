@@ -25,6 +25,7 @@ sys-locale = "0.3"
 sysinfo = { version = "0.39", default-features = false, features = ["system", "network"] }
 chrono = "0.4"
 # HTTPS through macOS's own TLS (Security framework), no rustls.
+base64 = "0.22"
 ureq = { version = "3", default-features = false, features = ["native-tls-no-default"] }
 
 [dev-dependencies]
