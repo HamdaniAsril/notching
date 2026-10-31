@@ -1,0 +1,69 @@
+/* Keyboard Cleaning Mode's dim layer (2026-10-31-keyboard-clean-mockups/clean-look.html,
+   choice C): 90 % black over the whole screen, the message in the middle. */
+@import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-mono/latin-400.css';
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  font-family: "Space Grotesk", -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+#clean-root {
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.kc-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.kc-title {
+  font-size: 26px;
+  font-weight: 500;
+}
+
+.kc-keys {
+  display: flex;
+  gap: 14px;
+}
+
+.kc-key {
+  width: 58px;
+  height: 50px;
+  box-sizing: border-box;
+  padding: 0 0 8px 10px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.3);
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: background 0.12s, color 0.12s;
+}
+
+.kc-key.kc-on {
+  background: #fff;
+  box-shadow: none;
+  color: #000;
+}
+
+.kc-hint {
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}

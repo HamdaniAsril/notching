@@ -5,6 +5,10 @@
   "noModules": "No module is on.",
   "loadFailed": "Didn't load.",
   "settings": "Settings",
+  "clean": {
+    "title": "Cleaning the keyboard",
+    "hint": "Press Esc 5× to leave"
+  },
   "settingsWindow": {
     "title": "Settings",
     "search": "Search settings",

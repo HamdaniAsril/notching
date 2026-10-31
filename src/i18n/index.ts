@@ -26,6 +26,13 @@ export function settingsStrings(lang: Lang): SettingsStrings {
   return SETTINGS[lang];
 }
 
+// Text of Keyboard Cleaning Mode's dim layer.
+export type CleanStrings = (typeof id)['clean'];
+
+export function cleanStrings(lang: Lang): CleanStrings {
+  return lang === 'en' ? en.clean : id.clean;
+}
+
 // "{n} terpasang" with { n: 2 } → "2 terpasang"; unknown names stay as they are.
 export function fill(template: string, values: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (all, name: string) => (name in values ? String(values[name]) : all));

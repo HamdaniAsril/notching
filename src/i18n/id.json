@@ -5,6 +5,10 @@
   "noModules": "Belum ada modul yang menyala.",
   "loadFailed": "Gagal dimuat.",
   "settings": "Pengaturan",
+  "clean": {
+    "title": "Keyboard sedang dibersihkan",
+    "hint": "Tekan Esc 5× untuk keluar"
+  },
   "settingsWindow": {
     "title": "Pengaturan",
     "search": "Cari pengaturan",

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "clean",
+  "description": "Capability for Keyboard Cleaning Mode's dim layer, one window per screen",
+  "windows": ["clean-*"],
+  "permissions": ["core:default"]
+}
