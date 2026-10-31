@@ -25,6 +25,14 @@ test('lists installed modules in order, with size and switch', async () => {
   expect(root.querySelector('.head .sub')!.textContent).toBe('2 terpasang · 276 KB');
 });
 
+test('a module whose tile runs an action is listed like the others', async () => {
+  const clean = moduleInfo('keyboard-clean', { name: 'Keyboard Cleaning Mode', entry: null, card: null,
+    action: { capability: 'keyclean', method: 'toggle' } });
+  const { root, app } = await mountForTest({ ...STATE, modules: [...STATE.modules, clean] });
+  app.go({ page: 'modules' });
+  expect([...root.querySelectorAll('.module .label')].map(e => e.textContent)).toEqual(['Beranda', 'System stat', 'Keyboard Cleaning Mode']);
+});
+
 test('switching a module off asks the bridge', async () => {
   const { root, app, bridge } = await mountForTest(STATE);
   app.go({ page: 'modules' });

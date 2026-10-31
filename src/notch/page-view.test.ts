@@ -16,7 +16,7 @@ function mount() {
   document.body.append(content);
   const bridge = fakeBridge();
   const frames = mountFrameHost({ bridge, setTimer: timers.setTimer, onKey: vi.fn(), onExpand: vi.fn(), onCollapse: vi.fn() }, document);
-  const deps = { frames, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onBack: vi.fn() };
+  const deps = { frames, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onAction: vi.fn(), onBack: vi.fn() };
   const pv = mountPageView(content, deps);
   const show = (s: ModuleState, key: string | null = null) => pv.show(key ? resolvePage(s, key)! : pickPage(s, null, false), s, STR);
   return { content, pv, deps, show };
@@ -119,6 +119,18 @@ test('the Modul page shows a tile per module, white when on and a red dot when r
   expect(tiles.map(t => !!t.querySelector('.mods-run'))).toEqual([false, false, true]);
   tiles[0].click();
   expect(deps.onOpenModule).toHaveBeenCalledWith('system-stat');
+});
+
+test('an action tile runs its action and opens no page', () => {
+  const { content, deps, show } = mount();
+  const clean = moduleInfo('keyboard-clean', { shortName: 'Keyboard', entry: null, card: null,
+    action: { capability: 'keyclean', method: 'toggle' }, activity: 'on' });
+  show({ ...TEST_STATE, modules: [...TEST_STATE.modules, clean] }, 'modules');
+  const tile = [...content.querySelectorAll<HTMLButtonElement>('.mods-tile')].find(t => t.textContent === 'Keyboard')!;
+  expect(tile.classList.contains('on')).toBe(true);
+  tile.click();
+  expect(deps.onAction).toHaveBeenCalledWith(clean);
+  expect(deps.onOpenModule).not.toHaveBeenCalled();
 });
 
 test('a Modul page without modules says so', () => {

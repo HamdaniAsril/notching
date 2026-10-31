@@ -16,6 +16,8 @@ interface ManifestJson {
   capabilities: string[];
   notifications?: { id: string; on: boolean; sound: boolean; widget?: string }[];
   widgets?: { id: string; entry: string; width: number; kind: WidgetKind }[];
+  action?: { capability: string; method: string };
+  permissions?: string[];
 }
 
 interface LocaleJson {
@@ -38,17 +40,19 @@ export function catalog(lang: Lang, off: string[]): ModuleInfo[] {
   return (index as string[]).map(id => {
     const m = manifestOf(id);
     const t = locales[`../modules/${id}/locales/${lang}.json`] ?? {};
-    const page = m.entry !== undefined && m.card !== undefined;
+    const module = (m.entry !== undefined && m.card !== undefined) || m.action !== undefined;
     return {
       id, name: t.name ?? id, shortName: t.shortName ?? t.name ?? id, description: t.description ?? '',
       version: m.version, entry: m.entry ?? null, icon: m.icon, card: m.card ?? null,
-      installed: true, enabled: !page || !off.includes(id),
+      installed: true, enabled: !module || !off.includes(id),
       size: FAKE_SIZE, iconSvg: icons[`../modules/${id}/${m.icon}`] ?? '',
       channels: (m.notifications ?? []).map(c => ({ ...c, widget: c.widget ?? null, name: t.channels?.[c.id] ?? c.id })),
       widgets: (m.widgets ?? []).map(w => ({ ...w, name: t.widgets?.[w.id] ?? w.id })),
       activity: null,
       status: (m.capabilities ?? []).includes('status'),
       statusShown: true,
+      action: m.action ?? null,
+      permissions: m.permissions ?? [],
     };
   });
 }

@@ -27,6 +27,9 @@ pub enum Capability {
     /// A countdown of 1–60 minutes run by the core (Timer, design 31 Oct).
     #[serde(rename = "timer")]
     Timer,
+    /// Locks the keyboard and dims the screens (Keyboard Cleaning Mode, design 31 Oct).
+    #[serde(rename = "keyclean")]
+    KeyClean,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).
@@ -80,7 +83,17 @@ pub struct ChannelSpec {
     pub widget: Option<String>,
 }
 
-/// A package has a module page (`entry` and `card`), widgets, or both.
+/// What a module's tile on the Modul page does instead of opening a page: a
+/// call to one of its own capabilities (Keyboard Cleaning Mode, design 31 Oct §7).
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TileAction {
+    pub capability: Capability,
+    pub method: String,
+}
+
+/// A package has a module page (`entry` and `card`) or a tile action, widgets,
+/// or both.
 #[derive(Clone, Debug, PartialEq, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Manifest {
@@ -97,6 +110,8 @@ pub struct Manifest {
     pub notifications: Vec<ChannelSpec>,
     #[serde(default)]
     pub widgets: Vec<WidgetSpec>,
+    #[serde(default)]
+    pub action: Option<TileAction>,
 }
 
 impl Manifest {
@@ -118,6 +133,7 @@ pub enum ManifestError {
     HalfPage,
     Empty,
     BadWidget,
+    BadAction,
 }
 
 // The panel and the pill must fit the 640 × 360 notch overlay.
@@ -169,8 +185,11 @@ pub fn parse_manifest(json: &str, folder: &str) -> Result<Manifest, ManifestErro
     if m.entry.is_some() != m.card.is_some() {
         return Err(ManifestError::HalfPage);
     }
-    if !m.has_page() && m.widgets.is_empty() {
+    if !m.has_page() && m.widgets.is_empty() && m.action.is_none() {
         return Err(ManifestError::Empty);
+    }
+    if m.action.as_ref().is_some_and(|a| m.has_page() || a.method.is_empty() || !m.capabilities.contains(&a.capability)) {
+        return Err(ManifestError::BadAction);
     }
     for path in m.entry.iter().chain([&m.icon]) {
         if !is_package_path(path) {
@@ -299,6 +318,26 @@ mod tests {
     fn a_package_with_nothing_is_refused() {
         let bare = r#"{"id":"home","version":"1.0.0","icon":"icon.svg","permissions":[],"capabilities":[]}"#;
         assert_eq!(parse_manifest(bare, "home"), Err(ManifestError::Empty));
+    }
+
+    #[test]
+    fn an_action_package_needs_no_page() {
+        let m = |extra: &str, caps: &str| format!(
+            r#"{{"id":"keyboard-clean","version":"1.0.0","icon":"icon.svg","permissions":["accessibility"],
+            "capabilities":[{caps}]{extra}}}"#
+        );
+        let action = r#","action":{"capability":"keyclean","method":"toggle"}"#;
+        let parsed = parse_manifest(&m(action, r#""keyclean","status""#), "keyboard-clean").unwrap();
+        assert_eq!(parsed.action, Some(TileAction { capability: Capability::KeyClean, method: "toggle".into() }));
+        assert!(!parsed.has_page());
+        // Its capability must be declared, and its method named.
+        assert_eq!(parse_manifest(&m(action, r#""status""#), "keyboard-clean"), Err(ManifestError::BadAction));
+        let blank = r#","action":{"capability":"keyclean","method":""}"#;
+        assert_eq!(parse_manifest(&m(blank, r#""keyclean""#), "keyboard-clean"), Err(ManifestError::BadAction));
+        // A tile either opens a page or runs an action.
+        let both = format!(r#"{action},"entry":"index.html","card":{{"width":400,"height":80}}"#);
+        assert_eq!(parse_manifest(&m(&both, r#""keyclean""#), "keyboard-clean"), Err(ManifestError::BadAction));
+        assert_eq!(parse_manifest(&m("", r#""keyclean""#), "keyboard-clean"), Err(ManifestError::Empty));
     }
 
     #[test]

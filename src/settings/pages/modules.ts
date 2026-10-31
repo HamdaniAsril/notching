@@ -1,6 +1,6 @@
 import { fill } from '../../i18n';
 import { formatBytes } from '../../kit/format';
-import { hasPage, type ModuleInfo } from '../../modules/types';
+import { isModule, type ModuleInfo } from '../../modules/types';
 import { button, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
 import type { PageContext, PageRender } from '../types';
@@ -44,7 +44,7 @@ function back(ctx: PageContext): HTMLElement {
 
 export const modulesPage: PageRender = ctx => {
   const s = ctx.strings.modules;
-  const installed = ctx.state.modules.filter(m => m.installed && hasPage(m));
+  const installed = ctx.state.modules.filter(m => m.installed && isModule(m));
   const total = installed.reduce((sum, m) => sum + m.size, 0);
   const page = el('div');
   page.append(head({
@@ -121,7 +121,7 @@ export const modulePage: PageRender = (ctx, route) => {
 
 export const addPage: PageRender = ctx => {
   const s = ctx.strings.modules;
-  const missing = ctx.state.modules.filter(m => !m.installed && hasPage(m));
+  const missing = ctx.state.modules.filter(m => !m.installed && isModule(m));
   const page = el('div');
   page.append(back(ctx), head({ title: s.addTitle, sub: s.addSub }));
   if (missing.length === 0) {

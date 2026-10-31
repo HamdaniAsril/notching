@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::locale::{resolve_lang, Lang};
-use crate::modules::manifest::{CardSize, WidgetKind};
+use crate::modules::manifest::{CardSize, Permission, TileAction, WidgetKind};
 use crate::modules::store::{ChannelEntry, ModuleEntry, ModuleStore, StoreError};
 use crate::pages::{self, is_route, Page, PageError, Placement, MODULE_PAGE_PREFIX};
 use crate::modules::manifest::Capability;
@@ -69,6 +69,9 @@ pub struct ModuleInfoDto {
     /// Declares the "status" capability, so it may show a status beside the notch.
     pub status: bool,
     pub status_shown: bool,
+    /// What its Modul tile runs instead of opening a page.
+    pub action: Option<TileAction>,
+    pub permissions: Vec<Permission>,
 }
 
 /// Broadcast to every window: the notch overlays and the settings window.
@@ -194,6 +197,8 @@ impl AppCore {
                     activity: self.live.activity(&e.manifest.id),
                     status: e.manifest.capabilities.contains(&Capability::Status),
                     status_shown: !self.settings.status_off.contains(&e.manifest.id),
+                    action: e.manifest.action.clone(),
+                    permissions: e.manifest.permissions.clone(),
                 })
                 .collect(),
             pages: self.settings.pages.clone(),

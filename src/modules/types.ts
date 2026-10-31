@@ -61,10 +61,22 @@ export interface ModuleInfo {
   activity: Activity | null;
   status: boolean; // declares "status": may show a status beside the notch
   statusShown: boolean; // its status switch in Pengaturan
+  action: TileAction | null; // its Modul tile runs this instead of opening a page
+  permissions: string[]; // system permissions it needs: 'accessibility', 'camera', 'location'
 }
 
-// A module the person sees as one: it has a page of its own.
+// A call to one of the module's own capabilities (design 31 Oct, Keyboard Cleaning Mode §7).
+export interface TileAction {
+  capability: string;
+  method: string;
+}
+
+// A module with a page of its own.
 export const hasPage = (m: ModuleInfo): boolean => m.entry !== null && m.card !== null;
+
+// A module the person sees as one, with a tile on the Modul page: it has a page
+// or a tile action. Anything else is a package of widgets only.
+export const isModule = (m: ModuleInfo): boolean => hasPage(m) || m.action !== null;
 
 export interface ModuleState {
   lang: Lang;

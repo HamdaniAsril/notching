@@ -95,6 +95,7 @@ mod tests {
                 capabilities: caps.to_vec(),
                 notifications: vec![],
                 widgets: vec![],
+                action: None,
             },
             name: id.into(),
             short_name: id.into(),

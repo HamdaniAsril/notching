@@ -1,5 +1,5 @@
 import type { HostStrings } from '../i18n';
-import type { ModuleState } from '../modules/types';
+import type { ModuleInfo, ModuleState } from '../modules/types';
 import type { FrameHost, FrameSpec } from '../pages/frames';
 import { slots, widgetCatalog } from '../pages/layout';
 import { CUSTOM_PAGE, type PageView, STRIP_HEIGHT } from '../pages/route';
@@ -8,6 +8,7 @@ export interface PageViewDeps {
   frames: FrameHost;
   moduleUrl: (id: string, file: string) => string;
   onOpenModule: (id: string) => void;
+  onAction: (m: ModuleInfo) => void; // a tile that runs an action instead of opening a page
   onBack: () => void;
 }
 
@@ -96,7 +97,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
       glyph.style.setProperty('--icon', `url("${deps.moduleUrl(m.id, m.icon)}")`);
       tile.append(glyph, el(doc, 'span', 'mods-name', m.shortName));
       if (m.activity === 'running') tile.append(el(doc, 'i', 'mods-run'));
-      tile.addEventListener('click', () => deps.onOpenModule(m.id));
+      tile.addEventListener('click', () => (m.action ? deps.onAction(m) : deps.onOpenModule(m.id)));
       grid.append(tile);
     }
     return grid;

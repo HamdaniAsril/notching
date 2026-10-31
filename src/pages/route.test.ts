@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { hostStrings } from '../i18n';
 import type { ModuleState, Page } from '../modules/types';
 import { BERANDA, homeWidgets, moduleInfo, TEST_STATE, timerInfo } from '../notch/test-helpers';
-import { missedTargets, noticeTarget, pageName, pickPage, resolvePage, viewSize } from './route';
+import { missedTargets, noticeTarget, pageModules, pageName, pickPage, resolvePage, viewSize } from './route';
 
 const P1: Page = { id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [{ widget: 'home/reminders', col: 0, width: 2 }] };
 const state = (over: Partial<ModuleState> = {}): ModuleState => ({ ...TEST_STATE, ...over });
@@ -48,6 +48,14 @@ test('a full view may ask for a taller page, within limits', () => {
   expect(viewSize(home, 999)).toEqual({ width: 520, height: 240 });
   expect(viewSize(home, 40)).toEqual({ width: 520, height: 104 });
   expect(viewSize(resolvePage(state(), 'module:system-stat')!, 193)).toEqual({ width: 400, height: 104 });
+});
+
+test('the Modul page holds modules with an action, which have no page of their own', () => {
+  const clean = moduleInfo('keyboard-clean', { entry: null, card: null, action: { capability: 'keyclean', method: 'toggle' } });
+  const s = state({ modules: [homeWidgets(), moduleInfo('system-stat'), clean] });
+  expect(pageModules(s).map(m => m.id)).toEqual(['system-stat', 'keyboard-clean']);
+  expect(viewSize(resolvePage(s, 'modules')!)).toEqual({ width: 520, height: 64 });
+  expect(resolvePage(s, 'module:keyboard-clean')).toBeNull();
 });
 
 test('a page with a strip is taller, unless the strip is away', () => {

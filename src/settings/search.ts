@@ -1,5 +1,5 @@
 import type { SettingsStrings } from '../i18n';
-import { hasPage, type ModuleInfo, type Page } from '../modules/types';
+import { isModule, type ModuleInfo, type Page } from '../modules/types';
 import type { Route, SectionId } from './types';
 
 export interface SearchEntry {
@@ -57,7 +57,7 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
         m.channels.map(c => entry(`channel.${m.id}.${c.id}`, c.name, where, { page }, `${m.name} ${k.channels}`)))
       : [];
     const mods = page === 'modules'
-      ? modules.filter(hasPage).map(m =>
+      ? modules.filter(isModule).map(m =>
         entry(`module.${m.id}`, m.name, where, m.installed ? { page: 'module', id: m.id } : { page: 'add' }, m.description))
       : [];
     const named = page === 'pages'

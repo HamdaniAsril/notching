@@ -74,6 +74,12 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     frames,
     moduleUrl: bridge.moduleUrl,
     onOpenModule: id => go(`module:${id}`),
+    // The panel closes first: the action may dim the screens (Keyboard Cleaning Mode).
+    onAction: m => {
+      controller.escape();
+      view.kick();
+      if (m.action) bridge.moduleCall(m.id, m.action.capability, m.action.method).catch(() => {});
+    },
     onBack: () => go('modules'),
   });
 

@@ -1,5 +1,5 @@
 import type { HostStrings } from '../i18n';
-import { hasPage, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
+import { hasPage, isModule, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import type { CardSize } from '../notch/controller';
 import { type CatalogWidget, stripSlot, widgetCatalog } from './layout';
 
@@ -23,16 +23,16 @@ export type PageView =
   | { kind: 'modules'; key: 'modules'; modules: ModuleInfo[] }
   | { kind: 'module'; key: string; module: ModuleInfo };
 
-// The Modul page's modules: installed, on, with a page; in catalog order.
+// The Modul page's modules: installed, on, with a page or a tile action; in catalog order.
 export function pageModules(s: ModuleState): ModuleInfo[] {
-  return s.modules.filter(m => m.installed && m.enabled && hasPage(m));
+  return s.modules.filter(m => m.installed && m.enabled && isModule(m));
 }
 
 export function resolvePage(s: ModuleState, key: string | null): PageView | null {
   if (key === null) return null;
   if (key === 'modules') return { kind: 'modules', key, modules: pageModules(s) };
   if (key.startsWith(MODULE_PREFIX)) {
-    const module = pageModules(s).find(m => m.id === key.slice(MODULE_PREFIX.length));
+    const module = pageModules(s).find(m => m.id === key.slice(MODULE_PREFIX.length) && hasPage(m));
     return module ? { kind: 'module', key, module } : null;
   }
   const page = s.pages.find(p => p.id === key);
