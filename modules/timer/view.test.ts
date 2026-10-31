@@ -58,7 +58,39 @@ test('a click on the ruler without moving starts nothing', () => {
   pointer('pointerdown', 200);
   pointer('pointermove', 202);
   pointer('pointerup', 202);
+  // A trackpad click may wobble a few pixels: less than one tick is still a click.
+  pointer('pointerdown', 200);
+  pointer('pointermove', 206);
+  pointer('pointerup', 206);
   expect(act.start).not.toHaveBeenCalled();
+});
+
+test('a drag that loses the pointer ends without starting, and the ruler moves again', () => {
+  const { act, pointer, ruler, view, time } = mount(RUNNING);
+  pointer('pointerdown', 100);
+  pointer('pointermove', 60);
+  ruler.dispatchEvent(new MouseEvent('lostpointercapture'));
+  view.tick(NOW + 2_000);
+  expect(time().textContent).toBe('6:40');
+  pointer('pointerup', 60);
+  expect(act.start).not.toHaveBeenCalled();
+});
+
+test('the value let go of stays until the core answers', () => {
+  const { button, pointer, time, view } = mount(IDLE);
+  pointer('pointerdown', 200);
+  pointer('pointermove', 160);
+  pointer('pointerup', 160);
+  view.tick(NOW + 16);
+  expect(time().textContent).toBe('10:00');
+  view.update({ state: 'running', minutes: 10, until: NOW + 600_000, left: 600_000, text: '10:00' });
+  view.tick(NOW + 1_000);
+  expect(time().textContent).toBe('9:59');
+  button('Stop')!.click();
+  view.update(IDLE);
+  button('25m')!.click();
+  view.tick(NOW + 16);
+  expect(time().textContent).toBe('25:00');
 });
 
 test('dragging while running restarts at the new value', () => {

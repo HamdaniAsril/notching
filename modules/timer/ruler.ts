@@ -5,8 +5,9 @@ import type { TimerView } from './view';
 export const MIN_MINUTES = 1;
 export const MAX_MINUTES = 60;
 export const PX_PER_MINUTE = 8;
-// A drag shorter than this is a click, and a click starts nothing.
-export const DRAG_PX = 3;
+// A drag shorter than one tick is a click, and a click starts nothing: a
+// trackpad click wobbles a few pixels, and must not restart a running timer.
+export const DRAG_PX = 8;
 export const PRESETS = [3, 5, 10, 25];
 
 // Dragging left brings later minutes under the mark, as when turning a knob.

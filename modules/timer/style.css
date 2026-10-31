@@ -33,6 +33,14 @@
   height: 40px;
 }
 
+.tm-lead,
+.tm-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
 .tm-chips {
   display: flex;
   gap: 6px;
