@@ -1,0 +1,22 @@
+{
+  "name": "Timer",
+  "shortName": "Timer",
+  "description": "Countdown",
+  "label": "Timer",
+  "pause": "Pause",
+  "resume": "Resume",
+  "stop": "Stop",
+  "ruler": "Minutes",
+  "widgets": {
+    "strip": "Timer"
+  },
+  "channels": {
+    "done": "Timer done"
+  },
+  "notice": {
+    "done": {
+      "title": "Timer done",
+      "detail": "{minutes} min are up"
+    }
+  }
+}

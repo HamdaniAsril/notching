@@ -1,0 +1,11 @@
+{
+  "id": "timer",
+  "version": "1.0.0",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "card": { "width": 520, "height": 96 },
+  "permissions": [],
+  "capabilities": ["timer", "status", "notify"],
+  "notifications": [{ "id": "done", "on": true, "sound": true }],
+  "widgets": [{ "id": "strip", "entry": "index.html", "width": 4, "kind": "work" }]
+}

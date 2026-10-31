@@ -24,3 +24,8 @@ test('a number too wide for its column drops a dot size', () => {
 });
 
 test('dotWidth matches the drawn svg', () => expect(dotText('10', 6)).toContain(`width="${dotWidth('10', 6)}"`));
+
+test('a colon is one dot wide, two dots tall', () => {
+  expect(dotText(':', 6).match(/<circle/g)).toHaveLength(2);
+  expect(dotWidth('6:42', 6)).toBe((5 + 1 + 1 + 1 + 5 + 1 + 5) * 6);
+});

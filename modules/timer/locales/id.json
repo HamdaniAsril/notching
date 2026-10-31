@@ -1,0 +1,22 @@
+{
+  "name": "Timer",
+  "shortName": "Timer",
+  "description": "Hitung mundur",
+  "label": "Timer",
+  "pause": "Jeda",
+  "resume": "Lanjut",
+  "stop": "Stop",
+  "ruler": "Menit",
+  "widgets": {
+    "strip": "Timer"
+  },
+  "channels": {
+    "done": "Timer selesai"
+  },
+  "notice": {
+    "done": {
+      "title": "Timer selesai",
+      "detail": "{minutes} menit sudah habis"
+    }
+  }
+}
