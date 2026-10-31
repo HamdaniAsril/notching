@@ -256,3 +256,31 @@ test('dragging onto the right half of a wide widget swaps with it too', async ()
   expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
     [at('home/date', 0), at('home/reminders', 1, 2), at('home/weather', 3)]);
 });
+
+test('the preview refits only when its width changes, so resizing never loops', async () => {
+  const seen: (() => void)[] = [];
+  vi.stubGlobal('ResizeObserver', class {
+    constructor(cb: () => void) { seen.push(cb); }
+    observe() {}
+    disconnect() {}
+  });
+  try {
+    const { root } = await edit('home');
+    const notch = root.querySelector<HTMLElement>('.ed-notch')!;
+    const row = root.querySelector<HTMLElement>('.ed-row')!;
+    let width = 334;
+    Object.defineProperty(notch, 'clientWidth', { get: () => width });
+    const fit = seen[seen.length - 1];
+    fit();
+    expect(row.style.transform).toBe('scale(0.5)');
+    // Its own margins change the height and call it again: nothing is rewritten.
+    row.style.transform = 'mark';
+    fit();
+    expect(row.style.transform).toBe('mark');
+    width = 612;
+    fit();
+    expect(row.style.transform).toBe('');
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

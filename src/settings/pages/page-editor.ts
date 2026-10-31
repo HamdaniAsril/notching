@@ -244,7 +244,12 @@ const AROUND_PX = 56;
 function notchFrame(ctx: PageContext, row: HTMLElement): HTMLElement {
   const notch = el('div', 'ed-notch');
   notch.append(row);
+  // Only a new width refits: the margins set here change the height, which calls
+  // this again, and rewriting then would loop.
+  let fitted = -1;
   const fit = () => {
+    if (notch.clientWidth === fitted) return;
+    fitted = notch.clientWidth;
     const room = notch.clientWidth - AROUND_PX;
     if (room <= 0) return;
     const z = Math.min(1, room / ROW_PX);
