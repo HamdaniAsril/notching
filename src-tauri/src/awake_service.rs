@@ -65,16 +65,11 @@ fn tick(app: &AppHandle) -> i64 {
     match step {
         Step::Off => WAIT_MAX_MS,
         Step::Ended(owner) => {
+            finish(app, &owner);
+            WAIT_MAX_MS
+        }
+        Step::Clear(owner) => {
             status::clear(app, &owner);
-            let (title, detail) = {
-                let core = app.state::<CoreState>();
-                let core = core.0.lock().unwrap();
-                (core.module_text(&owner, "notice.done.title"), core.module_text(&owner, "notice.done.detail"))
-            };
-            let title = title.unwrap_or_else(|| "Keep awake".into());
-            if let Err(e) = crate::notify::post(app, &owner, "done", &title, detail.as_deref().unwrap_or("")) {
-                eprintln!("notching: the keep awake notice was not sent: {e}");
-            }
             WAIT_MAX_MS
         }
         Step::On { owner, text, wait_ms } => {
@@ -86,37 +81,85 @@ fn tick(app: &AppHandle) -> i64 {
     }
 }
 
+// A run that ended: its status goes and the notice comes.
+fn finish(app: &AppHandle, owner: &str) {
+    status::clear(app, owner);
+    let (title, detail) = {
+        let core = app.state::<CoreState>();
+        let core = core.0.lock().unwrap();
+        (core.module_text(owner, "notice.done.title"), core.module_text(owner, "notice.done.detail"))
+    };
+    let title = title.unwrap_or_else(|| "Keep awake".into());
+    if let Err(e) = crate::notify::post(app, owner, "done", &title, detail.as_deref().unwrap_or("")) {
+        eprintln!("notching: the keep awake notice was not sent: {e}");
+    }
+}
+
+// Ends a run that is past its end before a call looks at it: after the Mac
+// wakes, the thread may not have looked yet. Call with the service lock held;
+// the owner it returns goes to `finish` once the lock is let go.
+fn settle(service: &mut Service, now: i64) -> Option<String> {
+    let ended = service.awake.end_if_due(now);
+    if ended.is_some() {
+        service.hold = None;
+    }
+    ended
+}
+
+// The thread takes down any status a round set after `finish` cleared it.
+fn after(app: &AppHandle, ended: Option<String>) {
+    if let Some(owner) = ended {
+        finish(app, &owner);
+        poke(&app.state::<AwakeState>());
+    }
+}
+
 pub fn read(app: &AppHandle) -> AwakeDto {
-    app.state::<AwakeState>().service.lock().unwrap().awake.view(now())
+    let state = app.state::<AwakeState>();
+    let (ended, view) = {
+        let mut service = state.service.lock().unwrap();
+        let now = now();
+        (settle(&mut service, now), service.awake.view(now))
+    };
+    after(app, ended);
+    view
 }
 
 /// `None` has no limit. Takes the assertion only when none is held; when macOS
 /// refuses it, Keep awake stays off.
 pub fn turn_on(app: &AppHandle, owner: &str, minutes: Option<u32>) -> Result<AwakeDto, String> {
     let state = app.state::<AwakeState>();
-    let view = {
+    let (ended, view) = {
         let mut service = state.service.lock().unwrap();
+        let ended = settle(&mut service, now());
         let mut next = service.awake.clone();
-        next.start(owner, now(), minutes).map_err(|e| e.to_string())?;
-        if service.hold.is_none() {
-            service.hold = Some(Hold::take().ok_or("the Mac did not allow staying awake")?);
+        let started = next.start(owner, now(), minutes).map_err(|e| e.to_string()).and_then(|()| {
+            if service.hold.is_none() {
+                service.hold = Some(Hold::take().ok_or("the Mac did not allow staying awake")?);
+            }
+            Ok(())
+        });
+        if started.is_ok() {
+            service.awake = next;
         }
-        service.awake = next;
-        service.awake.view(now())
+        (ended, started.map(|()| service.awake.view(now())))
     };
+    after(app, ended);
     poke(&state);
-    Ok(view)
+    view
 }
 
 pub fn extend(app: &AppHandle, minutes: u32) -> Result<AwakeDto, String> {
     let state = app.state::<AwakeState>();
-    let view = {
+    let (ended, view) = {
         let mut service = state.service.lock().unwrap();
-        service.awake.add(now(), minutes).map_err(|e| e.to_string())?;
-        service.awake.view(now())
+        let ended = settle(&mut service, now());
+        let added = service.awake.add(now(), minutes).map_err(|e| e.to_string());
+        (ended, added.map(|()| service.awake.view(now())))
     };
+    after(app, ended);
     poke(&state);
-    Ok(view)
+    view
 }
 
 /// No notice: the person turned it off.

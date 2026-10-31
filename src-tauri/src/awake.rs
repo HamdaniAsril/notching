@@ -46,12 +46,13 @@ pub struct AwakeDto {
     pub text: Option<String>,
 }
 
-/// What the service does next: nothing, end the run of this module, or show
-/// the text until it changes.
+/// What the service does next: nothing, end the run of this module, take down
+/// a status left from a stopped run, or show the text until it changes.
 #[derive(Debug, PartialEq)]
 pub enum Step {
     Off,
     Ended(String),
+    Clear(String),
     On { owner: String, text: String, wait_ms: i64 },
 }
 
@@ -60,6 +61,10 @@ pub enum Step {
 pub struct Awake {
     owner: Option<String>,
     until: Option<Until>,
+    // Whose status the last On step showed. A stop clears the status at once,
+    // but a round that read On just before can set it again after that clear;
+    // the next round takes it down.
+    shown: Option<String>,
 }
 
 fn checked(minutes: u32) -> Result<i64, AwakeError> {
@@ -81,10 +86,11 @@ impl Awake {
         Ok(())
     }
 
-    /// Never past 24 hours from now.
+    /// Never past 24 hours from now. A run past its end is over, even before
+    /// the service has looked (the Mac just woke).
     pub fn add(&mut self, now: i64, minutes: u32) -> Result<(), AwakeError> {
         let ms = checked(minutes)?;
-        match self.until {
+        match self.until.filter(|_| !self.due(now)) {
             None => Err(AwakeError::Off),
             Some(Until::Forever) => Err(AwakeError::NoEnd),
             Some(Until::At(t)) => {
@@ -104,8 +110,20 @@ impl Awake {
         self.owner.as_deref()
     }
 
+    fn due(&self, now: i64) -> bool {
+        matches!(self.until, Some(Until::At(t)) if now >= t)
+    }
+
+    /// The owner when the run's time has come, even long past it; the run ends.
+    pub fn end_if_due(&mut self, now: i64) -> Option<String> {
+        if !self.due(now) {
+            return None;
+        }
+        self.stop()
+    }
+
     pub fn view(&self, now: i64) -> AwakeDto {
-        match self.until {
+        match self.until.filter(|_| !self.due(now)) {
             None => AwakeDto { on: false, until: None, forever: false, text: None },
             Some(Until::Forever) => AwakeDto { on: true, until: None, forever: true, text: Some(FOREVER_TEXT.into()) },
             Some(Until::At(t)) => {
@@ -116,13 +134,17 @@ impl Awake {
 
     /// Ends a run whose time has come, even long past it.
     pub fn step(&mut self, now: i64) -> Step {
-        let Some(owner) = self.owner.clone() else { return Step::Off };
+        if let Some(owner) = self.end_if_due(now) {
+            // This round clears the status itself, and only rounds set it.
+            self.shown = None;
+            return Step::Ended(owner);
+        }
+        let Some(owner) = self.owner.clone() else {
+            return self.shown.take().map_or(Step::Off, Step::Clear);
+        };
+        self.shown = Some(owner.clone());
         match self.until {
             None => Step::Off,
-            Some(Until::At(t)) if now >= t => {
-                self.stop();
-                Step::Ended(owner)
-            }
             Some(Until::At(t)) => {
                 let left = t - now;
                 let minutes = (left + MINUTE_MS - 1) / MINUTE_MS;
@@ -238,6 +260,39 @@ mod tests {
         let mut a = Awake::default();
         a.start("k", T, Some(60)).unwrap();
         assert_eq!(a.step(T + 180 * M), Step::Ended("k".into()));
+    }
+
+    #[test]
+    fn a_status_shown_is_cleared_once_after_a_stop() {
+        let mut a = Awake::default();
+        a.start("k", T, Some(60)).unwrap();
+        assert!(matches!(a.step(T), Step::On { .. }));
+        a.stop();
+        // A status set after the stop's own clear goes on the next round.
+        assert_eq!(a.step(T), Step::Clear("k".into()));
+        assert_eq!(a.step(T), Step::Off);
+    }
+
+    #[test]
+    fn a_run_past_its_end_takes_no_more_time() {
+        let mut a = Awake::default();
+        a.start("k", T, Some(60)).unwrap();
+        assert!(!a.view(T + 90 * M).on);
+        assert_eq!(a.add(T + 90 * M, 60), Err(AwakeError::Off));
+        assert_eq!(a.end_if_due(T + 59 * M), None);
+        assert_eq!(a.end_if_due(T + 90 * M), Some("k".into()));
+        assert_eq!(a.end_if_due(T + 90 * M), None);
+        assert_eq!(a.step(T + 90 * M), Step::Off);
+    }
+
+    #[test]
+    fn a_status_shown_before_an_end_is_cleared_once_after_it() {
+        let mut a = Awake::default();
+        a.start("k", T, Some(60)).unwrap();
+        assert!(matches!(a.step(T), Step::On { .. }));
+        assert_eq!(a.end_if_due(T + 90 * M), Some("k".into()));
+        assert_eq!(a.step(T + 90 * M), Step::Clear("k".into()));
+        assert_eq!(a.step(T + 90 * M), Step::Off);
     }
 
     #[test]
