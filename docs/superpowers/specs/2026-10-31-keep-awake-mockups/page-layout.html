@@ -1,0 +1,123 @@
+<style>
+  .option .content { min-width: 0; }
+  .ka-pair { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .ka-cap { font: 11px "Space Mono", ui-monospace, monospace; color: var(--text-secondary, #888); letter-spacing: .06em; text-transform: uppercase; }
+  .ka-panel { width: 460px; max-width: 100%; overflow: hidden; padding: 12px 18px 16px; border-radius: 0 0 26px 26px; background: #000; color: #fff;
+              font: 13px "Space Grotesk", -apple-system, sans-serif; box-sizing: border-box; }
+  .ka-lab { font: 10px/14px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.42); white-space: nowrap; }
+  .ka-bar { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .ka-row { display: flex; align-items: center; gap: 16px; }
+  .ka-col { display: flex; flex-direction: column; gap: 8px; }
+  .ka-vd { width: 3px; align-self: stretch; background: radial-gradient(circle, rgba(255,255,255,.3) .9px, transparent 1.3px) center top / 3px 5px repeat-y; }
+  .ka-hd { height: 3px; margin: 12px 0; background: radial-gradient(circle, rgba(255,255,255,.3) .9px, transparent 1.3px) left center / 5px 3px repeat-x; }
+  .ka-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ka-chip { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.08); font: 11px "Space Mono", monospace; letter-spacing: .06em; color: rgba(255,255,255,.85); white-space: nowrap; }
+  .ka-chip.ka-w { background: #fff; color: #000; }
+  .ka-chip.ka-ghost { background: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
+  .ka-in { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); font: 11px "Space Mono", monospace; color: rgba(255,255,255,.42); }
+  .ka-in b { color: #fff; font-weight: 400; min-width: 18px; text-align: right; }
+  .ka-big { display: block; }
+  .ka-red { width: 6px; height: 6px; border-radius: 50%; background: #e8262e; display: inline-block; }
+  .ka-wd { width: 6px; height: 6px; border-radius: 50%; background: #fff; display: inline-block; }
+  .ka-sw { width: 96px; height: 96px; border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(255,255,255,.08); flex: none; }
+  .ka-sw svg { width: 26px; height: 26px; }
+  .ka-sw.ka-on { background: #fff; color: #000; }
+  .ka-sw.ka-on .ka-lab { color: #000; }
+  .ka-note { margin-top: 8px; color: var(--text-secondary, #888); font-size: 13px; }
+</style>
+
+<h2>Seperti apa halaman Keep awake?</h2>
+<p class="subtitle">Halaman ini terbuka saat kamu klik kotak Keep awake di halaman Modul. Setiap pilihan digambar dua kali: saat mati, dan saat menyala dengan sisa 1 jam 42 menit.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Angka besar di kiri, tombol di kanan</h3>
+      <p>Mirip kartu System stat. Kiri menunjukkan sisa waktu, kanan berisi semua tombol. Tombol + baru muncul saat menyala.</p>
+      <div class="ka-pair"><span class="ka-cap">Mati</span><div class="ka-panel" data-v="a-off"></div></div>
+      <div class="ka-pair"><span class="ka-cap">Menyala</span><div class="ka-panel" data-v="a-on"></div></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Tombol besar seperti Pusat Kontrol</h3>
+      <p>Satu kotak besar untuk nyala/mati (putih saat menyala, seperti kotaknya di halaman Modul). Klik kotak saja langsung menyala 1 jam. Durasi lain di sebelahnya.</p>
+      <div class="ka-pair"><span class="ka-cap">Mati</span><div class="ka-panel" data-v="b-off"></div></div>
+      <div class="ka-pair"><span class="ka-cap">Menyala</span><div class="ka-panel" data-v="b-on"></div></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Atas: sisa waktu. Bawah: dua baris tombol</h3>
+      <p>Lebih tinggi, tapi tombolnya selalu di tempat yang sama: baris "Mulai" dan baris "Tambah". Saat mati, baris Tambah redup.</p>
+      <div class="ka-pair"><span class="ka-cap">Mati</span><div class="ka-panel" data-v="c-off"></div></div>
+      <div class="ka-pair"><span class="ka-cap">Menyala</span><div class="ka-panel" data-v="c-on"></div></div>
+    </div>
+  </div>
+</div>
+<p class="ka-note">Klik pilihan yang paling cocok, lalu ceritakan di chat. Tanda ∞ berarti tanpa batas.</p>
+
+<script>
+(function () {
+  // 5×7 dot digits, like the app's dot font.
+  const F = {
+    '0': ['01110','10001','10011','10101','11001','10001','01110'],
+    '1': ['00100','01100','00100','00100','00100','00100','01110'],
+    '2': ['01110','10001','00001','00010','00100','01000','11111'],
+    '4': ['00010','00110','01010','10010','11111','00010','00010'],
+    ':': ['0','0','1','0','1','0','0'],
+    '-': ['00000','00000','00000','11111','00000','00000','00000'],
+  };
+  const P = 5;
+  function dots(text, color) {
+    let x = 0, out = '';
+    for (const ch of text) {
+      const g = F[ch];
+      g.forEach((row, y) => [...row].forEach((b, i) => {
+        out += `<circle cx="${x + i * P + 2}" cy="${y * P + 2}" r="1.8" fill="${b === '1' ? color : 'rgba(255,255,255,.08)'}"/>`;
+      }));
+      x += g[0].length * P + P;
+    }
+    return `<svg class="ka-big" width="${x - P + 4}" height="${7 * P}" viewBox="0 0 ${x - P + 4} ${7 * P}">${out}</svg>`;
+  }
+  const sun = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>';
+  const bar = '<div class="ka-bar"><span class="ka-lab">‹ Modul</span><span class="ka-lab">Keep awake</span></div>';
+  const chip = (t, cls = '') => `<span class="ka-chip ${cls}">${t}</span>`;
+  const input = '<span class="ka-in"><b>45</b> menit</span>';
+  const starts = chip('1 jam') + chip('2 jam') + chip('∞') + input;
+  const adds = chip('+15 m') + chip('+30 m') + chip('+1 jam');
+
+  const V = {
+    'a-off': `${bar}<div class="ka-row">
+      <div class="ka-col" style="min-width:120px"><span class="ka-lab">Mati</span>${dots('--:--', 'rgba(255,255,255,.42)')}<span class="ka-lab">Mac tidur seperti biasa</span></div>
+      <div class="ka-vd"></div>
+      <div class="ka-col"><span class="ka-lab">Nyalakan</span><div class="ka-chips">${starts}</div></div></div>`,
+    'a-on': `${bar}<div class="ka-row">
+      <div class="ka-col" style="min-width:120px"><span class="ka-lab"><i class="ka-wd"></i>&nbsp;Menyala</span>${dots('1:42', '#fff')}<span class="ka-lab">sampai 15.20</span></div>
+      <div class="ka-vd"></div>
+      <div class="ka-col"><span class="ka-lab">Tambah</span><div class="ka-chips">${adds}</div><div class="ka-chips">${chip('Matikan', 'ka-ghost')}</div></div></div>`,
+    'b-off': `${bar}<div class="ka-row">
+      <div class="ka-sw">${sun}<span class="ka-lab">Mati</span></div>
+      <div class="ka-col"><span class="ka-lab">Nyalakan selama</span><div class="ka-chips">${starts}</div><span class="ka-lab">Klik kotak: 1 jam</span></div></div>`,
+    'b-on': `${bar}<div class="ka-row">
+      <div class="ka-sw ka-on">${sun}<span class="ka-lab">1:42</span></div>
+      <div class="ka-col"><span class="ka-lab">Menyala sampai 15.20</span><div class="ka-chips">${adds}</div><span class="ka-lab">Klik kotak untuk mematikan</span></div></div>`,
+    'c-off': `${bar}<div class="ka-row" style="justify-content:space-between">
+      <div class="ka-col"><span class="ka-lab">Mati</span><span class="ka-lab">Mac tidur seperti biasa</span></div>${dots('--:--', 'rgba(255,255,255,.42)')}</div>
+      <div class="ka-hd"></div>
+      <div class="ka-col"><div class="ka-row" style="gap:10px"><span class="ka-lab" style="width:56px">Mulai</span><div class="ka-chips">${starts}</div></div>
+      <div class="ka-row" style="gap:10px;opacity:.35"><span class="ka-lab" style="width:56px">Tambah</span><div class="ka-chips">${adds}</div></div></div>`,
+    'c-on': `${bar}<div class="ka-row" style="justify-content:space-between">
+      <div class="ka-col"><span class="ka-lab"><i class="ka-wd"></i>&nbsp;Menyala</span><span class="ka-lab">sampai 15.20</span></div>${dots('1:42', '#fff')}</div>
+      <div class="ka-hd"></div>
+      <div class="ka-col"><div class="ka-row" style="gap:10px"><span class="ka-lab" style="width:56px">Ganti</span><div class="ka-chips">${starts}${chip('Matikan', 'ka-ghost')}</div></div>
+      <div class="ka-row" style="gap:10px"><span class="ka-lab" style="width:56px">Tambah</span><div class="ka-chips">${adds}</div></div></div>`,
+  };
+  document.querySelectorAll('.ka-panel').forEach(p => { p.innerHTML = V[p.dataset.v]; });
+})();
+</script>

@@ -230,6 +230,8 @@ Simulasi ukuran panel tanggal 29 Oktober (`2026-10-27-notch-mockups/panel-sizes.
    - versi Windows,
    - rilis publik.
 
+Pada 31 Oktober 2026 pemilik ide memilih mengerjakan **langkah 3 sebelum langkah 2**, dimulai dari **Keep awake** (desainnya di `2026-10-31-keep-awake-design.md`). Urutan modul langkah 3 berikutnya dan langkah 2 diputuskan setelah Keep awake selesai.
+
 Setiap langkah boleh menjadi satu rencana kerja atau lebih.
 
 ## 12. Diserahkan ke pembuat
