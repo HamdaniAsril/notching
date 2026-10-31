@@ -61,7 +61,8 @@ const cols = (ws: Placement[] | null) => ws && ws.map(p => `${p.widget.split('/'
 
 test('swapInto trades places with what is under the drop', () => {
   expect(cols(swapInto(FULL, 'home/weather', 0))).toEqual(['weather@0', 'date@1', 'reminders@2']);
-  expect(cols(swapInto(FULL, 'home/reminders', 0))).toEqual(['reminders@0', 'date@2', 'weather@3']);
+  // Widgets of different widths trade places; what lies between moves along.
+  expect(cols(swapInto(FULL, 'home/reminders', 0))).toEqual(['reminders@0', 'weather@2', 'date@3']);
   // Into free room it is a plain move.
   const gap = FULL.slice(0, 2);
   expect(cols(swapInto(gap, 'home/date', 3))).toEqual(['weather@1', 'date@3']);
@@ -69,14 +70,22 @@ test('swapInto trades places with what is under the drop', () => {
   expect(cols(swapInto(FULL, 'home/reminders', 3))).toEqual(['date@0', 'weather@1', 'reminders@2']);
 });
 
-test('swapInto refuses what would not fit back', () => {
-  expect(swapInto(FULL, 'home/date', 2)).toBeNull();
+test('swapInto takes a wide widget whichever half the drop lands on', () => {
+  for (const col of [2, 3]) {
+    expect(cols(swapInto(FULL, 'home/weather', col))).toEqual(['date@0', 'reminders@1', 'weather@3']);
+    expect(cols(swapInto(FULL, 'home/date', col))).toEqual(['reminders@0', 'weather@2', 'date@3']);
+  }
+  // A gap between the two stays a gap.
+  const gap = [FULL[0], FULL[2]];
+  expect(cols(swapInto(gap, 'home/date', 3))).toEqual(['reminders@0', 'date@3']);
   expect(swapInto(FULL, 'home/zzz', 0)).toBeNull();
 });
 
 test('replaceAt puts a new widget over what is there', () => {
   expect(cols(replaceAt(FULL, 'home/clock', 1, 0))).toEqual(['clock@0', 'weather@1', 'reminders@2']);
-  expect(cols(replaceAt(FULL, 'home/prayer', 1, 3))).toEqual(['date@0', 'weather@1', 'prayer@3']);
+  // Dropped on either half of a wide widget, it takes that widget's place.
+  expect(cols(replaceAt(FULL, 'home/prayer', 1, 3))).toEqual(['date@0', 'weather@1', 'prayer@2']);
+  expect(cols(replaceAt(FULL, 'home/prayer', 1, 2))).toEqual(['date@0', 'weather@1', 'prayer@2']);
   expect(cols(replaceAt(FULL, 'x/wide', 2, 3))).toEqual(['date@0', 'weather@1', 'wide@2']);
   expect(cols(replaceAt(FULL, 'x/wide', 2, 0))).toEqual(['wide@0', 'reminders@2']);
   expect(replaceAt(FULL, 'home/date', 1, 1)).toBeNull();

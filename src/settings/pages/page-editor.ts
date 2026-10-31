@@ -136,12 +136,19 @@ function deleteButton(ctx: PageContext, id: string): HTMLElement {
   return foot;
 }
 
-// Highlights the cells a drag `width` columns wide would land on at `col`.
+// Highlights where a drag `width` columns wide lands with the pointer over `col`:
+// the whole widget there, which it trades places with, or the free cells it takes.
 function markColumns(row: HTMLElement, col: number | null, width: number): void {
+  const cells = [...row.querySelectorAll<HTMLElement>('.ed-slot, .ed-empty')];
+  const span = (cell: HTMLElement) => [Number(cell.dataset.col), Number(cell.dataset.width)];
+  const hit = col === null ? undefined : cells.find(cell => {
+    const [from, w] = span(cell);
+    return cell.classList.contains('ed-slot') && !cell.classList.contains('ed-dragging') && from <= col && col < from + w;
+  });
   const at = col === null ? null : Math.max(0, Math.min(COLUMNS - width, col));
-  for (const cell of row.querySelectorAll<HTMLElement>('.ed-slot, .ed-empty')) {
-    const from = Number(cell.dataset.col);
-    const on = at !== null && from < at + width && at < from + Number(cell.dataset.width);
+  for (const cell of cells) {
+    const [from, w] = span(cell);
+    const on = hit ? cell === hit : at !== null && from < at + width && at < from + w;
     cell.classList.toggle('ed-target', on);
   }
 }

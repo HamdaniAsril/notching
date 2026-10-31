@@ -227,7 +227,7 @@ test('dragging a widget onto a full row replaces what it covers', async () => {
   const { root, bridge } = await edit('home');
   drag(root, widgetButton(root, 'Jam'), 350);
   expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
-    [at('home/date', 0), at('home/weather', 1), at('home/clock', 3)]);
+    [at('home/date', 0), at('home/weather', 1), at('home/clock', 2)]);
 });
 
 test('the ghost goes once the drag ends', async () => {
@@ -247,4 +247,12 @@ test('a card draws the widget at its notch size, the same as in the preview', as
   expect(height(slot)).toBe('42');
   expect(card.dataset.width).toBe('1');
   expect(widgetButton(root, 'Reminder').querySelector<HTMLElement>('.ed-shot')!.dataset.width).toBe('2');
+});
+
+test('dragging onto the right half of a wide widget swaps with it too', async () => {
+  const { root, bridge } = await edit('home');
+  const weather = root.querySelector<HTMLElement>('.ed-slot[aria-label="Cuaca"]')!;
+  drag(root, weather, 350);
+  expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
+    [at('home/date', 0), at('home/reminders', 1, 2), at('home/weather', 3)]);
 });

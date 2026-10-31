@@ -67,11 +67,42 @@ export function removeWidget(widgets: Placement[], ref: string): Placement[] {
 const clampCol = (col: number, width: number) => Math.max(0, Math.min(COLUMNS - width, col));
 const overlaps = (p: Placement, col: number, width: number) => p.col < col + width && col < p.col + p.width;
 
-// Moves a widget to `col`; what is there goes to the moved widget's old place, or
-// the first room left. Null when something would not fit back.
+// The widget covering `col`, other than `ignore`.
+const under = (widgets: Placement[], col: number, ignore?: string) =>
+  widgets.find(p => p.widget !== ignore && p.col <= col && col < p.col + p.width);
+
+// Swaps two widgets as blocks: the stretch from the first to the last column of
+// the two is laid out again with them traded, widgets and gaps between keeping
+// their order. The stretch keeps its width, so everything still fits.
+function trade(widgets: Placement[], a: Placement, b: Placement): Placement[] {
+  const lo = Math.min(a.col, b.col);
+  const hi = Math.max(a.col + a.width, b.col + b.width);
+  const seq: (Placement | null)[] = [];
+  for (let c = lo; c < hi;) {
+    const p = widgets.find(w => w.col === c);
+    seq.push(p ?? null);
+    c += p ? p.width : 1;
+  }
+  const [i, j] = [seq.indexOf(a), seq.indexOf(b)];
+  [seq[i], seq[j]] = [seq[j], seq[i]];
+  const moved = new Map<string, number>();
+  let c = lo;
+  for (const p of seq) {
+    if (p) moved.set(p.widget, c);
+    c += p ? p.width : 1;
+  }
+  return byCol(widgets.map(p => (moved.has(p.widget) ? { ...p, col: moved.get(p.widget)! } : p)));
+}
+
+// Moves a widget to the column under the pointer. Dropped on another widget, on
+// either half of a wide one, the two trade places. Into free room it is a move;
+// a wide widget overlapping a neighbour there pushes it to the moved widget's old
+// place or the first room left. Null when nothing fits.
 export function swapInto(widgets: Placement[], ref: string, col: number): Placement[] | null {
   const it = widgets.find(p => p.widget === ref);
   if (!it) return null;
+  const target = under(widgets, col, ref);
+  if (target) return trade(widgets, it, target);
   const at = clampCol(col, it.width);
   const plain = moveTo(widgets, ref, at);
   if (plain) return plain;
@@ -86,9 +117,10 @@ export function swapInto(widgets: Placement[], ref: string, col: number): Placem
   return byCol(next);
 }
 
-// Puts a widget not yet on the page at `col`, taking the place of whatever it covers.
+// Puts a widget not yet on the page where the pointer is, taking the place of
+// whatever it covers; dropped on a widget, it starts where that widget starts.
 export function replaceAt(widgets: Placement[], ref: string, width: number, col: number): Placement[] | null {
   if (widgets.some(p => p.widget === ref)) return null;
-  const at = clampCol(col, width);
+  const at = clampCol(under(widgets, col)?.col ?? col, width);
   return byCol([...widgets.filter(p => !overlaps(p, at, width)), { widget: ref, col: at, width }]);
 }
