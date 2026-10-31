@@ -146,3 +146,16 @@ test('× removes one, Kosongkan clears all', () => {
   clear.click();
   expect(deps.clear).toHaveBeenCalled();
 });
+
+test('a new thumb keeps the tiles, so a click in between still selects', () => {
+  const v = mountShelfView(box, deps);
+  v.render(shelf(item(1, 'a', { thumb: null }), item(2, 'b')), false);
+  const before = tile(1);
+  mouse(tile(1), 'mousedown', 10, 10);
+  v.render(shelf(item(1, 'a'), item(2, 'b')), false);
+  expect(tile(1)).toBe(before);
+  expect(tile(1).querySelector('img')!.getAttribute('src')).toBe('data:image/png;base64,1');
+  mouse(document, 'mouseup', 10, 10);
+  mouse(tile(1), 'click', 10, 10);
+  expect(selected()).toEqual([1]);
+});

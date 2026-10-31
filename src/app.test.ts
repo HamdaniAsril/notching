@@ -504,3 +504,21 @@ test('the shelf module switched off removes the pill icon and leaves the shelf p
   bridge.emitShelfDrop({ phase: 'start' });
   expect(app.controller.phase).not.toBe('open');
 });
+
+test('a drop start on a tall open shelf keeps the panel height', async () => {
+  const { app, r, bridge } = await startShelf(13);
+  open(app, r);
+  const tall = app.controller.card.height;
+  expect(tall).toBeGreaterThan(104);
+  bridge.emitShelfDrop({ phase: 'start' });
+  expect(app.controller.card.height).toBe(tall);
+});
+
+test('opening the shelf from the pill checks the files again', async () => {
+  const { app, r, bridge, pick } = await startShelf(2);
+  open(app, r);
+  pick('p1');
+  bridge.shelf.mockClear();
+  pick('shelf');
+  expect(bridge.shelf).toHaveBeenCalledWith(true);
+});

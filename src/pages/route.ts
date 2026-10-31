@@ -29,7 +29,9 @@ export type PageView =
   | { kind: 'custom'; key: string; page: Page; strip: CatalogWidget | null }
   | { kind: 'modules'; key: 'modules'; modules: ModuleInfo[] }
   | { kind: 'module'; key: string; module: ModuleInfo }
-  | { kind: 'shelf'; key: typeof SHELF_KEY; shelf: ShelfState; dropping: boolean };
+  // `height`: while dropping on a panel already taller than the drop zone, it keeps
+  // that height, so the drag stays over it.
+  | { kind: 'shelf'; key: typeof SHELF_KEY; shelf: ShelfState; dropping: boolean; height?: number };
 
 // The Modul page's modules: installed, on, with a page or a tile action; in catalog order.
 export function pageModules(s: ModuleState): ModuleInfo[] {
@@ -75,7 +77,10 @@ export function viewSize(v: PageView, fullHeight?: number): CardSize {
     return { ...CUSTOM_PAGE, height: Math.round(Math.min(FULL_PAGE_MAX, Math.max(height, fullHeight))) };
   }
   if (v.kind === 'module') return { width: v.module.card!.width, height: BACK_BAR + v.module.card!.height };
-  if (v.kind === 'shelf') return { width: SHELF.width, height: shelfHeight(v.shelf.items.length, v.dropping) };
+  if (v.kind === 'shelf') {
+    const height = shelfHeight(v.shelf.items.length, v.dropping);
+    return { width: SHELF.width, height: v.dropping ? Math.max(height, v.height ?? 0) : height };
+  }
   const { columns, gap, tile, width, empty } = MODULES_GRID;
   const rows = Math.ceil(v.modules.length / columns);
   return { width, height: rows === 0 ? empty : rows * tile + (rows - 1) * gap };

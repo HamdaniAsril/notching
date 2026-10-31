@@ -38,6 +38,35 @@ pub struct ShelfState(pub Mutex<Shelf>);
 pub static DRAG_OUT: AtomicBool = AtomicBool::new(false);
 
 static CACHE_ROOT: OnceLock<PathBuf> = OnceLock::new();
+// Changes come in bursts (an icon, then a preview, for every file dropped): the
+// windows hear about them at most once per COALESCE.
+static PENDING: Coalesce = Coalesce::new();
+const COALESCE: std::time::Duration = std::time::Duration::from_millis(60);
+// The count last shown beside the notch.
+static STATUS_SHOWN: Mutex<Option<String>> = Mutex::new(None);
+
+/// One flag: the first request asks the caller to schedule the work, the rest
+/// wait until it is taken.
+#[derive(Default)]
+pub struct Coalesce(AtomicBool);
+
+impl Coalesce {
+    pub const fn new() -> Self {
+        Coalesce(AtomicBool::new(false))
+    }
+
+    pub fn request(&self) -> bool {
+        !self.0.swap(true, Ordering::SeqCst)
+    }
+
+    pub fn taken(&self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
+pub fn status_changes(last: &Option<String>, next: &Option<String>) -> bool {
+    last != next
+}
 static NEXT_DIR: AtomicU64 = AtomicU64::new(0);
 
 /// `<app cache>/titipan`: the only place the shelf writes to.
@@ -97,14 +126,34 @@ pub fn enabled(app: &AppHandle) -> bool {
     app.state::<CoreState>().0.lock().unwrap().module(MODULE_ID).is_some_and(|e| e.installed && e.enabled)
 }
 
-/// Tells every window, and sets or clears the count beside the notch.
+/// Tells every window, and sets or clears the count beside the notch, once for
+/// a burst of changes.
 fn changed(app: &AppHandle) {
+    if !PENDING.request() {
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(COALESCE);
+        PENDING.taken();
+        publish(&app);
+    });
+}
+
+fn publish(app: &AppHandle) {
     let (dto, text) = {
         let shelf = app.state::<ShelfState>();
         let shelf = shelf.0.lock().unwrap();
         (shelf.dto(), shelf.status_text())
     };
     let _ = app.emit(SHELF_EVENT, dto);
+    {
+        let mut shown = STATUS_SHOWN.lock().unwrap();
+        if !status_changes(&shown, &text) {
+            return;
+        }
+        shown.clone_from(&text);
+    }
     match text {
         Some(text) => {
             if let Err(e) = status::set(app, MODULE_ID, Activity::Running, Some(&text)) {
@@ -178,16 +227,23 @@ fn preview(app: &AppHandle, items: Vec<(u64, PathBuf)>) {
     if items.is_empty() {
         return;
     }
+    // Queued, never run inside a drop: on the main thread run_on_main_thread runs
+    // at once, and a drop of many files would hold AppKit up.
     let handle = app.clone();
-    let _ = app.run_on_main_thread(move || {
-        for (id, path) in items {
-            let icon = NSWorkspace::sharedWorkspace().iconForFile(&NSString::from_str(&path.to_string_lossy()));
-            if let Some(png) = image_png(&icon) {
-                set_thumb(&handle, id, png);
-            }
-            quick_look(&handle, id, &path);
-        }
+    std::thread::spawn(move || {
+        let app = handle.clone();
+        let _ = app.run_on_main_thread(move || preview_now(&handle, items));
     });
+}
+
+fn preview_now(app: &AppHandle, items: Vec<(u64, PathBuf)>) {
+    for (id, path) in items {
+        let icon = NSWorkspace::sharedWorkspace().iconForFile(&NSString::from_str(&path.to_string_lossy()));
+        if let Some(png) = image_png(&icon) {
+            set_thumb(app, id, png);
+        }
+        quick_look(app, id, &path);
+    }
 }
 
 fn quick_look(app: &AppHandle, id: u64, path: &Path) {
@@ -247,11 +303,16 @@ pub fn quitting(_app: &AppHandle) {
     }
 }
 
+/// Marks items whose file is gone, and back.
+pub fn refresh(app: &AppHandle) {
+    update(app, |s| s.refresh(|p| p.exists()));
+}
+
 /// The shelf for the notch; `refresh` first checks that every file is still there.
 #[tauri::command]
 pub fn shelf_state(app: AppHandle, refresh: bool) -> ShelfDto {
     if refresh {
-        update(&app, |s| s.refresh(|p| p.exists()));
+        self::refresh(&app);
     }
     app.state::<ShelfState>().0.lock().unwrap().dto()
 }
@@ -300,6 +361,23 @@ mod tests {
         copy_all(&from, &to).unwrap();
         assert_eq!(std::fs::read(to.join("sub/b.txt")).unwrap(), b"isi");
         assert!(from.join("sub/b.txt").exists());
+    }
+
+    #[test]
+    fn coalesce_asks_once_until_taken() {
+        let c = Coalesce::default();
+        assert!(c.request());
+        assert!(!c.request());
+        c.taken();
+        assert!(c.request());
+    }
+
+    #[test]
+    fn status_is_sent_only_when_the_count_changes() {
+        assert!(status_changes(&None, &Some("1".into())));
+        assert!(!status_changes(&Some("3".into()), &Some("3".into())));
+        assert!(status_changes(&Some("3".into()), &None));
+        assert!(!status_changes(&None, &None));
     }
 
     #[test]

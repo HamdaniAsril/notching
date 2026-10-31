@@ -71,10 +71,8 @@ define_class!(
                 crate::shelf_service::shelf_remove(iv.app.clone(), iv.ids.clone());
             }
             let _ = iv.app.emit_to(EventTarget::webview_window(&iv.label), DRAG_EVENT, serde_json::json!({ "phase": "end" }));
-            // Let go of this source later, never while one of its methods runs.
-            let _ = iv.app.run_on_main_thread(|| {
-                SOURCE.with(|s| s.borrow_mut().take());
-            });
+            // The source stays in SOURCE until the next drag replaces it: dropping
+            // it here would free it while this method still runs.
         }
     }
 );
@@ -87,7 +85,7 @@ impl DragSource {
 }
 
 thread_local! {
-    // The running drag's source, kept alive until the drag ends.
+    // The last drag's source, kept alive until the next drag starts.
     static SOURCE: RefCell<Option<Retained<DragSource>>> = const { RefCell::new(None) };
 }
 
@@ -115,6 +113,8 @@ pub fn shelf_start_drag(app: AppHandle, window: tauri::WebviewWindow, ids: Vec<u
     if DRAG_OUT.load(std::sync::atomic::Ordering::SeqCst) {
         return Err("a drag is already running".into());
     }
+    // A file moved away since the shelf opened is not dragged (§6).
+    crate::shelf_service::refresh(&app);
     let items: Vec<(String, Option<Vec<u8>>, u64)> = {
         let shelf = app.state::<ShelfState>();
         let shelf = shelf.0.lock().unwrap();

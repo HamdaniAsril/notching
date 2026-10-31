@@ -54,8 +54,9 @@ pub enum DropMode {
 pub enum DropEvent {
     /// A file drag reached this overlay's notch or panel.
     Arrived { label: String, enabled: bool, dragging_out: bool },
-    /// The drag left the catcher.
-    Exited,
+    /// The drag left the catcher; `inside`: the cursor is still over the overlay's
+    /// notch or panel (the catcher moved under it), which is left to the poll.
+    Exited { inside: bool },
     /// Files were dropped.
     Performed,
     /// The poll: is the button still down, is the cursor over the notch or panel?
@@ -74,7 +75,10 @@ pub fn drop_mode_step(now: DropMode, ev: DropEvent) -> (DropMode, Effect) {
         (DropMode::Off, DropEvent::Arrived { label, enabled: true, dragging_out: false }) => {
             (DropMode::On { label: label.clone(), away: 0 }, Effect::Start(label))
         }
-        (DropMode::On { label, .. }, DropEvent::Exited) => (DropMode::Off, Effect::End { label, dropped: false }),
+        (DropMode::On { label, away }, DropEvent::Exited { inside: true }) => (DropMode::On { label, away }, Effect::None),
+        (DropMode::On { label, .. }, DropEvent::Exited { inside: false }) => {
+            (DropMode::Off, Effect::End { label, dropped: false })
+        }
         (DropMode::On { label, .. }, DropEvent::Performed) => (DropMode::Off, Effect::End { label, dropped: true }),
         (DropMode::On { label, away }, DropEvent::Tick { pressed, inside }) => {
             if pressed && inside {
@@ -244,7 +248,8 @@ define_class!(
         #[unsafe(method(draggingExited:))]
         fn dragging_exited(&self, _info: Option<&ProtocolObject<dyn NSDraggingInfo>>) {
             if let Some(app) = APP.get() {
-                step(app, DropEvent::Exited);
+                let inside = inside(app, NSEvent::mouseLocation());
+                step(app, DropEvent::Exited { inside });
             }
         }
 
@@ -414,9 +419,15 @@ mod tests {
     }
 
     #[test]
+    fn exit_inside_is_left_to_the_poll() {
+        // The catcher moved under a drag still over the panel: not a leave.
+        assert_eq!(drop_mode_step(on("notch-0"), DropEvent::Exited { inside: true }), (on("notch-0"), Effect::None));
+    }
+
+    #[test]
     fn exit_ends_not_dropped() {
         assert_eq!(
-            drop_mode_step(on("notch-0"), DropEvent::Exited),
+            drop_mode_step(on("notch-0"), DropEvent::Exited { inside: false }),
             (DropMode::Off, Effect::End { label: "notch-0".into(), dropped: false })
         );
     }
@@ -457,6 +468,6 @@ mod tests {
     fn release_after_perform_is_ignored() {
         let (m, _) = drop_mode_step(on("notch-0"), DropEvent::Performed);
         assert_eq!(drop_mode_step(m.clone(), DropEvent::Tick { pressed: false, inside: false }), (DropMode::Off, Effect::None));
-        assert_eq!(drop_mode_step(m, DropEvent::Exited), (DropMode::Off, Effect::None));
+        assert_eq!(drop_mode_step(m, DropEvent::Exited { inside: false }), (DropMode::Off, Effect::None));
     }
 }

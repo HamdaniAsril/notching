@@ -41,6 +41,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   let dragOpened = false;
   let peek = false;
   let beforeShelf: string | null = null;
+  let dropHeight: number | undefined; // the open panel's height when a drag came over it
   let strings = hostStrings(state.lang);
   let page: PageView = pickPage(state, null, false);
   let lastPhase: Phase = 'idle';
@@ -109,13 +110,15 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   const isOpen = () => controller.phase === 'open';
 
   const shelfOn = () => state.modules.some(m => m.id === SHELF_KEY && m.installed && m.enabled);
-  const shelfPage = (): PageView => ({ kind: 'shelf', key: SHELF_KEY, shelf, dropping });
+  const shelfPage = (): PageView => ({ kind: 'shelf', key: SHELF_KEY, shelf, dropping, height: dropping ? dropHeight : undefined });
   // The page to go back to from the shelf.
   const pageBeforeShelf = (): PageView => resolvePage(state, beforeShelf) ?? pickPage(state, null, false);
 
   // Shows the shelf (as the drop zone while dropping), remembering the page under it.
   function openShelf(): void {
     if (page.kind !== 'shelf') beforeShelf = page.key;
+    // Its files may have moved since: check them again (§6).
+    if (!dropping && isOpen()) void bridge.shelf(true);
     usePage(shelfPage());
     showPage();
     renderPill();
@@ -354,6 +357,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       peek = false;
       if (isOpen()) {
         dragOpened = false;
+        dropHeight = controller.card.height;
         openShelf();
         void bridge.shelfDropReady();
       } else {
@@ -366,6 +370,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     }
     if (!dropping) return;
     dropping = false;
+    dropHeight = undefined;
     if (e.dropped) {
       peek = dragOpened;
       openShelf();

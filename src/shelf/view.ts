@@ -50,6 +50,7 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
   let items: ShelfItem[] = [];
   let selected = new Set<number>();
   let anchor: number | null = null;
+  let built = ''; // what the tiles show, but their thumbs
   // A press on a tile that may become a drag.
   let press: { id: number; x: number; y: number; dragged: boolean } | null = null;
 
@@ -92,17 +93,21 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
   doc.addEventListener('mousemove', onMove);
   doc.addEventListener('mouseup', onUp);
 
+  function image(src: string): HTMLImageElement {
+    const img = el(doc, 'img');
+    img.src = src;
+    img.alt = '';
+    img.draggable = false;
+    return img;
+  }
+
   function tile(i: ShelfItem): HTMLElement {
     const t = el(doc, 'div', ['sh-tile', i.state === 'ready' ? '' : i.state, selected.has(i.id) ? 'sel' : ''].filter(Boolean).join(' '));
     t.dataset.id = String(i.id);
     t.title = i.name;
     const thumb = el(doc, 'div', 'sh-thumb');
     if (i.thumb) {
-      const img = el(doc, 'img');
-      img.src = i.thumb;
-      img.alt = '';
-      img.draggable = false;
-      thumb.append(img);
+      thumb.append(image(i.thumb));
     } else {
       thumb.innerHTML = i.folder ? FOLDER_ICON : FILE_ICON;
     }
@@ -136,6 +141,17 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
       const ids = new Set(items.map(i => i.id));
       selected = new Set([...selected].filter(id => ids.has(id)));
       if (anchor !== null && !ids.has(anchor)) anchor = null;
+      // Only previews came in (one at a time, as Quick Look makes them): the tiles
+      // stay, so a press or click on one is not lost.
+      const sig = JSON.stringify([dropping, items.map(i => [i.id, i.name, i.folder, i.state])]);
+      if (sig === built && !dropping) {
+        for (const i of items) {
+          const thumb = box.querySelector<HTMLElement>(`.sh-tile[data-id="${i.id}"] .sh-thumb`);
+          if (thumb && i.thumb && thumb.querySelector('img')?.getAttribute('src') !== i.thumb) thumb.replaceChildren(image(i.thumb));
+        }
+        return;
+      }
+      built = sig;
       if (dropping) {
         const zone = el(doc, 'div', 'sh-drop');
         zone.innerHTML = DROP_ICON;
