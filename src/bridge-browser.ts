@@ -85,7 +85,8 @@ function fakeStats() {
 // second after loading (the n key sends another), `?missed=home.reminder` starts
 // with a missed dot, `?status=18:42` shows a status beside the notch (with
 // `&statusModule=keep-awake`, that module's icon),
-// `?demo=1` adds a test page and `?page=p1` opens a page; the
+// `?demo=1` adds a test page and `?page=p1` opens a page, `?strip=1` puts the
+// Timer strip on Beranda; the
 // widgets' own switches are in bridge-browser-home.ts. Pointer and clicks come
 // from localPointer().
 export function browserBridge(root: HTMLElement): Bridge {
@@ -95,7 +96,10 @@ export function browserBridge(root: HTMLElement): Bridge {
   let state: ModuleState = {
     lang: params.get('lang') === 'en' ? 'en' : 'id',
     modules: catalog(params.get('lang') === 'en' ? 'en' : 'id', (params.get('off') ?? '').split(',')),
-    pages: params.get('demo') === '1' ? [BERANDA, DEMO] : [BERANDA],
+    pages: [
+      params.get('strip') === '1' ? { ...BERANDA, strip: 'timer/strip' } : BERANDA,
+      ...(params.get('demo') === '1' ? [DEMO] : []),
+    ],
     lastPage: params.get('page'),
     notch: DEFAULT_CONFIG,
     notifications: { glow: true, seconds: 3.5 },

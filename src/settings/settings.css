@@ -1205,13 +1205,16 @@ body > .ed-ghost {
   place-items: center;
 }
 
-/* A strip widget's card: four cells wide, strip-high, at the same 0.75. */
+/* A strip widget's card: a whole line of the list, however many cells it has
+   (spanning 4 would add a narrow column to a 3-cell list), strip-high, at the
+   same 0.75. */
 .ed-widget[data-width="4"] {
-  grid-column: span 4;
+  grid-column: 1 / -1;
+  align-items: stretch;
 }
 
 .ed-shot[data-width="4"] {
-  width: 565px;
+  width: auto;
   height: 64px;
   padding-inline: 20px;
   flex-direction: row;
