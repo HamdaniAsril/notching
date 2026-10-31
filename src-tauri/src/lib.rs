@@ -12,6 +12,8 @@ mod status;
 mod system_stats;
 
 #[cfg(target_os = "macos")]
+mod awake_hold;
+#[cfg(target_os = "macos")]
 mod commands;
 #[cfg(target_os = "macos")]
 mod login_item;
