@@ -277,8 +277,8 @@ test('a status sits right of the notch, the missed dot left', () => {
   expect(shown(root, '.missed-tab')).toBe(true);
   const text = root.querySelector('.st-text')!;
   expect(text.textContent).toBe('18:42');
-  expect([text.getAttribute('x'), text.getAttribute('y'), text.getAttribute('text-anchor')]).toEqual([String(95 + 56 - 8), '20', 'end']);
-  expect(root.querySelector('.st-tab')!.getAttribute('d')).toMatch(/^M 157\.00 0 /);
+  expect([text.getAttribute('x'), text.getAttribute('y'), text.getAttribute('text-anchor')]).toEqual([String(95 + 76 - 8), '20', 'end']);
+  expect(root.querySelector('.st-tab')!.getAttribute('d')).toMatch(/^M 177\.00 0 /);
   expect(root.querySelector('.st-pill')).toBeNull();
   v.setStatus(null);
   expect(shown(root, '.st-tab')).toBe(false);
@@ -300,6 +300,33 @@ test('without a notch a status opens one small pill with the dot inside', () => 
   v.setStatus(null);
   expect(shown(root, '.st-pill')).toBe(false);
   expect([dot.getAttribute('cx'), dot.getAttribute('cy')]).toEqual(['0', '9']);
+});
+
+test('a status icon sits just left of its text beside a notch, drawn white', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setStatus('1:42', '/k/icon.svg');
+  const icon = root.querySelector<SVGImageElement>('.st-icon')!;
+  expect(icon.getAttribute('display')).toBe('inline');
+  expect(icon.getAttribute('href')).toBe('/k/icon.svg');
+  // The text ends at 163; 4 characters of 7 px, a 5 px gap, a 12 px icon.
+  expect([icon.getAttribute('x'), icon.getAttribute('y'), icon.getAttribute('width')]).toEqual(['118', '10', '12']);
+  expect(icon.style.filter).toBe('brightness(0) invert(1)');
+  v.setStatus('42m');
+  expect(icon.getAttribute('display')).toBe('none');
+  v.setStatus(null);
+  expect(icon.getAttribute('display')).toBe('none');
+});
+
+test('on a lens the pill makes room for the icon left of the text', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setStatus('18:42', '/k/icon.svg');
+  // 24 + 7 × 5 characters + 17 for the icon, centred.
+  expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -44\.00 0 /);
+  const icon = root.querySelector('.st-icon')!;
+  expect([icon.getAttribute('x'), icon.getAttribute('y')]).toEqual(['-26', '5']);
+  expect(root.querySelector('.st-text')!.getAttribute('x')).toBe('8.5');
 });
 
 test('a status alone on a lens screen leaves no dot', () => {

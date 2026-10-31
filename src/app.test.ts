@@ -341,6 +341,16 @@ test('the status shows only on its screen', async () => {
   expect(statusShown(root)).toBe(false);
 });
 
+test('a module status carries its module icon; the sample has none', async () => {
+  const { root, bridge } = await start();
+  const icon = () => root.querySelector('.st-icon')!;
+  bridge.emitStatus({ moduleId: 'system-stat', text: '1:42', screen: 'test' });
+  expect(icon().getAttribute('display')).toBe('inline');
+  expect(icon().getAttribute('href')).toBe('mod://system-stat/icon.svg');
+  bridge.emitStatus({ moduleId: null, text: '18:42', screen: 'test' });
+  expect(icon().getAttribute('display')).toBe('none');
+});
+
 test('a status already on at start shows', async () => {
   const root = document.createElement('div');
   document.body.append(root);
