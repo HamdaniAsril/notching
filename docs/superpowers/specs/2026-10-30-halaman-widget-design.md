@@ -174,7 +174,7 @@ Saat panel tertutup, modul yang sedang berjalan bisa menampilkan status singkat 
 - **Layar tanpa notch (pilihan B):**
   - Lensa membuka menjadi satu pil kecil berisi titik merah (kalau ada) dan status.
   - Kalau hanya ada titik, titik tetap menggantung di bawah lensa seperti sekarang.
-- **Satu status saja.** Kalau beberapa modul ingin tampil, yang tampil hanya yang paling akhir dinyalakan.
+- **Satu status saja.** Kalau beberapa modul ingin tampil, yang tampil hanya yang paling akhir dinyalakan. **Diganti 1 November 2026:** semua status tampil berjajar, dipisah garis titik-titik (desain Titipan `2026-11-01-titipan-design.md` §8).
 - **Muncul di layar yang ada kursornya,** sama seperti notifikasi.
 - **Bisa dimatikan per modul** di halaman pengaturan modul itu.
 - **Saat notifikasi tampil,** "telinga" notifikasi menggantikan status sementara. Setelah notifikasi selesai, status kembali **(keputusan penulis)**.

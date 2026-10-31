@@ -1,0 +1,95 @@
+<style>
+  .option .content { min-width: 0; }
+  .sb-strip { margin-top: 10px; border-radius: 10px; overflow: hidden; background: linear-gradient(160deg, #9aa6b8 0%, #6b7688 60%, #4a5361 100%); }
+  .sb-strip svg { display: block; width: 100%; height: auto; }
+  .sb-cap { margin-top: 12px; font: 10px/14px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--text-secondary, #888); }
+  .sb-note { margin-top: 8px; color: var(--text-secondary, #888); font-size: 13px; }
+</style>
+
+<h2>Beberapa status sekaligus di samping notch</h2>
+<p class="subtitle">Timer berjalan (18:42), Keep awake menyala (1:42), laci berisi 3 titipan, dan ada satu notifikasi terlewat (titik merah di kiri). Ukuran notch dan teks sama dengan layar asli. Lebar layar dipotong, jadi ikon menu bar abu-abu di kanan hanya contoh dan aslinya lebih jauh.</p>
+
+<div class="options">
+  <div class="option" data-choice="gap" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Berjajar, dipisah jarak</h3>
+      <p>Notch melebar ke kanan. Setiap status adalah ikon dan teks, dengan jarak di antaranya.</p>
+      <div class="sb-cap">MacBook, dengan notch</div>
+      <div class="sb-strip" data-scene="notch-gap"></div>
+      <div class="sb-cap">Monitor, tanpa notch</div>
+      <div class="sb-strip" data-scene="lens-gap"></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="dots" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Berjajar, dipisah garis titik-titik</h3>
+      <p>Sama seperti A, tapi di antara status ada garis titik-titik tegak, seperti pemisah widget di halaman.</p>
+      <div class="sb-cap">MacBook, dengan notch</div>
+      <div class="sb-strip" data-scene="notch-dots"></div>
+      <div class="sb-cap">Monitor, tanpa notch</div>
+      <div class="sb-strip" data-scene="lens-dots"></div>
+    </div>
+  </div>
+</div>
+<p class="sb-note">Urutan: yang lebih dulu menyala paling dekat notch, jadi status yang sudah tampil tidak bergeser saat ada yang baru. Klik pilihan yang paling cocok, lalu ceritakan di chat.</p>
+
+<script>
+(function () {
+  const W = 760, H = 56, NW = 179, NH = 32, q = v => v.toFixed(1);
+  const RED = '#E8262E';
+  function notchShape(x0, x1, h) {
+    const fl = 6, R = Math.min(10, h / 2);
+    return `M ${q(x0 - fl)} 0 Q ${q(x0)} 0 ${q(x0)} ${fl} L ${q(x0)} ${q(h - R)} Q ${q(x0)} ${q(h)} ${q(x0 + R)} ${q(h)} ` +
+      `L ${q(x1 - R)} ${q(h)} Q ${q(x1)} ${q(h)} ${q(x1)} ${q(h - R)} L ${q(x1)} ${fl} Q ${q(x1)} 0 ${q(x1 + fl)} 0 Z`;
+  }
+  const ICON = {
+    timer: 'M12 8v5l3 2 M9 3h6 M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16z',
+    cup: 'M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z M16 11h1.5a2.5 2.5 0 0 1 0 5H16 M9 3v3 M12 3v3',
+    tray: 'M4 13l2-8h12l2 8v6H4z M4 13h5l1 2h4l1-2h5',
+  };
+  const icon = (k, x, y) => `<g transform="translate(${x} ${y}) scale(0.5)" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="${ICON[k]}"/></g>`;
+  const text = (t, x, y) => `<text x="${x}" y="${y}" fill="#fff" font-family="Space Mono, ui-monospace, monospace" font-size="11" letter-spacing="0.6">${t}</text>`;
+  const CH = 7.2, IC = 12, GAP = 4;
+  const items = [['timer', '18:42'], ['cup', '1:42'], ['tray', '3']];
+  // Lays the statuses out from x, rising y baseline; returns [svg, endX].
+  function row(x, cy, sep) {
+    let out = '';
+    items.forEach(([k, t], i) => {
+      if (i > 0) {
+        if (sep === 'dots') {
+          for (let d = cy - 8; d <= cy + 8; d += 4) out += `<circle cx="${x + 6}" cy="${d}" r=".9" fill="rgba(255,255,255,.4)"/>`;
+          x += 12;
+        } else x += 12;
+      }
+      out += icon(k, x, cy - 6) + text(t, x + IC + GAP, cy + 4);
+      x += IC + GAP + CH * t.length;
+    });
+    return [out, x];
+  }
+  const menubar = `<rect x="${-W / 2}" y="0" width="${W}" height="${NH}" fill="rgba(255,255,255,.32)"/>` +
+    [0, 1, 2, 3, 4].map(i => `<rect x="${W / 2 - 30 - i * 26}" y="10" width="14" height="12" rx="3" fill="rgba(255,255,255,.55)"/>`).join('') +
+    `<text x="${-W / 2 + 40}" y="20" fill="rgba(0,0,0,.55)" font-family="-apple-system, sans-serif" font-size="12" font-weight="600">Finder</text>` +
+    `<text x="${-W / 2 + 92}" y="20" fill="rgba(0,0,0,.45)" font-family="-apple-system, sans-serif" font-size="12">File   Edit   View   Go</text>`;
+  const dot = (x, y) => `<circle cx="${x}" cy="${y}" r="3" fill="${RED}"/>`;
+
+  function notchScene(sep) {
+    const [r, end] = row(NW / 2 + 10, NH / 2, sep);
+    return menubar + `<path fill="#000" d="${notchShape(-NW / 2 - 20, end + 10, NH)}"/>` + dot(-NW / 2 - 8, NH / 2) + r;
+  }
+  function lensScene(sep) {
+    const start = -60;
+    const [r, end] = row(start + 22, 14, sep);
+    return menubar + `<rect x="${start}" y="3" width="${end - start + 10}" height="22" rx="11" fill="#000"/>` + dot(start + 11, 14) + r;
+  }
+  const SCENES = {
+    'notch-gap': () => notchScene('gap'), 'notch-dots': () => notchScene('dots'),
+    'lens-gap': () => lensScene('gap'), 'lens-dots': () => lensScene('dots'),
+  };
+  document.querySelectorAll('[data-scene]').forEach(el => {
+    el.innerHTML = `<svg viewBox="${-W / 2} 0 ${W} ${H}" width="${W}" height="${H}">${SCENES[el.dataset.scene]()}</svg>`;
+  });
+})();
+</script>
