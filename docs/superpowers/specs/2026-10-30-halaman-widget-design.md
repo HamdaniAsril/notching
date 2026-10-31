@@ -146,7 +146,6 @@ Acuan: `modules-page.html`, pilihan A.
 - **Isi halaman Modul:**
   - Langkah 1: System stat.
   - Langkah 3: Timer, Keep awake, Freeze keyboard, Kamera cermin.
-  - Tahap 3: Uninstall app.
 - **System stat memakai tampilan kartunya yang sekarang** sampai pemilik ide merancang ulang **(keputusan penulis)**.
 - **Urutan kotak** sama dengan urutan di Pengaturan, bagian Modul.
 
@@ -227,7 +226,6 @@ Simulasi ukuran panel tanggal 29 Oktober (`2026-10-27-notch-mockups/panel-sizes.
    Detail tiap modul mengikuti §6 desain awal.
 4. **Sesudah itu, seperti rencana awal:**
    - tahap 2 (Music dan Now playing, Kalender, Pantau agent, katalog modul),
-   - tahap 3 (Uninstall app),
    - versi Windows,
    - rilis publik.
 

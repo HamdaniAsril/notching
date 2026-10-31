@@ -275,11 +275,10 @@ Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
 |---|---|
 | 1 (versi pertama) | Beranda, Timer, Keep awake, Freeze keyboard, Kamera cermin, System stat. Modul Catatan dibatalkan pemilik ide pada 31 Oktober 2026. |
 | 2 | Music player dan lirik, Kalender, Pantau agent |
-| 3 | Uninstall app |
+| 3 | Uninstall app dibatalkan pemilik ide pada 1 November 2026. Tahap ini kosong. |
 
 - **Tahap 1** berisi modul harian yang relatif mudah dibuat sama baiknya di Mac dan Windows.
 - **Tahap 2** butuh izin sistem atau data dari luar. Contohnya, macOS membatasi app lain membaca lagu yang sedang diputar.
-- **Tahap 3** paling berisiko karena menghapus file.
 
 ### Sistem modul
 
