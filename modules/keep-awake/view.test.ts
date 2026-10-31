@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { expect, test, vi } from 'vitest';
+import iconSvg from './icon.svg?raw';
 import id from './locales/id.json';
 import { type AwakeView, endClock, renderPage } from './view';
 
@@ -102,4 +103,11 @@ test('a reading that changes nothing keeps what is being typed', () => {
 test('the end clock follows the language', () => {
   expect(endClock(at1520, 'id')).toBe('15.20');
   expect(endClock(at1520, 'en')).toBe('15:20');
+});
+
+test('the box shows the same coffee cup as the module icon', () => {
+  const { box } = page(OFF);
+  const paths = (svg: string) => [...svg.matchAll(/ d="([^"]+)"/g)].map(m => m[1]);
+  expect(paths(box.innerHTML)).toEqual(paths(iconSvg));
+  expect(paths(iconSvg).join(' ')).toContain('M17 10h1.5');
 });

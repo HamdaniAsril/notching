@@ -19,8 +19,10 @@ export type Strings = typeof id;
 
 const BOX_MINUTES = 60;
 const MAX_MINUTES = 1440;
-const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">'
-  + '<path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>';
+// The coffee cup of icon.svg, in the text colour.
+const CUP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+  + '<path d="M4 10h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/>'
+  + '<path d="M8 3c0 1.2 1 1.6 1 3M12 3c0 1.2 1 1.6 1 3"/><path d="M3 21.5h15"/></svg>';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
@@ -48,7 +50,7 @@ export function renderPage(root: HTMLElement, s: Strings, lang: Lang, act: Actio
 
   const box = el('button', 'ka-box');
   box.type = 'button';
-  box.innerHTML = SUN;
+  box.innerHTML = CUP;
   const boxText = el('span', 'ka-box-text');
   box.append(boxText);
   box.addEventListener('click', () => (view.on ? act.stop() : act.start(BOX_MINUTES)));

@@ -167,7 +167,8 @@ Saat panel tertutup, modul yang sedang berjalan bisa menampilkan status singkat 
 - **Muncul di layar yang ada kursornya,** sama seperti notifikasi.
 - **Bisa dimatikan per modul** di halaman pengaturan modul itu.
 - **Saat notifikasi tampil,** "telinga" notifikasi menggantikan status sementara. Setelah notifikasi selesai, status kembali **(keputusan penulis)**.
-- **Modul menyatakan di manifest bahwa ia memakai status samping notch.** Statusnya teks pendek, paling banyak sekitar 6 karakter, atau ikon kecil **(keputusan penulis)**.
+- **Modul menyatakan di manifest bahwa ia memakai status samping notch.** Statusnya teks pendek, paling banyak sekitar 6 karakter **(keputusan penulis)**.
+- **Di kiri teks selalu ada ikon modul itu**, supaya terlihat modul mana yang sedang berjalan. Contohnya cangkir kopi untuk Keep awake. Ini diminta pemilik pada 31 Oktober 2026. Contoh status dari Pengaturan tidak punya modul, jadi tampil tanpa ikon.
 - **Status ini menggantikan "status mini" di Beranda lama.**
 
 ## 9. Editor halaman di Pengaturan

@@ -35,7 +35,7 @@ Pemilik sering menjalankan prompt yang lama di Mac. Kadang layar mati di tengah 
 Halaman ini dibuka dari kotak Keep awake di halaman Modul. Di atasnya ada bar "‹ Modul", sama seperti System stat.
 
 **Saat mati**
-- Di kiri ada kotak besar berisi ikon dan tulisan "Mati". Klik kotak ini untuk menyalakan Keep awake selama **1 jam**.
+- Di kiri ada kotak besar berisi ikon cangkir kopi dan tulisan "Mati". Klik kotak ini untuk menyalakan Keep awake selama **1 jam**.
 - Di kanan ada tombol "Nyalakan selama": **1 jam**, **2 jam**, **∞** (tanpa batas), dan kolom angka **menit**. Durasi di kolom mulai berjalan saat Enter ditekan.
 - Di bawahnya ada keterangan kecil: "Klik kotak: 1 jam".
 
@@ -75,6 +75,7 @@ Halaman ini dibuka dari kotak Keep awake di halaman Modul. Di atasnya ada bar "�
   - Tanpa batas: "∞".
   - Menit dibulatkan ke atas, jadi sisa 30 detik tampil "1m".
   - Teks diperbarui per menit, bukan per detik.
+  - Di kiri teks ada ikon modul, yaitu cangkir kopi, supaya terlihat modul mana yang sedang berjalan. Ini diminta pemilik saat cek di Mac pada 31 Oktober. Aturan ini berlaku untuk status semua modul (lihat desain 30 Oktober §8).
 - Saklar "tampilkan status" per modul yang sudah ada di Pengaturan → Modul → Keep awake tetap berlaku. Kalau saklar dimatikan, kotak tetap putih, tapi teks di samping notch tidak tampil.
 - Aturan desain 30 Oktober §8 tetap berlaku. Hanya satu status yang tampil, yaitu yang paling akhir dinyalakan. Status muncul di layar yang ada kursornya, dan disembunyikan sementara saat notifikasi tampil.
 - **Celah yang ikut ditutup:** catatan verifikasi rencana 5, temuan kecil ke-6. Sekarang status belum dihitung ulang saat modul dimatikan atau dicopot, dan saat overlay layar baru dibuat. Keep awake adalah modul pertama yang memakai status, jadi celah ini diperbaiki di sini.
@@ -94,10 +95,13 @@ Halaman ini dibuka dari kotak Keep awake di halaman Modul. Di atasnya ada bar "�
 - Pengguna yang sudah memakai Notching langsung mendapat modul ini dalam keadaan menyala saat app diperbarui. Ini cara yang sama dengan modul bawaan lain.
 - Keep awake tidak butuh izin sistem, jadi tidak muncul di halaman Izin.
 
-## 8. Diserahkan ke pembuat
+## 8. Ikon
+
+Ikon Keep awake adalah **cangkir kopi** bergaris. Ikon ini dipakai di kotak halaman Modul, di kotak besar halaman Keep awake, dan di samping notch. Pemilik memintanya saat cek di Mac pada 31 Oktober, menggantikan ikon matahari di mockup.
+
+## 9. Diserahkan ke pembuat
 
 - Nama kemampuan di manifest dan bentuk pesan antara halaman modul dan app inti.
-- Ikon garis Keep awake. Mockup memakai ikon matahari.
 - Ukuran pasti panel dan tombol.
 - Cara memanggil power assertion dari Rust.
 - Cara memeriksa di Mac bahwa penahan benar-benar terpasang dan dilepas, misalnya `pmset -g assertions`.
