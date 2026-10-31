@@ -1,6 +1,7 @@
 import type { Bridge, LiveStatus, Notice } from './bridge';
 import { fakeAwake } from './bridge-browser-awake';
 import { fakeHome } from './bridge-browser-home';
+import { fakeTimer } from './bridge-browser-timer';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
 import type { ModuleInfo, ModuleState, Page, WidgetKind } from './modules/types';
@@ -104,6 +105,7 @@ export function browserBridge(root: HTMLElement): Bridge {
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);
   const awakeCall = fakeAwake();
+  const timerCall = fakeTimer();
   const stateSubs = new Set<(s: ModuleState) => void>();
   const noticeSubs = new Set<(n: Notice) => void>();
   const sample = () => noticeSubs.forEach(cb => cb({
@@ -141,6 +143,7 @@ export function browserBridge(root: HTMLElement): Bridge {
       if (capability === 'system.stats' && method === 'read') return fakeStats();
       if (capability === 'home.data' || capability === 'reminders') return homeCall(capability, method, args);
       if (capability === 'awake') return awakeCall(method, args);
+      if (capability === 'timer') return timerCall(method, args);
       throw new Error(`unknown method ${method}`);
     },
     // Vite serves the module sources directly.
