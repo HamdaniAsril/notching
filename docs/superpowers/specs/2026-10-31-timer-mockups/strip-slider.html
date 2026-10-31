@@ -1,0 +1,92 @@
+<style>
+  .option .content { min-width: 0; }
+  .tm-pair { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .tm-cap { font: 11px "Space Mono", ui-monospace, monospace; color: var(--text-secondary, #888); letter-spacing: .06em; text-transform: uppercase; }
+  .tm-panel { width: 520px; max-width: 100%; overflow: hidden; padding: 12px 18px 14px; border-radius: 0 0 26px 26px; background: #000; color: #fff;
+              font: 13px "Space Grotesk", -apple-system, sans-serif; box-sizing: border-box; }
+  .tm-lab { font: 10px/14px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.42); white-space: nowrap; }
+  .tm-hd { height: 3px; margin: 0 0 10px; background: radial-gradient(circle, rgba(255,255,255,.3) .9px, transparent 1.3px) left center / 5px 3px repeat-x; }
+  .tm-ghostrow { height: 22px; margin-bottom: 12px; border-radius: 8px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 24%, transparent 24% 25.3%); }
+  .tm-strip { display: flex; align-items: center; gap: 10px; height: 30px; }
+  .tm-chip { padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,.08); font: 11px "Space Mono", monospace; letter-spacing: .04em; color: rgba(255,255,255,.85); white-space: nowrap; flex: none; }
+  .tm-chip.tm-ghost { background: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); color: rgba(255,255,255,.6); }
+  .tm-red { width: 6px; height: 6px; border-radius: 50%; background: #e8262e; flex: none; }
+  .tm-num { font: 13px "Space Mono", monospace; color: #fff; min-width: 40px; flex: none; }
+  .tm-num.tm-dim { color: rgba(255,255,255,.42); }
+  .tm-trk { position: relative; flex: 1; height: 18px; min-width: 60px; }
+  .tm-trk::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 2px; border-radius: 1px; background: rgba(255,255,255,.16); }
+  .tm-fill { position: absolute; left: 0; top: 8px; height: 2px; border-radius: 1px; background: #fff; }
+  .tm-knob { position: absolute; top: 2px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #fff; }
+  .tm-tick { position: absolute; top: 5px; width: 1px; height: 8px; background: rgba(255,255,255,.3); }
+  .tm-tl { position: absolute; top: 20px; transform: translateX(-50%); font: 9px "Space Mono", monospace; color: rgba(255,255,255,.5); white-space: nowrap; }
+  .tm-tall { height: 40px; align-items: flex-start; padding-top: 2px; }
+  .tm-dotbar { display: flex; gap: 3px; flex: 1; align-items: center; min-width: 0; overflow: hidden; }
+  .tm-dotbar i { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,.16); flex: none; }
+  .tm-dotbar i.tm-on { background: #fff; }
+  .tm-note { margin-top: 8px; color: var(--text-secondary, #888); font-size: 13px; }
+</style>
+
+<h2>Seperti apa strip Timer dengan slider?</h2>
+<p class="subtitle">Semua pilihan punya tombol waktu dan slider. Klik tombol atau lepas slider, timer langsung jalan. Kotak abu di atas garis titik-titik mewakili widget lain di halaman itu. Contoh di bawah: dipilih 10 menit, lalu sisa 6:42.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Slider ikut turun seiring waktu</h3>
+      <p>Saat jalan, slider yang sama menunjukkan sisa waktu dan pelan-pelan bergerak ke kiri. Geser lagi untuk mengganti waktu. Tombol waktu berganti jadi Jeda dan Stop.</p>
+      <div class="tm-pair"><span class="tm-cap">Belum jalan</span><div class="tm-panel"><div class="tm-ghostrow"></div><div class="tm-hd"></div>
+        <div class="tm-strip"><span class="tm-lab">Timer</span><span class="tm-chip">3m</span><span class="tm-chip">5m</span><span class="tm-chip">10m</span><span class="tm-chip">25m</span>
+          <div class="tm-trk"><div class="tm-fill" style="width:17%"></div><div class="tm-knob" style="left:17%"></div></div><span class="tm-num tm-dim">10:00</span></div></div></div>
+      <div class="tm-pair"><span class="tm-cap">Jalan, sisa 6:42</span><div class="tm-panel"><div class="tm-ghostrow"></div><div class="tm-hd"></div>
+        <div class="tm-strip"><span class="tm-red"></span><span class="tm-lab">Timer</span>
+          <div class="tm-trk"><div class="tm-fill" style="width:11%"></div><div class="tm-knob" style="left:11%"></div></div><span class="tm-num">6:42</span><span class="tm-chip">Jeda</span><span class="tm-chip tm-ghost">Stop</span></div></div></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Saat jalan, strip berganti jadi hitungan</h3>
+      <p>Slider dan tombol waktu hilang. Yang tampil hitungan, jam selesai, baris titik sebagai sisa waktu, lalu +1 m, Jeda, dan Stop. Untuk mengganti waktu, tekan Stop dulu.</p>
+      <div class="tm-pair"><span class="tm-cap">Belum jalan</span><div class="tm-panel"><div class="tm-ghostrow"></div><div class="tm-hd"></div>
+        <div class="tm-strip"><span class="tm-lab">Timer</span><span class="tm-chip">3m</span><span class="tm-chip">5m</span><span class="tm-chip">10m</span><span class="tm-chip">25m</span>
+          <div class="tm-trk"><div class="tm-fill" style="width:17%"></div><div class="tm-knob" style="left:17%"></div></div><span class="tm-num tm-dim">10:00</span></div></div></div>
+      <div class="tm-pair"><span class="tm-cap">Jalan, sisa 6:42</span><div class="tm-panel"><div class="tm-ghostrow"></div><div class="tm-hd"></div>
+        <div class="tm-strip"><span class="tm-red"></span><span class="tm-num">6:42</span><span class="tm-lab">Selesai 14.37</span>
+          <div class="tm-dotbar" data-bar="16,11"></div><span class="tm-chip">+1m</span><span class="tm-chip">Jeda</span><span class="tm-chip tm-ghost">Stop</span></div></div></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Tombol waktu jadi tanda di slider</h3>
+      <p>Satu slider panjang. Pilihan waktu jadi tanda kecil di bawahnya, dan klik tanda langsung mulai. Strip sedikit lebih tinggi, tapi paling ringkas. Saat jalan, slider menunjukkan sisa waktu seperti A.</p>
+      <div class="tm-pair"><span class="tm-cap">Belum jalan</span><div class="tm-panel"><div class="tm-ghostrow"></div><div class="tm-hd"></div>
+        <div class="tm-strip tm-tall"><span class="tm-lab" style="margin-top:2px">Timer</span>
+          <div class="tm-trk"><div class="tm-fill" style="width:17%"></div>
+            <div class="tm-tick" style="left:5%"></div><div class="tm-tl" style="left:5%">3</div>
+            <div class="tm-tick" style="left:8.5%"></div><div class="tm-tl" style="left:9.5%">5</div>
+            <div class="tm-tl" style="left:17%">10</div>
+            <div class="tm-tick" style="left:25%"></div><div class="tm-tl" style="left:25%">15</div>
+            <div class="tm-tick" style="left:42%"></div><div class="tm-tl" style="left:42%">25</div>
+            <div class="tm-tick" style="left:75%"></div><div class="tm-tl" style="left:75%">45</div>
+            <div class="tm-tick" style="left:100%"></div><div class="tm-tl" style="left:97%">60</div>
+            <div class="tm-knob" style="left:17%"></div></div><span class="tm-num tm-dim">10:00</span></div></div></div>
+      <div class="tm-pair"><span class="tm-cap">Jalan, sisa 6:42</span><div class="tm-panel"><div class="tm-ghostrow"></div><div class="tm-hd"></div>
+        <div class="tm-strip"><span class="tm-red"></span><span class="tm-lab">Timer</span>
+          <div class="tm-trk"><div class="tm-fill" style="width:11%"></div><div class="tm-knob" style="left:11%"></div></div><span class="tm-num">6:42</span><span class="tm-chip">Jeda</span><span class="tm-chip tm-ghost">Stop</span></div></div></div>
+    </div>
+  </div>
+</div>
+<p class="tm-note">Slider di contoh ini dari 1 sampai 60 menit. Klik pilihan yang cocok, lalu ceritakan di chat, termasuk jangkauan slider dan tombol waktu yang kamu mau.</p>
+
+<script>
+(function () {
+  document.querySelectorAll('[data-bar]').forEach(el => {
+    const [n, lit] = el.dataset.bar.split(',').map(Number);
+    el.innerHTML = Array.from({ length: n }, (_, i) => `<i class="${i < lit ? 'tm-on' : ''}"></i>`).join('');
+  });
+})();
+</script>

@@ -1,0 +1,130 @@
+<style>
+  .option .content { min-width: 0; }
+  .tm-pair { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .tm-cap { font: 11px "Space Mono", ui-monospace, monospace; color: var(--text-secondary, #888); letter-spacing: .06em; text-transform: uppercase; }
+  .tm-panel { width: 520px; max-width: 100%; overflow: hidden; padding: 12px 18px 14px; border-radius: 0 0 26px 26px; background: #000; color: #fff;
+              font: 13px "Space Grotesk", -apple-system, sans-serif; box-sizing: border-box; user-select: none; }
+  .tm-lab { font: 10px/14px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.42); white-space: nowrap; }
+  .tm-hd { height: 3px; margin: 0 0 10px; background: radial-gradient(circle, rgba(255,255,255,.3) .9px, transparent 1.3px) left center / 5px 3px repeat-x; }
+  .tm-ghostrow { height: 22px; margin-bottom: 12px; border-radius: 8px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 24%, transparent 24% 25.3%); }
+  .tm-strip { display: flex; align-items: center; gap: 10px; height: 34px; }
+  .tm-chip { padding: 5px 9px; border-radius: 999px; background: rgba(255,255,255,.08); font: 11px "Space Mono", monospace; letter-spacing: .04em; color: rgba(255,255,255,.85); white-space: nowrap; flex: none; cursor: pointer; border: 0; }
+  .tm-chip:hover { background: rgba(255,255,255,.16); }
+  .tm-chip.tm-ghost { background: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); color: rgba(255,255,255,.6); }
+  .tm-red { width: 6px; height: 6px; border-radius: 50%; background: #e8262e; flex: none; }
+  .tm-num { font: 13px "Space Mono", monospace; color: rgba(255,255,255,.42); min-width: 42px; text-align: right; flex: none; }
+  .tm-num.tm-live { color: #fff; }
+  .tm-rule { position: relative; flex: 1; height: 34px; min-width: 80px; overflow: hidden; cursor: ew-resize; touch-action: none;
+             -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
+  .tm-rule canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .tm-mark { position: absolute; left: 50%; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: #fff; border-radius: 1px; }
+  .tm-fillr { position: relative; flex: 1; height: 34px; min-width: 80px; cursor: ew-resize; touch-action: none; }
+  .tm-fillr canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .tm-note { margin-top: 8px; color: var(--text-secondary, #888); font-size: 13px; }
+</style>
+
+<h2>Slider garis-garis oranye</h2>
+<p class="subtitle">Dua cara membaca "garisnya ikut geser". Keduanya bisa dicoba: seret garisnya dengan mouse atau trackpad, lalu lepas, dan timer langsung jalan. Supaya cepat terlihat, hitungan di contoh ini berjalan 20× lebih cepat. Tombol waktu juga bisa diklik.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Penggaris yang bergeser</h3>
+      <p>Garis putih di tengah tetap diam. Garis-garis oranye yang bergeser di bawahnya, seperti memutar kenop. Satu garis = 1 menit, garis panjang tiap 5 menit. Saat jalan, penggaris pelan-pelan bergeser kembali ke 0.</p>
+      <div class="tm-pair"><span class="tm-cap">Coba seret</span><div class="tm-panel"><div class="tm-ghostrow"></div><div class="tm-hd"></div>
+        <div class="tm-strip" data-proto="rule">
+          <span class="tm-red" hidden></span><span class="tm-lab">Timer</span>
+          <span class="tm-chips"><button class="tm-chip" data-m="3">3m</button> <button class="tm-chip" data-m="5">5m</button> <button class="tm-chip" data-m="10">10m</button> <button class="tm-chip" data-m="25">25m</button></span>
+          <div class="tm-rule"><canvas></canvas><div class="tm-mark"></div></div>
+          <span class="tm-num">10:00</span>
+          <button class="tm-chip tm-ghost tm-stop" hidden>Stop</button>
+        </div></div></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Garis yang terisi</h3>
+      <p>Barisan garis tetap di tempat. Saat diseret, garis di sebelah kiri jari menyala oranye dan sisanya abu. Saat jalan, garis oranye berkurang satu per satu dari kanan.</p>
+      <div class="tm-pair"><span class="tm-cap">Coba seret</span><div class="tm-panel"><div class="tm-ghostrow"></div><div class="tm-hd"></div>
+        <div class="tm-strip" data-proto="fill">
+          <span class="tm-red" hidden></span><span class="tm-lab">Timer</span>
+          <span class="tm-chips"><button class="tm-chip" data-m="3">3m</button> <button class="tm-chip" data-m="5">5m</button> <button class="tm-chip" data-m="10">10m</button> <button class="tm-chip" data-m="25">25m</button></span>
+          <div class="tm-fillr"><canvas></canvas></div>
+          <span class="tm-num">10:00</span>
+          <button class="tm-chip tm-ghost tm-stop" hidden>Stop</button>
+        </div></div></div>
+    </div>
+  </div>
+</div>
+<p class="tm-note">Slider 1–60 menit. Klik pilihan yang cocok, lalu ceritakan di chat. Kalau dua-duanya belum pas, gambarkan lagi yang kamu bayangkan.</p>
+
+<script>
+(function () {
+  const OR = '#ff6a1a', DIM = 'rgba(255,255,255,.18)', MAX = 60, SPEED = 20;
+  const fmt = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+  document.querySelectorAll('[data-proto]').forEach(strip => {
+    const kind = strip.dataset.proto;
+    const box = strip.querySelector(kind === 'rule' ? '.tm-rule' : '.tm-fillr');
+    const cv = box.querySelector('canvas'), ctx = cv.getContext('2d');
+    const num = strip.querySelector('.tm-num'), red = strip.querySelector('.tm-red');
+    const chips = strip.querySelector('.tm-chips'), stop = strip.querySelector('.tm-stop');
+    let secs = 600, running = false, last = 0, drag = null;
+    const PX = 8; // ruler: px per minute
+
+    function draw() {
+      const r = box.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+      cv.width = r.width * dpr; cv.height = r.height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, r.width, r.height);
+      const h = r.height, mins = secs / 60;
+      if (kind === 'rule') {
+        const cx = r.width / 2;
+        for (let m = 0; m <= MAX; m++) {
+          const x = cx + (m - mins) * PX; if (x < -2 || x > r.width + 2) continue;
+          const big = m % 5 === 0, len = big ? 18 : 9;
+          ctx.fillStyle = m <= mins ? OR : 'rgba(255,106,26,.35)';
+          ctx.fillRect(x - .75, (h - len) / 2 - (big ? 3 : 0), 1.5, len);
+          if (big && m % 10 === 0) { ctx.font = '8px "Space Mono", monospace'; ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.textAlign = 'center'; ctx.fillText(m, x, h - 1); }
+        }
+      } else {
+        const n = MAX, gap = r.width / n;
+        for (let i = 0; i < n; i++) {
+          const x = i * gap + gap / 2, on = i < mins - 1e-6, big = (i + 1) % 5 === 0, len = big ? 20 : 12;
+          ctx.fillStyle = on ? OR : DIM; ctx.fillRect(x - .75, (h - len) / 2, 1.5, len);
+        }
+      }
+      num.textContent = fmt(secs);
+      num.classList.toggle('tm-live', running);
+      red.hidden = !running; stop.hidden = !running; chips.hidden = running;
+    }
+    function start() { if (secs > 0) { running = true; last = performance.now(); requestAnimationFrame(tick); } draw(); }
+    function tick(t) {
+      if (!running || drag) return;
+      secs -= (t - last) / 1000 * SPEED; last = t;
+      if (secs <= 0) { secs = 0; running = false; draw(); num.textContent = 'Selesai'; return; }
+      draw(); requestAnimationFrame(tick);
+    }
+    const snap = s => Math.min(MAX * 60, Math.max(60, Math.round(s / 60) * 60));
+    box.addEventListener('pointerdown', e => {
+      e.stopPropagation(); box.setPointerCapture(e.pointerId);
+      drag = { x: e.clientX, s: secs };
+      if (kind === 'fill') { const r = box.getBoundingClientRect(); secs = snap((e.clientX - r.left) / r.width * MAX * 60); }
+      draw();
+    });
+    box.addEventListener('pointermove', e => {
+      if (!drag) return;
+      if (kind === 'rule') secs = snap(drag.s - (e.clientX - drag.x) / PX * 60);
+      else { const r = box.getBoundingClientRect(); secs = snap((e.clientX - r.left) / r.width * MAX * 60); }
+      draw();
+    });
+    box.addEventListener('pointerup', e => { if (!drag) return; drag = null; start(); });
+    box.addEventListener('click', e => e.stopPropagation());
+    chips.addEventListener('click', e => { e.stopPropagation(); const m = e.target.dataset.m; if (m) { secs = m * 60; start(); } });
+    stop.addEventListener('click', e => { e.stopPropagation(); running = false; secs = 600; draw(); });
+    draw(); addEventListener('resize', draw);
+  });
+})();
+</script>
