@@ -154,6 +154,7 @@ impl Shelf {
         self.items.iter().find(|i| i.id == id)
     }
 
+    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.items.len()
     }

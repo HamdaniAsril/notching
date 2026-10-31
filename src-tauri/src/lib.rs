@@ -44,6 +44,8 @@ mod sensor;
 #[cfg(target_os = "macos")]
 mod settings_window;
 #[cfg(target_os = "macos")]
+mod shelf_drag;
+#[cfg(target_os = "macos")]
 mod shelf_drop;
 #[cfg(target_os = "macos")]
 mod shelf_service;
@@ -104,6 +106,7 @@ pub fn run() {
             shelf_service::shelf_remove,
             shelf_service::shelf_clear,
             shelf_drop::shelf_drop_ready,
+            shelf_drag::shelf_start_drag,
         ])
         // A file drag can reach an overlay's webview before its sensor (the panel
         // already catches the mouse): that opens the drop zone too (Titipan).
