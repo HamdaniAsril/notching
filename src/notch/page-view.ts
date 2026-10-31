@@ -3,6 +3,7 @@ import type { ModuleInfo, ModuleState } from '../modules/types';
 import type { FrameHost, FrameSpec } from '../pages/frames';
 import { slots, widgetCatalog } from '../pages/layout';
 import { CUSTOM_PAGE, type PageView, STRIP_HEIGHT } from '../pages/route';
+import { mountShelfView, type ShelfView, type ShelfViewDeps } from '../shelf/view';
 
 export interface PageViewDeps {
   frames: FrameHost;
@@ -10,6 +11,7 @@ export interface PageViewDeps {
   onOpenModule: (id: string) => void;
   onAction: (m: ModuleInfo) => void; // a tile that runs an action instead of opening a page
   onBack: () => void;
+  shelf: Omit<ShelfViewDeps, 'strings'>; // Titipan's drag out, remove and clear
 }
 
 export interface PageViewHost {
@@ -43,6 +45,24 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
   let row: HTMLElement | null = null;
   let page: HTMLElement | null = null; // the row and the strip under it, when there is one
   let slotKeys: string[] = [];
+  // Titipan's shelf: kept between renders so its selection lasts.
+  let shelf: { view: ShelfView; box: HTMLElement; lang: string } | null = null;
+
+  function dropShelf(): void {
+    shelf?.view.destroy();
+    shelf = null;
+  }
+
+  function showShelf(v: Extract<PageView, { kind: 'shelf' }>, s: ModuleState, strings: HostStrings): void {
+    deps.frames.keep([]);
+    if (!shelf || shelf.lang !== s.lang || !content.contains(shelf.box)) {
+      dropShelf();
+      const box = el(doc, 'div', 'sh');
+      shelf = { box, lang: s.lang, view: mountShelfView(box, { ...deps.shelf, strings: strings.shelf }) };
+      content.replaceChildren(box);
+    }
+    shelf.view.render(v.shelf, v.dropping);
+  }
 
   function reset(): void {
     full = null;
@@ -122,6 +142,13 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
 
   return {
     show(v, s, strings) {
+      if (v.kind === 'shelf') {
+        shown = '';
+        reset();
+        showShelf(v, s, strings);
+        return;
+      }
+      dropShelf();
       // The same page with the same widgets keeps its frames (and a full view).
       const sig = JSON.stringify([v, s.lang, v.kind === 'custom' ? slots(v.page, widgetCatalog(s)) : null]);
       if (sig === shown) return;
@@ -155,6 +182,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     clear() {
       shown = '';
       reset();
+      dropShelf();
       deps.frames.clear();
       content.replaceChildren();
     },

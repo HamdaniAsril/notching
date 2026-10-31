@@ -10,6 +10,7 @@ export interface HostStrings {
   noModules: string;
   loadFailed: string;
   settings: string;
+  shelf: { drop: string; title: string; hint: string; empty: string; missing: string; receiving: string; clear: string; remove: string };
 }
 
 // Text of the settings window; the Indonesian file is the reference shape.

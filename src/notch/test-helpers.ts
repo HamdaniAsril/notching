@@ -1,5 +1,5 @@
 import { beforeEach, vi } from 'vitest';
-import type { Bridge, LiveStatus, Notice, PointerUpdate } from '../bridge';
+import type { Bridge, LiveStatus, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState } from '../bridge';
 import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
@@ -143,6 +143,9 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
   const moduleSubs = new Set<(s: ModuleState) => void>();
   const noticeSubs = new Set<(n: Notice) => void>();
   const statusSubs = new Set<(s: LiveStatus | null) => void>();
+  const shelfSubs = new Set<(s: ShelfState) => void>();
+  const dropSubs = new Set<(e: ShelfDrop) => void>();
+  const dragSubs = new Set<(e: ShelfDrag) => void>();
   let state = initial;
   const bridge = {
     screenInfo: vi.fn(async () => ({ label: 'test', hasNotch: false, notchWidth: 0, notchHeight: 0 })),
@@ -162,6 +165,17 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     status: vi.fn(async (): Promise<LiveStatus | null> => null),
     onStatus: vi.fn((cb: (s: LiveStatus | null) => void) => { statusSubs.add(cb); return () => { statusSubs.delete(cb); }; }),
     clearMissed: vi.fn(async () => {}),
+    shelf: vi.fn(async (_refresh: boolean): Promise<ShelfState> => ({ items: [] })),
+    onShelf: vi.fn((cb: (s: ShelfState) => void) => { shelfSubs.add(cb); return () => { shelfSubs.delete(cb); }; }),
+    shelfRemove: vi.fn(async (_ids: number[]) => {}),
+    shelfClear: vi.fn(async () => {}),
+    shelfStartDrag: vi.fn(async (_ids: number[]) => {}),
+    shelfDropReady: vi.fn(async () => {}),
+    onShelfDrop: vi.fn((cb: (e: ShelfDrop) => void) => { dropSubs.add(cb); return () => { dropSubs.delete(cb); }; }),
+    onShelfDrag: vi.fn((cb: (e: ShelfDrag) => void) => { dragSubs.add(cb); return () => { dragSubs.delete(cb); }; }),
+    emitShelf: (s: ShelfState) => shelfSubs.forEach(cb => cb(s)),
+    emitShelfDrop: (e: ShelfDrop) => dropSubs.forEach(cb => cb(e)),
+    emitShelfDrag: (e: ShelfDrag) => dragSubs.forEach(cb => cb(e)),
     emitNotice: (n: Notice) => noticeSubs.forEach(cb => cb(n)),
     emitStatus: (s: LiveStatus | null) => statusSubs.forEach(cb => cb(s)),
     emitPointer: (p: PointerUpdate) => pointer.forEach(cb => cb(p)),

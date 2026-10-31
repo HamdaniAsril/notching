@@ -37,6 +37,24 @@ export interface LiveStatus {
   items: { moduleId: string | null; text: string }[];
 }
 
+// Titipan's shelf (ShelfDto in src-tauri/src/shelf.rs): the same on every screen.
+export interface ShelfItem {
+  id: number;
+  name: string;
+  folder: boolean;
+  state: 'ready' | 'receiving' | 'missing';
+  thumb: string | null; // a data URL
+}
+
+export interface ShelfState {
+  items: ShelfItem[];
+}
+
+// A file drag reached this screen's notch, then left or was dropped (shelf_drop.rs).
+export type ShelfDrop = { phase: 'start' } | { phase: 'end'; dropped: boolean };
+// A drag out of the shelf left this panel, or ended (shelf_drag.rs).
+export type ShelfDrag = { phase: 'left' | 'end' };
+
 // What the notch needs from the native side.
 export interface Bridge {
   screenInfo(): Promise<ScreenInfo>;
@@ -56,6 +74,14 @@ export interface Bridge {
   status(): Promise<LiveStatus | null>;
   onStatus(cb: (s: LiveStatus | null) => void): () => void;
   clearMissed(): Promise<void>;
+  shelf(refresh: boolean): Promise<ShelfState>; // refresh: check every file is still there
+  onShelf(cb: (s: ShelfState) => void): () => void;
+  shelfRemove(ids: number[]): Promise<void>;
+  shelfClear(): Promise<void>;
+  shelfStartDrag(ids: number[]): Promise<void>;
+  shelfDropReady(): Promise<void>; // the drop zone shows: catch the drop over the panel
+  onShelfDrop(cb: (e: ShelfDrop) => void): () => void;
+  onShelfDrag(cb: (e: ShelfDrag) => void): () => void;
 }
 
 // Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
@@ -97,5 +123,15 @@ export function tauriBridge(): Bridge {
     status: () => invoke<LiveStatus | null>('get_status'),
     // Broadcast to every window; each keeps it only for its own screen.
     onStatus: cb => syncUnlisten(listen<LiveStatus | null>('notching://status', e => cb(e.payload))),
+    shelf: refresh => invoke<ShelfState>('shelf_state', { refresh }),
+    // Broadcast to every window: one shelf for every screen.
+    onShelf: cb => syncUnlisten(listen<ShelfState>('notching://shelf', e => cb(e.payload))),
+    shelfRemove: ids => invoke('shelf_remove', { ids }),
+    shelfClear: () => invoke('shelf_clear'),
+    shelfStartDrag: ids => invoke('shelf_start_drag', { ids }),
+    shelfDropReady: () => invoke('shelf_drop_ready'),
+    // Sent to this overlay only.
+    onShelfDrop: cb => syncUnlisten(win.listen<ShelfDrop>('notching://shelf-drop', e => cb(e.payload))),
+    onShelfDrag: cb => syncUnlisten(win.listen<ShelfDrag>('notching://shelf-drag', e => cb(e.payload))),
   };
 }

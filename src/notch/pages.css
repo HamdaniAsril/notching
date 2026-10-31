@@ -167,3 +167,153 @@
 .notch-content.lamp .pg-module {
   padding: 0 112px;
 }
+
+/* Titipan's shelf (design 1 Nov §4, titipan-tempat.html A). */
+.sh {
+  height: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sh-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 22px;
+}
+
+.sh-hint {
+  margin-left: auto;
+}
+
+.sh-clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+
+.sh-clear:hover {
+  color: #fff;
+}
+
+.sh-empty {
+  display: flex;
+  align-items: center;
+  height: 56px;
+}
+
+.sh-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-rows: 84px;
+  gap: 8px;
+  max-height: calc(3 * 84px + 2 * 8px);
+  overflow-y: auto;
+}
+
+.sh-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 4px;
+  border-radius: 12px;
+  cursor: default;
+}
+
+.sh-tile.sel {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.sh-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.sh-thumb img {
+  max-width: 44px;
+  max-height: 44px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.sh-thumb svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sh-name,
+.sh-note {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.sh-note {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.sh-tile.missing .sh-thumb,
+.sh-tile.missing .sh-name,
+.sh-tile.receiving .sh-thumb,
+.sh-tile.receiving .sh-name {
+  opacity: 0.4;
+}
+
+.sh-x {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #000;
+  font-size: 11px;
+  line-height: 16px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.sh-tile:hover .sh-x {
+  opacity: 1;
+}
+
+.sh-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1.5px dashed #fff;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.sh-drop svg {
+  width: 22px;
+  height: 22px;
+}
+
+.sh-drop .lab {
+  color: #fff;
+}

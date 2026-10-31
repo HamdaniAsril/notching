@@ -16,11 +16,34 @@ function mount() {
   document.body.append(content);
   const bridge = fakeBridge();
   const frames = mountFrameHost({ bridge, setTimer: timers.setTimer, onKey: vi.fn(), onExpand: vi.fn(), onCollapse: vi.fn(), onLamp: vi.fn() }, document);
-  const deps = { frames, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onAction: vi.fn(), onBack: vi.fn() };
+  const deps = {
+    frames, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onAction: vi.fn(), onBack: vi.fn(),
+    shelf: { startDrag: vi.fn(), remove: vi.fn(), clear: vi.fn() },
+  };
   const pv = mountPageView(content, deps);
   const show = (s: ModuleState, key: string | null = null) => pv.show(key ? resolvePage(s, key)! : pickPage(s, null, false), s, STR);
   return { content, pv, deps, show };
 }
+
+const shelfItem = (id: number) => ({ id, name: `f${id}.txt`, folder: false, state: 'ready' as const, thumb: null });
+
+test('the shelf page keeps its view, and its selection, between renders', () => {
+  const { content, pv, deps } = mount();
+  const view = (n: number, dropping = false) => ({ kind: 'shelf' as const, key: 'shelf' as const, shelf: { items: Array.from({ length: n }, (_, i) => shelfItem(i + 1)) }, dropping });
+  pv.show(view(2), TEST_STATE, STR);
+  const box = content.querySelector('.sh')!;
+  content.querySelector<HTMLElement>('.sh-tile[data-id="2"]')!.click();
+  pv.show(view(3), TEST_STATE, STR);
+  expect(content.querySelector('.sh')).toBe(box);
+  expect(content.querySelectorAll('.sh-tile')).toHaveLength(3);
+  expect(content.querySelector('.sh-tile.sel')!.getAttribute('data-id')).toBe('2');
+  content.querySelector<HTMLElement>('.sh-x')!.click();
+  expect(deps.shelf.remove).toHaveBeenCalledWith([1]);
+  pv.show(view(3, true), TEST_STATE, STR);
+  expect(content.querySelector('.sh-drop')).not.toBeNull();
+  pv.show(pickPage(TEST_STATE, null, false), TEST_STATE, STR);
+  expect(content.querySelector('.sh')).toBeNull();
+});
 
 const slots = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>('.pg-slot')];
 

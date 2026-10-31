@@ -5,6 +5,16 @@
   "noModules": "No module is on.",
   "loadFailed": "Didn't load.",
   "settings": "Settings",
+  "shelf": {
+    "drop": "Drop to keep here",
+    "title": "Shelf · {n}",
+    "hint": "Drag out to copy",
+    "empty": "Drag files to the notch to keep them here",
+    "missing": "Not found",
+    "receiving": "Receiving…",
+    "clear": "Clear",
+    "remove": "Remove"
+  },
   "clean": {
     "title": "Cleaning the keyboard",
     "hint": "Press Esc 5× to leave"

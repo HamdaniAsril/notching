@@ -85,6 +85,11 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       if (m.action) bridge.moduleCall(m.id, m.action.capability, m.action.method).catch(() => {});
     },
     onBack: () => go('modules'),
+    shelf: {
+      startDrag: ids => void bridge.shelfStartDrag(ids).catch(() => {}),
+      remove: ids => void bridge.shelfRemove(ids),
+      clear: () => void bridge.shelfClear(),
+    },
   });
 
   const isOpen = () => controller.phase === 'open';

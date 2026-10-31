@@ -1,3 +1,4 @@
+import type { ShelfState } from '../bridge';
 import type { HostStrings } from '../i18n';
 import { hasPage, isModule, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import type { CardSize } from '../notch/controller';
@@ -14,6 +15,12 @@ export const MODULES_GRID = { columns: 6, gap: 6, tile: 64, width: 520, empty: 5
 export const STRIP_GAP = 20;
 export const STRIP_HEIGHT = 40;
 
+// Titipan's shelf (design 1 Nov §4, titipan-tempat.html A): a head line, then 6
+// tiles a row; past 3 rows the grid scrolls. While a drag is over the notch it is
+// the drop zone, as tall as a custom page.
+export const SHELF = { width: 520, head: 22, tile: 84, gap: 8, columns: 6, maxRows: 3, drop: 104, empty: 56 } as const;
+export const SHELF_KEY = 'shelf';
+
 const MODULE_PREFIX = 'module:';
 
 // What the panel shows, keyed like lastPage: a page id, 'modules' or 'module:<id>'.
@@ -21,7 +28,8 @@ const MODULE_PREFIX = 'module:';
 export type PageView =
   | { kind: 'custom'; key: string; page: Page; strip: CatalogWidget | null }
   | { kind: 'modules'; key: 'modules'; modules: ModuleInfo[] }
-  | { kind: 'module'; key: string; module: ModuleInfo };
+  | { kind: 'module'; key: string; module: ModuleInfo }
+  | { kind: 'shelf'; key: typeof SHELF_KEY; shelf: ShelfState; dropping: boolean };
 
 // The Modul page's modules: installed, on, with a page or a tile action; in catalog order.
 export function pageModules(s: ModuleState): ModuleInfo[] {
@@ -67,9 +75,18 @@ export function viewSize(v: PageView, fullHeight?: number): CardSize {
     return { ...CUSTOM_PAGE, height: Math.round(Math.min(FULL_PAGE_MAX, Math.max(height, fullHeight))) };
   }
   if (v.kind === 'module') return { width: v.module.card!.width, height: BACK_BAR + v.module.card!.height };
+  if (v.kind === 'shelf') return { width: SHELF.width, height: shelfHeight(v.shelf.items.length, v.dropping) };
   const { columns, gap, tile, width, empty } = MODULES_GRID;
   const rows = Math.ceil(v.modules.length / columns);
   return { width, height: rows === 0 ? empty : rows * tile + (rows - 1) * gap };
+}
+
+export function shelfHeight(items: number, dropping: boolean): number {
+  const { head, tile, gap, columns, maxRows, drop, empty } = SHELF;
+  if (dropping) return drop;
+  if (items === 0) return head + empty;
+  const rows = Math.min(maxRows, Math.ceil(items / columns));
+  return head + rows * tile + (rows - 1) * gap;
 }
 
 export function pageName(p: Page, strings: HostStrings): string {

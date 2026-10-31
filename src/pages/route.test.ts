@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { hostStrings } from '../i18n';
 import type { ModuleState, Page } from '../modules/types';
 import { BERANDA, homeWidgets, moduleInfo, TEST_STATE, timerInfo } from '../notch/test-helpers';
-import { missedTargets, noticeTarget, pageModules, pageName, pickPage, resolvePage, viewSize } from './route';
+import { missedTargets, noticeTarget, pageModules, pageName, pickPage, resolvePage, SHELF, viewSize } from './route';
 
 const P1: Page = { id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [{ widget: 'home/reminders', col: 0, width: 2 }] };
 const state = (over: Partial<ModuleState> = {}): ModuleState => ({ ...TEST_STATE, ...over });
@@ -97,4 +97,17 @@ test('missed dots land on page icons', () => {
   expect(missedTargets(s)).toEqual(new Set(['home', 'modules']));
   expect(missedTargets(state({ pages: [{ ...BERANDA, widgets: [] }, P1], missed: ['home.reminder'] })))
     .toEqual(new Set(['p1']));
+});
+
+test('shelf size by rows', () => {
+  const v = (n: number) => ({ kind: 'shelf' as const, key: 'shelf' as const, shelf: { items: Array.from({ length: n }, (_, i) => ({ id: i, name: 'a', folder: false, state: 'ready' as const, thumb: null })) }, dropping: false });
+  const { head, tile, gap, empty } = SHELF;
+  expect(viewSize(v(1))).toEqual({ width: 520, height: head + tile });
+  expect(viewSize(v(7))).toEqual({ width: 520, height: head + 2 * tile + gap });
+  expect(viewSize(v(30))).toEqual({ width: 520, height: head + 3 * tile + 2 * gap });
+  expect(viewSize(v(0))).toEqual({ width: 520, height: head + empty });
+});
+
+test('dropping size is 104', () => {
+  expect(viewSize({ kind: 'shelf', key: 'shelf', shelf: { items: [] }, dropping: true })).toEqual({ width: 520, height: 104 });
 });

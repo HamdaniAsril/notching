@@ -5,6 +5,16 @@
   "noModules": "Belum ada modul yang menyala.",
   "loadFailed": "Gagal dimuat.",
   "settings": "Pengaturan",
+  "shelf": {
+    "drop": "Lepas untuk menitipkan",
+    "title": "Titipan · {n}",
+    "hint": "Seret keluar untuk menyalin",
+    "empty": "Seret file ke notch untuk menitipkan",
+    "missing": "Tidak ditemukan",
+    "receiving": "Menerima…",
+    "clear": "Kosongkan",
+    "remove": "Buang"
+  },
   "clean": {
     "title": "Keyboard sedang dibersihkan",
     "hint": "Tekan Esc 5× untuk keluar"
