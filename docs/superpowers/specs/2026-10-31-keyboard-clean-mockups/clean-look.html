@@ -1,0 +1,80 @@
+<style>
+  .option .content { min-width: 0; }
+  .kc-cap { font: 11px "Space Mono", ui-monospace, monospace; color: var(--text-secondary, #888); letter-spacing: .06em; text-transform: uppercase; margin-top: 10px; display: block; }
+  .kc-scr { position: relative; width: 640px; max-width: 100%; aspect-ratio: 16 / 10; margin-top: 6px; border-radius: 10px; overflow: hidden;
+            background: linear-gradient(135deg, #6b8fd6 0%, #c58ad8 45%, #f2b38a 100%); font-family: "Space Grotesk", -apple-system, sans-serif; }
+  .kc-menu { position: absolute; inset: 0 0 auto 0; height: 14px; background: rgba(255,255,255,.55); display: flex; align-items: center; gap: 10px; padding: 0 10px; font-size: 7px; color: #111; }
+  .kc-win { position: absolute; left: 12%; top: 18%; width: 52%; height: 56%; border-radius: 6px; background: #f6f6f6; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  .kc-win::before { content: ""; position: absolute; left: 8px; top: 6px; width: 30px; height: 6px; background: radial-gradient(circle, #ff5f57 2.5px, transparent 3px) 0 0 / 10px 6px repeat-x; }
+  .kc-win i { position: absolute; left: 10%; right: 10%; height: 4px; border-radius: 2px; background: #ddd; }
+  .kc-win2 { left: 58%; top: 30%; width: 32%; height: 48%; background: #1e1e1e; }
+  .kc-dim { position: absolute; inset: 0; background: rgba(0,0,0,.9); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #fff; text-align: center; }
+  .kc-notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 15px; width: 86px; background: #000; border-radius: 0 0 7px 7px; z-index: 2; }
+  .kc-ear { position: absolute; top: 0; left: calc(50% + 43px); height: 15px; width: 22px; background: #000; border-radius: 0 0 7px 0; z-index: 2; display: flex; align-items: center; justify-content: center; }
+  .kc-ear svg { width: 11px; height: 11px; color: #fff; }
+  .kc-ico svg { width: 34px; height: 34px; }
+  .kc-title { font-size: 15px; font-weight: 500; }
+  .kc-hint { font: 9px "Space Mono", monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.55); }
+  .kc-dots { display: flex; gap: 7px; }
+  .kc-dots b { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.18); }
+  .kc-dots b.kc-on { background: #fff; }
+  .kc-btn { margin-top: 4px; padding: 5px 14px; border-radius: 999px; background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); font: 10px "Space Mono", monospace; letter-spacing: .06em; }
+  .kc-small { font-size: 8px; color: rgba(255,255,255,.4); }
+  .kc-keys { display: flex; gap: 8px; }
+  .kc-keys b { width: 30px; height: 26px; border-radius: 6px; box-shadow: inset 0 0 0 1.2px rgba(255,255,255,.3); font: 8px "Space Mono", monospace; display: flex; align-items: flex-end; padding: 0 0 4px 5px; box-sizing: border-box; color: rgba(255,255,255,.5); font-weight: 400; }
+  .kc-keys b.kc-on { background: #fff; color: #000; box-shadow: none; }
+  .kc-note { margin-top: 10px; color: var(--text-secondary, #888); font-size: 13px; }
+</style>
+
+<h2>Seperti apa layar saat Keyboard Cleaning Mode aktif?</h2>
+<p class="subtitle">Semua layar menggelap 90% dan keyboard terkunci. Di samping notch tampil ikon keyboard. Di semua contoh, Esc sudah ditekan 2 dari 5 kali. Cmd+Q tetap menutup Notching, dan trackpad tetap aktif.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Tenang: ikon, judul, dan titik hitungan</h3>
+      <p>Lima titik menyala satu per satu setiap Esc ditekan. Tidak ada tombol.</p>
+      <span class="kc-cap">Layar Mac</span>
+      <div class="kc-scr" data-shot="a"></div>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Seperti A, ditambah tombol Selesai</h3>
+      <p>Karena trackpad tetap aktif, mode ini juga bisa dimatikan dengan klik "Selesai", tanpa perlu Esc.</p>
+      <span class="kc-cap">Layar Mac</span>
+      <div class="kc-scr" data-shot="b"></div>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Lima tombol Esc yang menyala</h3>
+      <p>Hitungan digambar sebagai lima tombol keyboard bertuliskan "esc", jadi langsung jelas apa yang harus ditekan.</p>
+      <span class="kc-cap">Layar Mac</span>
+      <div class="kc-scr" data-shot="c"></div>
+    </div>
+  </div>
+</div>
+<p class="kc-note">Klik pilihan yang cocok, lalu ceritakan di chat, termasuk kalau kata-katanya mau diganti.</p>
+
+<script>
+(function () {
+  const KB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M6.5 13.5h.01M17.5 13.5h.01M9.5 14h5"/></svg>';
+  const desk = '<div class="kc-menu"><b></b><span>Finder</span><span>File</span><span>Edit</span></div>'
+    + '<div class="kc-win"><i style="top:30%"></i><i style="top:42%;right:30%"></i><i style="top:54%"></i></div><div class="kc-win kc-win2"></div>';
+  const notch = '<div class="kc-notch"></div><div class="kc-ear">' + KB + '</div>';
+  const dots = '<div class="kc-dots"><b class="kc-on"></b><b class="kc-on"></b><b></b><b></b><b></b></div>';
+  const keys = '<div class="kc-keys">' + [1, 1, 0, 0, 0].map(on => `<b class="${on ? 'kc-on' : ''}">esc</b>`).join('') + '</div>';
+  const body = {
+    a: `<div class="kc-ico">${KB}</div><div class="kc-title">Keyboard sedang dibersihkan</div><div class="kc-hint">Tekan Esc 5× untuk keluar</div>${dots}`,
+    b: `<div class="kc-ico">${KB}</div><div class="kc-title">Keyboard sedang dibersihkan</div><div class="kc-hint">Tekan Esc 5× untuk keluar</div>${dots}<div class="kc-btn">Selesai</div>`,
+    c: `<div class="kc-title">Keyboard sedang dibersihkan</div>${keys}<div class="kc-hint">Tekan Esc 5× untuk keluar</div>`,
+  };
+  document.querySelectorAll('[data-shot]').forEach(el => {
+    el.innerHTML = desk + `<div class="kc-dim">${body[el.dataset.shot]}</div>` + notch;
+  });
+})();
+</script>
