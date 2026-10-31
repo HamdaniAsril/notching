@@ -11,9 +11,10 @@ use std::sync::OnceLock;
 
 use objc2::rc::Retained;
 use objc2::{define_class, msg_send, AllocAnyThread, MainThreadMarker, MainThreadOnly};
+use objc2::runtime::{Bool, ProtocolObject};
 use objc2_app_kit::{
-    NSBackingStoreType, NSColor, NSEvent, NSPanel, NSResponder, NSTrackingArea, NSTrackingAreaOptions, NSView,
-    NSWindowCollectionBehavior, NSWindowOrderingMode, NSWindowStyleMask,
+    NSBackingStoreType, NSColor, NSDragOperation, NSDraggingInfo, NSEvent, NSPanel, NSResponder, NSTrackingArea,
+    NSTrackingAreaOptions, NSView, NSWindowCollectionBehavior, NSWindowOrderingMode, NSWindowStyleMask,
 };
 use objc2_foundation::{NSObject, NSPoint, NSRect, NSSize};
 use tauri::{AppHandle, Manager};
@@ -40,8 +41,40 @@ define_class!(
                 crate::pointer::reroute_now(app);
             }
         }
+
+        // A file drag reaching the notch opens the shelf's drop zone (Titipan).
+        #[unsafe(method(draggingEntered:))]
+        fn dragging_entered(&self, info: &ProtocolObject<dyn NSDraggingInfo>) -> NSDragOperation {
+            let op = crate::shelf_drop::operation(info);
+            if let (Some(app), Some(label)) = (APP.get(), self.overlay_label()) {
+                if op != NSDragOperation::None && crate::shelf_service::enabled(app) {
+                    crate::shelf_drop::arrived(app, &label);
+                    return op;
+                }
+            }
+            NSDragOperation::None
+        }
+
+        // Dropped before the panel opened: kept all the same.
+        #[unsafe(method(performDragOperation:))]
+        fn perform_drag_operation(&self, info: &ProtocolObject<dyn NSDraggingInfo>) -> Bool {
+            Bool::new(crate::shelf_drop::perform(info))
+        }
     }
 );
+
+impl SensorView {
+    // The overlay this sensor sits under.
+    fn overlay_label(&self) -> Option<String> {
+        let window = self.window()?;
+        SENSORS.with(|s| {
+            s.borrow()
+                .iter()
+                .find(|(_, pool)| pool.iter().any(|p| std::ptr::eq(&**p as *const NSPanel as *const (), &*window as *const _ as *const ())))
+                .map(|(label, _)| label.clone())
+        })
+    }
+}
 
 thread_local! {
     // Sensor panels by overlay label, one per hit rect.
@@ -116,6 +149,7 @@ fn new_sensor(mtm: MainThreadMarker) -> Retained<NSPanel> {
         )
     };
     view.addTrackingArea(&area);
+    view.registerForDraggedTypes(&crate::shelf_drop::dragged_types());
     panel.setContentView(Some(&view));
     panel
 }

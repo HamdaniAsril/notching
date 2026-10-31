@@ -44,6 +44,8 @@ mod sensor;
 #[cfg(target_os = "macos")]
 mod settings_window;
 #[cfg(target_os = "macos")]
+mod shelf_drop;
+#[cfg(target_os = "macos")]
 mod shelf_service;
 #[cfg(target_os = "macos")]
 mod timer_service;
@@ -101,7 +103,26 @@ pub fn run() {
             shelf_service::shelf_state,
             shelf_service::shelf_remove,
             shelf_service::shelf_clear,
+            shelf_drop::shelf_drop_ready,
         ])
+        // A file drag can reach an overlay's webview before its sensor (the panel
+        // already catches the mouse): that opens the drop zone too (Titipan).
+        .on_window_event(|window, event| {
+            use tauri::Manager as _;
+            if let tauri::WindowEvent::DragDrop(drop) = event {
+                let label = window.label();
+                if !label.starts_with("notch-") {
+                    return;
+                }
+                match drop {
+                    tauri::DragDropEvent::Enter { .. } => shelf_drop::arrived(window.app_handle(), label),
+                    tauri::DragDropEvent::Drop { paths, .. } => {
+                        shelf_drop::dropped_on_overlay(window.app_handle(), label, paths.clone())
+                    }
+                    _ => {}
+                }
+            }
+        })
         .setup(|app| {
             // No Dock icon.
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -128,6 +149,7 @@ pub fn run() {
             lamp_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
+            shelf_drop::init(app.handle());
             pointer::start_pointer_monitor(app.handle().clone());
             Ok(())
         })

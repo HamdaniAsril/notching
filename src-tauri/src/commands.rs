@@ -40,6 +40,7 @@ pub fn set_hit_rects(app: AppHandle, window: WebviewWindow, overlays: State<Over
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         crate::sensor::sync(&handle, &label);
+        crate::shelf_drop::resync(&handle, &label);
         crate::pointer::reroute_now(&handle);
     });
 }
