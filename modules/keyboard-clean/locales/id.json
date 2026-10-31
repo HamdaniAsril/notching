@@ -1,6 +1,6 @@
 {
   "name": "Keyboard Cleaning Mode",
-  "shortName": "Keyboard",
+  "shortName": "Clean KB",
   "description": "Kunci keyboard untuk dibersihkan",
   "channels": {
     "blocked": "Keyboard tidak bisa dikunci"

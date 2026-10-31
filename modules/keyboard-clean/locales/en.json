@@ -1,6 +1,6 @@
 {
   "name": "Keyboard Cleaning Mode",
-  "shortName": "Keyboard",
+  "shortName": "Clean KB",
   "description": "Locks the keyboard for cleaning",
   "channels": {
     "blocked": "Keyboard can't be locked"

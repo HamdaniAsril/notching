@@ -24,12 +24,13 @@ pub enum Press {
     /// The mode is off.
     Ignored,
     Count(u8),
-    /// The fifth press: the mode ended for this owner.
+    /// The fifth press: the mode is over for this owner. The service ends it
+    /// with `stop`, which gives it the owner whose status goes.
     Done(String),
 }
 
-/// What the service does next: nothing, end the mode at its safety, put the
-/// count back to zero, or wait this long.
+/// What the service does next: nothing, end the mode at its safety (with
+/// `stop`), put the count back to zero, or wait this long.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Step {
     Off,
@@ -85,7 +86,8 @@ impl KeyClean {
         if self.presses < ESC_PRESSES {
             return Press::Count(self.presses);
         }
-        self.stop().map_or(Press::Ignored, Press::Done)
+        self.presses = 0;
+        self.owner.clone().map_or(Press::Ignored, Press::Done)
     }
 
     /// The owner, if it was on.
@@ -109,7 +111,7 @@ impl KeyClean {
         }
         let safety = self.started + SAFETY_MS;
         if now >= safety {
-            return self.stop().map_or(Step::Off, Step::Ended);
+            return self.owner.clone().map_or(Step::Off, Step::Ended);
         }
         if self.presses > 0 && self.presses(now) == 0 {
             self.presses = 0;
@@ -146,7 +148,9 @@ mod tests {
             assert_eq!(k.presses(T + n as i64 * 100), n);
         }
         assert_eq!(k.esc(T + 500), Press::Done("k".into()));
-        assert_eq!(k.owner(), None);
+        // The service ends it with stop(), which hands it the owner whose status goes.
+        assert_eq!(k.owner(), Some("k"));
+        assert_eq!(k.stop(), Some("k".into()));
         assert_eq!(k.esc(T + 600), Press::Ignored);
     }
 
@@ -182,6 +186,7 @@ mod tests {
         assert_eq!(k.step(T + SAFETY_MS - 1), Step::Wait(1));
         assert_eq!(k.step(T), Step::Wait(WAIT_MAX_MS));
         assert_eq!(k.step(T + SAFETY_MS), Step::Ended("k".into()));
+        assert_eq!(k.stop(), Some("k".into()));
         assert_eq!(k.step(T + SAFETY_MS), Step::Off);
     }
 

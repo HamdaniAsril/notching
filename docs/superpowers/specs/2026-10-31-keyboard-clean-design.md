@@ -13,7 +13,7 @@ Pemilik ingin membersihkan keyboard laptop tanpa mengetik atau menekan apa pun s
 ## 2. Tujuan, bukan tujuan, dan yang harus dihindari
 
 **Tujuan**
-- Menyalakan dengan satu klik: kotak **Keyboard** di halaman Modul.
+- Menyalakan dengan satu klik: kotak **Clean KB** di halaman Modul.
 - Saat menyala:
   - semua tombol keyboard terkunci;
   - semua layar menggelap 90%;
@@ -37,7 +37,7 @@ Pemilik ingin membersihkan keyboard laptop tanpa mengetik atau menekan apa pun s
 
 ## 3. Menyalakan
 
-- Di halaman Modul ada kotak **Keyboard** dengan ikon keyboard bergaris. Urutannya setelah Timer.
+- Di halaman Modul ada kotak **Clean KB** dengan ikon keyboard bergaris. Urutannya setelah Timer. Semula bernama "Keyboard"; diganti atas permintaan pemilik saat cek di Mac pada 31 Oktober. "Cleaning mode" juga ditawarkan pemilik, tapi terlalu panjang untuk kotak selebar itu **(keputusan penulis)**.
 - **Klik kotak itu langsung menyalakan mode ini.** Kotak ini tidak membuka halaman modul. Panel menutup, lalu mode menyala. Saat mode menyala, kotaknya putih, dan klik lagi mematikannya.
 - **Izin Aksesibilitas:**
   - Kalau izin belum diberikan, mode tidak menyala. macOS menampilkan permintaan izinnya.
