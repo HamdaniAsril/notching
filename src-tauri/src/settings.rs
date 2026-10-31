@@ -246,8 +246,9 @@ fn page_from(value: &serde_json::Value) -> Option<Page> {
     let widgets: Vec<Placement> =
         widgets.as_array()?.iter().filter_map(|w| serde_json::from_value(w.clone()).ok()).collect();
     value["widgets"] = serde_json::Value::Array(Vec::new());
+    let strip = value.get_mut("strip").map(serde_json::Value::take).and_then(|s| s.as_str().map(String::from));
     let page: Page = serde_json::from_value(value).ok()?;
-    Some(Page { widgets, ..page })
+    Some(Page { widgets, strip, ..page })
 }
 
 // The version's default is not its type's default either.
@@ -421,6 +422,19 @@ mod tests {
         let (_d, s) = load(&format!(r#"{{"version":2,"pages":[{page}]}}"#));
         assert_eq!(page_ids(&s), ["home", "p1"]);
         assert_eq!(s.pages[1].widgets.iter().map(|w| w.widget.as_str()).collect::<Vec<_>>(), ["home/prayer"]);
+    }
+
+    #[test]
+    fn pages_without_a_strip_still_load() {
+        let (_d, s) = load(&format!(r#"{{"version":2,"pages":[{KERJA}]}}"#));
+        assert!(s.pages.iter().all(|p| p.strip.is_none()));
+        let with = r#"{"id":"p1","name":"Kerja","icon":"briefcase","widgets":[],"strip":"timer/strip"}"#;
+        let (_d, s) = load(&format!(r#"{{"version":2,"pages":[{with}]}}"#));
+        assert_eq!(s.pages[1].strip.as_deref(), Some("timer/strip"));
+        // A broken strip goes alone, not with its page.
+        let bad = r#"{"id":"p1","name":"Kerja","icon":"briefcase","widgets":[],"strip":5}"#;
+        let (_d, s) = load(&format!(r#"{{"version":2,"pages":[{bad}]}}"#));
+        assert_eq!((page_ids(&s), s.pages[1].strip.clone()), (vec!["home", "p1"], None));
     }
 
     #[test]

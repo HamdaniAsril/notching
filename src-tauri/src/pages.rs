@@ -1,5 +1,6 @@
 //! Pages in the pill (design 30 Oct, §3–4): Beranda first, then custom pages,
-//! each one row of 4 columns holding widgets 1 or 2 columns wide.
+//! each one row of 4 columns holding widgets 1 or 2 columns wide, and an
+//! optional strip under it (design 31 Oct, Timer §3).
 
 use crate::modules::manifest::is_module_id;
 
@@ -8,6 +9,8 @@ pub const MODULES_PAGE: &str = "modules";
 pub const MODULE_PAGE_PREFIX: &str = "module:";
 pub const COLUMNS: u8 = 4;
 pub const PAGE_NAME_MAX: usize = 24;
+/// A strip widget's width in its manifest: the whole row, on a line of its own.
+pub const STRIP_WIDTH: u8 = 4;
 
 /// A widget on a page. `widget` is "<package>/<widget>"; `width` is kept so the
 /// spot survives while the widget's package is away (§4).
@@ -28,6 +31,10 @@ pub struct Page {
     pub name: Option<String>,
     pub icon: String,
     pub widgets: Vec<Placement>,
+    /// A strip widget's "<package>/<widget>". Kept while its package is away,
+    /// like a placement.
+    #[serde(default)]
+    pub strip: Option<String>,
 }
 
 /// The new Beranda (§6): Tanggal, Cuaca and Reminder.
@@ -38,6 +45,7 @@ pub fn beranda() -> Page {
         name: None,
         icon: "home".into(),
         widgets: vec![at("home/date", 0, 1), at("home/weather", 1, 1), at("home/reminders", 2, 2)],
+        strip: None,
     }
 }
 
@@ -118,6 +126,7 @@ pub enum PageError {
     BadName,
     BadIcon,
     BadLayout,
+    BadStrip,
     UnknownWidget(String),
 }
 
@@ -129,6 +138,7 @@ impl std::fmt::Display for PageError {
             PageError::BadName => write!(f, "a page name has 1 to 24 characters"),
             PageError::BadIcon => write!(f, "unknown icon"),
             PageError::BadLayout => write!(f, "widgets do not fit the row"),
+            PageError::BadStrip => write!(f, "the strip takes a strip widget"),
             PageError::UnknownWidget(r) => write!(f, "unknown widget {r}"),
         }
     }
@@ -151,19 +161,21 @@ pub fn add_page(pages: &mut Vec<Page>, name: &str, icon: &str) -> Result<String,
     let (name, icon) = (page_name(name)?, page_icon(icon)?);
     let n = pages.iter().filter_map(|p| p.id.strip_prefix('p')?.parse::<u32>().ok()).max().unwrap_or(0) + 1;
     let id = format!("p{n}");
-    pages.push(Page { id: id.clone(), name: Some(name), icon, widgets: vec![] });
+    pages.push(Page { id: id.clone(), name: Some(name), icon, widgets: vec![], strip: None });
     Ok(id)
 }
 
-/// Replaces a page's name, icon and widgets. Widgets must be in the catalog
-/// (`width_of`), which also gives their width, unless the page already held
-/// them: a spot whose package is away keeps its place.
+/// Replaces a page's name, icon, widgets and strip. Widgets must be in the
+/// catalog (`width_of`), which also gives their width, unless the page already
+/// held them: a spot whose package is away keeps its place. So does the strip,
+/// which must otherwise be a strip widget.
 pub fn set_page(
     pages: &mut [Page],
     id: &str,
     name: Option<&str>,
     icon: &str,
     widgets: Vec<Placement>,
+    strip: Option<String>,
     width_of: &dyn Fn(&str) -> Option<u8>,
 ) -> Result<(), PageError> {
     let page = pages.iter_mut().find(|p| p.id == id).ok_or_else(|| PageError::NotFound(id.into()))?;
@@ -186,8 +198,16 @@ pub fn set_page(
     if !fits(&placed) {
         return Err(PageError::BadLayout);
     }
+    if let Some(r) = &strip {
+        match width_of(r) {
+            Some(STRIP_WIDTH) => {}
+            Some(_) => return Err(PageError::BadStrip),
+            None if page.strip.as_ref() == Some(r) => {}
+            None => return Err(PageError::UnknownWidget(r.clone())),
+        }
+    }
     placed.sort_by_key(|w| w.col);
-    *page = Page { id: page.id.clone(), name, icon, widgets: placed };
+    *page = Page { id: page.id.clone(), name, icon, widgets: placed, strip };
     Ok(())
 }
 
@@ -228,7 +248,7 @@ mod tests {
     }
 
     fn custom(id: &str, widgets: Vec<Placement>) -> Page {
-        Page { id: id.into(), name: Some("Kerja".into()), icon: "briefcase".into(), widgets }
+        Page { id: id.into(), name: Some("Kerja".into()), icon: "briefcase".into(), widgets, strip: None }
     }
 
     #[test]
@@ -260,6 +280,7 @@ mod tests {
             name: Some("  Kerja  ".into()),
             icon: "Bad Icon!".into(),
             widgets: vec![p("a/a", 0, 2), p("b/b", 1, 1), p("c/c", 3, 2), p("a/a", 2, 1)],
+            strip: None,
         };
         let home = Page { name: Some("X".into()), icon: "star".into(), ..beranda() };
         let modules = Page { id: MODULES_PAGE.into(), ..custom("x", vec![]) };
@@ -268,7 +289,7 @@ mod tests {
             fixed,
             [
                 beranda(),
-                Page { id: "p1".into(), name: Some("Kerja".into()), icon: "dot".into(), widgets: vec![p("a/a", 0, 2)] },
+                Page { id: "p1".into(), name: Some("Kerja".into()), icon: "dot".into(), widgets: vec![p("a/a", 0, 2)], strip: None },
             ]
         );
     }
@@ -280,7 +301,7 @@ mod tests {
         assert_eq!(fixed[1].icon, "dot");
         // So the page can be saved again with the icon it shows.
         let mut pages = fixed;
-        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![], &|_| None), Ok(()));
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![], None, &|_| None), Ok(()));
     }
 
     #[test]
@@ -322,7 +343,7 @@ mod tests {
     fn new_pages_get_the_next_free_id() {
         let mut pages = vec![beranda(), custom("p1", vec![]), custom("p4", vec![])];
         assert_eq!(add_page(&mut pages, "Ibadah", "moon"), Ok("p5".into()));
-        assert_eq!(pages[3], Page { id: "p5".into(), name: Some("Ibadah".into()), icon: "moon".into(), widgets: vec![] });
+        assert_eq!(pages[3], Page { id: "p5".into(), name: Some("Ibadah".into()), icon: "moon".into(), widgets: vec![], strip: None });
         let mut only = vec![beranda()];
         assert_eq!(add_page(&mut only, "Kerja", "briefcase"), Ok("p1".into()));
         assert_eq!(add_page(&mut only, "Kerja", "nope"), Err(PageError::BadIcon));
@@ -337,37 +358,37 @@ mod tests {
             assert_eq!(add_page(&mut pages, &bad, "dot"), Err(PageError::BadName), "{bad:?}");
         }
         assert!(add_page(&mut pages, &"🌙".repeat(24), "dot").is_ok());
-        assert_eq!(set_page(&mut pages, "p1", None, "dot", vec![], &known), Err(PageError::BadName));
+        assert_eq!(set_page(&mut pages, "p1", None, "dot", vec![], None, &known), Err(PageError::BadName));
     }
 
     #[test]
     fn beranda_keeps_its_name_icon_and_place() {
         let mut pages = vec![beranda(), custom("p1", vec![])];
-        assert_eq!(set_page(&mut pages, "home", Some("X"), "home", vec![], &known), Err(PageError::Fixed));
-        assert_eq!(set_page(&mut pages, "home", None, "star", vec![], &known), Err(PageError::Fixed));
+        assert_eq!(set_page(&mut pages, "home", Some("X"), "home", vec![], None, &known), Err(PageError::Fixed));
+        assert_eq!(set_page(&mut pages, "home", None, "star", vec![], None, &known), Err(PageError::Fixed));
         assert_eq!(delete_page(&mut pages, "home"), Err(PageError::Fixed));
         assert_eq!(move_page(&mut pages, "home", 1), Err(PageError::Fixed));
-        assert_eq!(set_page(&mut pages, "home", None, "home", vec![p("home/date", 0, 1)], &known), Ok(()));
+        assert_eq!(set_page(&mut pages, "home", None, "home", vec![p("home/date", 0, 1)], None, &known), Ok(()));
         assert_eq!(pages[0].widgets, [p("home/date", 0, 1)]);
-        assert_eq!(set_page(&mut pages, "p9", Some("X"), "dot", vec![], &known), Err(PageError::NotFound("p9".into())));
+        assert_eq!(set_page(&mut pages, "p9", Some("X"), "dot", vec![], None, &known), Err(PageError::NotFound("p9".into())));
         assert_eq!(delete_page(&mut pages, "p9"), Err(PageError::NotFound("p9".into())));
     }
 
     #[test]
     fn widgets_must_fit_and_be_known() {
         let mut pages = vec![beranda(), custom("p1", vec![])];
-        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("a/a", 0, 1), p("b/b", 0, 1)], &known), Err(PageError::BadLayout));
-        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("x/y", 0, 1)], &known),
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("a/a", 0, 1), p("b/b", 0, 1)], None, &known), Err(PageError::BadLayout));
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("x/y", 0, 1)], None, &known),
             Err(PageError::UnknownWidget("x/y".into())));
         // The catalog decides the width; placements come back in column order.
         let widgets = vec![p("a/a", 3, 1), p("home/reminders", 0, 1)];
-        assert_eq!(set_page(&mut pages, "p1", Some(" Kerja "), "briefcase", widgets, &known), Ok(()));
+        assert_eq!(set_page(&mut pages, "p1", Some(" Kerja "), "briefcase", widgets, None, &known), Ok(()));
         assert_eq!(pages[1], Page {
             id: "p1".into(), name: Some("Kerja".into()), icon: "briefcase".into(),
-            widgets: vec![p("home/reminders", 0, 2), p("a/a", 3, 1)],
+            widgets: vec![p("home/reminders", 0, 2), p("a/a", 3, 1)], strip: None,
         });
         // At its catalog width it no longer fits.
-        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("home/reminders", 3, 1)], &known),
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("home/reminders", 3, 1)], None, &known),
             Err(PageError::BadLayout));
     }
 
@@ -375,8 +396,37 @@ mod tests {
     fn set_page_keeps_widgets_whose_source_is_gone() {
         let mut pages = vec![beranda(), custom("p1", vec![p("timer/timer", 3, 1)])];
         let widgets = vec![p("a/a", 0, 1), p("timer/timer", 3, 1)];
-        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", widgets.clone(), &known), Ok(()));
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", widgets.clone(), None, &known), Ok(()));
         assert_eq!(pages[1].widgets, widgets);
+    }
+
+    fn strips(r: &str) -> Option<u8> {
+        if r == "timer/strip" { Some(4) } else { known(r) }
+    }
+
+    #[test]
+    fn a_page_takes_one_strip_widget() {
+        let mut pages = vec![beranda(), custom("p1", vec![])];
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![], Some("timer/strip".into()), &strips), Ok(()));
+        assert_eq!(pages[1].strip.as_deref(), Some("timer/strip"));
+        // A row widget cannot be the strip, and the strip widget cannot sit in the row.
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![], Some("a/a".into()), &strips), Err(PageError::BadStrip));
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("timer/strip", 0, 4)], None, &strips),
+            Err(PageError::BadLayout));
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![], Some("x/y".into()), &strips),
+            Err(PageError::UnknownWidget("x/y".into())));
+        assert_eq!(pages[1].strip.as_deref(), Some("timer/strip"));
+        assert_eq!(set_page(&mut pages, "home", None, "home", vec![], Some("timer/strip".into()), &strips), Ok(()));
+        assert_eq!(pages[0].strip.as_deref(), Some("timer/strip"));
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![], None, &strips), Ok(()));
+        assert_eq!(pages[1].strip, None);
+    }
+
+    #[test]
+    fn a_strip_whose_source_is_gone_keeps_its_place() {
+        let mut pages = vec![beranda(), Page { strip: Some("timer/strip".into()), ..custom("p1", vec![]) }];
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![], Some("timer/strip".into()), &known), Ok(()));
+        assert_eq!(repair(pages.clone())[1].strip.as_deref(), Some("timer/strip"));
     }
 
     #[test]
@@ -406,6 +456,7 @@ mod tests {
         assert_eq!(PageError::BadIcon.to_string(), "unknown icon");
         assert_eq!(PageError::BadLayout.to_string(), "widgets do not fit the row");
         assert_eq!(PageError::UnknownWidget("x/y".into()).to_string(), "unknown widget x/y");
+        assert_eq!(PageError::BadStrip.to_string(), "the strip takes a strip widget");
     }
 
     #[test]

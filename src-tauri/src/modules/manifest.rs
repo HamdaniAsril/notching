@@ -2,6 +2,8 @@
 
 use std::ops::RangeInclusive;
 
+use crate::pages::STRIP_WIDTH;
+
 /// System capabilities a module may ask for. A module may use only the ones its
 /// manifest lists (spec 6).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
@@ -54,7 +56,8 @@ pub enum WidgetKind {
     Media,
 }
 
-/// A widget a package offers for custom pages: 1 or 2 of the row's 4 columns.
+/// A widget a package offers for custom pages: 1 or 2 of the row's 4 columns,
+/// or 4 for a strip under the row (design 31 Oct, Timer §3).
 #[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WidgetSpec {
@@ -182,7 +185,7 @@ pub fn parse_manifest(json: &str, folder: &str) -> Result<Manifest, ManifestErro
         && unique(&widgets)
         && m.widgets
             .iter()
-            .all(|w| is_module_id(&w.id) && (1..=2).contains(&w.width) && is_package_path(&w.entry));
+            .all(|w| is_module_id(&w.id) && matches!(w.width, 1 | 2 | STRIP_WIDTH) && is_package_path(&w.entry));
     if !good_widgets {
         return Err(ManifestError::BadWidget);
     }
@@ -296,6 +299,16 @@ mod tests {
     fn a_package_with_nothing_is_refused() {
         let bare = r#"{"id":"home","version":"1.0.0","icon":"icon.svg","permissions":[],"capabilities":[]}"#;
         assert_eq!(parse_manifest(bare, "home"), Err(ManifestError::Empty));
+    }
+
+    #[test]
+    fn a_strip_widget_is_4_wide() {
+        let w = |width: u8| format!(
+            r#"{{"id":"timer","version":"1.0.0","icon":"icon.svg","permissions":[],"capabilities":[],
+            "widgets":[{{"id":"strip","entry":"index.html","width":{width},"kind":"work"}}]}}"#
+        );
+        assert_eq!(parse_manifest(&w(4), "timer").unwrap().widgets[0].width, 4);
+        assert_eq!(parse_manifest(&w(3), "timer"), Err(ManifestError::BadWidget));
     }
 
     #[test]

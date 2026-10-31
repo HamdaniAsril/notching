@@ -26,8 +26,9 @@ pub fn set_page(
     name: Option<String>,
     icon: String,
     widgets: Vec<Placement>,
+    strip: Option<String>,
 ) -> Result<(), String> {
-    change(&app, &core, |c| c.set_page(&id, name.as_deref(), &icon, widgets))
+    change(&app, &core, |c| c.set_page(&id, name.as_deref(), &icon, widgets, strip))
 }
 
 #[tauri::command]

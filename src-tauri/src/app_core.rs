@@ -396,9 +396,16 @@ impl AppCore {
         Ok(id)
     }
 
-    pub fn set_page(&mut self, id: &str, name: Option<&str>, icon: &str, widgets: Vec<Placement>) -> Result<(), CoreError> {
+    pub fn set_page(
+        &mut self,
+        id: &str,
+        name: Option<&str>,
+        icon: &str,
+        widgets: Vec<Placement>,
+        strip: Option<String>,
+    ) -> Result<(), CoreError> {
         let mut next = self.settings.pages.clone();
-        pages::set_page(&mut next, id, name, icon, widgets, &|r| self.widget_width(r)).map_err(CoreError::Page)?;
+        pages::set_page(&mut next, id, name, icon, widgets, strip, &|r| self.widget_width(r)).map_err(CoreError::Page)?;
         self.settings.pages = next;
         self.save()
     }
@@ -558,11 +565,11 @@ mod tests {
         let mut core = open(&d, None);
         let id = core.add_page("Kerja", "briefcase").unwrap();
         assert_eq!(id, "p1");
-        core.set_page("p1", Some("Kerja"), "briefcase", vec![at("w/one", 0, 1), at("b/big", 2, 1)]).unwrap();
+        core.set_page("p1", Some("Kerja"), "briefcase", vec![at("w/one", 0, 1), at("b/big", 2, 1)], None).unwrap();
         let pages = open(&d, None).state().pages;
         assert_eq!(pages[1].widgets, [at("w/one", 0, 1), at("b/big", 2, 2)]);
         core.move_page("p1", 0).unwrap();
-        assert!(matches!(core.set_page("home", Some("X"), "home", vec![]), Err(CoreError::Page(PageError::Fixed))));
+        assert!(matches!(core.set_page("home", Some("X"), "home", vec![], None), Err(CoreError::Page(PageError::Fixed))));
         assert_eq!(CoreError::Page(PageError::BadIcon).to_string(), "unknown icon");
     }
 
@@ -587,7 +594,7 @@ mod tests {
         core.set_enabled("b", false).unwrap();
         assert_eq!(core.widget_width("b/big"), None);
         assert!(matches!(
-            core.set_page("p1", Some("Kerja"), "dot", vec![at("b/big", 0, 2)]),
+            core.set_page("p1", Some("Kerja"), "dot", vec![at("b/big", 0, 2)], None),
             Err(CoreError::Page(PageError::UnknownWidget(_)))
         ));
         assert_eq!(core.widget_width("w/one"), Some(1));
