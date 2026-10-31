@@ -274,9 +274,9 @@ test('the preview refits only when its width changes, so resizing never loops', 
     fit();
     expect(row.style.transform).toBe('scale(0.5)');
     // Its own margins change the height and call it again: nothing is rewritten.
-    row.style.transform = 'mark';
+    row.style.transform = 'scale(0.9)';
     fit();
-    expect(row.style.transform).toBe('mark');
+    expect(row.style.transform).toBe('scale(0.9)');
     width = 612;
     fit();
     expect(row.style.transform).toBe('');
