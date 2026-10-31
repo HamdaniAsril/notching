@@ -10,6 +10,7 @@ mod pages;
 mod settings;
 mod status;
 mod system_stats;
+mod timer;
 
 #[cfg(target_os = "macos")]
 mod awake_hold;
