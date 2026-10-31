@@ -264,3 +264,73 @@ test('the open panel fades toward its bottom; a notice stays solid like the notc
   r.runAll(5);
   expect(panel.style.fill).toMatch(/^url\("?#notch-fade-\d+"?\)$/);
 });
+
+const shown = (root: HTMLElement, sel: string) => root.querySelector(sel)?.getAttribute('display') === 'inline';
+
+test('a status sits right of the notch, the missed dot left', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  expect(shown(root, '.st-tab')).toBe(false);
+  v.setStatus('18:42');
+  v.setMissed(true);
+  expect(shown(root, '.st-tab')).toBe(true);
+  expect(shown(root, '.missed-tab')).toBe(true);
+  const text = root.querySelector('.st-text')!;
+  expect(text.textContent).toBe('18:42');
+  expect([text.getAttribute('x'), text.getAttribute('y'), text.getAttribute('text-anchor')]).toEqual([String(95 + 56 - 8), '20', 'end']);
+  expect(root.querySelector('.st-tab')!.getAttribute('d')).toMatch(/^M 157\.00 0 /);
+  expect(root.querySelector('.st-pill')).toBeNull();
+  v.setStatus(null);
+  expect(shown(root, '.st-tab')).toBe(false);
+  expect(shown(root, '.st-text')).toBe(false);
+});
+
+test('without a notch a status opens one small pill with the dot inside', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setMissed(true);
+  v.setStatus('18:42');
+  expect(shown(root, '.st-pill')).toBe(true);
+  const dot = root.querySelector('.missed-dot')!;
+  expect(shown(root, '.missed-dot')).toBe(true);
+  expect(Number(dot.getAttribute('cx'))).toBeLessThan(0);
+  expect(dot.getAttribute('cy')).toBe('11');
+  // 24 + 7 × 5 characters + 14 for the dot, centred: the shoulders reach 6 px further.
+  expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -42\.50 0 /);
+  v.setStatus(null);
+  expect(shown(root, '.st-pill')).toBe(false);
+  expect([dot.getAttribute('cx'), dot.getAttribute('cy')]).toEqual(['0', '9']);
+});
+
+test('a status alone on a lens screen leaves no dot', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setStatus('18:42');
+  expect(shown(root, '.st-pill')).toBe(true);
+  expect(shown(root, '.missed-dot')).toBe(false);
+  expect(root.querySelector('.st-text')!.getAttribute('text-anchor')).toBe('middle');
+});
+
+test('status text is drawn as text', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setStatus('<b>');
+  expect(root.querySelector('.st-text')!.textContent).toBe('<b>');
+  expect(root.querySelector('b')).toBeNull();
+});
+
+test('the status hides while the panel is open and starts no frame loop', () => {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  const c = ctl({ width: 190, height: 32 });
+  const v = mountNotch(root, c, deps(r));
+  v.kick();
+  r.runAll(600);
+  v.setStatus('18:42');
+  r.runAll(600);
+  expect(r.pending()).toBe(0);
+  c.click();
+  v.kick();
+  r.runAll(1);
+  expect(shown(root, '.st-tab')).toBe(false);
+});

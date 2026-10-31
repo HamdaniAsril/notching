@@ -1,4 +1,4 @@
-import type { Bridge, Notice } from './bridge';
+import type { Bridge, LiveStatus, Notice } from './bridge';
 import { hostStrings } from './i18n';
 import type { ModuleState } from './modules/types';
 import { clampConfig, type NotchConfig } from './notch/config';
@@ -134,6 +134,12 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     pump();
   });
 
+  // The status beside the notch shows on the cursor's screen only; the view
+  // hides it while a notice or the panel is up.
+  const showStatus = (s: LiveStatus | null) => view.setStatus(s && s.screen === info.label ? s.text : null);
+  const offStatus = bridge.onStatus(showStatus);
+  showStatus(await bridge.status());
+
   function renderPill(): void {
     const missed = missedTargets(state);
     const items = [
@@ -226,6 +232,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       doc.removeEventListener('visibilitychange', onVisibility);
       offState();
       offNotice();
+      offStatus();
       frames.destroy();
       view.destroy();
       wiring.dispose();

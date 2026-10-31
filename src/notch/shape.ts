@@ -62,16 +62,28 @@ export function notchPath(notch: NotchSize, m: Liquid): string {
   return d + ` Q ${q(hw)} ${q(NH)} ${q(hw)} ${q(NH - NR)} L ${q(hw)} ${q(fl)} Q ${q(hw)} 0 ${q(hw + fl)} 0 Z`;
 }
 
-// The notch widened to the left by `ext` px, drawn over its left side with the
-// same shoulder and corner, for the missed-notice dot to sit in.
-export function notchTabPath(notch: NotchSize, ext: number): string {
+// The notch widened by `ext` px, drawn over that side with the same shoulder and
+// corner: on the left for the missed-notice dot, on the right (its mirror) for
+// the status beside the notch.
+export function notchTabPath(notch: NotchSize, ext: number, side: 'left' | 'right' = 'left'): string {
   const hw = notch.width / 2;
   const NH = notch.height;
   const fl = 6;
   const NR = 10;
+  const x = (v: number) => q(side === 'left' ? v : -v);
   const x0 = -hw - ext;
-  return `M ${q(x0 - fl)} 0 Q ${q(x0)} 0 ${q(x0)} ${q(fl)} L ${q(x0)} ${q(NH - NR)} Q ${q(x0)} ${q(NH)} ${q(x0 + NR)} ${q(NH)}`
-    + ` L ${q(-hw + NR)} ${q(NH)} L ${q(-hw + NR)} 0 Z`;
+  return `M ${x(x0 - fl)} 0 Q ${x(x0)} 0 ${x(x0)} ${q(fl)} L ${x(x0)} ${q(NH - NR)} Q ${x(x0)} ${q(NH)} ${x(x0 + NR)} ${q(NH)}`
+    + ` L ${x(-hw + NR)} ${q(NH)} L ${x(-hw + NR)} 0 Z`;
+}
+
+// A small notch hanging from the top edge, centred on 0: the lens screen's pill
+// for a status (notchShape in live-status.html).
+export function topPillPath(halfWidth: number, height: number): string {
+  const fl = 6;
+  const R = Math.min(10, height / 2);
+  const [x0, x1, h] = [-halfWidth, halfWidth, height];
+  return `M ${q(x0 - fl)} 0 Q ${q(x0)} 0 ${q(x0)} ${q(fl)} L ${q(x0)} ${q(h - R)} Q ${q(x0)} ${q(h)} ${q(x0 + R)} ${q(h)}`
+    + ` L ${q(x1 - R)} ${q(h)} Q ${q(x1)} ${q(h)} ${q(x1)} ${q(h - R)} L ${q(x1)} ${q(fl)} Q ${q(x1)} 0 ${q(x1 + fl)} 0 Z`;
 }
 
 export interface FadeStop {

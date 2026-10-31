@@ -326,3 +326,42 @@ test('the queue keeps the five newest', async () => {
   }
   expect(seen).toEqual(['3', '4', '5', '6', '7']);
 });
+
+const status = (screen: string) => ({ moduleId: 'timer', text: '18:42', screen });
+const statusShown = (root: HTMLElement) => root.querySelector('.st-pill')?.getAttribute('display') === 'inline';
+
+test('the status shows only on its screen', async () => {
+  const { root, bridge } = await start();
+  bridge.emitStatus(status('other'));
+  expect(statusShown(root)).toBe(false);
+  bridge.emitStatus(status('test'));
+  expect(statusShown(root)).toBe(true);
+  expect(root.querySelector('.st-text')!.textContent).toBe('18:42');
+  bridge.emitStatus(null);
+  expect(statusShown(root)).toBe(false);
+});
+
+test('a status already on at start shows', async () => {
+  const root = document.createElement('div');
+  document.body.append(root);
+  const bridge = fakeBridge(TEST_STATE);
+  bridge.status.mockResolvedValue(status('test'));
+  const r = fakeRaf();
+  await startApp(root, bridge, { raf: r.raf, caf: r.caf, setTimer: timers.setTimer });
+  expect(statusShown(root)).toBe(true);
+});
+
+test('the status hides while a notice or the panel shows', async () => {
+  const { root, app, bridge, r } = await start();
+  bridge.emitStatus(status('test'));
+  bridge.emitNotice(notice('Kirim invoice'));
+  r.runAll(120);
+  expect(app.controller.phase).toBe('notify');
+  expect(statusShown(root)).toBe(false);
+  timers.advance(3640);
+  r.runAll(600);
+  expect(app.controller.phase).toBe('idle');
+  expect(statusShown(root)).toBe(true);
+  open(app, r);
+  expect(statusShown(root)).toBe(false);
+});

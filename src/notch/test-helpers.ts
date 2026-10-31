@@ -1,5 +1,5 @@
 import { beforeEach, vi } from 'vitest';
-import type { Bridge, Notice, PointerUpdate } from '../bridge';
+import type { Bridge, LiveStatus, Notice, PointerUpdate } from '../bridge';
 import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
@@ -137,6 +137,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
   const resign = new Set<() => void>();
   const moduleSubs = new Set<(s: ModuleState) => void>();
   const noticeSubs = new Set<(n: Notice) => void>();
+  const statusSubs = new Set<(s: LiveStatus | null) => void>();
   let state = initial;
   const bridge = {
     screenInfo: vi.fn(async () => ({ label: 'test', hasNotch: false, notchWidth: 0, notchHeight: 0 })),
@@ -153,8 +154,11 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     moduleSandbox: 'allow-scripts',
     openSettings: vi.fn(async () => {}),
     onNotice: vi.fn((cb: (n: Notice) => void) => { noticeSubs.add(cb); return () => { noticeSubs.delete(cb); }; }),
+    status: vi.fn(async (): Promise<LiveStatus | null> => null),
+    onStatus: vi.fn((cb: (s: LiveStatus | null) => void) => { statusSubs.add(cb); return () => { statusSubs.delete(cb); }; }),
     clearMissed: vi.fn(async () => {}),
     emitNotice: (n: Notice) => noticeSubs.forEach(cb => cb(n)),
+    emitStatus: (s: LiveStatus | null) => statusSubs.forEach(cb => cb(s)),
     emitPointer: (p: PointerUpdate) => pointer.forEach(cb => cb(p)),
     emitResignKey: () => resign.forEach(cb => cb()),
     emitModuleState: (s: ModuleState) => { state = s; moduleSubs.forEach(cb => cb(s)); },

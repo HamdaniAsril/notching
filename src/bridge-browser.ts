@@ -1,4 +1,4 @@
-import type { Bridge, Notice } from './bridge';
+import type { Bridge, LiveStatus, Notice } from './bridge';
 import { fakeHome } from './bridge-browser-home';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
@@ -81,7 +81,8 @@ function fakeStats() {
 // `?notch=1` fakes a 164 × 32 notch, `?lang=en` switches to English,
 // `?off=system-stat` switches modules off, `?notice=1` sends a sample notice a
 // second after loading (the n key sends another), `?missed=home.reminder` starts
-// with a missed dot, `?demo=1` adds a test page and `?page=p1` opens a page; the
+// with a missed dot, `?status=18:42` shows a status beside the notch,
+// `?demo=1` adds a test page and `?page=p1` opens a page; the
 // widgets' own switches are in bridge-browser-home.ts. Pointer and clicks come
 // from localPointer().
 export function browserBridge(root: HTMLElement): Bridge {
@@ -145,6 +146,11 @@ export function browserBridge(root: HTMLElement): Bridge {
     moduleSandbox: 'allow-scripts allow-same-origin',
     openSettings: async () => void doc.defaultView?.open(`/settings.html${doc.defaultView.location.search}`, 'notching-settings'),
     onNotice: cb => { noticeSubs.add(cb); return () => noticeSubs.delete(cb); },
+    status: async (): Promise<LiveStatus | null> => {
+      const text = params.get('status');
+      return text ? { moduleId: null, text, screen: 'browser' } : null;
+    },
+    onStatus: () => () => {},
     clearMissed: async () => {
       state = { ...state, missed: [] };
       stateSubs.forEach(cb => cb(state));

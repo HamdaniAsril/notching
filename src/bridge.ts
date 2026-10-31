@@ -29,6 +29,14 @@ export interface Notice {
   seconds: number;
 }
 
+// The status beside the notch (StatusDto in src-tauri/src/status.rs); `screen` is
+// the overlay window it shows on. moduleId is null for the sample.
+export interface LiveStatus {
+  moduleId: string | null;
+  text: string;
+  screen: string;
+}
+
 // What the notch needs from the native side.
 export interface Bridge {
   screenInfo(): Promise<ScreenInfo>;
@@ -45,6 +53,8 @@ export interface Bridge {
   readonly moduleSandbox: string;
   openSettings(): Promise<void>;
   onNotice(cb: (n: Notice) => void): () => void;
+  status(): Promise<LiveStatus | null>;
+  onStatus(cb: (s: LiveStatus | null) => void): () => void;
   clearMissed(): Promise<void>;
 }
 
@@ -84,5 +94,8 @@ export function tauriBridge(): Bridge {
     // Sent to the overlay on the screen under the cursor only.
     onNotice: cb => syncUnlisten(win.listen<Notice>('notching://notice', e => cb(e.payload))),
     clearMissed: () => invoke('clear_missed'),
+    status: () => invoke<LiveStatus | null>('get_status'),
+    // Broadcast to every window; each keeps it only for its own screen.
+    onStatus: cb => syncUnlisten(listen<LiveStatus | null>('notching://status', e => cb(e.payload))),
   };
 }

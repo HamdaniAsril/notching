@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { liquidDepth, notchPath, panelFade, panelPath } from './shape';
+import { liquidDepth, notchPath, notchTabPath, panelFade, panelPath, topPillPath } from './shape';
 
 const flat = { W: 42, H: 4, s: 0, bx: 0 };
 
@@ -33,4 +33,25 @@ test('panel fade is solid down to its start, then eases to the bottom opacity', 
   expect(stops[stops.length - 1].offset).toBeCloseTo(1);
   expect(stops[stops.length - 1].opacity).toBeCloseTo(0.75);
   for (let i = 1; i < stops.length; i++) expect(stops[i].opacity).toBeLessThanOrEqual(stops[i - 1].opacity);
+});
+
+const points = (d: string) => [...d.matchAll(/(-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?)/g)].map(m => [Number(m[1]), Number(m[2])]);
+const letters = (d: string) => d.replace(/[^A-Z]/g, '');
+
+test('the right tab mirrors the left one', () => {
+  const notch = { width: 190, height: 32 };
+  const left = notchTabPath(notch, 56);
+  const right = notchTabPath(notch, 56, 'right');
+  expect(letters(right)).toBe(letters(left));
+  expect(points(right)).toEqual(points(left).map(([x, y]) => [x === 0 ? 0 : -x, y]));
+  expect(notchTabPath(notch, 20)).toBe(notchTabPath(notch, 20, 'left'));
+});
+
+test('the top pill is a closed shape around the centre', () => {
+  const d = topPillPath(46, 22);
+  expect(d).toMatch(/^M -52\.00 0 /);
+  expect(d).toMatch(/ 52\.00 0 Z$/);
+  const xs = points(d).map(([x]) => x);
+  expect(Math.min(...xs)).toBe(-52);
+  expect(Math.max(...points(d).map(([, y]) => y))).toBe(22);
 });
