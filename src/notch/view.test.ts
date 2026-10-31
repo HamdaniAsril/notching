@@ -333,6 +333,26 @@ test('on a lens the pill makes room for the icon left of the text', () => {
   expect(root.querySelector('.st-text')!.getAttribute('x')).toBe('8.5');
 });
 
+test('an empty status shows the icon alone, right-aligned beside a notch', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setStatus('', '/k/icon.svg');
+  expect(shown(root, '.st-tab')).toBe(true);
+  const icon = root.querySelector('.st-icon')!;
+  expect(icon.getAttribute('display')).toBe('inline');
+  // The text would end at 163; with no text the icon ends there instead.
+  expect(icon.getAttribute('x')).toBe('151');
+});
+
+test('an empty status on a lens is a pill just wide enough for the icon', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setStatus('', '/k/icon.svg');
+  // 24 + 12 for the icon, centred: the shoulders reach 6 px further.
+  expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -24\.00 0 /);
+  expect(root.querySelector('.st-icon')!.getAttribute('x')).toBe('-6');
+});
+
 test('a status alone on a lens screen leaves no dot', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));

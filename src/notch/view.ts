@@ -298,8 +298,9 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     return (2 * PILL_PAD + PILL_CHAR * (status ?? '').length + (missed ? PILL_DOT : 0) + iconRoom()) / 2;
   }
 
+  // An empty status is the icon alone (Keyboard Cleaning Mode): no gap after it.
   function iconRoom(): number {
-    return statusIcon ? ST_ICON + ST_GAP : 0;
+    return statusIcon ? ST_ICON + (status ? ST_GAP : 0) : 0;
   }
 
   // Lays the lens pill out for the dot, the icon and the text; the notch tab never
@@ -310,7 +311,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     if (status === null) return;
     if (notch) {
       const end = notch.width / 2 + STATUS_TAB - 8;
-      stIcon.setAttribute('x', String(end - PILL_CHAR * status.length - ST_GAP - ST_ICON));
+      stIcon.setAttribute('x', String(end - PILL_CHAR * status.length - iconRoom()));
       stIcon.setAttribute('y', String(notch.height / 2 - ST_ICON / 2));
       return;
     }

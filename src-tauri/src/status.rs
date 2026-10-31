@@ -28,6 +28,8 @@ pub struct LiveEntry {
     pub module: Option<String>,
     pub activity: Activity,
     pub text: Option<String>,
+    /// Shows as the module's icon alone (Keyboard Cleaning Mode, design 31 Oct §5).
+    pub icon_only: bool,
 }
 
 /// Kept in memory only, in the order the modules started.
@@ -45,13 +47,24 @@ impl LiveStatus {
                 let changed = e.activity != activity;
                 e.activity = activity;
                 e.text = text;
+                e.icon_only = false;
                 changed
             }
             None => {
-                self.entries.push(LiveEntry { module: module.map(String::from), activity, text });
+                self.entries.push(LiveEntry { module: module.map(String::from), activity, text, icon_only: false });
                 true
             }
         }
+    }
+
+    /// A module's status as its icon alone, with no text; true when its
+    /// activity changed.
+    pub fn set_icon(&mut self, module: &str, activity: Activity) -> bool {
+        let changed = self.set(Some(module), activity, None);
+        if let Some(e) = self.entries.iter_mut().find(|e| e.module.as_deref() == Some(module)) {
+            e.icon_only = true;
+        }
+        changed
     }
 
     pub fn clear(&mut self, module: Option<&str>) -> bool {
@@ -68,14 +81,15 @@ impl LiveStatus {
         self.entries.iter().any(|e| e.module.is_none())
     }
 
-    /// The last one started that has text and whose module is not in `off`.
+    /// The last one started that has text, or is an icon alone (text ""), and
+    /// whose module is not in `off`.
     pub fn shown(&self, off: &[String]) -> Option<(Option<String>, String)> {
         self.entries.iter().rev().find_map(|e| {
-            let hidden = e.module.as_ref().is_some_and(|m| off.contains(m));
-            match (&e.text, hidden) {
-                (Some(text), false) => Some((e.module.clone(), text.clone())),
-                _ => None,
+            if e.module.as_ref().is_some_and(|m| off.contains(m)) {
+                return None;
             }
+            let text = if e.icon_only { Some(String::new()) } else { e.text.clone() };
+            text.map(|t| (e.module.clone(), t))
         })
     }
 }
@@ -128,6 +142,19 @@ fn update(app: &AppHandle, f: impl FnOnce(&mut crate::app_core::AppCore) -> bool
 pub fn set(app: &AppHandle, module: &str, activity: Activity, text: Option<&str>) -> Result<(), String> {
     let mut result = Ok(());
     update(app, |core| match core.set_status(Some(module), activity, text) {
+        Ok(changed) => changed,
+        Err(e) => {
+            result = Err(e.to_string());
+            false
+        }
+    });
+    result
+}
+
+/// A module's status as its icon alone; it must declare "status".
+pub fn set_icon(app: &AppHandle, module: &str, activity: Activity) -> Result<(), String> {
+    let mut result = Ok(());
+    update(app, |core| match core.set_status_icon(module, activity) {
         Ok(changed) => changed,
         Err(e) => {
             result = Err(e.to_string());
@@ -195,6 +222,21 @@ mod tests {
         assert_eq!(live.activity("a"), Some(Activity::On));
         assert_eq!(live.activity("b"), Some(Activity::On));
         assert_eq!(live.activity("c"), None);
+    }
+
+    #[test]
+    fn an_icon_only_status_shows_with_empty_text() {
+        let mut live = LiveStatus::default();
+        live.set(Some("a"), Activity::Running, Some("18:42"));
+        assert!(live.set_icon("k", Activity::On));
+        assert_eq!(shown(&live), of("k", ""));
+        assert_eq!(live.activity("k"), Some(Activity::On));
+        assert_eq!(live.shown(&["k".into()]), of("a", "18:42"));
+        // Text set later replaces the icon alone.
+        live.set(Some("k"), Activity::On, Some("On"));
+        assert_eq!(shown(&live), of("k", "On"));
+        assert!(!live.set_icon("k", Activity::On));
+        assert_eq!(shown(&live), of("k", ""));
     }
 
     #[test]

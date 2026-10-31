@@ -216,6 +216,13 @@ impl AppCore {
         Ok(self.live.set(module, activity, text))
     }
 
+    pub fn set_status_icon(&mut self, module: &str, activity: Activity) -> Result<bool, CoreError> {
+        if !self.module(module).is_some_and(|e| e.manifest.capabilities.contains(&Capability::Status)) {
+            return Err(CoreError::Invalid("status".into()));
+        }
+        Ok(self.live.set_icon(module, activity))
+    }
+
     pub fn clear_status(&mut self, module: Option<&str>) -> bool {
         self.live.clear(module)
     }
