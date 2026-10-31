@@ -29,7 +29,7 @@ export function tauriSettingsBridge(): SettingsBridge {
     setChannel: (module, channel, { on, sound }) => invoke('set_channel', { module, channel, on, sound }),
     sendSampleNotice: (title, detail) => invoke('send_sample_notice', { title, detail }),
     addPage: (name, icon) => invoke<string>('add_page', { name, icon }),
-    setPage: (id, name, icon, widgets) => invoke('set_page', { id, name, icon, widgets }),
+    setPage: (id, name, icon, widgets, strip) => invoke('set_page', { id, name, icon, widgets, strip }),
     deletePage: id => invoke('delete_page', { id }),
     movePage: (id, to) => invoke('move_page', { id, to }),
     setSampleStatus: on => invoke('set_sample_status', { on }),

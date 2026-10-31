@@ -62,7 +62,7 @@ export interface SettingsBridge {
   setChannel(module: string, channel: string, pref: { on: boolean; sound: boolean }): Promise<void>;
   sendSampleNotice(title: string, detail: string): Promise<void>; // always with sound, on the screen under the cursor
   addPage(name: string, icon: string): Promise<string>; // the new page's id
-  setPage(id: string, name: string | null, icon: string, widgets: Placement[]): Promise<void>; // the whole page
+  setPage(id: string, name: string | null, icon: string, widgets: Placement[], strip: string | null): Promise<void>; // the whole page
   deletePage(id: string): Promise<void>;
   movePage(id: string, to: number): Promise<void>; // `to` counts among the custom pages
   setSampleStatus(on: boolean): Promise<void>; // the status beside the notch, to try its look

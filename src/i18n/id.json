@@ -111,6 +111,7 @@
         "media": "Media"
       },
       "cols": "{n} kolom",
+      "strip": "Strip",
       "placed": "Sudah dipasang",
       "noRoom": "Penuh, seret untuk mengganti",
       "sourceOff": "Modul dimatikan",

@@ -86,8 +86,8 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
       setPages([...state.pages, { id: `p${n}`, name, icon, widgets: [] }]);
       return `p${n}`;
     },
-    setPage: async (id, name, icon, widgets) =>
-      setPages(state.pages.map(p => (p.id === id ? { ...p, name, icon, widgets } : p))),
+    setPage: async (id, name, icon, widgets, strip) =>
+      setPages(state.pages.map(p => (p.id === id ? { ...p, name, icon, widgets, strip } : p))),
     deletePage: async id => setPages(state.pages.filter(p => p.id !== id)),
     setSampleStatus: async on => setState({ ...state, sampleStatus: on }),
     setStatusShown: async (id, on) => setModule(id, { statusShown: on }),

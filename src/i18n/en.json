@@ -111,6 +111,7 @@
         "media": "Media"
       },
       "cols": "{n} columns",
+      "strip": "Strip",
       "placed": "Already here",
       "noRoom": "Full, drag to replace",
       "sourceOff": "Module is off",

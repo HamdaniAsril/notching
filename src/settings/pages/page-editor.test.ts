@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { expect, test, vi } from 'vitest';
 import type { ModuleState, Page, Placement } from '../../modules/types';
-import { BERANDA, homeWidgets, moduleInfo, TEST_STATE } from '../../notch/test-helpers';
+import { BERANDA, homeWidgets, moduleInfo, TEST_STATE, timerInfo } from '../../notch/test-helpers';
 import { pageIconSvg } from '../../pages/icons';
 import { mountForTest, settle, TEST_INFO } from '../test-helpers';
 
@@ -28,7 +28,7 @@ test('clicking a widget puts it in the first free spot', async () => {
   expect(root.querySelector('.pane h1')!.textContent).toBe('Beranda');
   widgetButton(root, 'Cuaca').click();
   expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
-    [at('home/date', 0), at('home/weather', 1), at('home/reminders', 2, 2)]);
+    [at('home/date', 0), at('home/weather', 1), at('home/reminders', 2, 2)], null);
 });
 
 test('a widget already here or without room is dimmed', async () => {
@@ -69,7 +69,7 @@ test('removing a widget frees its columns', async () => {
   const { root, bridge } = await edit('home');
   const remove = root.querySelector<HTMLElement>('[aria-label="Lepas Reminder"]')!;
   remove.click();
-  expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home', [at('home/date', 0), at('home/weather', 1)]);
+  expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home', [at('home/date', 0), at('home/weather', 1)], null);
   expect(root.querySelectorAll('.ed-row .ed-empty')).toHaveLength(2);
 });
 
@@ -123,7 +123,7 @@ test('renaming saves on Enter, not when unchanged', async () => {
   name.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
   name.dispatchEvent(new Event('blur'));
   expect(bridge.setPage).toHaveBeenCalledTimes(1);
-  expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kantor', 'briefcase', [at('home/clock', 0)]);
+  expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kantor', 'briefcase', [at('home/clock', 0)], null);
 });
 
 test('a page name is text, never markup', async () => {
@@ -154,7 +154,7 @@ test('clicking the icon opens a popup of icons; picking one saves it', async () 
   expect(root.querySelectorAll('.ed-icons button')).toHaveLength(24);
   expect(key(root, 'pageEdit.icon.briefcase')!.getAttribute('aria-pressed')).toBe('true');
   key(root, 'pageEdit.icon.book')!.click();
-  expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kerja', 'book', [at('home/clock', 0)]);
+  expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kerja', 'book', [at('home/clock', 0)], null);
   expect(root.querySelector('.ed-icons')).toBeNull();
 });
 
@@ -221,14 +221,14 @@ test('dragging a slot onto another swaps them', async () => {
   const weather = root.querySelector<HTMLElement>('.ed-slot[aria-label="Cuaca"]')!;
   drag(root, weather, 10);
   expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
-    [at('home/weather', 0), at('home/date', 1), at('home/reminders', 2, 2)]);
+    [at('home/weather', 0), at('home/date', 1), at('home/reminders', 2, 2)], null);
 });
 
 test('dragging a widget onto a full row replaces what it covers', async () => {
   const { root, bridge } = await edit('home');
   drag(root, widgetButton(root, 'Jam'), 350);
   expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
-    [at('home/date', 0), at('home/weather', 1), at('home/clock', 2)]);
+    [at('home/date', 0), at('home/weather', 1), at('home/clock', 2)], null);
 });
 
 test('the ghost goes once the drag ends', async () => {
@@ -255,7 +255,7 @@ test('dragging onto the right half of a wide widget swaps with it too', async ()
   const weather = root.querySelector<HTMLElement>('.ed-slot[aria-label="Cuaca"]')!;
   drag(root, weather, 350);
   expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
-    [at('home/date', 0), at('home/reminders', 1, 2), at('home/weather', 3)]);
+    [at('home/date', 0), at('home/reminders', 1, 2), at('home/weather', 3)], null);
 });
 
 test('the preview refits only when its width changes, so resizing never loops', async () => {
@@ -295,7 +295,7 @@ test('a rename and then an icon change keep both, before any echo comes back', a
   enterOn(name);
   key(root, 'pageEdit.icon')!.click();
   key(root, 'pageEdit.icon.book')!.click();
-  expect(bridge.setPage).toHaveBeenLastCalledWith('p1', 'Kantor', 'book', [at('home/clock', 0)]);
+  expect(bridge.setPage).toHaveBeenLastCalledWith('p1', 'Kantor', 'book', [at('home/clock', 0)], null);
   // The head shows the new icon at once.
   const book = document.createElement('span');
   book.innerHTML = pageIconSvg('book');
@@ -317,4 +317,63 @@ test('the echo of its own save leaves the editor as it is', async () => {
   bridge.emitModuleState({ ...STATE, pages: [BERANDA, { ...KERJA, name: 'Gudang' }] });
   expect((key(root, 'pageEdit.name') as HTMLInputElement).value).toBe('Gudang');
   expect(root.querySelector('.ed-icons')).toBeNull();
+});
+
+const WITH_TIMER: ModuleState = { ...STATE, modules: [...STATE.modules, timerInfo()] };
+const stripCard = (root: HTMLElement, ref = 'timer/strip') => key(root, `pageEdit.widget.${ref}`)!;
+
+test('the strip area says Strip when empty and a strip card fills it', async () => {
+  const { root, bridge } = await edit('p1', WITH_TIMER);
+  expect(root.querySelector('.ed-row .ed-strip-empty')!.textContent).toBe('Strip');
+  expect(root.querySelector('.ed-row .ed-strip-line')).not.toBeNull();
+  expect(stripCard(root).dataset.width).toBe('4');
+  stripCard(root).click();
+  expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kerja', 'briefcase', [at('home/clock', 0)], 'timer/strip');
+  expect(root.querySelector('.ed-row .ed-strip')).not.toBeNull();
+});
+
+test('a placed strip shows its sample with a remove button and its card is disabled', async () => {
+  const { root, bridge } = await edit('p1', { ...WITH_TIMER, pages: [BERANDA, { ...KERJA, strip: 'timer/strip' }] });
+  const strip = root.querySelector<HTMLElement>('.ed-row .ed-strip')!;
+  expect(strip.dataset.key).toBe('pageEdit.strip');
+  expect(strip.textContent).toContain('25m');
+  expect(stripCard(root).getAttribute('aria-disabled')).toBe('true');
+  expect(stripCard(root).textContent).toContain('Sudah dipasang');
+  stripCard(root).click();
+  expect(bridge.setPage).not.toHaveBeenCalled();
+  key(root, 'pageEdit.remove.timer/strip')!.click();
+  expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kerja', 'briefcase', [at('home/clock', 0)], null);
+  expect(root.querySelector('.ed-row .ed-strip-empty')).not.toBeNull();
+});
+
+test('another strip widget replaces the strip', async () => {
+  const bar = moduleInfo('bar', { widgets: [{ id: 'bar', name: 'Bar', entry: 'index.html', width: 4, kind: 'work' }] });
+  const state = { ...WITH_TIMER, modules: [...WITH_TIMER.modules, bar], pages: [BERANDA, { ...KERJA, strip: 'timer/strip' }] };
+  const { root, bridge } = await edit('p1', state);
+  stripCard(root, 'bar/bar').click();
+  expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kerja', 'briefcase', [at('home/clock', 0)], 'bar/bar');
+});
+
+test('row widgets still go to the row and keep the strip', async () => {
+  const { root, bridge } = await edit('p1', { ...WITH_TIMER, pages: [BERANDA, { ...KERJA, strip: 'timer/strip' }] });
+  widgetButton(root, 'Cuaca').click();
+  expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kerja', 'briefcase', [at('home/clock', 0), at('home/weather', 1)], 'timer/strip');
+});
+
+test('a strip whose module is off keeps its place, marked off', async () => {
+  const state = { ...STATE, modules: [...STATE.modules, timerInfo({ enabled: false })], pages: [BERANDA, { ...KERJA, strip: 'timer/strip' }] };
+  const { root } = await edit('p1', state);
+  const strip = root.querySelector<HTMLElement>('.ed-row .ed-strip')!;
+  expect(strip.classList.contains('off')).toBe(true);
+  expect(strip.textContent).toContain('Modul dimatikan');
+});
+
+test('the echo of its own save with a null strip leaves the editor as it is', async () => {
+  const { root, bridge } = await edit('p1');
+  key(root, 'pageEdit.icon')!.click();
+  const popup = root.querySelector('.ed-icons');
+  (key(root, 'pageEdit.name') as HTMLInputElement).value = 'Kantor';
+  enterOn(key(root, 'pageEdit.name') as HTMLInputElement);
+  bridge.emitModuleState({ ...STATE, pages: [BERANDA, { ...KERJA, name: 'Kantor', strip: null }] });
+  expect(root.querySelector('.ed-icons')).toBe(popup);
 });

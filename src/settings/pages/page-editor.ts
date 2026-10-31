@@ -1,7 +1,7 @@
 import { fill } from '../../i18n';
 import type { ModuleState, Page, WidgetKind } from '../../modules/types';
 import { PAGE_ICON_NAMES, pageIconSvg } from '../../pages/icons';
-import { COLUMNS, place, removeWidget, replaceAt, slots, swapInto, widgetCatalog, type CatalogWidget } from '../../pages/layout';
+import { COLUMNS, place, removeWidget, replaceAt, slots, STRIP_WIDTH, stripSlot, swapInto, widgetCatalog, type CatalogWidget } from '../../pages/layout';
 import { button, el, head } from '../controls';
 import { columnAt, dragWith, liftGhost } from '../drag';
 import { icon } from '../icons';
@@ -21,9 +21,13 @@ let filter: WidgetKind | 'all' = 'all';
 // would drop an open icon popup or the click that was on its way.
 let sent: { id: string; page: Page } | null = null;
 
+// A strip that is absent and one that is null are the same: the native side
+// always sends null.
+const pageJson = (p: Page) => JSON.stringify({ ...p, strip: p.strip ?? null });
+
 export function isOwnEcho(prev: ModuleState, next: ModuleState, id: string): boolean {
   const mine = next.pages.find(p => p.id === id);
-  if (!sent || sent.id !== id || !mine || JSON.stringify(mine) !== JSON.stringify(sent.page)) return false;
+  if (!sent || sent.id !== id || !mine || pageJson(mine) !== pageJson(sent.page)) return false;
   const rest = (s: ModuleState) => JSON.stringify({ ...s, pages: s.pages.filter(p => p.id !== id) });
   return rest(prev) === rest(next);
 }
@@ -246,7 +250,31 @@ function preview(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidge
     empty.style.gridColumn = `${c + 1}`;
     row.append(empty);
   }
+  row.append(el('div', 'ed-strip-line'), stripArea(ctx, page, catalog, save));
   return row;
+}
+
+// The strip under the row (design 31 Oct, Timer §3): its sample with a remove
+// button, or an empty place. Not a slot of the row: nothing is dragged here.
+function stripArea(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidget>, save: (next: Page) => void): HTMLElement {
+  const s = ctx.strings.pages;
+  const slot = stripSlot(page, catalog);
+  if (!slot) return el('div', 'ed-strip-empty', s.strip);
+  const { placement, widget } = slot;
+  const name = widget?.name ?? placement.widget;
+  const strip = el('div', widget ? 'ed-strip' : 'ed-strip off');
+  strip.dataset.key = 'pageEdit.strip';
+  strip.setAttribute('aria-label', name);
+  strip.title = name;
+  if (widget) strip.append(...widgetSample(widget, ctx.lang));
+  else strip.append(el('div', 'lab', name), el('small', undefined, s.sourceOff));
+  const remove = el('button', 'ed-remove', '×');
+  remove.type = 'button';
+  remove.dataset.key = `pageEdit.remove.${placement.widget}`;
+  remove.setAttribute('aria-label', fill(s.remove, { name }));
+  remove.addEventListener('click', () => save({ ...page, strip: null }));
+  strip.append(remove);
+  return strip;
 }
 
 // The row as wide as in the notch (520 px and its 18 px sides), and the room the
@@ -304,6 +332,10 @@ function widgetList(ctx: PageContext, page: Page, catalog: Map<string, CatalogWi
 
   const list = el('div', 'ed-widgets');
   for (const w of all.filter(x => filter === 'all' || x.kind === filter)) {
+    if (w.width === STRIP_WIDTH) {
+      list.append(stripCard(ctx, page, w, save));
+      continue;
+    }
     const here = page.widgets.some(p => p.widget === w.ref);
     const placed = here ? null : place(page.widgets, w.ref, w.width);
     // A picture of the widget with its name below; a 2-column widget is twice as wide.
@@ -331,6 +363,25 @@ function widgetList(ctx: PageContext, page: Page, catalog: Map<string, CatalogWi
   return [chips, list];
 }
 
+// A strip widget's card: a click puts it under the row, in place of any other
+// strip there. No drag: there is only the one place.
+function stripCard(ctx: PageContext, page: Page, w: CatalogWidget, save: (next: Page) => void): HTMLElement {
+  const s = ctx.strings.pages;
+  const here = page.strip === w.ref;
+  const b = el('button', 'ed-widget');
+  b.type = 'button';
+  b.dataset.key = `pageEdit.widget.${w.ref}`;
+  b.dataset.width = String(w.width);
+  b.title = `${s.kinds[w.kind]} · ${s.strip}`;
+  b.append(widgetPreview(w, ctx.lang), el('span', 'ed-name', w.name));
+  if (here) {
+    b.setAttribute('aria-disabled', 'true');
+    b.append(el('small', 'ed-why', s.placed));
+  }
+  b.addEventListener('click', () => { if (!here) save({ ...page, strip: w.ref }); });
+  return b;
+}
+
 // One page of the pill (design 30 Oct §9): a preview of its row, the widgets to
 // put in it and, for a custom page, its name, icon and delete. Every change sends
 // the whole page; the editor shows it at once and the broadcast that follows
@@ -353,7 +404,7 @@ export const pageEditor: PageRender = (ctx, route) => {
   const save = (next: Page) => {
     page = next;
     sent = { id, page: next };
-    ctx.save(`page.${id}`, ctx.bridge.setPage(id, home ? null : next.name, next.icon, next.widgets));
+    ctx.save(`page.${id}`, ctx.bridge.setPage(id, home ? null : next.name, next.icon, next.widgets, next.strip ?? null));
     draw();
   };
   function draw(): void {

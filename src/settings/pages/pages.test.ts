@@ -57,6 +57,13 @@ test('the page list shows Beranda, the custom pages, then Modul', async () => {
   expect(rows[0].querySelector('svg')).not.toBeNull();
 });
 
+test('a page counts its strip among its widgets', async () => {
+  const kerja = { id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [{ widget: 'home/clock', col: 0, width: 1 },
+    { widget: 'home/date', col: 1, width: 1 }], strip: 'timer/strip' };
+  const { root } = await open(TEST_INFO, { ...STATE, pages: [BERANDA, kerja] });
+  expect(root.querySelector('[data-row="page.p1"]')!.textContent).toContain('3 widget');
+});
+
 test('System stat still says it has no settings', async () => {
   const t = await mountForTest(STATE);
   t.app.go({ page: 'module', id: 'system-stat' });

@@ -47,7 +47,7 @@ export function pageRow(ctx: PageContext, page: Page | 'modules'): HTMLElement {
   } else {
     r.dataset.row = `page.${page.id}`;
     t.append(el('span', 'label', page.name ?? ctx.strings.home.homeName));
-    r.append(pageIcon(pageIconSvg(page.icon)), t, el('span', 'size', fill(s.widgets, { n: page.widgets.length })));
+    r.append(pageIcon(pageIconSvg(page.icon)), t, el('span', 'size', fill(s.widgets, { n: page.widgets.length + (page.strip ? 1 : 0) })));
   }
   return r;
 }
