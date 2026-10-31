@@ -1,0 +1,26 @@
+{
+  "name": "Keep awake",
+  "shortName": "Awake",
+  "description": "Keeps your Mac awake",
+  "off": "Off",
+  "startFor": "Keep on for",
+  "hour1": "1 hr",
+  "hour2": "2 hrs",
+  "minutes": "min",
+  "boxHint": "Click the box: 1 hr",
+  "until": "On until {time}",
+  "forever": "On with no limit",
+  "stopHint": "Click the box to turn off",
+  "add15": "+15 m",
+  "add30": "+30 m",
+  "add60": "+1 hr",
+  "channels": {
+    "done": "Keep awake ended"
+  },
+  "notice": {
+    "done": {
+      "title": "Keep awake ended",
+      "detail": "Your Mac sleeps as usual again"
+    }
+  }
+}

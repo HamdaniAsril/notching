@@ -1,0 +1,115 @@
+/* Mockup B (2026-10-31-keep-awake-mockups/page-layout.html). Classes start with
+   ka- so they never meet the notch's own. */
+.ka-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 104px;
+}
+
+.ka-box {
+  width: 96px;
+  height: 96px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--w);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ka-box svg {
+  width: 26px;
+  height: 26px;
+}
+
+.ka-box-text {
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 15px;
+  line-height: 18px;
+}
+
+.ka-box:not(.on) .ka-box-text {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--g1);
+}
+
+.ka-box.on {
+  background: var(--w);
+  color: #000;
+}
+
+.ka-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ka-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ka-chips:empty {
+  display: none;
+}
+
+.ka-chip,
+.ka-field {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.ka-chip {
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+
+.ka-chip:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.ka-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  color: var(--g2);
+}
+
+.ka-input {
+  width: 3.2em;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--w);
+  font: inherit;
+  text-align: right;
+}
+
+.ka-box:focus-visible,
+.ka-chip:focus-visible,
+.ka-field:focus-within {
+  outline: 1px solid var(--g1);
+  outline-offset: 2px;
+}

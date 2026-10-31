@@ -1,0 +1,26 @@
+{
+  "name": "Keep awake",
+  "shortName": "Awake",
+  "description": "Mac tetap menyala",
+  "off": "Mati",
+  "startFor": "Nyalakan selama",
+  "hour1": "1 jam",
+  "hour2": "2 jam",
+  "minutes": "menit",
+  "boxHint": "Klik kotak: 1 jam",
+  "until": "Menyala sampai {time}",
+  "forever": "Menyala tanpa batas",
+  "stopHint": "Klik kotak untuk mematikan",
+  "add15": "+15 m",
+  "add30": "+30 m",
+  "add60": "+1 jam",
+  "channels": {
+    "done": "Keep awake selesai"
+  },
+  "notice": {
+    "done": {
+      "title": "Keep awake selesai",
+      "detail": "Mac kembali tidur seperti biasa"
+    }
+  }
+}
