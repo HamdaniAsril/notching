@@ -76,7 +76,17 @@ test('the preview lays the slots out in four columns', async () => {
   const { root } = await edit('home');
   const slots = [...root.querySelectorAll<HTMLElement>('.ed-row .ed-slot')];
   expect(slots.map(s => [s.dataset.col, s.dataset.width])).toEqual([['0', '1'], ['1', '1'], ['2', '2']]);
-  expect(slots.map(s => s.querySelector('.ed-name')!.textContent)).toEqual(['Tanggal', 'Cuaca', 'Reminder']);
+  expect(slots.map(s => s.getAttribute('aria-label'))).toEqual(['Tanggal', 'Cuaca', 'Reminder']);
+});
+
+test('the preview is shaped like the notch and shows each widget', async () => {
+  const { root } = await edit('home');
+  const notch = root.querySelector<HTMLElement>('.ed-notch')!;
+  expect(notch.querySelector('.ed-row')).not.toBeNull();
+  const [date, weather, reminders] = [...notch.querySelectorAll<HTMLElement>('.ed-slot')];
+  expect(date.querySelector('svg.dm')).not.toBeNull();
+  expect(weather.querySelector('svg.dm')).not.toBeNull();
+  expect(reminders.querySelectorAll('.rm')).toHaveLength(3);
 });
 
 test('the kind filter keeps only that kind and survives a rebuild', async () => {

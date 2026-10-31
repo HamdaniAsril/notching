@@ -8,7 +8,7 @@ import { icon } from '../icons';
 import type { PageContext, PageRender } from '../types';
 import { UNINSTALL_CONFIRM_MS } from './modules';
 import { arrived, pageIcon } from './pages';
-import { widgetPreview } from './widget-preview';
+import { widgetPreview, widgetSample } from './widget-preview';
 
 const KINDS: WidgetKind[] = ['time', 'weather', 'worship', 'work', 'media'];
 
@@ -182,9 +182,10 @@ function preview(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidge
     slot.dataset.col = String(placement.col);
     slot.dataset.width = String(placement.width);
     slot.style.gridColumn = `${placement.col + 1} / span ${placement.width}`;
-    const label = el('span', 'ed-name', name);
-    slot.append(label);
-    if (!widget) slot.append(el('small', undefined, s.sourceOff));
+    slot.setAttribute('aria-label', name);
+    slot.title = name;
+    if (widget) slot.append(...widgetSample(widget, ctx.lang, true));
+    else slot.append(el('div', 'lab', name), el('small', undefined, s.sourceOff));
     const remove = el('button', 'ed-remove', '×');
     remove.type = 'button';
     remove.dataset.key = `pageEdit.remove.${placement.widget}`;
@@ -208,6 +209,29 @@ function preview(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidge
     row.append(empty);
   }
   return row;
+}
+
+// The row as wide as in the notch (520 px and its 18 px sides), and the room the
+// ears and the strip around it take.
+const ROW_PX = 556;
+const AROUND_PX = 56;
+
+// The row inside a panel shaped like the open notch: square on top where it
+// meets the screen's edge, round below. It is drawn at the notch's own size and
+// shrunk as a whole to fit the window.
+function notchFrame(ctx: PageContext, row: HTMLElement): HTMLElement {
+  const notch = el('div', 'ed-notch');
+  notch.append(row);
+  const fit = () => {
+    const room = notch.clientWidth - AROUND_PX;
+    if (room > 0) row.style.setProperty('zoom', String(Math.min(1, room / ROW_PX)));
+  };
+  if (typeof ResizeObserver !== 'undefined') {
+    const watch = new ResizeObserver(fit);
+    watch.observe(notch);
+    ctx.onCleanup(() => watch.disconnect());
+  }
+  return notch;
 }
 
 function widgetList(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidget>, row: () => HTMLElement,
@@ -285,7 +309,7 @@ export const pageEditor: PageRender = (ctx, route) => {
     const focus = (body.ownerDocument.activeElement as HTMLElement | null)?.dataset.key;
     const row = preview(ctx, page, catalog, save);
     body.replaceChildren(
-      el('div', 'grp-label', s.preview), row,
+      el('div', 'grp-label', s.preview), notchFrame(ctx, row),
       el('div', 'grp-label', s.widgetList), ...widgetList(ctx, page, catalog, () => row, save, draw),
     );
     if (focus) body.querySelector<HTMLElement>(`[data-key="${focus}"]`)?.focus();

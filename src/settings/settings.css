@@ -781,76 +781,157 @@ input:focus-visible,
   color: var(--fg);
 }
 
+/* The preview: a strip of screen with the open notch hanging from its top edge,
+   square where it meets the edge and round below, with ears curving into the
+   edge on both sides; inside, the row of 4 columns as the notch draws it. */
+.ed-notch {
+  margin-top: 8px;
+  padding: 0 28px 16px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--sel);
+  display: flex;
+  justify-content: center;
+}
+
 .ed-row {
+  position: relative;
+  flex: none;
+  width: 520px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 8px;
-  padding: 10px;
-  border-radius: 12px;
+  column-gap: 16px;
+  padding: 12px 18px 16px;
+  border-radius: 0 0 22px 22px;
   background: #000;
-  box-shadow: inset 0 0 0 1px var(--line);
   color: #fff;
-  --ed-line: rgba(255, 255, 255, 0.22);
+  --g1: rgba(255, 255, 255, 0.68);
+  --g2: rgba(255, 255, 255, 0.45);
+  --g3: rgba(255, 255, 255, 0.16);
+}
+
+.ed-row::before,
+.ed-row::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.ed-row::before {
+  left: -12px;
+  background: radial-gradient(circle at 0 100%, transparent 12px, #000 12.5px);
+}
+
+.ed-row::after {
+  right: -12px;
+  background: radial-gradient(circle at 100% 100%, transparent 12px, #000 12.5px);
 }
 
 .ed-slot,
 .ed-empty {
   position: relative;
+  grid-row: 1;
   min-width: 0;
-  height: 56px;
-  border-radius: 8px;
+  height: 104px;
   box-sizing: border-box;
-  padding: 8px 9px;
+  border-radius: 8px;
+}
+
+/* The dotted line in the gap before every column but the first, as in the notch. */
+.ed-slot:not([data-col="0"])::before,
+.ed-empty:not([data-col="0"])::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -9.5px;
+  width: 3px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) center top / 3px 5px repeat-y;
 }
 
 .ed-slot {
-  background: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 2px;
   cursor: grab;
   touch-action: none;
 }
 
-.ed-slot .ed-name {
+.ed-slot:hover {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+/* Sizes as in modules/home/style.css. */
+.ed-slot .lab {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ed-slot .ed-line {
+  font-size: 15px;
+  line-height: 19px;
+}
+
+.ed-slot .rm {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 18px;
   white-space: nowrap;
-  font-size: 12px;
+}
+
+.ed-slot .rm + .rm {
+  margin-top: -2px;
+}
+
+.ed-slot .rm .ck {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-width: 1.2px;
+  box-sizing: border-box;
+  border: 1px solid var(--g2);
+  border-radius: 50%;
 }
 
 .ed-slot small {
-  display: block;
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--g2);
   font-size: 10.5px;
 }
 
-.ed-slot.off .ed-name {
-  color: rgba(255, 255, 255, 0.45);
+.ed-slot.off .lab {
+  color: var(--g2);
 }
 
 .ed-remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 0;
+  right: 0;
   width: 18px;
   height: 18px;
   border: 0;
   border-radius: 50%;
   padding: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.55);
+  background: #262626;
+  color: #fff;
   font-size: 13px;
   line-height: 18px;
+  opacity: 0;
+  transition: opacity 0.12s;
 }
 
-.ed-remove:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+.ed-slot:hover .ed-remove,
+.ed-remove:focus-visible {
+  opacity: 1;
 }
 
 .ed-empty {
-  border: 1px dashed var(--ed-line);
+  border: 1px dashed rgba(255, 255, 255, 0.22);
   color: rgba(255, 255, 255, 0.35);
   font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 9.5px;
@@ -862,7 +943,7 @@ input:focus-visible,
 
 .ed-row .ed-target {
   outline: 1.5px solid #fff;
-  outline-offset: -1.5px;
+  outline-offset: 1px;
 }
 
 /* The widgets to put on the page, with a filter by kind. */

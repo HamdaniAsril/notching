@@ -1,4 +1,4 @@
-import { dotBar, dotText } from '../../kit/dots';
+import { dotBar, dotText, fitPitch } from '../../kit/dots';
 import type { Lang } from '../../kit/protocol';
 import type { CatalogWidget } from '../../pages/layout';
 import { el } from '../controls';
@@ -6,7 +6,10 @@ import { el } from '../controls';
 // A small picture of a widget for the page editor's list: sample content drawn
 // the way the widget draws it, on black like the notch. Not live data.
 
-const PITCH = 3;
+// The list's cards draw small dots; the notch preview draws them as the widget
+// does, one dot smaller when the column is too narrow.
+const CARD_PITCH = 3;
+const COLUMN_PX = 109;
 const AT = new Date(2026, 9, 30, 9, 32);
 
 const SAMPLE: Record<Lang, { city: string; sky: string; prayer: string; next: string; reminders: string; rows: string[] }> = {
@@ -16,26 +19,28 @@ const SAMPLE: Record<Lang, { city: string; sky: string; prayer: string; next: st
     rows: ['Send invoice', 'Pay the bill', 'Call mum'] },
 };
 
-function dots(text: string): HTMLElement {
+function dots(text: string, real: boolean): HTMLElement {
   const d = el('div', 'ed-dots');
-  d.innerHTML = dotText(text, PITCH); // digits only, drawn as circles
+  d.innerHTML = dotText(text, real ? fitPitch(text, COLUMN_PX) : CARD_PITCH); // digits only, drawn as circles
   return d;
 }
 
 const lab = (text: string) => el('div', 'lab', text);
 
-function sample(w: CatalogWidget, lang: Lang): HTMLElement[] {
+// The sample content alone. `real`: at the notch's own size, for the editor's
+// notch preview; otherwise small, for a card in the list.
+export function widgetSample(w: CatalogWidget, lang: Lang, real = false): HTMLElement[] {
   const s = SAMPLE[lang];
   switch (w.ref) {
     case 'home/date': {
       const day = lab(new Intl.DateTimeFormat(lang, { weekday: 'long' }).format(AT));
       day.prepend(el('i', 'rd'));
-      return [day, dots('30'), lab(new Intl.DateTimeFormat(lang, { month: 'long' }).format(AT))];
+      return [day, dots('30', real), lab(new Intl.DateTimeFormat(lang, { month: 'long' }).format(AT))];
     }
     case 'home/clock':
-      return [dots('09'), dots('32')];
+      return [dots('09', real), dots('32', real)];
     case 'home/weather':
-      return [lab(s.city), dots('31°'), lab(s.sky)];
+      return [lab(s.city), dots('31°', real), lab(s.sky)];
     case 'home/prayer': {
       const bar = el('div', 'ed-dots');
       bar.innerHTML = dotBar(16, 10);
@@ -55,6 +60,6 @@ function sample(w: CatalogWidget, lang: Lang): HTMLElement[] {
 export function widgetPreview(w: CatalogWidget, lang: Lang): HTMLElement {
   const shot = el('div', 'ed-shot');
   shot.setAttribute('aria-hidden', 'true');
-  shot.append(...sample(w, lang));
+  shot.append(...widgetSample(w, lang));
   return shot;
 }
