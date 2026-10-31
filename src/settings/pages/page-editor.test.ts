@@ -36,9 +36,32 @@ test('a widget already here or without room is dimmed', async () => {
   expect(buttons.map(b => b.getAttribute('aria-disabled'))).toEqual(buttons.map(() => 'true'));
   expect(widgetButton(root, 'Tanggal').textContent).toContain('Sudah dipasang');
   expect(widgetButton(root, 'Jam').textContent).toContain('Tidak muat');
-  expect(widgetButton(root, 'Reminder').textContent).toContain('2 kolom');
+  expect(widgetButton(root, 'Reminder').title).toBe('Kerja · 2 kolom');
   widgetButton(root, 'Jam').click();
   expect(bridge.setPage).not.toHaveBeenCalled();
+});
+
+test('each widget shows a preview with its name below, in a grid', async () => {
+  const { root } = await edit('p1');
+  const jam = widgetButton(root, 'Jam');
+  expect([...jam.children].map(c => c.className)).toEqual(['ed-shot', 'ed-name', 'ed-why']);
+  expect(jam.querySelector('.ed-shot svg.dm')).not.toBeNull();
+  expect(jam.title).toBe('Waktu · 1 kolom');
+  expect(jam.dataset.width).toBe('1');
+  const tanggal = widgetButton(root, 'Tanggal');
+  expect([...tanggal.children].map(c => c.className)).toEqual(['ed-shot', 'ed-name']);
+  const reminder = widgetButton(root, 'Reminder');
+  expect(reminder.dataset.width).toBe('2');
+  expect(reminder.querySelectorAll('.ed-shot .rm')).toHaveLength(3);
+  expect(widgetButton(root, 'Cuaca').querySelector('.ed-shot svg.dm')).not.toBeNull();
+});
+
+test('a widget from another package gets a plain preview', async () => {
+  const other = moduleInfo('timer', { entry: null, card: null,
+    widgets: [{ id: 'timer', name: 'Timer', entry: 'index.html', width: 1, kind: 'work' }] });
+  const { root } = await edit('p1', { ...STATE, modules: [...STATE.modules, other] });
+  const timer = widgetButton(root, 'Timer');
+  expect(timer.querySelector('.ed-shot')!.textContent).toBe('Timer');
 });
 
 test('removing a widget frees its columns', async () => {

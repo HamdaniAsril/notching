@@ -8,6 +8,7 @@ import { icon } from '../icons';
 import type { PageContext, PageRender } from '../types';
 import { UNINSTALL_CONFIRM_MS } from './modules';
 import { arrived, pageIcon } from './pages';
+import { widgetPreview } from './widget-preview';
 
 const KINDS: WidgetKind[] = ['time', 'weather', 'worship', 'work', 'media'];
 
@@ -233,10 +234,13 @@ function widgetList(ctx: PageContext, page: Page, catalog: Map<string, CatalogWi
   for (const w of all.filter(x => filter === 'all' || x.kind === filter)) {
     const here = page.widgets.some(p => p.widget === w.ref);
     const placed = here ? null : place(page.widgets, w.ref, w.width);
+    // A picture of the widget with its name below; a 2-column widget is twice as wide.
     const b = el('button', 'ed-widget');
     b.type = 'button';
     b.dataset.key = `pageEdit.widget.${w.ref}`;
-    b.append(el('span', 'ed-name', w.name), el('small', 'ed-kind', `${s.kinds[w.kind]} · ${fill(s.cols, { n: w.width })}`));
+    b.dataset.width = String(w.width);
+    b.title = `${s.kinds[w.kind]} · ${fill(s.cols, { n: w.width })}`;
+    b.append(widgetPreview(w, ctx.lang), el('span', 'ed-name', w.name));
     if (!placed) {
       b.setAttribute('aria-disabled', 'true');
       b.append(el('small', 'ed-why', here ? s.placed : s.noRoom));
