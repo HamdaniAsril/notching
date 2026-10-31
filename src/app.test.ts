@@ -383,3 +383,124 @@ test('the status hides while a notice or the panel shows', async () => {
   open(app, r);
   expect(statusShown(root)).toBe(false);
 });
+
+// Titipan (design 1 Nov).
+const shelfInfo = (over = {}) => moduleInfo('shelf', {
+  name: 'Titipan', shortName: 'Titipan', entry: null, card: null, status: true,
+  action: { capability: 'shelf', method: 'open' }, ...over,
+});
+const SHELF_STATE: ModuleState = { ...TEST_STATE, pages: [BERANDA, P1], modules: [...TEST_STATE.modules, shelfInfo()] };
+const kept = (n: number) => ({ items: Array.from({ length: n }, (_, i) => ({ id: i + 1, name: `f${i + 1}.txt`, folder: false, state: 'ready' as const, thumb: null })) });
+
+async function startShelf(items = 0, state = SHELF_STATE) {
+  const s = await start(state);
+  s.bridge.emitShelf(kept(items));
+  return s;
+}
+
+const onShelf = (root: HTMLElement) => root.querySelector('.sh') !== null;
+
+test('the pill shows the shelf icon only while items are kept', async () => {
+  const { bridge, pillIds } = await startShelf();
+  expect(pillIds()).toEqual(['home', 'p1', 'modules']);
+  bridge.emitShelf(kept(2));
+  expect(pillIds()).toEqual(['home', 'p1', 'shelf', 'modules']);
+  bridge.emitShelf(kept(0));
+  expect(pillIds()).toEqual(['home', 'p1', 'modules']);
+});
+
+test('opening the panel with items shows the shelf', async () => {
+  const { app, r, root, bridge } = await startShelf(2);
+  open(app, r);
+  expect(onShelf(root)).toBe(true);
+  expect(root.querySelectorAll('.sh-tile')).toHaveLength(2);
+  expect(bridge.shelf).toHaveBeenCalledWith(true);
+  expect(bridge.setLastPage).not.toHaveBeenCalledWith('shelf');
+});
+
+test('the Modul tile opens the shelf', async () => {
+  const { app, r, root, bridge, pick } = await startShelf();
+  open(app, r);
+  pick('modules');
+  root.querySelector<HTMLElement>('.mods-tile[aria-label="Titipan"]')!.click();
+  expect(app.controller.phase).toBe('open');
+  expect(onShelf(root)).toBe(true);
+  expect(root.querySelector('.sh-empty')).not.toBeNull();
+  expect(bridge.moduleCall).not.toHaveBeenCalled();
+});
+
+test('a drop start opens the panel in drop mode', async () => {
+  const { app, r, root, bridge } = await startShelf();
+  bridge.emitShelfDrop({ phase: 'start' });
+  expect(app.controller.phase).toBe('open');
+  r.runAll(60);
+  expect(root.querySelector('.sh-drop')).not.toBeNull();
+  expect(bridge.shelfDropReady).toHaveBeenCalledTimes(1);
+});
+
+test('a drop start on an open panel switches to the drop zone at once', async () => {
+  const { app, r, root, bridge } = await startShelf();
+  open(app, r);
+  bridge.emitShelfDrop({ phase: 'start' });
+  expect(root.querySelector('.sh-drop')).not.toBeNull();
+  expect(bridge.shelfDropReady).toHaveBeenCalledTimes(1);
+  // Nothing dropped: back to the page it showed.
+  bridge.emitShelfDrop({ phase: 'end', dropped: false });
+  expect(app.controller.phase).toBe('open');
+  expect(onShelf(root)).toBe(false);
+  expect(root.querySelectorAll('iframe')).toHaveLength(3);
+});
+
+test('a drop end without a drop closes a panel the drag opened', async () => {
+  const { app, r, bridge } = await startShelf();
+  bridge.emitShelfDrop({ phase: 'start' });
+  r.runAll(60);
+  bridge.emitShelfDrop({ phase: 'end', dropped: false });
+  expect(app.controller.phase).toBe('closing');
+});
+
+test('a drop end with a drop shows the shelf and closes when the pointer leaves', async () => {
+  const { app, r, root, bridge } = await startShelf();
+  bridge.emitShelfDrop({ phase: 'start' });
+  r.runAll(60);
+  bridge.emitShelf(kept(1));
+  bridge.emitShelfDrop({ phase: 'end', dropped: true });
+  expect(root.querySelector('.sh-drop')).toBeNull();
+  expect(root.querySelectorAll('.sh-tile')).toHaveLength(1);
+  bridge.emitPointer({ inside: true, x: 480, y: 20 });
+  expect(app.controller.phase).toBe('open');
+  bridge.emitPointer({ inside: false, x: 480, y: 300 });
+  expect(app.controller.phase).toBe('closing');
+});
+
+test('a drag that leaves the panel closes it', async () => {
+  const { app, r, bridge } = await startShelf(2);
+  open(app, r);
+  bridge.emitShelfDrag({ phase: 'left' });
+  expect(app.controller.phase).toBe('closing');
+});
+
+test('the last item gone returns to the page before the shelf', async () => {
+  const { app, r, root, bridge, pick } = await startShelf(1);
+  open(app, r);
+  expect(onShelf(root)).toBe(true);
+  pick('p1');
+  pick('shelf');
+  expect(onShelf(root)).toBe(true);
+  bridge.emitShelf(kept(0));
+  expect(onShelf(root)).toBe(false);
+  expect(root.querySelector('.notch-pill .ic.on')!.getAttribute('data-id')).toBe('p1');
+});
+
+test('the shelf module switched off removes the pill icon and leaves the shelf page', async () => {
+  const { app, r, root, bridge, pillIds } = await startShelf(2);
+  open(app, r);
+  expect(onShelf(root)).toBe(true);
+  bridge.emitModuleState({ ...SHELF_STATE, modules: [...TEST_STATE.modules, shelfInfo({ enabled: false })] });
+  expect(onShelf(root)).toBe(false);
+  expect(pillIds()).toEqual(['home', 'p1', 'modules']);
+  // And a drop does nothing then.
+  close(app, r);
+  bridge.emitShelfDrop({ phase: 'start' });
+  expect(app.controller.phase).not.toBe('open');
+});

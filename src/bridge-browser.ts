@@ -170,8 +170,14 @@ export function browserBridge(root: HTMLElement): Bridge {
       return text ? { screen: 'browser', items: [{ moduleId: params.get('statusModule'), text }] } : null;
     },
     onStatus: () => () => {},
-    // The browser preview has no drag and drop to the notch: an empty shelf.
-    shelf: async () => ({ items: [] }),
+    // The browser preview has no drag and drop to the notch: ?shelf=<n> shows n
+    // made-up files, the third one missing.
+    shelf: async () => ({
+      items: Array.from({ length: Number(params.get('shelf') ?? 0) }, (_, i) => ({
+        id: i + 1, name: ['laporan-tahunan-2026.pdf', 'foto-01.jpg', 'Desain', 'catatan.txt'][i % 4],
+        folder: i % 4 === 2, state: i === 2 ? 'missing' as const : 'ready' as const, thumb: null,
+      })),
+    }),
     onShelf: () => () => {},
     shelfRemove: async () => {},
     shelfClear: async () => {},

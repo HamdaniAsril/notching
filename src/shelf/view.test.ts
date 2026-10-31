@@ -31,10 +31,10 @@ const click = (id: number, over: MouseEventInit = {}) => {
 const selected = () => [...box.querySelectorAll<HTMLElement>('.sh-tile.sel')].map(t => Number(t.dataset.id));
 
 test('middleTruncate keeps the extension', () => {
-  expect(middleTruncate('laporan-tahunan-2026.pdf')).toBe('lapor…2026.pdf');
+  expect(middleTruncate('laporan-tahunan-2026.pdf')).toBe('lap…2026.pdf');
   expect(middleTruncate('foto-01.jpg')).toBe('foto-01.jpg');
   expect(middleTruncate('Desain')).toBe('Desain');
-  expect(middleTruncate('a-very-long-folder-name')).toHaveLength(14);
+  expect(middleTruncate('a-very-long-folder-name')).toHaveLength(12);
 });
 
 test('drop mode shows the drop zone only', () => {
@@ -64,7 +64,7 @@ test('tiles show thumb and truncated name', () => {
   const img = tile(1).querySelector('img')!;
   expect(img.getAttribute('src')).toBe('data:image/png;base64,1');
   expect(img.draggable).toBe(false);
-  expect(tile(1).querySelector('.sh-name')!.textContent).toBe('lapor…2026.pdf');
+  expect(tile(1).querySelector('.sh-name')!.textContent).toBe('lap…2026.pdf');
   expect(tile(1).title).toBe('laporan-tahunan-2026.pdf');
 });
 

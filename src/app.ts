@@ -1,4 +1,4 @@
-import type { Bridge, LiveStatus, Notice } from './bridge';
+import type { Bridge, LiveStatus, Notice, ShelfState } from './bridge';
 import { hostStrings } from './i18n';
 import type { ModuleState } from './modules/types';
 import { clampConfig, type NotchConfig } from './notch/config';
@@ -9,7 +9,8 @@ import type { CardSize } from './notch/controller';
 import { LAMP_WING, mountNotch, type LampView, type NotchView } from './notch/view';
 import { type FrameSpec, mountFrameHost } from './pages/frames';
 import { MODULES_ICON, pageIconSvg } from './pages/icons';
-import { missedTargets, noticeTarget, pageName, pickPage, resolvePage, type PageView, viewSize } from './pages/route';
+import { missedTargets, noticeTarget, pageName, pickPage, resolvePage, type PageView, SHELF_KEY, viewSize } from './pages/route';
+import { SHELF_ICON } from './shelf/view';
 
 // Notices that arrive while the panel is open wait; past this many, the oldest go.
 export const NOTICE_QUEUE_MAX = 5;
@@ -30,8 +31,16 @@ export interface App {
 // the custom pages, the Modul page and module pages (design 30 Oct).
 export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): Promise<App> {
   const doc = root.ownerDocument;
-  const [info, initial] = await Promise.all([bridge.screenInfo(), bridge.moduleState()]);
+  const [info, initial, kept] = await Promise.all([bridge.screenInfo(), bridge.moduleState(), bridge.shelf(false)]);
   let state: ModuleState = initial;
+  // Titipan (design 1 Nov): the shelf, whether a file drag is over this notch,
+  // whether that drag opened the panel, whether the panel closes once the pointer
+  // leaves (after a drop), and the page the shelf was opened over.
+  let shelf: ShelfState = kept;
+  let dropping = false;
+  let dragOpened = false;
+  let peek = false;
+  let beforeShelf: string | null = null;
   let strings = hostStrings(state.lang);
   let page: PageView = pickPage(state, null, false);
   let lastPhase: Phase = 'idle';
@@ -79,7 +88,12 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     moduleUrl: bridge.moduleUrl,
     onOpenModule: id => go(`module:${id}`),
     // The panel closes first: the action may dim the screens (Keyboard Cleaning Mode).
+    // Titipan's tile opens the shelf instead, which the notch draws itself.
     onAction: m => {
+      if (m.action?.capability === SHELF_KEY) {
+        openShelf();
+        return;
+      }
       controller.escape();
       view.kick();
       if (m.action) bridge.moduleCall(m.id, m.action.capability, m.action.method).catch(() => {});
@@ -93,6 +107,33 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   });
 
   const isOpen = () => controller.phase === 'open';
+
+  const shelfOn = () => state.modules.some(m => m.id === SHELF_KEY && m.installed && m.enabled);
+  const shelfPage = (): PageView => ({ kind: 'shelf', key: SHELF_KEY, shelf, dropping });
+  // The page to go back to from the shelf.
+  const pageBeforeShelf = (): PageView => resolvePage(state, beforeShelf) ?? pickPage(state, null, false);
+
+  // Shows the shelf (as the drop zone while dropping), remembering the page under it.
+  function openShelf(): void {
+    if (page.kind !== 'shelf') beforeShelf = page.key;
+    usePage(shelfPage());
+    showPage();
+    renderPill();
+    view.kick();
+  }
+
+  function leaveShelf(): void {
+    if (page.kind !== 'shelf') return;
+    usePage(pageBeforeShelf());
+    showPage();
+    renderPill();
+    view.kick();
+  }
+
+  function closePanel(): void {
+    controller.escape();
+    view.kick();
+  }
 
   function showPage(): void {
     if (isOpen()) pages.show(page, state, strings);
@@ -109,7 +150,15 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
         usePage(to);
         renderPill();
         void bridge.setLastPage(to.key);
+      } else if (dropping) {
+        void bridge.shelfDropReady();
+      } else if (!to && shelfOn() && shelf.items.length > 0 && page.kind !== 'shelf') {
+        // Kept files come first while there are any (§4).
+        beforeShelf = page.key;
+        usePage(shelfPage());
+        renderPill();
       }
+      if (page.kind === 'shelf') void bridge.shelf(true);
       pages.show(page, state, strings);
       endNotice();
     } else if (lastPhase === 'open') {
@@ -117,6 +166,11 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       if (state.missed.length > 0) void bridge.clearMissed();
     } else if (lastPhase === 'closing' && (phase === 'idle' || phase === 'hover')) {
       pages.clear();
+      // The shelf is never the last page: the next open picks it again if it holds files.
+      if (page.kind === 'shelf') usePage(pageBeforeShelf());
+      dropping = false;
+      dragOpened = false;
+      peek = false;
       if (fullHeight !== undefined) usePage(page);
       endNotice();
       pump();
@@ -164,11 +218,17 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
 
   function renderPill(): void {
     const missed = missedTargets(state);
+    const shelfModule = state.modules.find(m => m.id === SHELF_KEY);
     const items = [
       ...state.pages.map(p => ({ id: p.id, label: pageName(p, strings), svg: pageIconSvg(p.icon), missed: missed.has(p.id) })),
+      // Titipan's icon, only while files are kept (§4).
+      ...(shelfOn() && shelf.items.length > 0
+        ? [{ id: SHELF_KEY, label: shelfModule?.name ?? SHELF_KEY, svg: SHELF_ICON, missed: false }]
+        : []),
       { id: 'modules', label: strings.modules, svg: MODULES_ICON, missed: missed.has('modules') },
     ];
-    view.setPill(items, page.kind === 'custom' ? page.key : 'modules', strings.settings);
+    const active = page.kind === 'custom' || page.kind === 'shelf' ? page.key : 'modules';
+    view.setPill(items, active, strings.settings);
     view.setMissed(state.missed.length > 0);
   }
 
@@ -230,6 +290,10 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       collapse();
       return;
     }
+    if (key === SHELF_KEY) {
+      openShelf();
+      return;
+    }
     const next = resolvePage(state, key);
     if (!next) return;
     usePage(next);
@@ -252,7 +316,9 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     state = next;
     strings = hostStrings(next.lang);
     doc.documentElement.lang = next.lang;
-    const picked = pickPage(next, page.key, isOpen());
+    if (!shelfOn()) dropping = false;
+    const onShelfPage = page.kind === 'shelf';
+    const picked = onShelfPage && shelfOn() ? shelfPage() : pickPage(next, onShelfPage ? beforeShelf : page.key, isOpen());
     const size = sized(picked, picked.key === page.key ? fullHeight : undefined);
     if (picked.key !== page.key || size.width !== controller.card.width || size.height !== controller.card.height) usePage(picked);
     else page = picked;
@@ -262,6 +328,65 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     if (!sameConfig(config, controller.config)) controller.setConfig(config);
     renderPill();
     view.kick();
+  });
+
+  // Every screen shows the same shelf; a shelf emptied while showing leaves it.
+  const offShelf = bridge.onShelf(next => {
+    shelf = next;
+    if (page.kind === 'shelf') {
+      if (next.items.length === 0 && !dropping && isOpen()) leaveShelf();
+      else {
+        usePage(shelfPage());
+        showPage();
+      }
+    }
+    renderPill();
+    view.kick();
+  });
+
+  // A file drag reached this notch: the drop zone opens, closing again (or going
+  // back to its page) if nothing is dropped; after a drop the panel stays until
+  // the pointer leaves it (§3).
+  const offDrop = bridge.onShelfDrop(e => {
+    if (e.phase === 'start') {
+      if (!shelfOn()) return;
+      dropping = true;
+      peek = false;
+      if (isOpen()) {
+        dragOpened = false;
+        openShelf();
+        void bridge.shelfDropReady();
+      } else {
+        dragOpened = true;
+        openShelf();
+        controller.click();
+        view.kick();
+      }
+      return;
+    }
+    if (!dropping) return;
+    dropping = false;
+    if (e.dropped) {
+      peek = dragOpened;
+      openShelf();
+    } else if (dragOpened) {
+      closePanel();
+    } else {
+      leaveShelf();
+    }
+    dragOpened = false;
+  });
+
+  // A drag out of the shelf left the panel: it closes out of the way (§5).
+  const offDrag = bridge.onShelfDrag(e => {
+    if (e.phase === 'left' && isOpen()) closePanel();
+  });
+
+  const offPeek = bridge.onPointer(p => {
+    if (peek && !p.inside && isOpen()) {
+      peek = false;
+      closePanel();
+    }
   });
 
   // An overlay whose screen went away is ordered out. It gets no animation frames
@@ -283,6 +408,10 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       offState();
       offNotice();
       offStatus();
+      offShelf();
+      offDrop();
+      offDrag();
+      offPeek();
       frames.destroy();
       view.destroy();
       wiring.dispose();
