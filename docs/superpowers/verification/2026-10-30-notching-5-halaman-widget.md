@@ -73,3 +73,61 @@ Semua keadaan diam ada di bawah 1,0. Lonjakan hanya terjadi saat panel bergerak 
 - **Font tidak termuat di build dev worktree.** `node_modules` worktree semula berupa tautan ke folder utama, sehingga Vite menolak file font di luar daftar izinnya. Tautan diganti dengan `npm ci` di worktree. Ini hanya terjadi di build dev worktree; build rilis membawa fontnya sendiri.
 - **Notching lama sempat dipakai setelah salinan data dibuat.** Tidak ada yang hilang. Pindahan dicocokkan dengan file tepat sebelum app baru jalan.
 - **Bahasa masih English** setelah cek 6.
+
+## B. Editor halaman dan status samping notch
+
+Tanggal: 31 Oktober 2026
+Perangkat: MacBook Air M4 (layar bawaan ber-notch). Monitor eksternal tidak tersambung; pemilik memilih mengecek tanpa monitor dulu (lihat cek 6).
+Cara cek: editor dicoba pemilik di pratinjau browser (`npm run dev`, `settings.html`) selama dibangun, lalu checklist di build dev (`npm run tauri dev`) dari worktree `feat/halaman`. Salinan data sebelum bagian B ada di `before-plan-5-b/`.
+
+### Test otomatis
+
+- `npx tsc --noEmit`: lulus.
+- `npm test`: 333 lulus (285 di akhir bagian A).
+- `npm run build:modules && cargo test --manifest-path src-tauri/Cargo.toml`: 170 lulus, 1 diabaikan (149 di akhir bagian A).
+
+### CPU (build dev, sampel tiap sekitar 2 detik)
+
+| Keadaan | `notching` | WebContent notch |
+|---|---|---|
+| Panel tertutup, contoh status "18:42" menyala, Mac tidak disentuh (26 sampel, 10.54.12–10.55.05) | 0,0 di semua sampel | paling tinggi 0,2 |
+| Halaman Kerja terbuka dan diam (22 sampel, 10.55.15–10.55.59) | 0,0 di semua sampel | paling tinggi 0,1 |
+| Pengaturan terbuka, saklar dicoba (10.53–10.54) | 0,0–9,4 | 0,0–8,9 |
+
+Status yang diam tidak menjalankan loop frame. Selama rekaman tidak ada koneksi keluar.
+
+### Ukuran
+
+- `Notching.app`: 4,9 MB (4,93 MiB menurut Tauri; bagian A: 4,89 MiB).
+- `dist/assets`: 248 KB (bagian A: 220 KB). Tambahannya editor halaman dan gambar contoh widget.
+
+### Checklist
+
+| # | Cek | Hasil | Catatan |
+|---|---|---|---|
+| 1 | Halaman "Kerja" dengan ikon tas, berisi Jam, Waktu sholat, dan Reminder; pil Beranda, Kerja, Modul, ⋯; ukuran panel sama dengan Beranda. | Lulus | `settings.json`: `p2` "Kerja", `briefcase`. Laporan pertama "semua sesuai" belum cocok dengan file (ikon masih bintang); setelah diulang, ikon tas tercatat. Ukuran panel dilaporkan pemilik. |
+| 2 | Reminder yang ditambah di Kerja juga muncul di Beranda. | Lulus | Reminder "haha" (id 17) tercatat di `reminders.json`; Reminder di semua halaman membaca file yang sama. Dilaporkan pemilik. |
+| 3 | Seret Jam ke kolom 4, lepas Waktu sholat, ganti nama dan ikon, urutkan, hapus halaman uji; Beranda tidak bisa dihapus. | Lulus | `settings.json` akhir: Kerja berisi `reminders@0` dan `clock@3`, halaman "Tes" (`p1`) terhapus. Beranda tanpa tombol hapus (test `Beranda has no name field, icon picker or delete button`). Urutan halaman dicoba saat "Tes" masih ada; setelah dihapus tinggal satu halaman custom. |
+| 4 | Cmd+Q lalu jalankan lagi → halaman, urutan, dan isi tetap ada. | Lulus | Laporan pertama belum mencakup cek ini (proses masih sama sejak 09.58). Setelah pemilik keluar pukul 10.49 tanpa galat, app dijalankan ulang; `pages` sama persis. |
+| 5 | Contoh status "18:42" di kanan notch; titik terlewat tetap di kiri; status hilang saat notifikasi lalu kembali. | Lulus | Dilaporkan pemilik. Status contoh tidak disimpan, jadi tidak ada bukti di file. Bentuknya diperiksa dari SVG yang digambar notch di browser (`?notch=1&status=18:42&missed=home.reminder`): tab kanan 56 px, teks rata kanan di x 130, tab kiri dan titik merah tetap. Sembunyi saat notifikasi dan panel terbuka ditutup test `the status hides while a notice or the panel shows`. |
+| 6 | Monitor eksternal: status pindah ke lensa sebagai pil kecil, titik merah di dalam pil. | Belum | Monitor tidak tersambung. Bentuk pil diperiksa dari SVG di browser (`?status=18:42&missed=home.reminder`): pil 73 px, titik di x −21,5, teks di tengah sisa ruang. Perlu dicoba di perangkat. |
+| 7 | Reminder jatuh tempo membuka halaman pertama yang memasang Reminder. | Lulus | "haha" 10.49 tercatat `notified: true`; `lastPage` menjadi `home`. Dilaporkan pemilik. |
+| 8 | Klik di luar menutup panel, menu bar bisa diklik, System stat jalan. | Lulus | Dilaporkan pemilik. |
+
+### Diubah atas permintaan pemilik selama cek
+
+Setiap perubahan punya test yang gagal dulu, lalu lulus.
+
+- Nama halaman diketik langsung di judul, dan halaman baru langsung siap diketik namanya. Baris "Nama" dihapus (`5613000`).
+- Ikon bertanda pensil, dan diklik membuka popup 24 ikon. Baris "Ikon" dihapus (`5613000`).
+- Daftar widget menjadi grid gambar contoh dengan nama di bawah (`77f63f4`). Kartu digambar seukuran widget di notch lalu diperkecil tetap, supaya widget 1 kolom tidak melebar mengikuti jendela (`76a59bc`).
+- Pratinjau berbentuk notch dan menampilkan widgetnya dalam ukuran asli, diperkecil agar muat (`c07051f`).
+- Animasi seret: salinan widget terangkat dan mengikuti pointer (`ed05c25`). Di pratinjau salinan itu sempat jatuh ke bawah halaman, karena `position: relative` milik `.ed-slot` mengalahkan `position: fixed`; diperbaiki, dan baris halaman ikut terangkat (`312e66b`).
+- Lepas di atas widget lain menukar tempat; widget dari daftar menggantikan widget yang ditimpa; kartu "Penuh, seret untuk mengganti" (`ed05c25`). Lepas di separuh mana pun dari widget 2 kolom menukar seluruhnya (`936f476`).
+
+### Temuan dan catatan
+
+- **Peringatan "ResizeObserver loop" di log dev.** Pratinjau menyesuaikan ukuran ulang karena margin yang dipasangnya sendiri. Sekarang hanya menyesuaikan saat lebarnya berubah (`75d01a7`). Commit itu sempat masuk dengan test yang salah (nilai CSS tidak sah sebagai penanda); `e7f28e4` membetulkan test-nya, yang gagal tanpa perbaikan dan lulus dengan perbaikan.
+- **Laporan "semua sesuai" dua kali belum cocok dengan file.** Keduanya diulang sampai file menunjukkan hasilnya.
+- **Lingkup:** tidak ada yang dibangun di luar Langkah 1. Paket di `modules/` tetap `home` dan `system-stat`; satu baris per halaman; di samping notch paling banyak satu status dan satu titik.
+- **Bahasa** pemilik masih English sejak cek A.
