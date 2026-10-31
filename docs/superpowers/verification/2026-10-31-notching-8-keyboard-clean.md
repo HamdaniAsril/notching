@@ -25,7 +25,7 @@ Desain: `docs/superpowers/specs/2026-10-31-keyboard-clean-design.md`. Rencana: `
 | 1 | Izin Aksesibilitas diberikan, lalu kotak di halaman Modul menyalakan mode. | Lulus setelah perbaikan | Penahan menyala 19.28.36, 19.28.46, dan 19.43.29. Lihat Temuan soal izin yang diminta terus. |
 | 2 | Layar gelap dengan pilihan C, keyboard terkunci. | Dilaporkan pemilik | Pemilik melanjutkan ke perbaikan, tanpa keluhan soal tampilan. Tampilan juga dicek di pratinjau browser. |
 | 3 | Esc 5× mematikan mode. | Lulus | Penahan lepas 4–5 detik setelah menyala: 19.28.40, 19.28.51, 19.43.32. |
-| 4 | Setelah mati, ikon di samping notch hilang dan kotak tidak putih lagi. | Gagal, diperbaiki, belum dicek ulang | Pada cek pertama ikon dan kotak putih tertinggal. Sudah diperbaiki di `91033b3`. Setelah perbaikan mode menyala dan mati sekali (19.43.29–19.43.32), tapi pemilik tidak menjawab apakah ikonnya hilang. |
+| 4 | Setelah mati, ikon di samping notch hilang dan kotak tidak putih lagi. | Lulus setelah perbaikan | Pada cek pertama ikon dan kotak putih tertinggal. Sudah diperbaiki di `91033b3`. Cek ulang di build rilis dari `main` (PID 35711, jalan sejak 22.06.48): mode menyala dan mati tiga kali (22.16.42–22.17.01, 22.17.07–22.17.08, 22.17.12–22.17.13 menurut `pmset -g log`). Ikon hilang dilaporkan pemilik ("sudah semua"). |
 | 5 | Tanpa izin, layar tidak menggelap dan macOS meminta izin. | Lulus | Permintaan izin muncul (dilaporkan pemilik), dan tidak ada penahan yang tercatat sebelum izin berhasil. |
 | 6 | Cmd+Q, pengaman 10 menit, tidur/kunci layar, klik dua kali cepat, input aman. | Tidak dicek | Pemilik ingin lanjut ke pekerjaan lain. |
 

@@ -27,7 +27,7 @@ Desain: `docs/superpowers/specs/2026-10-31-cermin-design.md`. Atas permintaan pe
 | 3 | Flip. | Dilaporkan pemilik | |
 | 4 | Lampu: panel melebar, sisi berwarna Kelvin, glow, layar paling terang, penggaris warna. | Dilaporkan pemilik | Kecerahan tidak dicatat dari luar app, jadi hanya berdasarkan laporan pemilik. |
 | 5 | Lampu mati atau panel ditutup mengembalikan kecerahan. | Dilaporkan pemilik | |
-| 6 | Notching keluar saat Lampu menyala, beberapa kamera, monitor eksternal. | Tidak dicek | |
+| 6 | Notching keluar saat Lampu menyala, beberapa kamera, monitor eksternal. | Dilaporkan pemilik, sebagian tidak bisa dicek | Pemilik melapor "sudah semua". Notching (PID 22308) memang keluar antara 22.03 dan 22.06, tapi apakah Lampu menyala saat itu dan kecerahan kembali tidak tercatat dari luar app. Saat dicek, ada dua kamera (MacBook Air Camera dan kamera iPhone) dan tidak ada monitor eksternal yang tersambung. |
 
 ## Temuan
 
