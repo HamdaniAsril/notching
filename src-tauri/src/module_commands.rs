@@ -40,6 +40,7 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
     change(&app, &core, |c| c.set_enabled(&id, enabled))?;
     if !enabled {
         crate::awake_service::module_gone(&app, &id);
+        crate::timer_service::module_gone(&app, &id);
     }
     crate::status::publish(&app);
     Ok(())
@@ -49,6 +50,7 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
 pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> Result<(), String> {
     change(&app, &core, |c| c.uninstall(&id))?;
     crate::awake_service::module_gone(&app, &id);
+    crate::timer_service::module_gone(&app, &id);
     crate::status::publish(&app);
     Ok(())
 }
@@ -118,6 +120,15 @@ pub async fn module_call(
             serde_json::to_value(crate::awake_service::extend(&app, a.minutes)?)
         }
         Call::AwakeStop => serde_json::to_value(crate::awake_service::turn_off(&app)),
+        Call::TimerRead => serde_json::to_value(crate::timer_service::read(&app)),
+        // Like Keep awake: the timer belongs to the module that started it.
+        Call::TimerStart => {
+            let a: ExtendArgs = parse_args(args, "timer.start")?;
+            serde_json::to_value(crate::timer_service::begin(&app, &module_id, a.minutes)?)
+        }
+        Call::TimerPause => serde_json::to_value(crate::timer_service::pause(&app)?),
+        Call::TimerResume => serde_json::to_value(crate::timer_service::resume(&app)?),
+        Call::TimerStop => serde_json::to_value(crate::timer_service::stop(&app)),
     };
     value.map_err(|e| e.to_string())
 }
@@ -142,6 +153,7 @@ struct StartArgs {
     minutes: Option<u32>,
 }
 
+/// `awake.add` and `timer.start`.
 #[derive(serde::Deserialize)]
 struct ExtendArgs {
     minutes: u32,

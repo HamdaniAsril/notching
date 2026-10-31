@@ -32,6 +32,8 @@ mod screens;
 mod sensor;
 #[cfg(target_os = "macos")]
 mod settings_window;
+#[cfg(target_os = "macos")]
+mod timer_service;
 
 #[cfg(target_os = "macos")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -101,6 +103,7 @@ pub fn run() {
             overlay::rebuild_overlays(app.handle())?;
             home::schedule::start(app.handle().clone());
             awake_service::start(app.handle().clone());
+            timer_service::start(app.handle().clone());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             pointer::start_pointer_monitor(app.handle().clone());

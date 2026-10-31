@@ -22,6 +22,9 @@ pub enum Capability {
     /// Keeps the screen on and the Mac awake (Keep awake, design 31 Oct).
     #[serde(rename = "awake")]
     Awake,
+    /// A countdown of 1–60 minutes run by the core (Timer, design 31 Oct).
+    #[serde(rename = "timer")]
+    Timer,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).

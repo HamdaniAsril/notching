@@ -16,6 +16,11 @@ pub enum Call {
     AwakeStart,
     AwakeAdd,
     AwakeStop,
+    TimerRead,
+    TimerStart,
+    TimerPause,
+    TimerResume,
+    TimerStop,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -64,6 +69,11 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Awake, "start") => Ok(Call::AwakeStart),
         (Capability::Awake, "add") => Ok(Call::AwakeAdd),
         (Capability::Awake, "stop") => Ok(Call::AwakeStop),
+        (Capability::Timer, "read") => Ok(Call::TimerRead),
+        (Capability::Timer, "start") => Ok(Call::TimerStart),
+        (Capability::Timer, "pause") => Ok(Call::TimerPause),
+        (Capability::Timer, "resume") => Ok(Call::TimerResume),
+        (Capability::Timer, "stop") => Ok(Call::TimerStop),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -163,6 +173,18 @@ mod tests {
         assert_eq!(authorize(Some(&k), "keep-awake", "awake", "hold"), Err(CallError::UnknownMethod("hold".into())));
         let stat = entry("system-stat", &[Capability::SystemStats], true);
         assert!(matches!(authorize(Some(&stat), "system-stat", "awake", "start"), Err(CallError::NotDeclared { .. })));
+    }
+
+    #[test]
+    fn the_timer_needs_its_capability() {
+        let t = entry("timer", &[Capability::Timer, Capability::Status, Capability::Notify], true);
+        for (method, call) in [("read", Call::TimerRead), ("start", Call::TimerStart), ("pause", Call::TimerPause),
+            ("resume", Call::TimerResume), ("stop", Call::TimerStop)] {
+            assert_eq!(authorize(Some(&t), "timer", "timer", method), Ok(call));
+        }
+        assert_eq!(authorize(Some(&t), "timer", "timer", "add"), Err(CallError::UnknownMethod("add".into())));
+        let k = entry("keep-awake", &[Capability::Awake], true);
+        assert!(matches!(authorize(Some(&k), "keep-awake", "timer", "start"), Err(CallError::NotDeclared { .. })));
     }
 
     #[test]
