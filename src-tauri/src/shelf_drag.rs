@@ -67,7 +67,9 @@ define_class!(
         fn ended(&self, _session: &NSDraggingSession, point: NSPoint, op: NSDragOperation) {
             let iv = self.ivars();
             DRAG_OUT.store(false, std::sync::atomic::Ordering::SeqCst);
-            if !keeps_items(op.0, on_own_overlay(&iv.app, point)) {
+            let keep = keeps_items(op.0, on_own_overlay(&iv.app, point));
+            eprintln!("notching: shelf drag of {} item(s) ended, operation {}, kept: {keep}", iv.ids.len(), op.0);
+            if !keep {
                 crate::shelf_service::shelf_remove(iv.app.clone(), iv.ids.clone());
             }
             let _ = iv.app.emit_to(EventTarget::webview_window(&iv.label), DRAG_EVENT, serde_json::json!({ "phase": "end" }));

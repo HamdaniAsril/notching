@@ -207,6 +207,8 @@ pub fn add_paths(app: &AppHandle, entries: Vec<NewItem>) -> Vec<u64> {
     }
     preview(app, previews);
     changed(app);
+    // One line per drop, so a check on the Mac can be matched against the log.
+    eprintln!("notching: shelf kept {} new item(s)", ids.len());
     ids
 }
 
