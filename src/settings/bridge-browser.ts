@@ -26,6 +26,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     login: 'off',
     version: '0.1.0',
     home: { place: null, prayerMethod: 'kemenag' },
+    accessibility: false,
   };
   let state: ModuleState = {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
@@ -91,6 +92,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     deletePage: async id => setPages(state.pages.filter(p => p.id !== id)),
     setSampleStatus: async on => setState({ ...state, sampleStatus: on }),
     setStatusShown: async (id, on) => setModule(id, { statusShown: on }),
+    openAccessibility: async () => {},
     movePage: async (id, to) => {
       const [home, ...custom] = state.pages;
       const moving = custom.find(p => p.id === id)!;

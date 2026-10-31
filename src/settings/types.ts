@@ -33,6 +33,7 @@ export interface SettingsInfo {
   login: LoginItem;
   version: string;
   home: HomeSettingsInfo;
+  accessibility: boolean; // macOS lets Notching lock the keyboard (Keyboard Cleaning Mode)
 }
 
 export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'permissions' | 'about';
@@ -67,6 +68,7 @@ export interface SettingsBridge {
   movePage(id: string, to: number): Promise<void>; // `to` counts among the custom pages
   setSampleStatus(on: boolean): Promise<void>; // the status beside the notch, to try its look
   setStatusShown(module: string, on: boolean): Promise<void>;
+  openAccessibility(): Promise<void>; // System Settings › Privacy & Security › Accessibility
 }
 
 export interface SettingsEnv {

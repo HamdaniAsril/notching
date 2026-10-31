@@ -48,6 +48,8 @@ pub struct SettingsDto {
     pub login: LoginItem,
     pub version: String,
     pub home: HomeSettings,
+    /// macOS lets Notching lock the keyboard (Keyboard Cleaning Mode).
+    pub accessibility: bool,
 }
 
 // One lock at a time, so this is safe to call from anywhere.
@@ -65,6 +67,7 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         login: crate::login_item::state(),
         version: app.package_info().version.to_string(),
         home,
+        accessibility: crate::keyclean_tap::trusted(false),
     }
 }
 

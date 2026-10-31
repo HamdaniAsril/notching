@@ -79,7 +79,13 @@
     },
     "permissions": {
       "sub": "Belum ada modul yang butuh izin sistem.",
-      "note": "Kalau nanti ada, di sini kamu lihat izin apa, untuk apa, dan modul mana yang memakainya."
+      "note": "Kalau nanti ada, di sini kamu lihat izin apa, untuk apa, dan modul mana yang memakainya.",
+      "need": "Izin yang dibutuhkan modul.",
+      "accessibility": "Aksesibilitas",
+      "accessibilityHint": "Untuk mengunci keyboard.",
+      "granted": "Diizinkan",
+      "missing": "Belum diizinkan",
+      "open": "Buka Pengaturan Sistem"
     },
     "about": {
       "name": "Notching",

@@ -20,6 +20,8 @@ mod awake_service;
 #[cfg(target_os = "macos")]
 mod commands;
 #[cfg(target_os = "macos")]
+mod keyclean_tap;
+#[cfg(target_os = "macos")]
 mod login_item;
 #[cfg(target_os = "macos")]
 mod notify;
@@ -76,6 +78,7 @@ pub fn run() {
             settings_window::set_screen,
             login_item::set_launch_at_login,
             login_item::open_login_items,
+            keyclean_tap::open_accessibility_settings,
             home::commands::search_places,
             home::commands::set_place,
             home::commands::set_prayer_method,

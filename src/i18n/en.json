@@ -79,7 +79,13 @@
     },
     "permissions": {
       "sub": "No module needs a system permission yet.",
-      "note": "When one does, you'll see here which permission, what it's for and which module uses it."
+      "note": "When one does, you'll see here which permission, what it's for and which module uses it.",
+      "need": "Permissions your modules need.",
+      "accessibility": "Accessibility",
+      "accessibilityHint": "To lock the keyboard.",
+      "granted": "Allowed",
+      "missing": "Not allowed yet",
+      "open": "Open System Settings"
     },
     "about": {
       "name": "Notching",

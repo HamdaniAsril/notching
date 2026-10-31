@@ -12,6 +12,7 @@ export const TEST_INFO: SettingsInfo = {
   login: 'off',
   version: '0.1.0',
   home: { place: null, prayerMethod: 'kemenag' },
+  accessibility: false,
 };
 
 // Settings bridge whose methods are mocks; emit* plays the native side's events.
@@ -47,6 +48,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     movePage: vi.fn(async (_id: string, _to: number) => {}),
     setSampleStatus: vi.fn(async (_on: boolean) => {}),
     setStatusShown: vi.fn(async (_module: string, _on: boolean) => {}),
+    openAccessibility: vi.fn(async () => {}),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
   };

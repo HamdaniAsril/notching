@@ -34,5 +34,6 @@ export function tauriSettingsBridge(): SettingsBridge {
     movePage: (id, to) => invoke('move_page', { id, to }),
     setSampleStatus: on => invoke('set_sample_status', { on }),
     setStatusShown: (module, on) => invoke('set_status_shown', { module, on }),
+    openAccessibility: () => invoke('open_accessibility_settings'),
   };
 }

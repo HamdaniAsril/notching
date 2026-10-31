@@ -1239,3 +1239,14 @@ body > .ed-ghost {
   font-size: 13px;
   color: var(--g2);
 }
+
+/* Izin: what macOS says about a permission, white once allowed. */
+.perm-state {
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11.5px;
+  color: var(--g2);
+}
+
+.perm-state.on {
+  color: var(--fg);
+}
