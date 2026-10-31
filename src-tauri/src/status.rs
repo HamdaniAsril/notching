@@ -1,6 +1,6 @@
-//! Modules that are on or running (design 30 Oct, §7–8), and the one status
-//! shown beside the notch: the last one started that has text and is not
-//! switched off, on the screen under the cursor.
+//! Modules that are on or running (design 30 Oct, §7–8), and the statuses
+//! shown beside the notch: every one that has text and is not switched off, in
+//! the order they started (design 1 Nov, Titipan §8), on the screen under the cursor.
 
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -81,27 +81,35 @@ impl LiveStatus {
         self.entries.iter().any(|e| e.module.is_none())
     }
 
-    /// The last one started that has text, or is an icon alone (text ""), and
-    /// whose module is not in `off`.
-    pub fn shown(&self, off: &[String]) -> Option<(Option<String>, String)> {
-        self.entries.iter().rev().find_map(|e| {
-            if e.module.as_ref().is_some_and(|m| off.contains(m)) {
-                return None;
-            }
-            let text = if e.icon_only { Some(String::new()) } else { e.text.clone() };
-            text.map(|t| (e.module.clone(), t))
-        })
+    /// Every entry that has text, or is an icon alone (text ""), and whose
+    /// module is not in `off`, in the order they started.
+    pub fn shown(&self, off: &[String]) -> Vec<(Option<String>, String)> {
+        self.entries
+            .iter()
+            .filter(|e| !e.module.as_ref().is_some_and(|m| off.contains(m)))
+            .filter_map(|e| {
+                let text = if e.icon_only { Some(String::new()) } else { e.text.clone() };
+                text.map(|t| (e.module.clone(), t))
+            })
+            .collect()
     }
 }
 
-/// Same shape as Status in src/notch/status.ts.
+/// One status beside the notch; `module_id` None is the sample.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatusItemDto {
+    pub module_id: Option<String>,
+    pub text: String,
+}
+
+/// Same shape as LiveStatus in src/bridge.ts: never sent with no items (null instead).
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusDto {
-    pub module_id: Option<String>,
-    pub text: String,
-    /// The overlay window of the screen it shows on.
+    /// The overlay window of the screen they show on.
     pub screen: String,
+    pub items: Vec<StatusItemDto>,
 }
 
 /// Works out the status on the main thread, where the cursor's screen is known,
@@ -193,24 +201,39 @@ pub fn set_status_shown(app: AppHandle, core: State<CoreState>, module: String, 
 mod tests {
     use super::*;
 
-    fn shown(live: &LiveStatus) -> Option<(Option<String>, String)> {
+    type Shown = Vec<(Option<String>, String)>;
+
+    fn shown(live: &LiveStatus) -> Shown {
         live.shown(&[])
     }
 
-    fn of(module: &str, text: &str) -> Option<(Option<String>, String)> {
-        Some((Some(module.into()), text.into()))
+    fn of(list: &[(&str, &str)]) -> Shown {
+        list.iter().map(|(m, t)| (Some(m.to_string()), t.to_string())).collect()
     }
 
     #[test]
-    fn the_last_started_status_shows() {
+    fn shown_lists_every_entry_in_start_order() {
+        let mut live = LiveStatus::default();
+        live.set(Some("timer"), Activity::Running, Some("18:42"));
+        live.set(Some("awake"), Activity::On, Some("1:42"));
+        live.set_icon("keyclean", Activity::On);
+        assert_eq!(shown(&live), of(&[("timer", "18:42"), ("awake", "1:42"), ("keyclean", "")]));
+        // A module already here keeps its place when its text changes.
+        live.set(Some("timer"), Activity::Running, Some("18:41"));
+        assert_eq!(shown(&live)[0], (Some("timer".into()), "18:41".into()));
+        live.clear(Some("awake"));
+        assert_eq!(shown(&live), of(&[("timer", "18:41"), ("keyclean", "")]));
+    }
+
+    #[test]
+    fn shown_skips_off_modules_and_textless_entries() {
         let mut live = LiveStatus::default();
         live.set(Some("a"), Activity::Running, Some("18:42"));
         live.set(Some("b"), Activity::On, Some("On"));
-        assert_eq!(shown(&live), of("b", "On"));
-        live.set(Some("a"), Activity::Running, Some("18:41"));
-        assert_eq!(shown(&live), of("b", "On"));
-        live.clear(Some("b"));
-        assert_eq!(shown(&live), of("a", "18:41"));
+        live.set(Some("c"), Activity::On, None);
+        live.set(Some("d"), Activity::On, Some("  "));
+        assert_eq!(live.shown(&["b".into()]), of(&[("a", "18:42")]));
+        assert_eq!(live.shown(&["a".into(), "b".into()]), Shown::new());
     }
 
     #[test]
@@ -218,7 +241,7 @@ mod tests {
         let mut live = LiveStatus::default();
         live.set(Some("a"), Activity::On, None);
         live.set(Some("b"), Activity::On, Some("  "));
-        assert_eq!(shown(&live), None);
+        assert_eq!(shown(&live), Shown::new());
         assert_eq!(live.activity("a"), Some(Activity::On));
         assert_eq!(live.activity("b"), Some(Activity::On));
         assert_eq!(live.activity("c"), None);
@@ -227,32 +250,21 @@ mod tests {
     #[test]
     fn an_icon_only_status_shows_with_empty_text() {
         let mut live = LiveStatus::default();
-        live.set(Some("a"), Activity::Running, Some("18:42"));
         assert!(live.set_icon("k", Activity::On));
-        assert_eq!(shown(&live), of("k", ""));
+        assert_eq!(shown(&live), of(&[("k", "")]));
         assert_eq!(live.activity("k"), Some(Activity::On));
-        assert_eq!(live.shown(&["k".into()]), of("a", "18:42"));
         // Text set later replaces the icon alone.
         live.set(Some("k"), Activity::On, Some("On"));
-        assert_eq!(shown(&live), of("k", "On"));
+        assert_eq!(shown(&live), of(&[("k", "On")]));
         assert!(!live.set_icon("k", Activity::On));
-        assert_eq!(shown(&live), of("k", ""));
+        assert_eq!(shown(&live), of(&[("k", "")]));
     }
 
     #[test]
     fn status_text_is_cut_to_six() {
         let mut live = LiveStatus::default();
         live.set(Some("a"), Activity::Running, Some("123456789"));
-        assert_eq!(shown(&live), of("a", "12345…"));
-    }
-
-    #[test]
-    fn switched_off_statuses_are_skipped() {
-        let mut live = LiveStatus::default();
-        live.set(Some("a"), Activity::Running, Some("18:42"));
-        live.set(Some("b"), Activity::On, Some("On"));
-        assert_eq!(live.shown(&["b".into()]), of("a", "18:42"));
-        assert_eq!(live.shown(&["a".into(), "b".into()]), None);
+        assert_eq!(shown(&live), of(&[("a", "12345…")]));
     }
 
     #[test]
@@ -260,11 +272,11 @@ mod tests {
         let mut live = LiveStatus::default();
         live.set(Some("a"), Activity::Running, Some("1"));
         live.set(None, Activity::Running, Some("18:42"));
-        assert_eq!(shown(&live), Some((None, "18:42".into())));
+        assert_eq!(shown(&live), vec![(Some("a".into()), "1".into()), (None, "18:42".into())]);
         assert!(live.has_sample());
         live.clear(None);
         assert!(!live.has_sample());
-        assert_eq!(shown(&live), of("a", "1"));
+        assert_eq!(shown(&live), of(&[("a", "1")]));
     }
 
     #[test]

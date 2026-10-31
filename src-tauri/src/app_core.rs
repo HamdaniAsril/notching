@@ -8,7 +8,7 @@ use crate::modules::manifest::{CardSize, Permission, TileAction, WidgetKind};
 use crate::modules::store::{ChannelEntry, ModuleEntry, ModuleStore, StoreError};
 use crate::pages::{self, is_route, Page, PageError, Placement, MODULE_PAGE_PREFIX};
 use crate::modules::manifest::Capability;
-use crate::status::{Activity, LiveStatus, StatusDto, SAMPLE_TEXT};
+use crate::status::{Activity, LiveStatus, StatusDto, StatusItemDto, SAMPLE_TEXT};
 use crate::settings::{
     clamp_seconds, load_settings, save_settings, ChannelPref, HomeSettings, LanguageSetting, NotchConfig, Place,
     PrayerMethod, Settings,
@@ -260,7 +260,9 @@ impl AppCore {
             .filter(|e| !e.installed || !e.enabled || self.settings.status_off.contains(&e.manifest.id))
             .map(|e| e.manifest.id.clone())
             .collect();
-        let next = self.live.shown(&off).map(|(module_id, text)| StatusDto { module_id, text, screen: screen.into() });
+        let items: Vec<StatusItemDto> =
+            self.live.shown(&off).into_iter().map(|(module_id, text)| StatusItemDto { module_id, text }).collect();
+        let next = (!items.is_empty()).then(|| StatusDto { screen: screen.into(), items });
         if next == self.shown_status {
             return None;
         }
@@ -546,7 +548,8 @@ mod tests {
         let mut core = open(&d, None);
         assert_eq!(core.status_change("Built-in"), None);
         core.set_status(Some("a"), Activity::Running, Some("18:42")).unwrap();
-        let dto = StatusDto { module_id: Some("a".into()), text: "18:42".into(), screen: "Built-in".into() };
+        let item = StatusItemDto { module_id: Some("a".into()), text: "18:42".into() };
+        let dto = StatusDto { screen: "Built-in".into(), items: vec![item.clone()] };
         assert_eq!(core.status_change("Built-in"), Some(Some(dto.clone())));
         assert_eq!(core.status_change("Built-in"), None);
         assert_eq!(core.status(), Some(dto.clone()));
@@ -560,12 +563,24 @@ mod tests {
     }
 
     #[test]
+    fn status_change_sends_the_whole_list_once() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.set_status(Some("a"), Activity::Running, Some("18:42")).unwrap();
+        core.set_sample_status(true);
+        let sent = core.status_change("Built-in").unwrap().unwrap();
+        assert_eq!(sent.items.iter().map(|i| i.text.as_str()).collect::<Vec<_>>(), ["18:42", "18:42"]);
+        assert_eq!(sent.items[1].module_id, None);
+        assert_eq!(core.status_change("Built-in"), None);
+    }
+
+    #[test]
     fn the_sample_status_shows_until_turned_off() {
         let d = setup();
         let mut core = open(&d, None);
         core.set_sample_status(true);
         assert!(core.state().sample_status);
-        assert_eq!(core.status_change("Built-in").unwrap().unwrap().text, "18:42");
+        assert_eq!(core.status_change("Built-in").unwrap().unwrap().items[0].text, "18:42");
         core.set_sample_status(false);
         assert!(!core.state().sample_status);
         assert_eq!(core.status_change("Built-in"), Some(None));
