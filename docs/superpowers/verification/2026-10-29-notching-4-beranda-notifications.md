@@ -110,7 +110,7 @@ Selama notifikasi tampil, CPU sedikit naik karena cahayanya bergerak. Begitu not
 | 5 | Panel terbuka saat reminder jatuh tempo → notifikasi muncul setelah panel ditutup. | Lulus | Dilaporkan pemilik. |
 | 6 | Terlewat: tanda di notch dan di ikon Beranda di pil, lalu hilang setelah panel dibuka. | Lulus setelah perbaikan | Tiga percobaan awal tidak memunculkan titik. Ada dua sebab, dan keduanya diperbaiki (lihat Temuan). Desain titiknya juga diganti dua kali atas pilihan pemilik. Percobaan terakhir dengan video layar penuh (reminder 00.00) dilaporkan pemilik: notch melebar dengan titik merah. Jalur "2 menit tidak menyentuh Mac" belum dicoba terpisah di perangkat. Jalur itu memakai kode yang sama dan sudah diuji di test. |
 | 7 | Saklar Tampil mati → reminder tidak muncul. Saklar Suara mati → tanpa bunyi. | Lulus | Dilaporkan pemilik. Pengaturan masih `home.reminder` dengan suara mati saat laporan ini ditulis. |
-| 8 | Notifikasi waktu sholat tanpa bunyi. | Belum | Saklarnya belum dinyalakan saat laporan ini ditulis. Pemilik melaporkannya di waktu sholat berikutnya. |
+| 8 | Notifikasi waktu sholat ~~tanpa bunyi~~ dengan bunyi. | Sebagian | Pemilik menyalakan Suara untuk sholat, dan pada 31 Oktober memilih cek dengan bunyi. Waktu dan bunyi terbukti dari log; telinga di layar belum dilihat atau dilaporkan. Lihat "Cek 8: bukti sholat" di bawah. |
 | 9 | Cmd+Q lalu jalankan lagi → reminder yang sudah muncul tidak muncul lagi. | Lulus | Dilaporkan pemilik setelah Notching dibuka ulang pukul 23.05. |
 | 10 | Perilaku lama: hover, buka-tutup, Esc, klik di luar, menu bar, slider, dan Beranda. | Lulus | Dilaporkan pemilik. |
 | 11 | Build rilis: Kirim contoh berbunyi dan bercahaya. | Lulus | Dilaporkan pemilik. |
@@ -134,3 +134,23 @@ Tampilan telinga, cahaya, pil, halaman Notifikasi, dan saklar sholat di Beranda 
   - **Pengenalan layar penuh di layar ber-notch bergantung pada jendela desktop Dock.** Kalau Dock ada di monitor lain dan "Displays have separate Spaces" menyala, jendela yang dimaksimalkan di layar MacBook bisa dianggap layar penuh, sehingga muncul titik merah yang tidak perlu.
   - **Bunyi diputar saat notifikasi datang, bukan saat telinganya muncul.** Kalau panel sedang terbuka, bunyinya terdengar sekarang, sedangkan telinganya baru muncul setelah panel ditutup.
 
+
+### Cek 8: bukti sholat (31 Oktober 2026)
+
+Jadwal dihitung dengan `home/prayer.rs` milik app, Pekanbaru, Kemenag: Subuh 04.39 (30/10) atau 04.38 (31/10), Dzuhur 12.01, Ashar 15.20, Maghrib 18.04, Isya 19.14. `settings.json` berisi `home.prayer: {on: true, sound: true}` sejak paling lambat 30 Oktober 06.05 (salinan `before-plan-5`).
+
+Bunyi dibuktikan lewat `log show`: `notching` membuka output audio baru (`AudioQueueObject: New output`) saat bunyi Glass diputar. Keadaan Mac diambil dari `pmset -g log`.
+
+| Waktu | Mac | Notching | Output audio |
+|---|---|---|---|
+| 30/10 Subuh 04.39 | bangun | PID 831 | 04.39.00 |
+| 30/10 Dzuhur, Ashar, Maghrib, Isya | tidur | berjalan | tidak ada |
+| 31/10 Subuh 04.38 | tidur | berjalan | tidak ada |
+| 31/10 Dzuhur 12.01 | bangun | tidak berjalan (11.08–12.18) | tidak ada |
+| 31/10 Ashar 15.20 | tidur (clamshell) | PID 16612 | tidak ada |
+| 31/10 Maghrib 18.04 | bangun | PID 20495 | 18.04.00.026 |
+| 31/10 Isya 19.14 | tidur, bangun 19.24.02 | PID 20495 | tidak ada |
+
+- Bunyi terdengar tepat di menit sholat setiap kali Mac bangun dan Notching berjalan.
+- Saat Mac tidur, tidak ada bunyi. Isya 31/10 telat 10 menit 2 detik saat Mac bangun, jadi sesuai `LATE_MS` (10 menit) notifikasinya tidak dikirim.
+- Di `notify.rs`, bunyi diputar di fungsi yang sama yang mengirim telinga ke layar di bawah kursor. Tetapi telinga di layar tidak meninggalkan jejak di log. Karena itu statusnya Sebagian sampai pemilik melihatnya di waktu sholat berikutnya, saat Mac bangun.

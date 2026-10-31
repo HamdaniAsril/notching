@@ -40,7 +40,7 @@ Jendela pengaturan tidak memakai CPU saat diam. Saat ditutup, prosesnya ikut hil
 | 6 | Layar: hanya monitor, hanya MacBook, dan semua layar. Monitor dicabut saat terpilih → notch pindah ke semua layar, lalu kembali saat dipasang lagi. | Lulus | Dilaporkan pemilik. Catatan file mencatat `"screen"` berganti antara `"Built-in Retina Display"`, `"L24i-40"`, dan `null`. |
 | 7 | Modul: nyala/mati, copot dengan konfirmasi, dan pasang lagi lewat Tambah modul. Ikon pil dan folder modul aktif ikut berubah. | Lulus | Dilaporkan pemilik. Catatan folder: `system-stat` masuk `disabledModules`, lalu keluar; masuk `uninstalledModules` dan foldernya hilang; lalu kembali. |
 | 8 | Pencarian menemukan pengaturan dan nama modul, dan baris yang dituju disorot. Cmd+V di kotak cari bekerja. | Lulus | Dilaporkan pemilik. |
-| 9 | Buka saat login. | Sebagian | Dilaporkan pemilik: setelah dinyalakan dari `/Applications/Notching.app`, Notching muncul di Login Items. Bukti logout dan login belum dilakukan; pemilik melakukannya kapan saja. |
+| 9 | Buka saat login. | Sebagian | Dilaporkan pemilik: setelah dinyalakan dari `/Applications/Notching.app`, Notching muncul di Login Items. 31 Oktober 22.35: build baru dari `2b93784` dipasang ke `/Applications` (lihat "Langkah 1" di bawah), dan System Events masih mencantumkan `/Applications/Notching.app` di item login. Logout dan login belum dilakukan: `last` menunjukkan sesi console terakhir dimulai 20 Oktober 06.21 dan masih berjalan, jadi Notching belum pernah dibuka oleh login. |
 | 10 | Perilaku rencana 1 dan 2: klik di luar dan Esc menutup panel, menu bar dekat tengah bisa diklik, dan Esc dari dalam kartu mengembalikan ketikan ke app sebelumnya. | Lulus | Dilaporkan pemilik. Kartu terakhir, System stat yang berhenti membaca, dan layar penuh tidak dicek ulang di rencana ini. Kode untuk ketiganya tidak diubah; yang berubah di sekitarnya hanya penyaringan layar saat overlay dibangun ulang. |
 
 Tampilan dan teks semua halaman dinilai pemilik lewat pratinjau browser sebelum jendela disambungkan ke app, dan disetujui tanpa perubahan.
@@ -56,3 +56,17 @@ Tampilan dan teks semua halaman dinilai pemilik lewat pratinjau browser sebelum 
 - **Ikon Dock** masih ikon bawaan dari kerangka Tauri, sampai logo Notching dibuat.
 - **Buka saat login dan build baru.** App ini ditandatangani lokal, jadi macOS bisa menganggap setiap build baru sebagai app berbeda. Setelah Notching diperbarui, tombol ini mungkin perlu dinyalakan ulang. Ini terkait keputusan tanda tangan digital di spec bagian 9.
 - **Pratinjau notch di jendela pengaturan** berhenti beranimasi kalau jendelanya tersembunyi di balik app lain. Ini perilaku normal WebKit dan sejalan dengan aturan hemat daya.
+
+## Langkah 1: build baru di /Applications (31 Oktober 2026)
+
+| # | Langkah | Hasil | Bukti |
+|---|---|---|---|
+| 1 | Build dari HEAD. | Selesai | `npm run tauri build` dari `2b93784`. Build 22.06 tidak dipakai karena `0854a8c` dibuat sesudahnya, dan aset frontend di binary tidak bisa dibandingkan. |
+| 2 | Notching lama ditutup dengan cara biasa. | Selesai | `osascript -e 'quit app "Notching"'`. PID 35711 berhenti 22.33, tanpa kill. |
+| 3 | Salinan data. | Selesai | `before-step-1/settings.json` dan `reminders.json`. `shasum` sama dengan aslinya. |
+| 4 | Ganti app di `/Applications`. | Selesai | Bundle 29 Oktober dipindah ke Tong Sampah (`Notching-2026-10-29.app`). Build baru disalin dengan `ditto`; `cmp` binary sama dengan hasil build. |
+| 5 | Berjalan dari `/Applications`. | Selesai | `ps -o lstart`: PID 63762, mulai 22.35.06, `/Applications/Notching.app/Contents/MacOS/notching`. |
+| 6 | Data utuh. | Selesai | `diff` `settings.json` dan `reminders.json` dengan salinannya: sama. |
+| 7 | Izin tetap berlaku. | Selesai | `log show` tccd 22.35.06 untuk PID 63762: Aksesibilitas, Kamera, dan ListenEvent `authValue=2` (diizinkan). Tidak ada permintaan izin baru. |
+
+Tanda tangan tetap adhoc dengan identifier `notching-f40547a86c4775b9`, sama dengan build lama.
