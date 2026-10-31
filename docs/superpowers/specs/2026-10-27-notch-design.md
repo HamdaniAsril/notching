@@ -229,7 +229,7 @@ Acuan: `notif-v1.html` dan `glow-options.html`.
 
 Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
 - **Tidak menghalangi klik.** Di luar area notch dan panel, klik harus tembus ke menu bar dan app di bawahnya.
-- **Tidak mencuri fokus.** Panel tidak mengambil fokus keyboard dari app yang sedang dipakai, kecuali saat pengguna mengetik di dalam panel, misalnya di Catatan.
+- **Tidak mencuri fokus.** Panel tidak mengambil fokus keyboard dari app yang sedang dipakai, kecuali saat pengguna mengetik di dalam panel, misalnya saat menambah reminder di Beranda.
 - **Tetap di atas.** Notch selalu tampil di atas jendela lain dan di semua desktop atau Spaces.
 
 ## 5. Gaya visual dan bahasa
@@ -251,7 +251,7 @@ Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
 - **Judul:** dua ketukan sejajar, misalnya "Selalu gratis. Untuk semua."
 - **Sapaan:** pembaca disapa "kamu". Tidak ada sudut pandang "kami".
 - **Kepercayaan:** tekankan gratis, tanpa iklan, tanpa pelacakan, dan hemat baterai.
-- **Angka sebagai bukti:** misalnya "7 modul", "0 pelacak".
+- **Angka sebagai bukti:** misalnya "6 modul", "0 pelacak".
 - **Nama fitur:** frasa biasa yang menjelaskan isinya, bukan nama merek buatan.
 
 ### Bahasa antarmuka
@@ -273,7 +273,7 @@ Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
 
 | Tahap | Modul |
 |---|---|
-| 1 (versi pertama) | Beranda, Timer, Keep awake, Freeze keyboard, Kamera cermin, Catatan, System stat |
+| 1 (versi pertama) | Beranda, Timer, Keep awake, Freeze keyboard, Kamera cermin, System stat. Modul Catatan dibatalkan pemilik ide pada 31 Oktober 2026. |
 | 2 | Music player dan lirik, Kalender, Pantau agent |
 | 3 | Uninstall app |
 
@@ -296,7 +296,7 @@ Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
   - Dimatikan: modul tetap terpasang, tapi hilang dari pil dan berhenti bekerja.
   - Dicopot: paketnya dihapus dari disk.
 - **Pemasangan versi pertama (keputusan penulis):**
-  - Ketujuh modul tahap 1 ikut di dalam installer, supaya app langsung bisa dipakai tanpa internet.
+  - Keenam modul tahap 1 ikut di dalam installer, supaya app langsung bisa dipakai tanpa internet.
   - Mencopot modul menghapusnya dari folder modul aktif. Salinan aslinya tetap tersimpan di dalam app.
   - "+ Tambah modul" di versi pertama hanya menampilkan modul bawaan yang pernah dicopot, untuk dipasang lagi tanpa internet.
   - Modul ikut diperbarui bersama app, tidak terpisah. Jadi API antara modul dan app inti masih boleh berubah sampai tahap 2.
@@ -329,9 +329,6 @@ Setiap modul punya kartu sendiri di panel dan halaman sendiri di pengaturan.
   - Menampilkan kamera depan yang dibalik seperti cermin, untuk merapikan diri sebelum rapat.
   - Kamera hanya menyala selama kartu ini terbuka.
   - Butuh izin Kamera.
-- **Catatan:**
-  - Catatan cepat berupa teks, disimpan lokal.
-  - Fokus keyboard boleh masuk ke panel saat sedang mengetik.
 - **System stat:** CPU, memori, dan jaringan, diperbarui setiap 1–2 detik selama kartu terbuka.
 
 ## 7. Beranda
@@ -441,7 +438,7 @@ Bagian ini dikerjakan setelah versi Mac nyaman dipakai sendiri dan versi Windows
 
 - Struktur folder, pembagian kode, dan cara pengujian.
 - Cara teknis menaruh jendela di atas notch dan menembuskan klik, asalkan perilaku di bagian 4.6 terpenuhi.
-- Format penyimpanan pengaturan, catatan, dan reminder.
+- Format penyimpanan pengaturan dan reminder.
 - Bentuk persis API antara modul dan app inti, asalkan aksesnya dibatasi manifest.
 - Cara mendeteksi Mac yang punya notch dan app yang sedang layar penuh.
-- Detail tampilan kartu Timer, Keep awake, Freeze keyboard, Kamera cermin, Catatan, dan System stat, asalkan mengikuti gaya di bagian 5. Kartu-kartu ini belum punya mockup.
+- Detail tampilan kartu Timer, Keep awake, Freeze keyboard, Kamera cermin, dan System stat, asalkan mengikuti gaya di bagian 5. Kartu-kartu ini belum punya mockup.
