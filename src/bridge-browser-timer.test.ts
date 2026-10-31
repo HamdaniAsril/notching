@@ -12,7 +12,7 @@ test('formatLeft matches the status beside the notch', () => {
 test('the browser timer runs, pauses, resumes and ends like the core one', () => {
   let now = 1_000_000;
   const call = fakeTimer(() => now);
-  expect(call('read', undefined)).toEqual({ state: 'idle', minutes: 5, until: null, left: null, text: null });
+  expect(call('read', undefined)).toEqual({ state: 'idle', minutes: 30, until: null, left: null, text: null });
   expect(call('start', { minutes: 5 })).toEqual({ state: 'running', minutes: 5, until: now + 300_000, left: 300_000, text: '5:00' });
   now += 18_000;
   expect(call('pause', undefined)).toEqual({ state: 'paused', minutes: 5, until: null, left: 282_000, text: '4:42' });

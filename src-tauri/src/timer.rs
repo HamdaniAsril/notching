@@ -3,8 +3,9 @@
 
 /// The longest timer, and the most minutes one start may ask for.
 pub const MAX_MINUTES: u32 = 60;
-/// The ruler's place before anything was started.
-pub const DEFAULT_MINUTES: u32 = 5;
+/// The ruler's place before anything was started: the middle of 1–60, so the
+/// ruler is full on both sides of its mark (owner, 31 Oct; was 5).
+pub const DEFAULT_MINUTES: u32 = 30;
 /// The monotonic clock stops while the Mac sleeps, so an idle or paused timer
 /// is looked at again at least this often.
 pub const WAIT_MAX_MS: i64 = 60_000;
@@ -199,7 +200,8 @@ mod tests {
         assert_eq!(t.start("t", T, 0), Err(TimerError::BadMinutes));
         assert_eq!(t.start("t", T, 61), Err(TimerError::BadMinutes));
         assert_eq!(t.owner(), None);
-        assert_eq!(t.view(T).minutes, DEFAULT_MINUTES);
+        // The middle of 1–60, so the ruler is full on both sides (owner, 31 Oct).
+        assert_eq!(t.view(T).minutes, 30);
         t.start("t", T, 60).unwrap();
         assert_eq!(
             t.view(T),

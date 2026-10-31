@@ -74,7 +74,7 @@ Widget strip ditulis di manifest seperti widget biasa, dengan lebar 4. Widget bi
   - Warna oranye **#FF6A1A** **(keputusan penulis)**. Ini warna kedua di app selain merah titik. Pemilik sudah diberi tahu dan tetap memilih oranye.
 - **Saat penggaris diseret,** angka waktu ikut berubah. **Saat dilepas, timer langsung jalan** dengan nilai itu.
 - **Angka waktu bisa diketik** (diminta pemilik saat cek di Mac pada 31 Oktober). Ketik jumlah menit, misalnya "7" atau "7:00", lalu Enter, dan timer langsung jalan. Isian di luar 1–60 menit bulat tidak memulai apa-apa, dan angkanya kembali seperti semula **(keputusan penulis)**. Mengetik saat timer jalan mengganti waktunya, sama seperti menggeser penggaris.
-- **Posisi penggaris saat belum jalan** adalah waktu terakhir yang dipakai. Waktu bawaan saat app baru dibuka adalah 5 menit **(keputusan penulis)**.
+- **Posisi penggaris saat belum jalan** adalah waktu terakhir yang dipakai **(keputusan penulis)**. Waktu bawaan saat app baru dibuka adalah **30 menit**, di tengah jangkauan 1–60, supaya penggaris terlihat penuh di kedua sisi garis putih. Diminta pemilik saat cek di Mac pada 31 Oktober; semula 5 menit.
 
 **Sedang jalan**
 - Titik merah kecil di depan tulisan TIMER.
@@ -116,7 +116,7 @@ Ukuran pasti panel ditentukan pembuat dalam batas manifest, yaitu tinggi 40–24
 - **Saat dijeda,** yang disimpan adalah sisa waktunya. Waktu tidur Mac tidak mengurangi timer yang dijeda.
 - **Memulai saat timer sudah jalan atau dijeda** mengganti timer itu dengan yang baru.
 - **Batas:** 1 sampai 60 menit, menit bulat. Perintah di luar batas itu ditolak.
-- **Keadaan tidak disimpan ke disk.** Notching yang dibuka lagi selalu mulai tanpa timer, dengan waktu bawaan 5 menit.
+- **Keadaan tidak disimpan ke disk.** Notching yang dibuka lagi selalu mulai tanpa timer, dengan waktu bawaan 30 menit.
 - **Kemampuan di manifest:** modul ini menyebut kemampuan untuk Timer, ditambah `status` dan `notify`. Semua panggilan dari halaman modul dan dari strip lewat gate, sama seperti modul lain.
 - **Tampilan di strip dan halaman** membaca keadaan sekali sedetik selama panel terbuka, lalu menggerakkan penggaris dan angka dengan jam sendiri di antara dua bacaan. Dengan begitu geraknya halus, dan strip serta halaman tetap sama walau timer diubah dari tempat lain **(keputusan penulis)**.
 

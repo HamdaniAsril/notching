@@ -201,3 +201,11 @@ test('the icon is a line drawing', () => {
   expect(iconSvg).toContain('viewBox="0 0 24 24"');
   expect(iconSvg).toContain('stroke=');
 });
+
+test('before the first reading the ruler sits at 30 minutes, the middle', () => {
+  const root = document.createElement('div');
+  document.body.append(root);
+  const view = renderTimer(root, id, { start: vi.fn(), pause: vi.fn(), resume: vi.fn(), stop: vi.fn() }, false);
+  view.tick(NOW);
+  expect(root.querySelector<HTMLInputElement>('input.tm-time')!.value).toBe('30:00');
+});

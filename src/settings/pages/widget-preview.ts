@@ -45,7 +45,7 @@ export function widgetSample(w: CatalogWidget, lang: Lang): HTMLElement[] {
       return [lab(s.prayer), el('div', 'ed-line', s.next), bar];
     }
     case 'timer/strip':
-      return [lab('Timer'), el('i', 'ed-tm-ruler'), el('div', 'ed-tm-time', '5:00')];
+      return [lab('Timer'), el('i', 'ed-tm-ruler'), el('div', 'ed-tm-time', '30:00')];
     case 'home/reminders':
       return [lab(s.reminders), ...s.rows.map(t => {
         const r = el('div', 'rm');

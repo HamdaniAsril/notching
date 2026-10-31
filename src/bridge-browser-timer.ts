@@ -9,7 +9,7 @@ type Phase = { kind: 'idle' } | { kind: 'running'; until: number } | { kind: 'pa
 // Timer in a normal browser (`npm run dev`), with the rules of src-tauri/src/timer.rs.
 export function fakeTimer(now: () => number = Date.now): (method: string, args: unknown) => TimerView {
   let phase: Phase = { kind: 'idle' };
-  let minutes = 5;
+  let minutes = 30; // DEFAULT_MINUTES in src-tauri/src/timer.rs
   const settle = () => {
     if (phase.kind === 'running' && now() >= phase.until) phase = { kind: 'idle' };
   };

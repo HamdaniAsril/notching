@@ -6,7 +6,7 @@ import {
 // Same as TimerDto in src-tauri/src/timer.rs.
 export interface TimerView {
   state: 'idle' | 'running' | 'paused';
-  minutes: number; // the last started, or the default 5
+  minutes: number; // the last started, or the default 30
   until: number | null; // wall-clock ms, only while running
   left: number | null; // ms, while running or paused
   text: string | null; // the status text unless idle: "6:42"
@@ -46,7 +46,7 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   update(v: TimerView): void;
   tick(now: number): void;
 } {
-  let view: TimerView = { state: 'idle', minutes: 5, until: null, left: null, text: null };
+  let view: TimerView = { state: 'idle', minutes: 30, until: null, left: null, text: null };
   let built: TimerView['state'] | null = null;
   let drag: { x: number; base: number; minutes: number | null } | null = null;
   let pending: number | null = null; // minutes started, until the next reading
