@@ -1,5 +1,5 @@
 import { fill } from '../../i18n';
-import type { Page, WidgetKind } from '../../modules/types';
+import type { ModuleState, Page, WidgetKind } from '../../modules/types';
 import { PAGE_ICON_NAMES, pageIconSvg } from '../../pages/icons';
 import { COLUMNS, place, removeWidget, replaceAt, slots, swapInto, widgetCatalog, type CatalogWidget } from '../../pages/layout';
 import { button, el, head } from '../controls';
@@ -16,6 +16,18 @@ const KINDS: WidgetKind[] = ['time', 'weather', 'worship', 'work', 'media'];
 // city search's draft in home.ts.
 let filter: WidgetKind | 'all' = 'all';
 
+// The page as the editor last sent it. Its echo from the native side changes
+// nothing on screen, so the shell need not rebuild the editor for it: a rebuild
+// would drop an open icon popup or the click that was on its way.
+let sent: { id: string; page: Page } | null = null;
+
+export function isOwnEcho(prev: ModuleState, next: ModuleState, id: string): boolean {
+  const mine = next.pages.find(p => p.id === id);
+  if (!sent || sent.id !== id || !mine || JSON.stringify(mine) !== JSON.stringify(sent.page)) return false;
+  const rest = (s: ModuleState) => JSON.stringify({ ...s, pages: s.pages.filter(p => p.id !== id) });
+  return rest(prev) === rest(next);
+}
+
 function back(ctx: PageContext): HTMLElement {
   const b = el('button', 'back');
   b.type = 'button';
@@ -26,29 +38,30 @@ function back(ctx: PageContext): HTMLElement {
 }
 
 // The name, typed straight into the title.
-function titleField(ctx: PageContext, page: Page, save: (next: Page) => void): HTMLInputElement {
+// `page` is the editor's one copy, so a rename and an icon change made before the
+// native side answers never undo each other.
+function titleField(ctx: PageContext, page: () => Page, save: (next: Page) => void): HTMLInputElement {
   const name = el('input', 'ed-title');
   name.dataset.key = 'pageEdit.name';
   name.maxLength = 24;
-  name.value = page.name ?? '';
+  name.value = page().name ?? '';
   name.spellcheck = false;
   name.setAttribute('aria-label', ctx.strings.pages.name);
   const commit = () => {
     const v = name.value.trim();
-    if (!v || v === page.name) return;
-    page = { ...page, name: v };
-    save(page);
+    if (!v || v === page().name) return;
+    save({ ...page(), name: v });
   };
   name.addEventListener('keydown', e => {
     if (e.key === 'Enter') commit();
-    if (e.key === 'Escape') name.value = page.name ?? '';
+    if (e.key === 'Escape') name.value = page().name ?? '';
   });
   name.addEventListener('blur', commit);
   return name;
 }
 
 // The page's icon with a pencil mark; a click opens the 24 icons in a popup.
-function iconPicker(ctx: PageContext, page: Page, save: (next: Page) => void): HTMLElement {
+function iconPicker(ctx: PageContext, page: () => Page, save: (next: Page) => void): HTMLElement {
   const s = ctx.strings.pages;
   const wrap = el('div', 'ed-icon-wrap');
   const open = el('button', 'ico ed-icon-btn');
@@ -59,7 +72,8 @@ function iconPicker(ctx: PageContext, page: Page, save: (next: Page) => void): H
   open.setAttribute('aria-expanded', 'false');
   const mark = icon('pencil');
   mark.classList.add('ed-edit');
-  open.append(pageIcon(pageIconSvg(page.icon)), mark);
+  const shown = pageIcon(pageIconSvg(page().icon));
+  open.append(shown, mark);
   wrap.append(open);
 
   const doc = wrap.ownerDocument;
@@ -86,15 +100,18 @@ function iconPicker(ctx: PageContext, page: Page, save: (next: Page) => void): H
     popup.setAttribute('role', 'group');
     popup.setAttribute('aria-label', s.icon);
     for (const n of PAGE_ICON_NAMES) {
-      const b = el('button', n === page.icon ? 'on' : undefined);
+      const on = n === page().icon;
+      const b = el('button', on ? 'on' : undefined);
       b.type = 'button';
       b.dataset.key = `pageEdit.icon.${n}`;
-      b.setAttribute('aria-pressed', String(n === page.icon));
+      b.setAttribute('aria-pressed', String(on));
       b.setAttribute('aria-label', n);
       b.innerHTML = pageIconSvg(n); // one of the fixed icons, never the person's text
       b.addEventListener('click', () => {
         close();
-        if (n !== page.icon) save({ ...page, icon: n });
+        if (on) return;
+        save({ ...page(), icon: n });
+        shown.innerHTML = pageIconSvg(n); // the head shows it at once
       });
       popup.append(b);
     }
@@ -335,6 +352,7 @@ export const pageEditor: PageRender = (ctx, route) => {
 
   const save = (next: Page) => {
     page = next;
+    sent = { id, page: next };
     ctx.save(`page.${id}`, ctx.bridge.setPage(id, home ? null : next.name, next.icon, next.widgets));
     draw();
   };
@@ -355,16 +373,16 @@ export const pageEditor: PageRender = (ctx, route) => {
     out.append(top, body);
     return out;
   }
-  // Name and icon are edited in the head itself; the widgets sent with them are always the latest.
-  const keepWidgets = (next: Page) => save({ ...next, widgets: page.widgets });
+  // Name and icon are edited in the head itself, on the same copy as the widgets.
+  const current = () => page;
   const top = el('div', 'head');
   top.dataset.row = `page.${id}`;
   const title = el('h1');
-  const name = titleField(ctx, page, keepWidgets);
+  const name = titleField(ctx, current, save);
   title.append(name);
   const titles = el('div', 'titles');
   titles.append(title);
-  top.append(iconPicker(ctx, page, keepWidgets), titles);
+  top.append(iconPicker(ctx, current, save), titles);
   out.append(top, body, deleteButton(ctx, id));
   // A page just added: ready to type its name over the placeholder one.
   if (fresh) {

@@ -2,6 +2,7 @@
 import { expect, test, vi } from 'vitest';
 import type { ModuleState, Page, Placement } from '../../modules/types';
 import { BERANDA, homeWidgets, moduleInfo, TEST_STATE } from '../../notch/test-helpers';
+import { pageIconSvg } from '../../pages/icons';
 import { mountForTest, settle, TEST_INFO } from '../test-helpers';
 
 const at = (widget: string, col: number, width = 1): Placement => ({ widget, col, width });
@@ -283,4 +284,37 @@ test('the preview refits only when its width changes, so resizing never loops', 
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+const enterOn = (el: HTMLElement) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+test('a rename and then an icon change keep both, before any echo comes back', async () => {
+  const { root, bridge } = await edit('p1');
+  const name = key(root, 'pageEdit.name') as HTMLInputElement;
+  name.value = 'Kantor';
+  enterOn(name);
+  key(root, 'pageEdit.icon')!.click();
+  key(root, 'pageEdit.icon.book')!.click();
+  expect(bridge.setPage).toHaveBeenLastCalledWith('p1', 'Kantor', 'book', [at('home/clock', 0)]);
+  // The head shows the new icon at once.
+  const book = document.createElement('span');
+  book.innerHTML = pageIconSvg('book');
+  expect(key(root, 'pageEdit.icon')!.querySelector('.pg-icon')!.innerHTML).toBe(book.innerHTML);
+});
+
+test('the echo of its own save leaves the editor as it is', async () => {
+  const { root, bridge } = await edit('p1');
+  const name = key(root, 'pageEdit.name') as HTMLInputElement;
+  name.value = 'Kantor';
+  enterOn(name);
+  key(root, 'pageEdit.icon')!.click();
+  const popup = root.querySelector('.ed-icons');
+  expect(popup).not.toBeNull();
+  bridge.emitModuleState({ ...STATE, pages: [BERANDA, { ...KERJA, name: 'Kantor' }] });
+  expect(root.querySelector('.ed-icons')).toBe(popup);
+  expect(key(root, 'pageEdit.name')).toBe(name);
+  // Anything else still rebuilds it.
+  bridge.emitModuleState({ ...STATE, pages: [BERANDA, { ...KERJA, name: 'Gudang' }] });
+  expect((key(root, 'pageEdit.name') as HTMLInputElement).value).toBe('Gudang');
+  expect(root.querySelector('.ed-icons')).toBeNull();
 });

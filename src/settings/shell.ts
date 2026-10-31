@@ -7,7 +7,7 @@ import { aboutPage, permissionsPage } from './pages/info';
 import { notificationsPage } from './pages/notifications';
 import { lookPage } from './pages/look';
 import { addPage, modulePage, modulesPage } from './pages/modules';
-import { pageEditor } from './pages/page-editor';
+import { isOwnEcho, pageEditor } from './pages/page-editor';
 import { pagesPage, waitingFor } from './pages/pages';
 import { hasPage } from '../modules/types';
 import { search, searchIndex } from './search';
@@ -210,7 +210,9 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   const onlyNotchChanged = (a: ModuleState, b: ModuleState) =>
     JSON.stringify({ ...a, notch: null }) === JSON.stringify({ ...b, notch: null });
   const offState = bridge.onModuleState(next => {
-    const echo = route.page === 'look' && !searchInput.value.trim() && onlyNotchChanged(state, next);
+    const quiet = !searchInput.value.trim();
+    const echo = (route.page === 'look' && quiet && onlyNotchChanged(state, next))
+      || (route.page === 'pageEdit' && quiet && isOwnEcho(state, next, route.id));
     state = next;
     if (!echo) render();
   });
