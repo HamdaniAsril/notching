@@ -1,4 +1,5 @@
 mod app_core;
+mod awake;
 mod geometry;
 mod home;
 mod locale;
