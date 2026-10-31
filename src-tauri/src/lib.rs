@@ -4,6 +4,7 @@ mod home;
 mod locale;
 mod module_commands;
 mod modules;
+mod page_commands;
 mod pages;
 mod settings;
 mod status;
@@ -48,6 +49,10 @@ pub fn run() {
             commands::quit_app,
             module_commands::get_module_state,
             module_commands::set_last_page,
+            page_commands::add_page,
+            page_commands::set_page,
+            page_commands::delete_page,
+            page_commands::move_page,
             module_commands::set_module_enabled,
             module_commands::uninstall_module,
             module_commands::reinstall_module,

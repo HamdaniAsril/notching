@@ -100,6 +100,114 @@ pub fn repair(pages: Vec<Page>) -> Vec<Page> {
     out
 }
 
+/// The fixed line icons a page may wear; the same names as PAGE_ICONS in
+/// src/pages/icons.ts.
+pub const PAGE_ICONS: [&str; 24] = [
+    "home", "star", "heart", "bolt", "briefcase", "book", "code", "chart", "calendar", "clock", "bell", "flag",
+    "pin", "globe", "cloud", "sun", "moon", "leaf", "coffee", "music", "camera", "gift", "compass", "dot",
+];
+
+#[derive(Debug, PartialEq)]
+pub enum PageError {
+    NotFound(String),
+    Fixed,
+    BadName,
+    BadIcon,
+    BadLayout,
+    UnknownWidget(String),
+}
+
+impl std::fmt::Display for PageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PageError::NotFound(id) => write!(f, "unknown page {id}"),
+            PageError::Fixed => write!(f, "Beranda cannot be changed that way"),
+            PageError::BadName => write!(f, "a page name has 1 to 24 characters"),
+            PageError::BadIcon => write!(f, "unknown icon"),
+            PageError::BadLayout => write!(f, "widgets do not fit the row"),
+            PageError::UnknownWidget(r) => write!(f, "unknown widget {r}"),
+        }
+    }
+}
+
+fn page_name(name: &str) -> Result<String, PageError> {
+    let name = name.trim();
+    match name.chars().count() {
+        1..=PAGE_NAME_MAX => Ok(name.to_string()),
+        _ => Err(PageError::BadName),
+    }
+}
+
+fn page_icon(icon: &str) -> Result<String, PageError> {
+    PAGE_ICONS.contains(&icon).then(|| icon.to_string()).ok_or(PageError::BadIcon)
+}
+
+/// A new, empty custom page at the end; its id is one past the highest "p<n>".
+pub fn add_page(pages: &mut Vec<Page>, name: &str, icon: &str) -> Result<String, PageError> {
+    let (name, icon) = (page_name(name)?, page_icon(icon)?);
+    let n = pages.iter().filter_map(|p| p.id.strip_prefix('p')?.parse::<u32>().ok()).max().unwrap_or(0) + 1;
+    let id = format!("p{n}");
+    pages.push(Page { id: id.clone(), name: Some(name), icon, widgets: vec![] });
+    Ok(id)
+}
+
+/// Replaces a page's name, icon and widgets. Widgets must be in the catalog
+/// (`width_of`), which also gives their width, unless the page already held
+/// them: a spot whose package is away keeps its place.
+pub fn set_page(
+    pages: &mut [Page],
+    id: &str,
+    name: Option<&str>,
+    icon: &str,
+    widgets: Vec<Placement>,
+    width_of: &dyn Fn(&str) -> Option<u8>,
+) -> Result<(), PageError> {
+    let page = pages.iter_mut().find(|p| p.id == id).ok_or_else(|| PageError::NotFound(id.into()))?;
+    let (name, icon) = if id == HOME_PAGE {
+        if name.is_some() || icon != "home" {
+            return Err(PageError::Fixed);
+        }
+        (None, icon.to_string())
+    } else {
+        (Some(page_name(name.unwrap_or_default())?), page_icon(icon)?)
+    };
+    let mut placed = Vec::with_capacity(widgets.len());
+    for w in widgets {
+        match width_of(&w.widget) {
+            Some(width) => placed.push(Placement { width, ..w }),
+            None if page.widgets.iter().any(|old| old.widget == w.widget) => placed.push(w),
+            None => return Err(PageError::UnknownWidget(w.widget)),
+        }
+    }
+    if !fits(&placed) {
+        return Err(PageError::BadLayout);
+    }
+    placed.sort_by_key(|w| w.col);
+    *page = Page { id: page.id.clone(), name, icon, widgets: placed };
+    Ok(())
+}
+
+pub fn delete_page(pages: &mut Vec<Page>, id: &str) -> Result<(), PageError> {
+    if id == HOME_PAGE {
+        return Err(PageError::Fixed);
+    }
+    let i = pages.iter().position(|p| p.id == id).ok_or_else(|| PageError::NotFound(id.into()))?;
+    pages.remove(i);
+    Ok(())
+}
+
+/// `to` counts among the custom pages only; Beranda stays first.
+pub fn move_page(pages: &mut Vec<Page>, id: &str, to: usize) -> Result<(), PageError> {
+    if id == HOME_PAGE {
+        return Err(PageError::Fixed);
+    }
+    let i = pages.iter().position(|p| p.id == id).ok_or_else(|| PageError::NotFound(id.into()))?;
+    let page = pages.remove(i);
+    let custom = pages.iter().filter(|p| p.id != HOME_PAGE).count();
+    pages.insert(1 + to.min(custom), page);
+    Ok(())
+}
+
 /// What the panel can open: a page, the Modul page, or a module's page.
 pub fn is_route(pages: &[Page], route: &str) -> bool {
     route == MODULES_PAGE
@@ -178,6 +286,108 @@ mod tests {
     fn unknown_widgets_keep_their_place() {
         let fixed = repair(vec![beranda(), custom("p1", vec![p("timer/timer", 3, 1)])]);
         assert_eq!(fixed[1].widgets, [p("timer/timer", 3, 1)]);
+    }
+
+    fn known(r: &str) -> Option<u8> {
+        match r {
+            "home/date" | "a/a" | "b/b" => Some(1),
+            "home/reminders" => Some(2),
+            _ => None,
+        }
+    }
+
+    fn ids(pages: &[Page]) -> Vec<&str> {
+        pages.iter().map(|p| p.id.as_str()).collect()
+    }
+
+    #[test]
+    fn new_pages_get_the_next_free_id() {
+        let mut pages = vec![beranda(), custom("p1", vec![]), custom("p4", vec![])];
+        assert_eq!(add_page(&mut pages, "Ibadah", "moon"), Ok("p5".into()));
+        assert_eq!(pages[3], Page { id: "p5".into(), name: Some("Ibadah".into()), icon: "moon".into(), widgets: vec![] });
+        let mut only = vec![beranda()];
+        assert_eq!(add_page(&mut only, "Kerja", "briefcase"), Ok("p1".into()));
+        assert_eq!(add_page(&mut only, "Kerja", "nope"), Err(PageError::BadIcon));
+    }
+
+    #[test]
+    fn page_names_are_trimmed_and_limited() {
+        let mut pages = vec![beranda()];
+        add_page(&mut pages, "  Kerja ", "dot").unwrap();
+        assert_eq!(pages[1].name.as_deref(), Some("Kerja"));
+        for bad in ["x".repeat(25), String::new(), "   ".into()] {
+            assert_eq!(add_page(&mut pages, &bad, "dot"), Err(PageError::BadName), "{bad:?}");
+        }
+        assert!(add_page(&mut pages, &"🌙".repeat(24), "dot").is_ok());
+        assert_eq!(set_page(&mut pages, "p1", None, "dot", vec![], &known), Err(PageError::BadName));
+    }
+
+    #[test]
+    fn beranda_keeps_its_name_icon_and_place() {
+        let mut pages = vec![beranda(), custom("p1", vec![])];
+        assert_eq!(set_page(&mut pages, "home", Some("X"), "home", vec![], &known), Err(PageError::Fixed));
+        assert_eq!(set_page(&mut pages, "home", None, "star", vec![], &known), Err(PageError::Fixed));
+        assert_eq!(delete_page(&mut pages, "home"), Err(PageError::Fixed));
+        assert_eq!(move_page(&mut pages, "home", 1), Err(PageError::Fixed));
+        assert_eq!(set_page(&mut pages, "home", None, "home", vec![p("home/date", 0, 1)], &known), Ok(()));
+        assert_eq!(pages[0].widgets, [p("home/date", 0, 1)]);
+        assert_eq!(set_page(&mut pages, "p9", Some("X"), "dot", vec![], &known), Err(PageError::NotFound("p9".into())));
+        assert_eq!(delete_page(&mut pages, "p9"), Err(PageError::NotFound("p9".into())));
+    }
+
+    #[test]
+    fn widgets_must_fit_and_be_known() {
+        let mut pages = vec![beranda(), custom("p1", vec![])];
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("a/a", 0, 1), p("b/b", 0, 1)], &known), Err(PageError::BadLayout));
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("x/y", 0, 1)], &known),
+            Err(PageError::UnknownWidget("x/y".into())));
+        // The catalog decides the width; placements come back in column order.
+        let widgets = vec![p("a/a", 3, 1), p("home/reminders", 0, 1)];
+        assert_eq!(set_page(&mut pages, "p1", Some(" Kerja "), "briefcase", widgets, &known), Ok(()));
+        assert_eq!(pages[1], Page {
+            id: "p1".into(), name: Some("Kerja".into()), icon: "briefcase".into(),
+            widgets: vec![p("home/reminders", 0, 2), p("a/a", 3, 1)],
+        });
+        // At its catalog width it no longer fits.
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", vec![p("home/reminders", 3, 1)], &known),
+            Err(PageError::BadLayout));
+    }
+
+    #[test]
+    fn set_page_keeps_widgets_whose_source_is_gone() {
+        let mut pages = vec![beranda(), custom("p1", vec![p("timer/timer", 3, 1)])];
+        let widgets = vec![p("a/a", 0, 1), p("timer/timer", 3, 1)];
+        assert_eq!(set_page(&mut pages, "p1", Some("Kerja"), "dot", widgets.clone(), &known), Ok(()));
+        assert_eq!(pages[1].widgets, widgets);
+    }
+
+    #[test]
+    fn pages_move_among_the_custom_ones() {
+        let mut pages = vec![beranda(), custom("p1", vec![]), custom("p2", vec![]), custom("p3", vec![])];
+        move_page(&mut pages, "p3", 0).unwrap();
+        assert_eq!(ids(&pages), ["home", "p3", "p1", "p2"]);
+        move_page(&mut pages, "p3", 99).unwrap();
+        assert_eq!(ids(&pages), ["home", "p1", "p2", "p3"]);
+        delete_page(&mut pages, "p2").unwrap();
+        assert_eq!(ids(&pages), ["home", "p1", "p3"]);
+    }
+
+    #[test]
+    fn icons_match_the_notch() {
+        let ts = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../src/pages/icons.ts")).unwrap();
+        for icon in PAGE_ICONS {
+            assert!(ts.contains(&format!("\n  {icon}: '")), "{icon}");
+        }
+    }
+
+    #[test]
+    fn errors_read_plainly() {
+        assert_eq!(PageError::NotFound("p9".into()).to_string(), "unknown page p9");
+        assert_eq!(PageError::Fixed.to_string(), "Beranda cannot be changed that way");
+        assert_eq!(PageError::BadName.to_string(), "a page name has 1 to 24 characters");
+        assert_eq!(PageError::BadIcon.to_string(), "unknown icon");
+        assert_eq!(PageError::BadLayout.to_string(), "widgets do not fit the row");
+        assert_eq!(PageError::UnknownWidget("x/y".into()).to_string(), "unknown widget x/y");
     }
 
     #[test]

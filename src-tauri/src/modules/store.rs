@@ -289,7 +289,8 @@ fn copy_dir(from: &Path, to: &Path) -> std::io::Result<()> {
 pub(crate) fn fake_bundle(dir: &std::path::Path) {
     std::fs::create_dir_all(dir).unwrap();
     std::fs::write(dir.join("index.json"), r#"["a","b","w"]"#).unwrap();
-    for (id, upper) in [("a", "A"), ("b", "B")] {
+    // "b" also has a widget, so a switched-off module's widget can be tried.
+    for (id, upper, widgets) in [("a", "A", ""), ("b", "B", r#","widgets":[{"id":"big","entry":"index.html","width":2,"kind":"work"}]"#)] {
         let m = dir.join(id);
         std::fs::create_dir_all(m.join("locales")).unwrap();
         std::fs::write(
@@ -297,7 +298,7 @@ pub(crate) fn fake_bundle(dir: &std::path::Path) {
             format!(
                 r#"{{"id":"{id}","version":"1.0.0","entry":"index.html","icon":"icon.svg",
                    "card":{{"width":400,"height":90}},"permissions":[],"capabilities":[],
-                   "notifications":[{{"id":"ping","on":true,"sound":false}}]}}"#
+                   "notifications":[{{"id":"ping","on":true,"sound":false}}]{widgets}}}"#
             ),
         )
         .unwrap();
@@ -306,14 +307,14 @@ pub(crate) fn fake_bundle(dir: &std::path::Path) {
         std::fs::write(
             m.join("locales/id.json"),
             format!(
-                r#"{{"name":"Modul {upper}","description":"Isi {upper}","channels":{{"ping":"Ping"}},
+                r#"{{"name":"Modul {upper}","description":"Isi {upper}","channels":{{"ping":"Ping"}},"widgets":{{"big":"Besar"}},
                     "notice":{{"ping":"Ping {{name}}"}}}}"#
             ),
         )
         .unwrap();
         std::fs::write(
             m.join("locales/en.json"),
-            format!(r#"{{"name":"Module {upper}","description":"About {upper}","channels":{{"ping":"Ping"}}}}"#),
+            format!(r#"{{"name":"Module {upper}","description":"About {upper}","channels":{{"ping":"Ping"}},"widgets":{{"big":"Big"}}}}"#),
         )
         .unwrap();
     }

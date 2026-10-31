@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use crate::locale::{resolve_lang, Lang};
 use crate::modules::manifest::{CardSize, WidgetKind};
 use crate::modules::store::{ChannelEntry, ModuleEntry, ModuleStore, StoreError};
-use crate::pages::{is_route, Page, MODULE_PAGE_PREFIX};
+use crate::pages::{self, is_route, Page, PageError, Placement, MODULE_PAGE_PREFIX};
 use crate::status::Activity;
 use crate::settings::{
     clamp_seconds, load_settings, save_settings, ChannelPref, HomeSettings, LanguageSetting, NotchConfig, Place,
@@ -86,6 +86,7 @@ pub enum CoreError {
     Store(StoreError),
     Save(String),
     Invalid(String),
+    Page(PageError),
 }
 
 impl std::fmt::Display for CoreError {
@@ -94,6 +95,7 @@ impl std::fmt::Display for CoreError {
             CoreError::Store(e) => write!(f, "{e}"),
             CoreError::Save(e) => write!(f, "saving settings failed: {e}"),
             CoreError::Invalid(what) => write!(f, "invalid value: {what}"),
+            CoreError::Page(e) => write!(f, "{e}"),
         }
     }
 }
@@ -305,6 +307,40 @@ impl AppCore {
         self.save()
     }
 
+    /// The width of "<package>/<widget>" when its package is installed and on.
+    pub fn widget_width(&self, r: &str) -> Option<u8> {
+        let (package, widget) = r.split_once('/')?;
+        let e = self.module(package).filter(|e| e.installed && e.enabled)?;
+        e.widgets.iter().find(|w| w.id == widget).map(|w| w.width)
+    }
+
+    pub fn add_page(&mut self, name: &str, icon: &str) -> Result<String, CoreError> {
+        let id = pages::add_page(&mut self.settings.pages, name, icon).map_err(CoreError::Page)?;
+        self.save()?;
+        Ok(id)
+    }
+
+    pub fn set_page(&mut self, id: &str, name: Option<&str>, icon: &str, widgets: Vec<Placement>) -> Result<(), CoreError> {
+        let mut next = self.settings.pages.clone();
+        pages::set_page(&mut next, id, name, icon, widgets, &|r| self.widget_width(r)).map_err(CoreError::Page)?;
+        self.settings.pages = next;
+        self.save()
+    }
+
+    /// A last page that pointed at it is forgotten, so the panel opens on Beranda.
+    pub fn delete_page(&mut self, id: &str) -> Result<(), CoreError> {
+        pages::delete_page(&mut self.settings.pages, id).map_err(CoreError::Page)?;
+        if self.settings.last_page.as_deref() == Some(id) {
+            self.settings.last_page = None;
+        }
+        self.save()
+    }
+
+    pub fn move_page(&mut self, id: &str, to: usize) -> Result<(), CoreError> {
+        pages::move_page(&mut self.settings.pages, id, to).map_err(CoreError::Page)?;
+        self.save()
+    }
+
     pub fn set_enabled(&mut self, id: &str, enabled: bool) -> Result<(), CoreError> {
         self.store.set_enabled(id, enabled, &mut self.settings).map_err(CoreError::Store)?;
         self.changed()
@@ -378,6 +414,52 @@ mod tests {
         assert_eq!(open(&d, None).state().last_page, Some("module:b".into()));
         open(&d, None).set_last_page("modules").unwrap();
         assert_eq!(open(&d, None).state().last_page, Some("modules".into()));
+    }
+
+    fn at(widget: &str, col: u8, width: u8) -> Placement {
+        Placement { widget: widget.into(), col, width }
+    }
+
+    #[test]
+    fn pages_are_added_changed_and_saved() {
+        let d = setup();
+        let mut core = open(&d, None);
+        let id = core.add_page("Kerja", "briefcase").unwrap();
+        assert_eq!(id, "p1");
+        core.set_page("p1", Some("Kerja"), "briefcase", vec![at("w/one", 0, 1), at("b/big", 2, 1)]).unwrap();
+        let pages = open(&d, None).state().pages;
+        assert_eq!(pages[1].widgets, [at("w/one", 0, 1), at("b/big", 2, 2)]);
+        core.move_page("p1", 0).unwrap();
+        assert!(matches!(core.set_page("home", Some("X"), "home", vec![]), Err(CoreError::Page(PageError::Fixed))));
+        assert_eq!(CoreError::Page(PageError::BadIcon).to_string(), "unknown icon");
+    }
+
+    #[test]
+    fn deleting_the_last_page_forgets_it() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.add_page("Kerja", "briefcase").unwrap();
+        core.set_last_page("p1").unwrap();
+        core.delete_page("p1").unwrap();
+        assert_eq!(core.state().last_page, None);
+        let again = open(&d, None).state();
+        assert_eq!((again.pages.len(), again.last_page), (1, None));
+    }
+
+    #[test]
+    fn a_switched_off_module_widget_cannot_be_added() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.add_page("Kerja", "briefcase").unwrap();
+        assert_eq!(core.widget_width("b/big"), Some(2));
+        core.set_enabled("b", false).unwrap();
+        assert_eq!(core.widget_width("b/big"), None);
+        assert!(matches!(
+            core.set_page("p1", Some("Kerja"), "dot", vec![at("b/big", 0, 2)]),
+            Err(CoreError::Page(PageError::UnknownWidget(_)))
+        ));
+        assert_eq!(core.widget_width("w/one"), Some(1));
+        assert_eq!(core.widget_width("w/zzz"), None);
     }
 
     #[test]
