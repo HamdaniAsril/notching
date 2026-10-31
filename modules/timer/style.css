@@ -12,18 +12,18 @@
 
 #tm.tm-page {
   height: 96px;
-  gap: 12px;
+  gap: 8px;
 }
 
-.tm-big {
-  display: flex;
-  align-items: center;
-  height: 42px;
-  color: var(--g2);
+/* The page: a bigger ruler and time on top (owner, 31 Oct), buttons below. */
+#tm.tm-page .tm-top {
+  height: 56px;
+  gap: 16px;
 }
 
-#tm.tm-live .tm-big {
-  color: var(--w);
+#tm.tm-page .tm-row:not(.tm-top) {
+  height: 32px;
+  justify-content: space-between;
 }
 
 .tm-row {
@@ -68,6 +68,26 @@
 .tm-chip.tm-ghost {
   background: none;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+#tm.tm-page .tm-ruler {
+  height: 56px;
+}
+
+#tm.tm-page .tm-tick {
+  top: 20px;
+  width: 2px;
+  height: 14px;
+  margin-left: -1px;
+}
+
+#tm.tm-page .tm-tick.tm-long {
+  top: 9px;
+  height: 28px;
+}
+
+#tm.tm-page .tm-num {
+  font-size: 9px;
 }
 
 /* The ruler: orange ticks on a tape slid under a fixed white mark, both ends faded. */
@@ -131,11 +151,31 @@
 
 .tm-time {
   flex: none;
-  min-width: 42px;
+  width: 46px;
+  box-sizing: border-box;
+  padding: 2px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  outline: none;
   text-align: right;
   font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 13px;
   color: var(--w);
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.tm-time:hover,
+.tm-time:focus {
+  border-bottom-color: var(--g3);
+}
+
+#tm.tm-page .tm-time {
+  width: 104px;
+  font-size: 28px;
+  line-height: 36px;
 }
 
 .tm-time.tm-dim {

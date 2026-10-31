@@ -19,7 +19,7 @@ Pemilik butuh timer yang bisa dijangkau cepat. Contohnya saat merebus telur, ata
 
 **Tujuan**
 - Strip tipis selebar 4 kolom di bagian bawah panel. Ini jenis widget baru, dan Timer adalah widget strip pertama. Widget strip lain bisa menyusul nanti.
-- Timer dimulai dengan satu gerakan: klik tombol waktu, atau geser penggaris lalu lepas.
+- Timer dimulai dengan satu gerakan: geser penggaris lalu lepas, ketik jumlah menit lalu Enter, atau (di halaman Timer) klik tombol waktu.
 - Penggarisnya berupa garis-garis oranye yang ikut bergeser saat diseret.
 - Saat waktunya habis, muncul notifikasi dengan bunyi pendek sekali.
 - Status Timer terlihat walau panel tertutup: titik merah di kotak Timer di halaman Modul, dan hitung mundur di samping notch.
@@ -63,7 +63,7 @@ Widget strip ditulis di manifest seperti widget biasa, dengan lebar 4. Widget bi
 ## 4. Strip Timer (pilihan A)
 
 **Belum jalan**
-- Dari kiri: tulisan **TIMER**, tombol **3m**, **5m**, **10m**, **25m**, penggaris, lalu angka waktu dengan warna redup, misalnya "5:00".
+- Dari kiri: tulisan **TIMER**, penggaris, lalu angka waktu dengan warna redup, misalnya "5:00". Tombol waktu tidak ada di strip, supaya penggarisnya lebih panjang. Ini diminta pemilik saat cek di Mac pada 31 Oktober; semula ada tombol 3m, 5m, 10m, dan 25m.
 - **Penggaris:**
   - Ada satu garis putih tegak di tengah yang diam.
   - Garis-garis oranye di bawahnya bergeser saat diseret ke kiri atau kanan, seperti memutar kenop.
@@ -73,14 +73,14 @@ Widget strip ditulis di manifest seperti widget biasa, dengan lebar 4. Widget bi
   - Kedua ujung penggaris memudar.
   - Warna oranye **#FF6A1A** **(keputusan penulis)**. Ini warna kedua di app selain merah titik. Pemilik sudah diberi tahu dan tetap memilih oranye.
 - **Saat penggaris diseret,** angka waktu ikut berubah. **Saat dilepas, timer langsung jalan** dengan nilai itu.
-- **Klik tombol waktu** langsung menjalankan timer dengan waktu itu.
+- **Angka waktu bisa diketik** (diminta pemilik saat cek di Mac pada 31 Oktober). Ketik jumlah menit, misalnya "7" atau "7:00", lalu Enter, dan timer langsung jalan. Isian di luar 1–60 menit bulat tidak memulai apa-apa, dan angkanya kembali seperti semula **(keputusan penulis)**. Mengetik saat timer jalan mengganti waktunya, sama seperti menggeser penggaris.
 - **Posisi penggaris saat belum jalan** adalah waktu terakhir yang dipakai. Waktu bawaan saat app baru dibuka adalah 5 menit **(keputusan penulis)**.
 
 **Sedang jalan**
 - Titik merah kecil di depan tulisan TIMER.
 - Penggaris pelan-pelan bergeser kembali ke 0, mengikuti sisa waktu.
 - Angka waktu berwarna putih dan menghitung mundur per detik, dalam bentuk menit dan detik, misalnya "6:42".
-- Tombol waktu diganti tombol **Jeda** dan **Stop**.
+- Di kanan ada tombol **Jeda** dan **Stop**.
 - **Menggeser penggaris saat jalan** mengganti waktunya. Selama diseret, angkanya mengikuti penggaris. Saat dilepas, timer jalan lagi dari angka baru itu.
 
 **Dijeda** **(keputusan penulis)**
@@ -100,7 +100,12 @@ Widget strip ditulis di manifest seperti widget biasa, dengan lebar 4. Widget bi
 
 Halaman ini dibuka dari kotak Timer di halaman Modul. Di atasnya ada bar "‹ Modul", sama seperti modul lain.
 
-Isinya memakai keadaan, tombol, dan penggaris yang sama dengan strip. Bedanya, waktu ditampilkan besar dengan huruf titik-titik di kiri, seperti angka besar di widget **(keputusan penulis)**. Timer yang dijalankan dari halaman ini sama dengan timer di strip, karena hanya ada satu timer.
+Isinya memakai keadaan dan aturan yang sama dengan strip. Bentuknya diubah pemilik saat cek di Mac pada 31 Oktober:
+- **Di atas:** penggaris yang lebih besar (garis lebih tinggi, 12 px per menit), dengan angka menit yang lebih besar di kanannya. Angka ini juga bisa diketik.
+- **Di bawah:** tulisan TIMER dengan tombol **3m**, **5m**, **10m**, **25m** saat belum jalan, atau titik merah dengan **Jeda**/**Lanjut** dan **Stop** saat jalan. Tombol waktu tetap ada di halaman ini karena pemilik hanya meminta tombol itu dihapus dari strip **(keputusan penulis)**.
+- Angka besar dari huruf titik-titik di atas, yang semula ada, dihapus.
+
+Timer yang dijalankan dari halaman ini sama dengan timer di strip, karena hanya ada satu timer.
 
 Ukuran pasti panel ditentukan pembuat dalam batas manifest, yaitu tinggi 40–240 px.
 

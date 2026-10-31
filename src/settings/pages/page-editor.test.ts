@@ -336,7 +336,8 @@ test('a placed strip shows its sample with a remove button and its card is disab
   const { root, bridge } = await edit('p1', { ...WITH_TIMER, pages: [BERANDA, { ...KERJA, strip: 'timer/strip' }] });
   const strip = root.querySelector<HTMLElement>('.ed-row .ed-strip')!;
   expect(strip.dataset.key).toBe('pageEdit.strip');
-  expect(strip.textContent).toContain('25m');
+  expect(strip.textContent).toContain('5:00');
+  expect(strip.textContent).not.toContain('25m');
   expect(stripCard(root).getAttribute('aria-disabled')).toBe('true');
   expect(stripCard(root).textContent).toContain('Sudah dipasang');
   stripCard(root).click();

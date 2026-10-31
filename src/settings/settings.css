@@ -1222,21 +1222,7 @@ body > .ed-ghost {
   gap: 10px;
 }
 
-/* The Timer strip's sample: label, preset chips, an orange ruler, the time. */
-.ed-tm-chips {
-  display: flex;
-  gap: 6px;
-}
-
-.ed-tm-chips span {
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  color: var(--g1);
-}
-
+/* The Timer strip's sample: label, an orange ruler, the time. */
 .ed-tm-ruler {
   flex: 1;
   align-self: stretch;

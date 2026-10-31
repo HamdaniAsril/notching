@@ -1,6 +1,7 @@
-import { BIG_PITCH, dotText } from '../../src/kit/dots';
 import type id from './locales/id.json';
-import { DRAG_PX, dragMinutes, formatLeft, MAX_MINUTES, PRESETS, PX_PER_MINUTE, shownMinutes } from './ruler';
+import {
+  BIG_PX_PER_MINUTE, DRAG_PX, dragMinutes, formatLeft, MAX_MINUTES, PRESETS, PX_PER_MINUTE, shownMinutes, typedMinutes,
+} from './ruler';
 
 // Same as TimerDto in src-tauri/src/timer.rs.
 export interface TimerView {
@@ -34,11 +35,13 @@ function chip(text: string, cls: string, onClick: () => void): HTMLButtonElement
   return b;
 }
 
-// The strip, or the Timer page with the time in big dots above it (design 31 Oct,
-// Timer §4–5): presets, the ruler and the time; Jeda/Lanjut and Stop while a
-// timer runs. `update` takes a reading from the core; `tick` moves the ruler and
-// the time by this frame's clock between readings. A drag owns both until it
-// ends, and the minutes just started stay shown until the core answers.
+// The strip, or the Timer page (design 31 Oct, Timer §4–5, as the owner changed
+// them on the day): the ruler and the time, which takes typed minutes; Jeda/Lanjut
+// and Stop while a timer runs. The page's ruler is bigger and sits on top, with
+// the presets below it; the strip has no presets. `update` takes a reading from
+// the core; `tick` moves the ruler and the time by this frame's clock between
+// readings. A drag or typing owns them until it ends, and the minutes just
+// started stay shown until the core answers.
 export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: boolean): {
   update(v: TimerView): void;
   tick(now: number): void;
@@ -49,7 +52,7 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   let pending: number | null = null; // minutes started, until the next reading
   let lastNow = Date.now();
   let lit = -1;
-  let bigText = '';
+  const px = big ? BIG_PX_PER_MINUTE : PX_PER_MINUTE;
 
   const red = el('i', 'rd tm-red');
   const head = el('span', 'lab tm-lab', s.label);
@@ -71,32 +74,54 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   for (let m = 1; m <= MAX_MINUTES; m++) {
     const t = el('i', m % 5 === 0 ? 'tm-tick tm-long' : 'tm-tick');
     t.dataset.m = String(m);
-    t.style.left = `${m * PX_PER_MINUTE}px`;
+    t.style.left = `${m * px}px`;
     ticks.push(t);
     tape.append(t);
     if (m % 10 === 0) {
       const n = el('span', 'tm-num', String(m));
-      n.style.left = `${m * PX_PER_MINUTE}px`;
+      n.style.left = `${m * px}px`;
       tape.append(n);
     }
   }
   ruler.append(tape, el('i', 'tm-mark'));
-  const time = el('span', 'tm-time');
+  // Minutes typed here start on Enter; anything else puts the time back.
+  const time = el('input', 'tm-time');
+  time.type = 'text';
+  time.inputMode = 'numeric';
+  time.maxLength = 5;
+  time.spellcheck = false;
+  time.setAttribute('aria-label', s.ruler);
+  time.addEventListener('focus', () => time.select());
+  time.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const m = typedMinutes(time.value);
+    if (m !== null) start(m);
+    time.blur();
+    tick(lastNow);
+  });
+  time.addEventListener('blur', () => tick(lastNow));
 
-  // The ruler never leaves the row: moving it would drop a drag's pointer capture.
+  // The ruler never leaves its row: moving it would drop a drag's pointer capture.
   const lead = el('span', 'tm-lead');
   const buttons = el('span', 'tm-buttons');
-  const row = el('div', 'tm-row');
-  row.append(lead, ruler, time, buttons);
-  const bigBox = big ? el('div', 'tm-big') : null;
-  root.replaceChildren(...(bigBox ? [bigBox] : []), row);
+  if (big) {
+    const top = el('div', 'tm-row tm-top');
+    top.append(ruler, time);
+    const bottom = el('div', 'tm-row');
+    bottom.append(lead, buttons);
+    root.replaceChildren(top, bottom);
+  } else {
+    const row = el('div', 'tm-row');
+    row.append(lead, ruler, time, buttons);
+    root.replaceChildren(row);
+  }
 
   // Presets while idle; Jeda or Lanjut and Stop while a timer runs or waits.
   function build(state: TimerView['state']): void {
     built = state;
     root.classList.toggle('tm-live', state !== 'idle');
     if (state === 'idle') {
-      lead.replaceChildren(head, presets);
+      lead.replaceChildren(...(big ? [head, presets] : [head]));
       buttons.replaceChildren();
       return;
     }
@@ -109,19 +134,16 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   }
 
   function draw(minutes: number, text: string, dim: boolean): void {
-    tape.style.transform = `translateX(${ruler.clientWidth / 2 - minutes * PX_PER_MINUTE}px)`;
+    tape.style.transform = `translateX(${ruler.clientWidth / 2 - minutes * px}px)`;
     const whole = Math.floor(minutes + 1e-9);
     if (whole !== lit) {
       lit = whole;
       ticks.forEach((t, i) => t.classList.toggle('tm-on', i + 1 <= whole));
       ruler.setAttribute('aria-valuenow', String(Math.max(1, Math.round(minutes))));
     }
-    time.textContent = text;
+    if (time.ownerDocument.activeElement === time) return;
+    time.value = text;
     time.classList.toggle('tm-dim', dim);
-    if (bigBox && text !== bigText) {
-      bigText = text;
-      bigBox.innerHTML = dotText(text, BIG_PITCH); // digits and a colon only
-    }
   }
 
   function tick(now: number): void {
@@ -144,7 +166,7 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
     if (!drag) return;
     const dx = e.clientX - drag.x;
     if (drag.minutes === null && Math.abs(dx) < DRAG_PX) return;
-    drag.minutes = dragMinutes(drag.base, dx);
+    drag.minutes = dragMinutes(drag.base, dx, px);
     draw(drag.minutes, formatLeft(drag.minutes * 60_000), false);
   });
   const end = (go: boolean) => {

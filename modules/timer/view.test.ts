@@ -20,23 +20,23 @@ function mount(v: TimerView, big = false) {
   view.tick(NOW);
   const button = (text: string) => [...root.querySelectorAll('button')].find(b => b.textContent === text);
   const ruler = root.querySelector<HTMLElement>('.tm-ruler')!;
-  const time = () => root.querySelector<HTMLElement>('.tm-time')!;
+  const time = () => root.querySelector<HTMLInputElement>('input.tm-time')!;
   const pointer = (type: string, x: number) => ruler.dispatchEvent(new MouseEvent(type, { clientX: x, bubbles: true }));
   return { root, act, view, button, ruler, time, pointer };
 }
 
-test('idle shows the presets, the ruler and a dim time', () => {
+test('the strip has no presets, only the ruler and a dim time', () => {
   const { root, button, time } = mount(IDLE);
-  for (const t of ['3m', '5m', '10m', '25m']) expect(button(t)).toBeDefined();
-  expect(time().textContent).toBe('5:00');
+  for (const t of ['3m', '5m', '10m', '25m']) expect(button(t)).toBeUndefined();
+  expect(time().value).toBe('5:00');
   expect(time().classList.contains('tm-dim')).toBe(true);
   expect(button('Jeda')).toBeUndefined();
   expect(root.querySelector('.tm-red')).toBeNull();
   expect(root.querySelector('.tm-lab')!.textContent).toBe('Timer');
 });
 
-test('a preset starts at once', () => {
-  const { act, button } = mount(IDLE);
+test('the Timer page keeps the presets, and one starts at once', () => {
+  const { act, button } = mount(IDLE, true);
   button('10m')!.click();
   expect(act.start).toHaveBeenCalledWith(10);
 });
@@ -45,7 +45,7 @@ test('dragging the ruler and letting go starts at the new value', () => {
   const { act, pointer, time } = mount(IDLE);
   pointer('pointerdown', 200);
   pointer('pointermove', 160);
-  expect(time().textContent).toBe('10:00');
+  expect(time().value).toBe('10:00');
   expect(act.start).not.toHaveBeenCalled();
   pointer('pointerup', 160);
   expect(act.start).toHaveBeenCalledWith(10);
@@ -71,26 +71,26 @@ test('a drag that loses the pointer ends without starting, and the ruler moves a
   pointer('pointermove', 60);
   ruler.dispatchEvent(new MouseEvent('lostpointercapture'));
   view.tick(NOW + 2_000);
-  expect(time().textContent).toBe('6:40');
+  expect(time().value).toBe('6:40');
   pointer('pointerup', 60);
   expect(act.start).not.toHaveBeenCalled();
 });
 
 test('the value let go of stays until the core answers', () => {
-  const { button, pointer, time, view } = mount(IDLE);
+  const { button, pointer, time, view } = mount(IDLE, true);
   pointer('pointerdown', 200);
-  pointer('pointermove', 160);
-  pointer('pointerup', 160);
+  pointer('pointermove', 140);
+  pointer('pointerup', 140);
   view.tick(NOW + 16);
-  expect(time().textContent).toBe('10:00');
+  expect(time().value).toBe('10:00');
   view.update({ state: 'running', minutes: 10, until: NOW + 600_000, left: 600_000, text: '10:00' });
   view.tick(NOW + 1_000);
-  expect(time().textContent).toBe('9:59');
+  expect(time().value).toBe('9:59');
   button('Stop')!.click();
   view.update(IDLE);
   button('25m')!.click();
   view.tick(NOW + 16);
-  expect(time().textContent).toBe('25:00');
+  expect(time().value).toBe('25:00');
 });
 
 test('dragging while running restarts at the new value', () => {
@@ -100,14 +100,14 @@ test('dragging while running restarts at the new value', () => {
   // A reading or a frame during the drag leaves the dragged value.
   view.update(RUNNING);
   view.tick(NOW + 1000);
-  expect(time().textContent).toBe('12:00');
+  expect(time().value).toBe('12:00');
   pointer('pointerup', 60);
   expect(act.start).toHaveBeenCalledWith(12);
 });
 
 test('running shows the red dot, the time left and Jeda/Stop', () => {
   const { root, act, button, time, view } = mount(RUNNING);
-  expect(time().textContent).toBe('6:42');
+  expect(time().value).toBe('6:42');
   expect(time().classList.contains('tm-dim')).toBe(false);
   expect(root.querySelector('.tm-red')).not.toBeNull();
   expect(button('3m')).toBeUndefined();
@@ -116,13 +116,13 @@ test('running shows the red dot, the time left and Jeda/Stop', () => {
   button('Stop')!.click();
   expect(act.stop).toHaveBeenCalled();
   view.tick(NOW + 2_000);
-  expect(time().textContent).toBe('6:40');
+  expect(time().value).toBe('6:40');
 });
 
 test('paused shows Lanjut and the frozen time', () => {
   const { act, button, time, view } = mount(PAUSED);
   view.tick(NOW + 60_000);
-  expect(time().textContent).toBe('6:42');
+  expect(time().value).toBe('6:42');
   button('Lanjut')!.click();
   expect(act.resume).toHaveBeenCalled();
 });
@@ -146,13 +146,55 @@ test('the ruler marks every 5 minutes and numbers every 10', () => {
   expect([...root.querySelectorAll('.tm-num')].map(n => n.textContent)).toEqual(['10', '20', '30', '40', '50', '60']);
 });
 
-test('the big page draws the time in dots', () => {
-  const { root, view } = mount(RUNNING, true);
-  const svg = root.querySelector('.tm-big svg')!;
-  expect(svg).not.toBeNull();
+test('the Timer page puts a bigger ruler and the time on top, with no dot time', () => {
+  const { root } = mount(RUNNING, true);
+  expect(root.querySelector('svg')).toBeNull();
+  const top = root.firstElementChild!;
+  expect([...top.children].map(c => c.className)).toEqual(['tm-ruler', 'tm-time']);
+  expect(root.querySelector<HTMLElement>('.tm-tick[data-m="5"]')!.style.left).toBe('60px');
+  expect(root.querySelector<HTMLElement>('.tm-tape')!.style.transform).toBe('translateX(-80.4px)');
+});
+
+test('a drag on the bigger ruler moves a minute every 12 px', () => {
+  const { act, pointer } = mount(IDLE, true);
+  pointer('pointerdown', 200);
+  pointer('pointermove', 140);
+  pointer('pointerup', 140);
+  expect(act.start).toHaveBeenCalledWith(10);
+});
+
+function type(input: HTMLInputElement, text: string, key = 'Enter') {
+  input.focus();
+  input.value = text;
+  input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+}
+
+test('typing minutes and Enter starts the timer', () => {
+  const { act, time } = mount(IDLE);
+  type(time(), '7');
+  expect(act.start).toHaveBeenCalledWith(7);
+  expect(time().value).toBe('7:00');
+  type(time(), '12:00');
+  expect(act.start).toHaveBeenLastCalledWith(12);
+});
+
+test('typing what is not 1–60 minutes starts nothing and puts the time back', () => {
+  const { act, time } = mount(IDLE);
+  for (const bad of ['0', '61', '', 'abc', '1.5', '7:30']) type(time(), bad);
+  expect(act.start).not.toHaveBeenCalled();
+  expect(time().value).toBe('5:00');
+});
+
+test('a reading or a frame leaves what is being typed', () => {
+  const { time, view } = mount(RUNNING);
+  time().focus();
+  time().value = '2';
+  view.update(RUNNING);
   view.tick(NOW + 1_000);
-  expect(root.querySelector('.tm-big svg')).not.toBe(svg);
-  expect(mount(IDLE).root.querySelector('.tm-big')).toBeNull();
+  expect(time().value).toBe('2');
+  time().blur();
+  view.tick(NOW + 1_000);
+  expect(time().value).toBe('6:41');
 });
 
 test('the icon is a line drawing', () => {
