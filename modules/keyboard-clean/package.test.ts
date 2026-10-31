@@ -9,7 +9,8 @@ test('the icon is a line drawing', () => {
 
 test('its tile runs the mode, after Timer, and it needs Accessibility', () => {
   const all = catalog('id', []);
-  expect(all.map(m => m.id).slice(-2)).toEqual(['timer', 'keyboard-clean']);
+  const ids = all.map(m => m.id);
+  expect(ids.indexOf('keyboard-clean')).toBe(ids.indexOf('timer') + 1);
   const m = all.find(x => x.id === 'keyboard-clean')!;
   expect([m.entry, m.card, m.action]).toEqual([null, null, { capability: 'keyclean', method: 'toggle' }]);
   expect(m.permissions).toEqual(['accessibility']);

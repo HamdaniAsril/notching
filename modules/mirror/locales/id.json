@@ -1,0 +1,12 @@
+{
+  "name": "Cermin",
+  "shortName": "Cermin",
+  "description": "Cek kamera sebelum meeting",
+  "mirror": "Cermin",
+  "flip": "Flip",
+  "lamp": "Lampu",
+  "cameraOn": "Kamera nyala",
+  "noCamera": "Kamera tidak bisa dibuka",
+  "zoom": "Zoom",
+  "light": "Warna cahaya"
+}

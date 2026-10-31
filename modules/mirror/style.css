@@ -1,0 +1,198 @@
+/* The Cermin page (2026-10-31-cermin-design.md; cermin-v6.html). Classes start
+   with cm- so they never meet the notch's own. */
+#cm {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+}
+
+/* The lamp makes the panel white behind this page, so its ink goes dark. */
+#cm.cm-lit {
+  --w: #000;
+  --g1: rgba(0, 0, 0, 0.7);
+  --g2: rgba(0, 0, 0, 0.45);
+  --g3: rgba(0, 0, 0, 0.18);
+  color: #000;
+}
+
+.cm-view {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin-top: 4px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #111;
+}
+
+.cm-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: center;
+}
+
+.cm-msg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.cm-tag {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.8);
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cm-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+  height: 48px;
+}
+
+.cm-light {
+  display: none;
+}
+
+#cm.cm-lit .cm-light {
+  display: flex;
+}
+
+/* Timer's ruler, a size between its strip and its page. */
+.cm-ruler {
+  position: relative;
+  flex: 1;
+  min-width: 80px;
+  height: 44px;
+  overflow: hidden;
+  cursor: ew-resize;
+  touch-action: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+
+.cm-tape {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  will-change: transform;
+}
+
+.cm-tick {
+  position: absolute;
+  top: 15px;
+  width: 2px;
+  height: 12px;
+  margin-left: -1px;
+  background: rgba(255, 106, 26, 0.35);
+}
+
+.cm-tick.cm-long {
+  top: 7px;
+  height: 24px;
+}
+
+.cm-tick.cm-on {
+  background: #ff6a1a;
+}
+
+.cm-num {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  line-height: 10px;
+  color: var(--g2);
+  white-space: nowrap;
+}
+
+.cm-mark {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--w);
+}
+
+.cm-val {
+  flex: none;
+  width: 76px;
+  text-align: right;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 22px;
+  color: var(--w);
+}
+
+.cm-val.cm-k {
+  font-size: 16px;
+}
+
+.cm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  height: 30px;
+}
+
+.cm-on[hidden] {
+  visibility: hidden;
+  display: flex;
+}
+
+.cm-chips {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.cm-chip {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--g3);
+  color: var(--g1);
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cm-chip:hover {
+  color: var(--w);
+}
+
+.cm-chip[hidden] {
+  display: none;
+}
+
+.cm-chip.cm-sel {
+  background: var(--w);
+  box-shadow: none;
+  color: #000;
+}
+
+#cm.cm-lit .cm-chip.cm-sel {
+  color: #fff;
+}
