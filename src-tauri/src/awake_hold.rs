@@ -25,8 +25,13 @@ pub struct Hold(u32);
 impl Hold {
     /// None when macOS refuses it.
     pub fn take() -> Option<Hold> {
+        Self::take_named(HOLD_NAME)
+    }
+
+    /// The same hold under another name in `pmset -g assertions`.
+    pub fn take_named(name: &str) -> Option<Hold> {
         let kind = NSString::from_str(HOLD_TYPE);
-        let name = NSString::from_str(HOLD_NAME);
+        let name = NSString::from_str(name);
         let mut id = 0;
         // SAFETY: both strings outlive the call, and `id` is a valid out pointer.
         let status = unsafe {

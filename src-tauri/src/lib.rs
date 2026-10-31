@@ -20,6 +20,10 @@ mod awake_service;
 #[cfg(target_os = "macos")]
 mod commands;
 #[cfg(target_os = "macos")]
+mod keyclean_dim;
+#[cfg(target_os = "macos")]
+mod keyclean_service;
+#[cfg(target_os = "macos")]
 mod keyclean_tap;
 #[cfg(target_os = "macos")]
 mod login_item;
@@ -79,6 +83,7 @@ pub fn run() {
             login_item::set_launch_at_login,
             login_item::open_login_items,
             keyclean_tap::open_accessibility_settings,
+            keyclean_service::get_clean_state,
             home::commands::search_places,
             home::commands::set_place,
             home::commands::set_prayer_method,
@@ -108,6 +113,7 @@ pub fn run() {
             home::schedule::start(app.handle().clone());
             awake_service::start(app.handle().clone());
             timer_service::start(app.handle().clone());
+            keyclean_service::start(app.handle().clone());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             pointer::start_pointer_monitor(app.handle().clone());

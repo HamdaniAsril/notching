@@ -21,6 +21,7 @@ pub enum Call {
     TimerPause,
     TimerResume,
     TimerStop,
+    KeyCleanToggle,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -74,6 +75,7 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Timer, "pause") => Ok(Call::TimerPause),
         (Capability::Timer, "resume") => Ok(Call::TimerResume),
         (Capability::Timer, "stop") => Ok(Call::TimerStop),
+        (Capability::KeyClean, "toggle") => Ok(Call::KeyCleanToggle),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -186,6 +188,15 @@ mod tests {
         assert_eq!(authorize(Some(&t), "timer", "timer", "add"), Err(CallError::UnknownMethod("add".into())));
         let k = entry("keep-awake", &[Capability::Awake], true);
         assert!(matches!(authorize(Some(&k), "keep-awake", "timer", "start"), Err(CallError::NotDeclared { .. })));
+    }
+
+    #[test]
+    fn keyboard_clean_needs_its_capability() {
+        let k = entry("keyboard-clean", &[Capability::KeyClean, Capability::Status, Capability::Notify], true);
+        assert_eq!(authorize(Some(&k), "keyboard-clean", "keyclean", "toggle"), Ok(Call::KeyCleanToggle));
+        assert_eq!(authorize(Some(&k), "keyboard-clean", "keyclean", "start"), Err(CallError::UnknownMethod("start".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        assert!(matches!(authorize(Some(&t), "timer", "keyclean", "toggle"), Err(CallError::NotDeclared { .. })));
     }
 
     #[test]

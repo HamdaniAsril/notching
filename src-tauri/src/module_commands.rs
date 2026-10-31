@@ -41,6 +41,7 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
     if !enabled {
         crate::awake_service::module_gone(&app, &id);
         crate::timer_service::module_gone(&app, &id);
+        crate::keyclean_service::module_gone(&app, &id);
     }
     crate::status::publish(&app);
     Ok(())
@@ -51,6 +52,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     change(&app, &core, |c| c.uninstall(&id))?;
     crate::awake_service::module_gone(&app, &id);
     crate::timer_service::module_gone(&app, &id);
+    crate::keyclean_service::module_gone(&app, &id);
     crate::status::publish(&app);
     Ok(())
 }
@@ -129,6 +131,10 @@ pub async fn module_call(
         Call::TimerPause => serde_json::to_value(crate::timer_service::pause(&app)?),
         Call::TimerResume => serde_json::to_value(crate::timer_service::resume(&app)?),
         Call::TimerStop => serde_json::to_value(crate::timer_service::stop(&app)),
+        Call::KeyCleanToggle => {
+            crate::keyclean_service::toggle(&app, &module_id)?;
+            Ok(serde_json::Value::Null)
+        }
     };
     value.map_err(|e| e.to_string())
 }

@@ -220,6 +220,17 @@ pub fn set_mouse_moved_events(app: &AppHandle, on: bool) {
     }
 }
 
+/// While Keyboard Cleaning Mode dims the screens, the notch panels sit one level
+/// above the dim layer (keyclean_dim::DIM_LEVEL), then go back to Status.
+pub fn set_raised(app: &AppHandle, raised: bool) {
+    let level = if raised { crate::keyclean_dim::DIM_LEVEL + 1 } else { PanelLevel::Status.value() };
+    for label in app.state::<Overlays>().0.lock().unwrap().keys() {
+        if let Ok(panel) = app.get_webview_panel(label) {
+            panel.set_level(level);
+        }
+    }
+}
+
 pub fn set_mouse_passthrough(app: &AppHandle, label: &str, passthrough: bool) {
     if let Ok(panel) = app.get_webview_panel(label) {
         panel.set_ignores_mouse_events(passthrough);
