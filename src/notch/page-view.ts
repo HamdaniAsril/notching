@@ -2,7 +2,7 @@ import type { HostStrings } from '../i18n';
 import type { ModuleState } from '../modules/types';
 import type { FrameHost, FrameSpec } from '../pages/frames';
 import { slots, widgetCatalog } from '../pages/layout';
-import { CUSTOM_PAGE, type PageView } from '../pages/route';
+import { CUSTOM_PAGE, type PageView, STRIP_HEIGHT } from '../pages/route';
 
 export interface PageViewDeps {
   frames: FrameHost;
@@ -40,24 +40,30 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
   let shown = '';
   let full: string | null = null;
   let row: HTMLElement | null = null;
+  let page: HTMLElement | null = null; // the row and the strip under it, when there is one
   let slotKeys: string[] = [];
 
   function reset(): void {
     full = null;
     row = null;
+    page = null;
     slotKeys = [];
   }
 
   function custom(v: Extract<PageView, { kind: 'custom' }>, s: ModuleState, strings: HostStrings): HTMLElement {
     const present = slots(v.page, widgetCatalog(s)).filter(x => x.widget);
-    if (present.length === 0) return el(doc, 'div', 'pg-empty lab', strings.pageEmpty);
+    if (present.length === 0 && !v.strip) return el(doc, 'div', 'pg-empty lab', strings.pageEmpty);
     const r = el(doc, 'div', 'pg-row');
     r.style.height = `${CUSTOM_PAGE.height}px`;
     const specs: FrameSpec[] = present.map(({ placement, widget }) => ({
       key: `${v.page.id}/${placement.col}/${widget!.ref}`, moduleId: widget!.moduleId, entry: widget!.entry,
       widget: widget!.id, title: widget!.name, height: CUSTOM_PAGE.height,
     }));
-    deps.frames.keep(specs.map(x => x.key));
+    const strip: FrameSpec | null = v.strip && {
+      key: `${v.page.id}/strip/${v.strip.ref}`, moduleId: v.strip.moduleId, entry: v.strip.entry,
+      widget: v.strip.id, title: v.strip.name, height: STRIP_HEIGHT,
+    };
+    deps.frames.keep([...specs.map(x => x.key), ...(strip ? [strip.key] : [])]);
     present.forEach(({ placement }, i) => {
       const slot = el(doc, 'div', 'pg-slot');
       slot.dataset.col = String(placement.col);
@@ -69,7 +75,13 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     });
     row = r;
     slotKeys = specs.map(x => x.key);
-    return r;
+    if (!strip) return r;
+    const box = el(doc, 'div', 'pg-strip');
+    box.dataset.key = strip.key;
+    box.append(deps.frames.frame(strip, s.lang, strings));
+    page = el(doc, 'div', 'pg-page');
+    page.append(r, el(doc, 'div', 'pg-strip-line'), box);
+    return page;
   }
 
   function modules(v: Extract<PageView, { kind: 'modules' }>, strings: HostStrings): HTMLElement {
@@ -122,6 +134,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
       if (full) this.collapse();
       full = key;
       row.classList.add('full');
+      page?.classList.add('full');
       const slot = [...row.querySelectorAll<HTMLElement>('.pg-slot')].find(x => x.dataset.key === key);
       slot?.classList.add('full');
       setHeight(row, slot, height);
@@ -130,6 +143,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     collapse() {
       if (!row || !full) return;
       row.classList.remove('full');
+      page?.classList.remove('full');
       const slot = row.querySelector<HTMLElement>('.pg-slot.full');
       slot?.classList.remove('full');
       setHeight(row, slot ?? undefined, CUSTOM_PAGE.height);

@@ -13,7 +13,8 @@ export interface Channel {
 
 export type WidgetKind = 'time' | 'weather' | 'worship' | 'work' | 'media';
 
-// A widget a package offers (WidgetDto), 1 or 2 of a page's 4 columns wide.
+// A widget a package offers (WidgetDto), 1 or 2 of a page's 4 columns wide, or
+// 4 for a strip under the row (design 31 Oct, Timer §3).
 export interface WidgetInfo {
   id: string;
   name: string;
@@ -35,6 +36,7 @@ export interface Page {
   name: string | null;
   icon: string;
   widgets: Placement[];
+  strip?: string | null; // a strip widget's "<package>/<widget>"; absent or null: none
 }
 
 // White tile while on, a red dot while running (design 30 Oct §7).

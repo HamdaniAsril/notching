@@ -42,6 +42,23 @@
   display: none;
 }
 
+/* A page's strip (design 31 Oct, Timer §3): under the row, behind a dotted
+   line across it, in the 20 px between them. A full view hides both. */
+.pg-strip-line {
+  height: 3px;
+  margin: 8.5px 0;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left center / 5px 3px repeat-x;
+}
+
+.pg-strip {
+  height: 40px;
+}
+
+.pg-page.full .pg-strip-line,
+.pg-page.full .pg-strip {
+  display: none;
+}
+
 .pg-empty,
 .pg-error {
   display: flex;

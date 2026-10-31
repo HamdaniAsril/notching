@@ -5,7 +5,7 @@ import type { ModuleState, Page } from '../modules/types';
 import { mountFrameHost } from '../pages/frames';
 import { pickPage, resolvePage } from '../pages/route';
 import { mountPageView } from './page-view';
-import { BERANDA, fakeBridge, moduleInfo, TEST_STATE, timers } from './test-helpers';
+import { BERANDA, fakeBridge, moduleInfo, TEST_STATE, timerInfo, timers } from './test-helpers';
 
 const STR = hostStrings('id');
 
@@ -37,6 +37,36 @@ test('a widget whose source is gone leaves its columns empty', () => {
   const page: Page = { ...BERANDA, widgets: [...BERANDA.widgets.slice(0, 2), { widget: 'timer/timer', col: 3, width: 1 }] };
   show({ ...TEST_STATE, pages: [page] });
   expect(slots(content).map(s => s.dataset.col)).toEqual(['0', '1']);
+});
+
+test('a strip sits under the row behind a dotted line, and a full view hides it', () => {
+  const { content, pv, show } = mount();
+  const s = { ...TEST_STATE, pages: [{ ...BERANDA, strip: 'timer/strip' }], modules: [...TEST_STATE.modules, timerInfo()] };
+  show(s);
+  expect(content.querySelector('.pg-page > .pg-strip-line')).not.toBeNull();
+  const strip = content.querySelector<HTMLElement>('.pg-page > .pg-strip')!;
+  expect(strip.dataset.key).toBe('home/strip/timer/strip');
+  const frame = strip.querySelector('iframe')!;
+  expect([frame.style.height, frame.getAttribute('src')]).toEqual(['40px', 'mod://timer/index.html']);
+  pv.expand(slots(content)[2].dataset.key!);
+  expect(content.querySelector('.pg-page')!.classList.contains('full')).toBe(true);
+  pv.collapse();
+  expect(content.querySelector('.pg-page')!.classList.contains('full')).toBe(false);
+});
+
+test('a strip whose source is off is hidden and the page is not taller', () => {
+  const { content, show } = mount();
+  show({ ...TEST_STATE, pages: [{ ...BERANDA, strip: 'timer/strip' }] });
+  expect(content.querySelector('.pg-strip')).toBeNull();
+  expect(content.querySelector('.pg-strip-line')).toBeNull();
+});
+
+test('a page with only a strip shows it under an empty row', () => {
+  const { content, show } = mount();
+  show({ ...TEST_STATE, pages: [{ ...BERANDA, widgets: [], strip: 'timer/strip' }], modules: [...TEST_STATE.modules, timerInfo()] });
+  expect(content.querySelector('.pg-empty')).toBeNull();
+  expect(content.querySelector('.pg-row')).not.toBeNull();
+  expect(content.querySelector('.pg-strip iframe')).not.toBeNull();
 });
 
 test('an empty page says so', () => {

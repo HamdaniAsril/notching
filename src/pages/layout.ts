@@ -2,6 +2,8 @@ import type { ModuleState, Page, Placement, WidgetInfo } from '../modules/types'
 
 // One row of 4 equal columns; a widget takes 1 or 2 (design 30 Oct §4).
 export const COLUMNS = 4;
+// A strip widget's width: the whole row, on a line of its own under it.
+export const STRIP_WIDTH = 4;
 
 export interface CatalogWidget extends WidgetInfo {
   ref: string; // "<package>/<widget>"
@@ -31,6 +33,12 @@ export function slots(page: Page, catalog: Map<string, CatalogWidget>): Slot[] {
       const widget = catalog.get(p.widget) ?? null;
       return { placement: widget ? { ...p, width: widget.width } : p, widget };
     });
+}
+
+// The page's strip, with its widget unless the widget's package is off or gone.
+export function stripSlot(page: Page, catalog: Map<string, CatalogWidget>): Slot | null {
+  if (!page.strip) return null;
+  return { placement: { widget: page.strip, col: 0, width: STRIP_WIDTH }, widget: catalog.get(page.strip) ?? null };
 }
 
 // Inside the row and clear of every widget but `ignore`.

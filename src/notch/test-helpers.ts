@@ -112,6 +112,11 @@ export function homeWidgets(over: Partial<ModuleInfo> = {}): ModuleInfo {
   });
 }
 
+// The Timer module with its strip widget, as in modules/timer/manifest.json.
+export function timerInfo(over: Partial<ModuleInfo> = {}): ModuleInfo {
+  return moduleInfo('timer', { name: 'Timer', shortName: 'Timer', widgets: [widget('strip', 'Timer', 4, 'work')], ...over });
+}
+
 export const BERANDA: Page = {
   id: 'home', name: null, icon: 'home',
   widgets: [

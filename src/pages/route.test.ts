@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { hostStrings } from '../i18n';
 import type { ModuleState, Page } from '../modules/types';
-import { BERANDA, homeWidgets, moduleInfo, TEST_STATE } from '../notch/test-helpers';
+import { BERANDA, homeWidgets, moduleInfo, TEST_STATE, timerInfo } from '../notch/test-helpers';
 import { missedTargets, noticeTarget, pageName, pickPage, resolvePage, viewSize } from './route';
 
 const P1: Page = { id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [{ widget: 'home/reminders', col: 0, width: 2 }] };
@@ -48,6 +48,23 @@ test('a full view may ask for a taller page, within limits', () => {
   expect(viewSize(home, 999)).toEqual({ width: 520, height: 240 });
   expect(viewSize(home, 40)).toEqual({ width: 520, height: 104 });
   expect(viewSize(resolvePage(state(), 'module:system-stat')!, 193)).toEqual({ width: 400, height: 104 });
+});
+
+test('a page with a strip is taller, unless the strip is away', () => {
+  const page: Page = { ...BERANDA, strip: 'timer/strip' };
+  const on = state({ pages: [page], modules: [homeWidgets(), timerInfo()] });
+  expect(viewSize(pickPage(on, null, false))).toEqual({ width: 520, height: 164 });
+  expect(viewSize(pickPage(on, null, false), 120)).toEqual({ width: 520, height: 164 });
+  expect(viewSize(pickPage(on, null, false), 200)).toEqual({ width: 520, height: 200 });
+  const off = state({ pages: [page], modules: [homeWidgets(), timerInfo({ enabled: false })] });
+  expect(viewSize(pickPage(off, null, false))).toEqual({ width: 520, height: 104 });
+  expect(viewSize(resolvePage(on, 'home')!)).toEqual({ width: 520, height: 164 });
+});
+
+test('a notice from a strip widget opens the page holding the strip', () => {
+  const timer = timerInfo({ channels: [{ id: 'done', name: 'Done', on: true, sound: true, widget: 'strip' }] });
+  const s = state({ pages: [BERANDA, { ...P1, strip: 'timer/strip' }], modules: [homeWidgets(), timer] });
+  expect(noticeTarget(s, 'timer', 'done')).toBe('p1');
 });
 
 test('Beranda is named after the language', () => {

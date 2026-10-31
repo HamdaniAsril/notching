@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import type { Placement } from '../modules/types';
-import { BERANDA, moduleInfo, TEST_STATE } from '../notch/test-helpers';
-import { canPlace, firstFree, moveTo, place, removeWidget, replaceAt, slots, swapInto, widgetCatalog } from './layout';
+import { BERANDA, moduleInfo, TEST_STATE, timerInfo } from '../notch/test-helpers';
+import { canPlace, firstFree, moveTo, place, removeWidget, replaceAt, slots, stripSlot, swapInto, widgetCatalog } from './layout';
 
 const p = (widget: string, col: number, width = 1): Placement => ({ widget, col, width });
 
@@ -12,6 +12,15 @@ test('the catalog holds widgets of packages that are installed and on', () => {
   const off = { ...TEST_STATE, modules: [moduleInfo('timer', { enabled: false, widgets: [
     { id: 'timer', name: 'Timer', entry: 'index.html', width: 1, kind: 'work' }] })] };
   expect(widgetCatalog(off).size).toBe(0);
+});
+
+test('a page strip comes with its widget unless its package is off', () => {
+  const on = widgetCatalog({ ...TEST_STATE, modules: [timerInfo()] });
+  const off = widgetCatalog({ ...TEST_STATE, modules: [timerInfo({ enabled: false })] });
+  expect(stripSlot(BERANDA, on)).toBeNull();
+  const page = { ...BERANDA, strip: 'timer/strip' };
+  expect(stripSlot(page, on)).toMatchObject({ placement: { widget: 'timer/strip', col: 0, width: 4 }, widget: { ref: 'timer/strip', width: 4 } });
+  expect(stripSlot(page, off)).toEqual({ placement: { widget: 'timer/strip', col: 0, width: 4 }, widget: null });
 });
 
 test('firstFree finds the first gap wide enough', () => {

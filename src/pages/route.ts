@@ -1,6 +1,7 @@
 import type { HostStrings } from '../i18n';
 import { hasPage, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import type { CardSize } from '../notch/controller';
+import { type CatalogWidget, stripSlot, widgetCatalog } from './layout';
 
 // Every custom page has the same size, so the panel stays put between them (§4).
 export const CUSTOM_PAGE: CardSize = { width: 520, height: 104 };
@@ -9,12 +10,16 @@ export const BACK_BAR = 24;
 // The tallest a full view may make a page.
 export const FULL_PAGE_MAX = 240;
 export const MODULES_GRID = { columns: 6, gap: 6, tile: 64, width: 520, empty: 56 } as const;
+// A page's strip (design 31 Oct, Timer §3): a dotted line, then the strip.
+export const STRIP_GAP = 20;
+export const STRIP_HEIGHT = 40;
 
 const MODULE_PREFIX = 'module:';
 
 // What the panel shows, keyed like lastPage: a page id, 'modules' or 'module:<id>'.
+// `strip`: the page's strip widget when it is there to show.
 export type PageView =
-  | { kind: 'custom'; key: string; page: Page }
+  | { kind: 'custom'; key: string; page: Page; strip: CatalogWidget | null }
   | { kind: 'modules'; key: 'modules'; modules: ModuleInfo[] }
   | { kind: 'module'; key: string; module: ModuleInfo };
 
@@ -31,12 +36,15 @@ export function resolvePage(s: ModuleState, key: string | null): PageView | null
     return module ? { kind: 'module', key, module } : null;
   }
   const page = s.pages.find(p => p.id === key);
-  return page ? { kind: 'custom', key, page } : null;
+  return page ? custom(s, page) : null;
+}
+
+function custom(s: ModuleState, page: Page): PageView {
+  return { kind: 'custom', key: page.id, page, strip: stripSlot(page, widgetCatalog(s))?.widget ?? null };
 }
 
 function beranda(s: ModuleState): PageView {
-  const page = s.pages.find(p => p.id === 'home') ?? s.pages[0] ?? { id: 'home', name: null, icon: 'home', widgets: [] };
-  return { kind: 'custom', key: page.id, page };
+  return custom(s, s.pages.find(p => p.id === 'home') ?? s.pages[0] ?? { id: 'home', name: null, icon: 'home', widgets: [] });
 }
 
 // An open panel keeps its page while it lasts, else the last page opened. A
@@ -51,11 +59,12 @@ export function pickPage(s: ModuleState, current: string | null, panelOpen: bool
 }
 
 // `fullHeight`: what a widget's full view asked for, kept between the page's own
-// height and FULL_PAGE_MAX.
+// height and FULL_PAGE_MAX. A strip there to show makes the page taller.
 export function viewSize(v: PageView, fullHeight?: number): CardSize {
   if (v.kind === 'custom') {
-    if (fullHeight === undefined) return CUSTOM_PAGE;
-    return { ...CUSTOM_PAGE, height: Math.round(Math.min(FULL_PAGE_MAX, Math.max(CUSTOM_PAGE.height, fullHeight))) };
+    const height = CUSTOM_PAGE.height + (v.strip ? STRIP_GAP + STRIP_HEIGHT : 0);
+    if (fullHeight === undefined) return { ...CUSTOM_PAGE, height };
+    return { ...CUSTOM_PAGE, height: Math.round(Math.min(FULL_PAGE_MAX, Math.max(height, fullHeight))) };
   }
   if (v.kind === 'module') return { width: v.module.card!.width, height: BACK_BAR + v.module.card!.height };
   const { columns, gap, tile, width, empty } = MODULES_GRID;
@@ -76,7 +85,7 @@ export function noticeTarget(s: ModuleState, moduleId: string | null, channel: s
   const widget = m?.channels.find(c => c.id === channel)?.widget;
   if (widget) {
     const ref = `${moduleId}/${widget}`;
-    return s.pages.find(p => p.widgets.some(w => w.widget === ref))?.id ?? beranda(s).key;
+    return s.pages.find(p => p.strip === ref || p.widgets.some(w => w.widget === ref))?.id ?? beranda(s).key;
   }
   if (m && hasPage(m)) return `${MODULE_PREFIX}${m.id}`;
   return beranda(s).key;
