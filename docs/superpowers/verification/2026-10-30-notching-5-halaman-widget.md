@@ -68,6 +68,7 @@ Semua keadaan diam ada di bawah 1,0. Lonjakan hanya terjadi saat panel bergerak 
 
 - **Daftar Reminder lengkap terlalu pendek.** Di halaman 104 px hanya 2 reminder yang terlihat. Atas permintaan pemilik, widget sekarang meminta tinggi saat membuka tampilan penuh. `notching:expand` membawa `height` (opsional). Reminder meminta 193 px: kepala dan isian 53 px, ditambah 6 baris 20 px dengan jarak 4 px. Host membatasinya antara 104 dan 240 px (`FULL_PAGE_MAX`). Panel kembali ke 104 px saat "Kembali", saat pindah halaman, atau saat ditutup. Dibuat di `789065a` dengan test.
 - **Widget Reminder di Beranda menampilkan 3 reminder, bukan 2.** Pemilik melihat ruang kosong di bawah dua baris. Tiga baris muat di halaman 104 px (baris ketiga berakhir di 86 px). Spec bagian 3 ikut diubah.
+- **Tombol kembali tidak seragam.** Di daftar Reminder lengkap "KEMBALI" ada di kanan, sedangkan di halaman modul "‹ MODUL" ada di kiri. Atas masukan pemilik, Reminder sekarang memakai susunan yang sama: "‹ KEMBALI" di kiri dan nama di kanan.
 - **Font tidak termuat di build dev worktree.** `node_modules` worktree semula berupa tautan ke folder utama, sehingga Vite menolak file font di luar daftar izinnya. Tautan diganti dengan `npm ci` di worktree. Ini hanya terjadi di build dev worktree; build rilis membawa fontnya sendiri.
 - **Notching lama sempat dipakai setelah salinan data dibuat.** Tidak ada yang hilang. Pindahan dicocokkan dengan file tepat sebelum app baru jalan.
 - **Bahasa masih English** setelah cek 6.

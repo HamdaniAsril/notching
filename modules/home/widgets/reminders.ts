@@ -72,10 +72,11 @@ export function renderReminders(root: HTMLElement, strings: HomeStrings, lang: L
     const wrap = el('div', 'list');
     const head = el('div', 'head');
     const heading = el('span', 'lab');
-    const back = el('button', 'back', strings.back);
+    const back = el('button', 'back', `‹ ${strings.back}`);
     back.type = 'button';
     back.addEventListener('click', () => actions.collapse());
-    head.append(heading, back);
+    // As on a module page: back first, the name on the right.
+    head.append(back, heading);
 
     const add = el('div', 'add');
     const title = el('input', 'title');

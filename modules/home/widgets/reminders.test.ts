@@ -84,6 +84,8 @@ test('the full view lists every reminder; Kembali asks to collapse', () => {
   full();
   expect(widget.full).toBe(true);
   expect(text('.list .head')).toContain('Reminder · 2');
+  // Like a module page's back bar: "‹ Kembali" first, the name after it.
+  expect([...root.querySelector('.list .head')!.children].map(c => c.textContent)).toEqual(['‹ Kembali', 'Reminder · 2']);
   expect(root.querySelectorAll('.list .items .rm')).toHaveLength(3);
   expect(document.activeElement).toBe(root.querySelector('.add input.title'));
   root.querySelector<HTMLElement>('.list .back')!.click();
