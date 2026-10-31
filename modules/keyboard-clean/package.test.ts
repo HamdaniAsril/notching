@@ -14,5 +14,5 @@ test('its tile runs the mode, after Timer, and it needs Accessibility', () => {
   expect([m.entry, m.card, m.action]).toEqual([null, null, { capability: 'keyclean', method: 'toggle' }]);
   expect(m.permissions).toEqual(['accessibility']);
   expect([m.name, m.shortName, m.status]).toEqual(['Keyboard Cleaning Mode', 'Keyboard', true]);
-  expect(m.channels).toEqual([{ id: 'permission', name: 'Izin Aksesibilitas', on: true, sound: false, widget: null }]);
+  expect(m.channels).toEqual([{ id: 'blocked', name: 'Keyboard tidak bisa dikunci', on: true, sound: false, widget: null }]);
 });

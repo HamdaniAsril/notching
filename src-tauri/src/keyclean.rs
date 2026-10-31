@@ -38,6 +38,24 @@ pub enum Step {
     Wait(i64),
 }
 
+/// Why the keyboard cannot be locked now; nothing dims then.
+#[derive(Debug, PartialEq, Eq)]
+pub enum Blocked {
+    /// macOS has not let Notching filter keys (Accessibility).
+    Permission,
+    /// An app has secure input on (a password field, Terminal's Secure Keyboard
+    /// Entry): an event tap gets no keys, so they would reach the app below.
+    SecureInput,
+}
+
+pub fn blocked(trusted: bool, secure_input: bool) -> Option<Blocked> {
+    match (trusted, secure_input) {
+        (false, _) => Some(Blocked::Permission),
+        (true, true) => Some(Blocked::SecureInput),
+        (true, false) => None,
+    }
+}
+
 /// Kept in memory only: a fresh launch is always off.
 #[derive(Default)]
 pub struct KeyClean {
@@ -165,6 +183,15 @@ mod tests {
         assert_eq!(k.step(T), Step::Wait(WAIT_MAX_MS));
         assert_eq!(k.step(T + SAFETY_MS), Step::Ended("k".into()));
         assert_eq!(k.step(T + SAFETY_MS), Step::Off);
+    }
+
+    #[test]
+    fn it_needs_accessibility_and_no_secure_input() {
+        assert_eq!(blocked(true, false), None);
+        assert_eq!(blocked(false, false), Some(Blocked::Permission));
+        // With secure input on, a tap gets no keys: they would reach the app below.
+        assert_eq!(blocked(true, true), Some(Blocked::SecureInput));
+        assert_eq!(blocked(false, true), Some(Blocked::Permission));
     }
 
     #[test]

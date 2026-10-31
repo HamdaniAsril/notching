@@ -13,6 +13,17 @@ unsafe extern "C" {
     static kAXTrustedCheckOptionPrompt: *const c_void;
 }
 
+#[link(name = "Carbon", kind = "framework")]
+unsafe extern "C" {
+    fn IsSecureEventInputEnabled() -> bool;
+}
+
+/// Some app has secure input on, so an event tap would get no keys.
+pub fn secure_input() -> bool {
+    // SAFETY: no arguments; safe from any thread.
+    unsafe { IsSecureEventInputEnabled() }
+}
+
 const ACCESSIBILITY_PANE: &str = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
 
 /// Whether macOS lets Notching filter keys. `prompt` also shows macOS's own
@@ -167,8 +178,13 @@ impl Tap {
 
 impl Drop for Tap {
     fn drop(&mut self) {
-        PORT.store(std::ptr::null_mut(), std::sync::atomic::Ordering::SeqCst);
-        *ON_KEY.lock().unwrap() = None;
+        // Only while this tap is the live one: a newer tap keeps its handler.
+        let ours = PORT
+            .compare_exchange(self.port, std::ptr::null_mut(), std::sync::atomic::Ordering::SeqCst, std::sync::atomic::Ordering::SeqCst)
+            .is_ok();
+        if ours {
+            *ON_KEY.lock().unwrap() = None;
+        }
         // SAFETY: both were created by `install` and are released once, here.
         unsafe {
             CGEventTapEnable(self.port, false);

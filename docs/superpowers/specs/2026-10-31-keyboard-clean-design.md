@@ -43,6 +43,8 @@ Pemilik ingin membersihkan keyboard laptop tanpa mengetik atau menekan apa pun s
   - Kalau izin belum diberikan, mode tidak menyala. macOS menampilkan permintaan izinnya.
   - Notch juga menampilkan notifikasi "Izinkan Aksesibilitas", dengan keterangan kira-kira "Agar Notching bisa mengunci keyboard". Kata-kata pastinya ditentukan pembuat.
   - Setelah izin diberikan, klik kotaknya lagi.
+- **Input aman:** kalau ada app yang sedang memakai input aman, misalnya kolom kata sandi yang aktif atau Secure Keyboard Entry di Terminal, macOS tidak meneruskan ketikan ke Notching. Kunci keyboard tidak akan berfungsi, dan ketikan tetap sampai ke app itu. Karena itu mode tidak menyala, dan notch menampilkan "Input aman sedang aktif" dengan keterangan cara mematikannya. Ini ditemukan pemeriksa kode **(keputusan penulis)**.
+- Notifikasi izin dan input aman memakai satu saluran, "Keyboard tidak bisa dikunci" (bawaan menyala, tanpa suara).
 - **Halaman Izin di Pengaturan** sekarang menampilkan modul ini: nama modul, izin yang dibutuhkan (Aksesibilitas), keadaannya (diizinkan atau belum), dan tombol untuk membuka Pengaturan Sistem di bagian itu. Ini mengikuti desain awal, yang menyebut modul berizin muncul di halaman Izin.
 
 ## 4. Saat menyala (pilihan C)

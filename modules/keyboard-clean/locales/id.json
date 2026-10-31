@@ -3,12 +3,16 @@
   "shortName": "Keyboard",
   "description": "Kunci keyboard untuk dibersihkan",
   "channels": {
-    "permission": "Izin Aksesibilitas"
+    "blocked": "Keyboard tidak bisa dikunci"
   },
   "notice": {
     "permission": {
       "title": "Izinkan Aksesibilitas",
       "detail": "Agar Notching bisa mengunci keyboard"
+    },
+    "secure": {
+      "title": "Input aman sedang aktif",
+      "detail": "Tutup kolom kata sandi atau matikan Secure Keyboard Entry dulu"
     }
   }
 }

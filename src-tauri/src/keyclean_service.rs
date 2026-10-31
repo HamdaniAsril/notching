@@ -18,7 +18,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::app_core::CoreState;
 use crate::awake_hold::Hold;
-use crate::keyclean::{KeyClean, Press, Step, Toggle, WAIT_MAX_MS};
+use crate::keyclean::{blocked, Blocked, KeyClean, Press, Step, Toggle, WAIT_MAX_MS};
 use crate::keyclean_tap::{Key, Tap};
 use crate::locale::Lang;
 use crate::status::{self, Activity};
@@ -46,6 +46,9 @@ struct Mode {
 
 pub struct KeyCleanState {
     mode: Mutex<Mode>,
+    // Held through a whole toggle or stop, so two clicks can never install two
+    // taps, and a show and a hide reach the main thread in the order they were made.
+    switching: Mutex<()>,
     poked: Arc<(Mutex<bool>, Condvar)>,
 }
 
@@ -73,6 +76,7 @@ pub fn start(app: AppHandle) {
     let poked = Arc::new((Mutex::new(false), Condvar::new()));
     app.manage(KeyCleanState {
         mode: Mutex::new(Mode { rules: KeyClean::default(), tap: None, hold: None }),
+        switching: Mutex::new(()),
         poked: poked.clone(),
     });
     watch_sleep_and_lock(&app);
@@ -129,24 +133,31 @@ pub fn get_clean_state(app: AppHandle) -> CleanStateDto {
 /// The tile's action: on when off, off when on. Nothing dims without the
 /// keyboard lock, which needs Accessibility.
 pub fn toggle(app: &AppHandle, owner: &str) -> Result<(), String> {
-    let on = app.state::<KeyCleanState>().mode.lock().unwrap().rules.owner().is_some();
+    let state = app.state::<KeyCleanState>();
+    let _switching = state.switching.lock().unwrap();
+    let on = state.mode.lock().unwrap().rules.owner().is_some();
     if on {
-        stop(app);
+        stop_now(app);
         return Ok(());
     }
-    if !crate::keyclean_tap::trusted(true) {
-        ask_for_permission(app, owner);
-        return Err("accessibility is not allowed".into());
+    // Ask macOS (and show its own request) only when the rest is fine.
+    let secure = crate::keyclean_tap::secure_input();
+    if let Some(why) = blocked(crate::keyclean_tap::trusted(true), secure) {
+        tell(app, owner, &why);
+        return Err(match why {
+            Blocked::Permission => "accessibility is not allowed",
+            Blocked::SecureInput => "secure input is on",
+        }
+        .into());
     }
     let tap = Tap::install(on_key).ok_or_else(|| {
-        ask_for_permission(app, owner);
+        tell(app, owner, &Blocked::Permission);
         "the keyboard could not be locked".to_string()
     })?;
     {
-        let state = app.state::<KeyCleanState>();
         let mut mode = state.mode.lock().unwrap();
+        // Under `switching`, nothing else turned it on meanwhile.
         if mode.rules.toggle(owner, now()) != Toggle::On {
-            // A second click raced this one and turned it off again.
             return Ok(());
         }
         mode.tap = Some(tap);
@@ -167,6 +178,13 @@ pub fn toggle(app: &AppHandle, owner: &str) -> Result<(), String> {
 
 // Every way the mode ends: the lock, the hold and the dim layer go, then the icon.
 pub fn stop(app: &AppHandle) {
+    let state = app.state::<KeyCleanState>();
+    let _switching = state.switching.lock().unwrap();
+    stop_now(app);
+}
+
+// With `switching` held.
+fn stop_now(app: &AppHandle) {
     let owner = {
         let state = app.state::<KeyCleanState>();
         let mut mode = state.mode.lock().unwrap();
@@ -214,15 +232,20 @@ fn on_key(key: Key) {
     }
 }
 
-fn ask_for_permission(app: &AppHandle, owner: &str) {
+// Why nothing dimmed, on the module's "blocked" channel.
+fn tell(app: &AppHandle, owner: &str, why: &Blocked) {
+    let key = match why {
+        Blocked::Permission => "permission",
+        Blocked::SecureInput => "secure",
+    };
     let (title, detail) = {
         let core = app.state::<CoreState>();
         let core = core.0.lock().unwrap();
-        (core.module_text(owner, "notice.permission.title"), core.module_text(owner, "notice.permission.detail"))
+        (core.module_text(owner, &format!("notice.{key}.title")), core.module_text(owner, &format!("notice.{key}.detail")))
     };
-    let title = title.unwrap_or_else(|| "Accessibility".into());
-    if let Err(e) = crate::notify::post(app, owner, "permission", &title, detail.as_deref().unwrap_or("")) {
-        eprintln!("notching: the accessibility notice was not sent: {e}");
+    let title = title.unwrap_or_else(|| "Keyboard".into());
+    if let Err(e) = crate::notify::post(app, owner, "blocked", &title, detail.as_deref().unwrap_or("")) {
+        eprintln!("notching: the keyboard cleaning notice was not sent: {e}");
     }
 }
 

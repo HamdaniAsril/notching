@@ -3,12 +3,16 @@
   "shortName": "Keyboard",
   "description": "Locks the keyboard for cleaning",
   "channels": {
-    "permission": "Accessibility permission"
+    "blocked": "Keyboard can't be locked"
   },
   "notice": {
     "permission": {
       "title": "Allow Accessibility",
       "detail": "So Notching can lock the keyboard"
+    },
+    "secure": {
+      "title": "Secure input is on",
+      "detail": "Close the password field or turn off Secure Keyboard Entry first"
     }
   }
 }

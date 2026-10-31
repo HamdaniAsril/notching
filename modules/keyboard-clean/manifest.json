@@ -5,5 +5,5 @@
   "permissions": ["accessibility"],
   "capabilities": ["keyclean", "status", "notify"],
   "action": { "capability": "keyclean", "method": "toggle" },
-  "notifications": [{ "id": "permission", "on": true, "sound": false }]
+  "notifications": [{ "id": "blocked", "on": true, "sound": false }]
 }
