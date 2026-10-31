@@ -237,3 +237,14 @@ test('the ghost goes once the drag ends', async () => {
   expect(document.querySelector('.ed-ghost')).toBeNull();
   expect(root.querySelector('.ed-dragging')).toBeNull();
 });
+
+test('a card draws the widget at its notch size, the same as in the preview', async () => {
+  const { root } = await edit('p1');
+  const card = widgetButton(root, 'Cuaca').querySelector<HTMLElement>('.ed-shot')!;
+  const slot = root.querySelector<HTMLElement>('.ed-slot[aria-label="Jam"]')!;
+  const height = (e: HTMLElement) => e.querySelector('svg.dm')!.getAttribute('height');
+  expect(height(card)).toBe('42');
+  expect(height(slot)).toBe('42');
+  expect(card.dataset.width).toBe('1');
+  expect(widgetButton(root, 'Reminder').querySelector<HTMLElement>('.ed-shot')!.dataset.width).toBe('2');
+});

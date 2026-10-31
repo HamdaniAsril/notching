@@ -197,7 +197,7 @@ function preview(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidge
     slot.style.gridColumn = `${placement.col + 1} / span ${placement.width}`;
     slot.setAttribute('aria-label', name);
     slot.title = name;
-    if (widget) slot.append(...widgetSample(widget, ctx.lang, true));
+    if (widget) slot.append(...widgetSample(widget, ctx.lang));
     else slot.append(el('div', 'lab', name), el('small', undefined, s.sourceOff));
     const remove = el('button', 'ed-remove', '×');
     remove.type = 'button';

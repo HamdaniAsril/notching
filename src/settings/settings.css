@@ -1010,18 +1010,20 @@ input:focus-visible,
   color: var(--bg);
 }
 
-/* A grid of widget pictures; a 2-column widget takes two cells. */
+/* A grid of widget pictures in fixed cells: each picture is the widget at its
+   notch size (109 × 104, or 234 wide for 2 columns, as in the 520 px row with
+   16 px gaps) shrunk to 0.75, so a 1-column widget never looks wider. */
 .ed-widgets {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-  gap: 14px 10px;
+  grid-template-columns: repeat(auto-fill, 97px);
+  gap: 14px 12px;
   margin-top: 12px;
 }
 
 .ed-widget {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: 6px;
   min-width: 0;
   border: 0;
@@ -1038,6 +1040,7 @@ input:focus-visible,
 }
 
 .ed-widget .ed-name {
+  max-width: 100%;
   font-size: 12px;
   color: var(--fg);
   overflow: hidden;
@@ -1051,19 +1054,21 @@ input:focus-visible,
   color: var(--g2);
 }
 
-/* The picture: black like the notch, white text and dots. */
+/* The picture: black like the notch, white text and dots, at the widget's size. */
 .ed-shot {
-  height: 76px;
+  zoom: 0.75;
+  width: 129px;
+  height: 124px;
   box-sizing: border-box;
-  padding: 9px 10px;
-  border-radius: 10px;
+  padding: 10px;
+  border-radius: 13px;
   background: #000;
-  box-shadow: inset 0 0 0 1px var(--line);
+  box-shadow: inset 0 0 0 1.3px var(--line);
   color: #fff;
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   overflow: hidden;
   transition: box-shadow 0.15s;
   --g1: rgba(255, 255, 255, 0.68);
@@ -1071,12 +1076,18 @@ input:focus-visible,
   --g3: rgba(255, 255, 255, 0.16);
 }
 
+/* Two cells and the gap between them, at the same scale. */
+.ed-shot[data-width="2"] {
+  width: 274px;
+  padding-inline: 20px;
+}
+
 .ed-widget:hover:not([aria-disabled="true"]) .ed-shot {
   box-shadow: inset 0 0 0 1.5px var(--fg);
 }
 
 .ed-shot .lab {
-  font-size: 8.5px;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1086,7 +1097,8 @@ input:focus-visible,
 }
 
 .ed-line {
-  font-size: 11.5px;
+  font-size: 15px;
+  line-height: 19px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1094,18 +1106,22 @@ input:focus-visible,
 .ed-shot .rm {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  line-height: 13px;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 18px;
   white-space: nowrap;
+}
+
+.ed-shot .rm + .rm {
+  margin-top: -2px;
 }
 
 .ed-shot .rm .ck {
   flex: none;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   box-sizing: border-box;
-  border: 1px solid var(--g2);
+  border: 1.2px solid var(--g2);
   border-radius: 50%;
 }
 
