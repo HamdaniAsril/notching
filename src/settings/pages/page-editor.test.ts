@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import type { ModuleState, Page, Placement } from '../../modules/types';
 import { BERANDA, homeWidgets, moduleInfo, TEST_STATE } from '../../notch/test-helpers';
 import { mountForTest, settle, TEST_INFO } from '../test-helpers';
@@ -35,7 +35,7 @@ test('a widget already here or without room is dimmed', async () => {
   const buttons = [...root.querySelectorAll<HTMLElement>('.ed-widget')];
   expect(buttons.map(b => b.getAttribute('aria-disabled'))).toEqual(buttons.map(() => 'true'));
   expect(widgetButton(root, 'Tanggal').textContent).toContain('Sudah dipasang');
-  expect(widgetButton(root, 'Jam').textContent).toContain('Tidak muat');
+  expect(widgetButton(root, 'Jam').textContent).toContain('Penuh, seret untuk mengganti');
   expect(widgetButton(root, 'Reminder').title).toBe('Kerja · 2 kolom');
   widgetButton(root, 'Jam').click();
   expect(bridge.setPage).not.toHaveBeenCalled();
@@ -199,4 +199,41 @@ test('a page deleted elsewhere sends the editor back to the list', async () => {
   const { bridge, app } = await edit('p1');
   bridge.emitModuleState({ ...STATE, pages: [BERANDA] });
   expect(app.route).toEqual({ page: 'pages' });
+});
+
+// Drags with pointer events over a preview row measured as 400 × 100 at the top left.
+function drag(root: HTMLElement, from: HTMLElement, x: number, y = 50): void {
+  const row = root.querySelector<HTMLElement>('.ed-row')!;
+  vi.spyOn(row, 'getBoundingClientRect').mockReturnValue(
+    { left: 0, top: 0, right: 400, bottom: 100, width: 400, height: 100, x: 0, y: 0, toJSON: () => ({}) });
+  const at = (type: string, cx: number, cy: number) =>
+    from.dispatchEvent(new MouseEvent(type, { clientX: cx, clientY: cy, bubbles: true }));
+  at('pointerdown', 10, 300);
+  at('pointermove', x, y);
+  expect(document.querySelector('.ed-ghost')).not.toBeNull();
+  expect(from.classList.contains('ed-dragging')).toBe(true);
+  at('pointerup', x, y);
+}
+
+test('dragging a slot onto another swaps them', async () => {
+  const { root, bridge } = await edit('home');
+  const weather = root.querySelector<HTMLElement>('.ed-slot[aria-label="Cuaca"]')!;
+  drag(root, weather, 10);
+  expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
+    [at('home/weather', 0), at('home/date', 1), at('home/reminders', 2, 2)]);
+});
+
+test('dragging a widget onto a full row replaces what it covers', async () => {
+  const { root, bridge } = await edit('home');
+  drag(root, widgetButton(root, 'Jam'), 350);
+  expect(bridge.setPage).toHaveBeenCalledWith('home', null, 'home',
+    [at('home/date', 0), at('home/weather', 1), at('home/clock', 3)]);
+});
+
+test('the ghost goes once the drag ends', async () => {
+  const { root } = await edit('home');
+  drag(root, widgetButton(root, 'Jam'), 999, 999);
+  await new Promise(r => setTimeout(r, 300));
+  expect(document.querySelector('.ed-ghost')).toBeNull();
+  expect(root.querySelector('.ed-dragging')).toBeNull();
 });

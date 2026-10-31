@@ -112,7 +112,7 @@
       },
       "cols": "{n} columns",
       "placed": "Already here",
-      "noRoom": "No room",
+      "noRoom": "Full, drag to replace",
       "sourceOff": "Module is off",
       "fixedHint": "Beranda comes first, Modul last.",
       "widgetList": "Widgets",

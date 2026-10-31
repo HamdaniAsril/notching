@@ -1,9 +1,9 @@
 import { fill } from '../../i18n';
 import type { Page, WidgetKind } from '../../modules/types';
 import { PAGE_ICON_NAMES, pageIconSvg } from '../../pages/icons';
-import { COLUMNS, moveTo, place, removeWidget, slots, widgetCatalog, type CatalogWidget } from '../../pages/layout';
+import { COLUMNS, place, removeWidget, replaceAt, slots, swapInto, widgetCatalog, type CatalogWidget } from '../../pages/layout';
 import { button, el, head } from '../controls';
-import { columnAt, dragWith } from '../drag';
+import { columnAt, dragWith, liftGhost } from '../drag';
 import { icon } from '../icons';
 import type { PageContext, PageRender } from '../types';
 import { UNINSTALL_CONFIRM_MS } from './modules';
@@ -136,11 +136,12 @@ function deleteButton(ctx: PageContext, id: string): HTMLElement {
   return foot;
 }
 
-// Highlights the cell a drag would land on.
-function markColumn(row: HTMLElement, col: number | null): void {
+// Highlights the cells a drag `width` columns wide would land on at `col`.
+function markColumns(row: HTMLElement, col: number | null, width: number): void {
+  const at = col === null ? null : Math.max(0, Math.min(COLUMNS - width, col));
   for (const cell of row.querySelectorAll<HTMLElement>('.ed-slot, .ed-empty')) {
     const from = Number(cell.dataset.col);
-    const on = col !== null && col >= from && col < from + Number(cell.dataset.width);
+    const on = at !== null && from < at + width && at < from + Number(cell.dataset.width);
     cell.classList.toggle('ed-target', on);
   }
 }
@@ -150,19 +151,31 @@ function inside(row: HTMLElement, x: number, y: number): DOMRect | null {
   return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom ? r : null;
 }
 
-// Drags `from` and, when let go over the row, hands over the column under the pointer.
-function dragToRow(e: PointerEvent, from: HTMLElement, row: () => HTMLElement, drop: (col: number) => void): void {
-  from.classList.add('ed-dragging');
+// Drags `from`, `width` columns wide: a copy of it follows the pointer while the
+// original fades, and when let go over the row the column under it is handed over.
+function dragToRow(e: PointerEvent, from: HTMLElement, width: number, row: () => HTMLElement,
+  drop: (col: number) => void): void {
+  let ghost: ReturnType<typeof liftGhost> | null = null;
   const at = (x: number, y: number) => {
     const r = inside(row(), x, y);
     return r ? columnAt(r.left, r.width, x) : null;
   };
   const end = () => {
     from.classList.remove('ed-dragging');
-    markColumn(row(), null);
+    markColumns(row(), null, width);
+    ghost?.end();
+    ghost = null;
   };
+  const [sx, sy] = [e.clientX, e.clientY];
   dragWith(e, {
-    onMove: (x, y) => markColumn(row(), at(x, y)),
+    onMove: (x, y) => {
+      if (!ghost) {
+        ghost = liftGhost(from, sx, sy);
+        from.classList.add('ed-dragging');
+      }
+      ghost.move(x, y);
+      markColumns(row(), at(x, y), width);
+    },
     onDrop: (x, y) => {
       const col = at(x, y);
       end();
@@ -193,8 +206,9 @@ function preview(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidge
     remove.addEventListener('click', () => save({ ...page, widgets: removeWidget(page.widgets, placement.widget) }));
     remove.addEventListener('pointerdown', e => e.stopPropagation());
     slot.append(remove);
-    slot.addEventListener('pointerdown', e => dragToRow(e, slot, () => row, col => {
-      const next = moveTo(page.widgets, placement.widget, col);
+    // Dropped on another widget, the two trade places.
+    slot.addEventListener('pointerdown', e => dragToRow(e, slot, placement.width, () => row, col => {
+      const next = swapInto(page.widgets, placement.widget, col);
       if (next) save({ ...page, widgets: next });
     }));
     for (let c = placement.col; c < placement.col + placement.width; c++) taken.add(c);
@@ -267,12 +281,14 @@ function widgetList(ctx: PageContext, page: Page, catalog: Map<string, CatalogWi
     b.append(widgetPreview(w, ctx.lang), el('span', 'ed-name', w.name));
     if (!placed) {
       b.setAttribute('aria-disabled', 'true');
+      b.classList.toggle('ed-full', !here);
       b.append(el('small', 'ed-why', here ? s.placed : s.noRoom));
     }
     b.addEventListener('click', () => { if (placed) save({ ...page, widgets: placed }); });
+    // Dropped on free room it goes there; on a widget it takes that widget's place.
     if (!here) {
-      b.addEventListener('pointerdown', e => dragToRow(e, b, row, col => {
-        const next = place(page.widgets, w.ref, w.width, col);
+      b.addEventListener('pointerdown', e => dragToRow(e, b, w.width, row, col => {
+        const next = place(page.widgets, w.ref, w.width, col) ?? replaceAt(page.widgets, w.ref, w.width, col);
         if (next) save({ ...page, widgets: next });
       }));
     }

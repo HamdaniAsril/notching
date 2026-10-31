@@ -63,3 +63,32 @@ export function moveTo(widgets: Placement[], ref: string, col: number): Placemen
 export function removeWidget(widgets: Placement[], ref: string): Placement[] {
   return widgets.filter(p => p.widget !== ref);
 }
+
+const clampCol = (col: number, width: number) => Math.max(0, Math.min(COLUMNS - width, col));
+const overlaps = (p: Placement, col: number, width: number) => p.col < col + width && col < p.col + p.width;
+
+// Moves a widget to `col`; what is there goes to the moved widget's old place, or
+// the first room left. Null when something would not fit back.
+export function swapInto(widgets: Placement[], ref: string, col: number): Placement[] | null {
+  const it = widgets.find(p => p.widget === ref);
+  if (!it) return null;
+  const at = clampCol(col, it.width);
+  const plain = moveTo(widgets, ref, at);
+  if (plain) return plain;
+  const others = widgets.filter(p => p.widget !== ref);
+  const hit = others.filter(p => overlaps(p, at, it.width));
+  let next = [...others.filter(p => !hit.includes(p)), { ...it, col: at }];
+  for (const h of hit) {
+    const back = canPlace(next, it.col, h.width) ? it.col : firstFree(next, h.width);
+    if (back === null) return null;
+    next = [...next, { ...h, col: back }];
+  }
+  return byCol(next);
+}
+
+// Puts a widget not yet on the page at `col`, taking the place of whatever it covers.
+export function replaceAt(widgets: Placement[], ref: string, width: number, col: number): Placement[] | null {
+  if (widgets.some(p => p.widget === ref)) return null;
+  const at = clampCol(col, width);
+  return byCol([...widgets.filter(p => !overlaps(p, at, width)), { widget: ref, col: at, width }]);
+}

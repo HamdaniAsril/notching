@@ -112,7 +112,7 @@
       },
       "cols": "{n} kolom",
       "placed": "Sudah dipasang",
-      "noRoom": "Tidak muat",
+      "noRoom": "Penuh, seret untuk mengganti",
       "sourceOff": "Modul dimatikan",
       "fixedHint": "Beranda selalu pertama, Modul selalu terakhir.",
       "widgetList": "Widget",

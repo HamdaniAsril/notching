@@ -663,7 +663,48 @@ input:focus-visible,
 }
 
 .ed-dragging {
-  opacity: 0.45;
+  opacity: 0.3;
+  transition: opacity 0.12s;
+}
+
+/* What follows the pointer while dragging: lifted a little, and it lets go softly. */
+.ed-ghost {
+  position: fixed;
+  z-index: 50;
+  margin: 0;
+  pointer-events: none;
+  box-sizing: border-box;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+  transform: scale(1.05) rotate(-1.5deg);
+  animation: ed-lift 0.14s ease-out;
+  transition: opacity 0.16s, transform 0.16s;
+}
+
+@keyframes ed-lift {
+  from {
+    transform: scale(1) rotate(0);
+  }
+}
+
+.ed-ghost-out {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+/* A slot lifted out of the black preview keeps its look. */
+.ed-ghost.ed-slot {
+  background: #000;
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  --g1: rgba(255, 255, 255, 0.68);
+  --g2: rgba(255, 255, 255, 0.45);
+  --g3: rgba(255, 255, 255, 0.16);
+}
+
+.ed-ghost.ed-slot .ed-remove,
+.ed-ghost.ed-slot::before {
+  display: none;
 }
 
 .page-row.ed-target {
@@ -1077,4 +1118,10 @@ input:focus-visible,
 .ed-widget[aria-disabled="true"] {
   opacity: 0.45;
   cursor: default;
+}
+
+/* No room left: it can still be dragged onto a widget to take its place. */
+.ed-widget.ed-full {
+  opacity: 0.7;
+  cursor: grab;
 }

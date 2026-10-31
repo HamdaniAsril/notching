@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import type { Placement } from '../modules/types';
 import { BERANDA, moduleInfo, TEST_STATE } from '../notch/test-helpers';
-import { canPlace, firstFree, moveTo, place, removeWidget, slots, widgetCatalog } from './layout';
+import { canPlace, firstFree, moveTo, place, removeWidget, replaceAt, slots, swapInto, widgetCatalog } from './layout';
 
 const p = (widget: string, col: number, width = 1): Placement => ({ widget, col, width });
 
@@ -51,4 +51,33 @@ test('a widget whose source is gone stays in its slot without a widget', () => {
   const page = { ...BERANDA, widgets: [p('timer/timer', 3), p('home/date', 0)] };
   const s = slots(page, widgetCatalog(TEST_STATE));
   expect(s.map(x => [x.placement.col, x.widget?.ref ?? null])).toEqual([[0, 'home/date'], [3, null]]);
+});
+
+const FULL: Placement[] = [
+  { widget: 'home/date', col: 0, width: 1 }, { widget: 'home/weather', col: 1, width: 1 },
+  { widget: 'home/reminders', col: 2, width: 2 },
+];
+const cols = (ws: Placement[] | null) => ws && ws.map(p => `${p.widget.split('/')[1]}@${p.col}`);
+
+test('swapInto trades places with what is under the drop', () => {
+  expect(cols(swapInto(FULL, 'home/weather', 0))).toEqual(['weather@0', 'date@1', 'reminders@2']);
+  expect(cols(swapInto(FULL, 'home/reminders', 0))).toEqual(['reminders@0', 'date@2', 'weather@3']);
+  // Into free room it is a plain move.
+  const gap = FULL.slice(0, 2);
+  expect(cols(swapInto(gap, 'home/date', 3))).toEqual(['weather@1', 'date@3']);
+  // A wide widget is kept inside the row.
+  expect(cols(swapInto(FULL, 'home/reminders', 3))).toEqual(['date@0', 'weather@1', 'reminders@2']);
+});
+
+test('swapInto refuses what would not fit back', () => {
+  expect(swapInto(FULL, 'home/date', 2)).toBeNull();
+  expect(swapInto(FULL, 'home/zzz', 0)).toBeNull();
+});
+
+test('replaceAt puts a new widget over what is there', () => {
+  expect(cols(replaceAt(FULL, 'home/clock', 1, 0))).toEqual(['clock@0', 'weather@1', 'reminders@2']);
+  expect(cols(replaceAt(FULL, 'home/prayer', 1, 3))).toEqual(['date@0', 'weather@1', 'prayer@3']);
+  expect(cols(replaceAt(FULL, 'x/wide', 2, 3))).toEqual(['date@0', 'weather@1', 'wide@2']);
+  expect(cols(replaceAt(FULL, 'x/wide', 2, 0))).toEqual(['wide@0', 'reminders@2']);
+  expect(replaceAt(FULL, 'home/date', 1, 1)).toBeNull();
 });
