@@ -115,9 +115,14 @@ pub struct Manifest {
 }
 
 impl Manifest {
-    /// A package without a page is not a module: it only offers widgets.
     pub fn has_page(&self) -> bool {
         self.entry.is_some() && self.card.is_some()
+    }
+
+    /// A module has a tile on the Modul page: it opens a page or runs an action.
+    /// A package with neither only offers widgets, and is always on.
+    pub fn is_module(&self) -> bool {
+        self.has_page() || self.action.is_some()
     }
 }
 

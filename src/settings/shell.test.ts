@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
-import { TEST_STATE } from '../notch/test-helpers';
+import { moduleInfo, TEST_STATE } from '../notch/test-helpers';
 import { h1, mountForTest, settle, TEST_INFO } from './test-helpers';
 
 const navLabels = (root: HTMLElement) => [...root.querySelectorAll('.nav .label')].map(n => n.textContent);
@@ -17,6 +17,12 @@ test('opens on Umum, with seven sections, Halaman before Modul, and the module c
   expect(h1(root)).toBe('Umum');
   // The widget package is not a module.
   expect(root.querySelector('[data-key="nav.modules"] .n')!.textContent).toBe('1');
+});
+
+test('a module whose tile runs an action counts as a module', async () => {
+  const clean = moduleInfo('keyboard-clean', { entry: null, card: null, action: { capability: 'keyclean', method: 'toggle' } });
+  const { root } = await mountForTest({ ...TEST_STATE, modules: [...TEST_STATE.modules, clean] });
+  expect(root.querySelector('[data-key="nav.modules"] .n')!.textContent).toBe('2');
 });
 
 test('the sidebar opens each section', async () => {

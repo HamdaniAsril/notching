@@ -9,7 +9,7 @@ import { lookPage } from './pages/look';
 import { addPage, modulePage, modulesPage } from './pages/modules';
 import { isOwnEcho, pageEditor } from './pages/page-editor';
 import { pagesPage, waitingFor } from './pages/pages';
-import { hasPage } from '../modules/types';
+import { isModule } from '../modules/types';
 import { search, searchIndex } from './search';
 import type {
   PageContext, PageRender, Route, SectionId, SettingsBridge, SettingsEnv, SettingsInfo,
@@ -166,7 +166,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
       item.button.classList.toggle('on', on);
       if (on) item.button.setAttribute('aria-current', 'page');
       else item.button.removeAttribute('aria-current');
-      if (item.count) item.count.textContent = String(state.modules.filter(m => m.installed && hasPage(m)).length);
+      if (item.count) item.count.textContent = String(state.modules.filter(m => m.installed && isModule(m)).length);
     }
 
     const active = doc.activeElement as HTMLElement | null;

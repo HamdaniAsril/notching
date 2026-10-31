@@ -126,9 +126,9 @@ impl ModuleStore {
                 let name = text["name"].as_str().unwrap_or(&id).to_string();
                 let short_name = text["shortName"].as_str().unwrap_or(&name).to_string();
                 let description = text["description"].as_str().unwrap_or("").to_string();
-                let page = manifest.has_page();
-                let installed = !page || !settings.uninstalled_modules.contains(&id);
-                let enabled = !page || (installed && !settings.disabled_modules.contains(&id));
+                let module = manifest.is_module();
+                let installed = !module || !settings.uninstalled_modules.contains(&id);
+                let enabled = !module || (installed && !settings.disabled_modules.contains(&id));
                 let icon_svg = std::fs::read_to_string(dir.join(&manifest.icon)).unwrap_or_default();
                 let size = package_size(&dir);
                 let channels = manifest
@@ -220,7 +220,7 @@ impl ModuleStore {
         std::fs::read_to_string(self.bundle_dir.join(id).join("manifest.json"))
             .ok()
             .and_then(|json| parse_manifest(&json, id).ok())
-            .is_none_or(|m| m.has_page())
+            .is_none_or(|m| m.is_module())
     }
 
     fn known(&self, id: &str) -> Result<(), StoreError> {
@@ -476,6 +476,35 @@ mod tests {
         assert!(w.installed && w.enabled);
         store.sync(&s);
         assert!(d.path().join("active/w/index.html").exists());
+    }
+
+    // A module whose tile runs an action (Keyboard Cleaning Mode): no page, but a module.
+    fn add_action_module(bundle: &std::path::Path) {
+        std::fs::write(bundle.join("index.json"), r#"["a","b","w","k"]"#).unwrap();
+        let k = bundle.join("k");
+        std::fs::create_dir_all(k.join("locales")).unwrap();
+        std::fs::write(
+            k.join("manifest.json"),
+            r#"{"id":"k","version":"1.0.0","icon":"icon.svg","permissions":["accessibility"],
+               "capabilities":["keyclean"],"action":{"capability":"keyclean","method":"toggle"}}"#,
+        )
+        .unwrap();
+        std::fs::write(k.join("icon.svg"), "<svg/>").unwrap();
+        std::fs::write(k.join("locales/id.json"), r#"{"name":"Keyboard"}"#).unwrap();
+    }
+
+    #[test]
+    fn an_action_module_can_be_switched_off_and_uninstalled() {
+        let (d, store) = setup();
+        add_action_module(&d.path().join("bundle"));
+        let mut s = Settings::default();
+        assert_eq!(store.set_enabled("k", false, &mut s), Ok(()));
+        let k = store.list(&s, Lang::Id).into_iter().find(|e| e.manifest.id == "k").unwrap();
+        assert!(k.installed && !k.enabled);
+        assert_eq!(store.uninstall("k", &mut s), Ok(()));
+        let k = store.list(&s, Lang::Id).into_iter().find(|e| e.manifest.id == "k").unwrap();
+        assert!(!k.installed && !k.enabled);
+        assert_eq!(store.reinstall("k", &mut s), Ok(()));
     }
 
     #[test]
