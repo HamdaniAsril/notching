@@ -64,30 +64,29 @@ export function dragWith(
 
 const GHOST_OUT_MS = 160;
 
-// The CSS zoom an element is drawn at (the page editor shrinks its notch preview).
-function zoomOf(el: HTMLElement): number {
-  let z = 1;
-  for (let e: HTMLElement | null = el; e; e = e.parentElement) z *= Number(e.style.getPropertyValue('zoom')) || 1;
-  return z;
-}
-
 // A copy of `from` lifted off the page that follows the pointer, kept where it
-// was grabbed. `end` lets it fade and goes.
+// was grabbed. It is drawn at its own size and scaled (--s) to the size it shows
+// at, around the grab point, so a shrunk preview's widget stays shrunk. `end`
+// lets it fade and goes.
 export function liftGhost(from: HTMLElement, x: number, y: number): { move(x: number, y: number): void; end(): void } {
   const doc = from.ownerDocument;
   const r = from.getBoundingClientRect();
-  const z = zoomOf(from);
+  const w = from.offsetWidth || r.width;
+  const h = from.offsetHeight || r.height;
+  const s = w ? r.width / w : 1;
   const ghost = from.cloneNode(true) as HTMLElement;
   ghost.classList.remove('ed-dragging', 'ed-target');
   ghost.classList.add('ed-ghost');
   for (const e of [ghost, ...ghost.querySelectorAll('[data-key]')]) e.removeAttribute('data-key');
   ghost.setAttribute('aria-hidden', 'true');
-  const [dx, dy] = [x - r.left, y - r.top];
-  Object.assign(ghost.style, { width: `${r.width / z}px`, height: `${r.height / z}px` });
-  ghost.style.setProperty('zoom', String(z));
+  const [ox, oy] = [(x - r.left) / s, (y - r.top) / s];
+  ghost.style.width = `${w}px`;
+  ghost.style.height = `${h}px`;
+  ghost.style.setProperty('--s', String(s));
+  ghost.style.transformOrigin = `${ox}px ${oy}px`;
   const place = (px: number, py: number) => {
-    ghost.style.left = `${(px - dx) / z}px`;
-    ghost.style.top = `${(py - dy) / z}px`;
+    ghost.style.left = `${px - ox}px`;
+    ghost.style.top = `${py - oy}px`;
   };
   place(x, y);
   doc.body.append(ghost);

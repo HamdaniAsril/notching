@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import type { ModuleState } from '../../modules/types';
 import { BERANDA, homeWidgets, moduleInfo, TEST_STATE } from '../../notch/test-helpers';
 import { mountForTest, settle, TEST_INFO } from '../test-helpers';
@@ -224,4 +224,21 @@ test('Beranda has no grip and cannot move', async () => {
   key(root, 'page.home')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true }));
   expect(bridge.movePage).not.toHaveBeenCalled();
   expect(root.querySelector('.pane')!.textContent).toContain('Beranda selalu pertama, Modul selalu terakhir.');
+});
+
+test('dragging a page by its grip lifts it like a widget', async () => {
+  const { root, bridge } = await open(TEST_INFO, { ...STATE, pages: [BERANDA, KERJA, IBADAH] });
+  const rows = [...root.querySelectorAll<HTMLElement>('[data-row="page.p1"], [data-row="page.p2"]')];
+  rows.forEach((r, i) => vi.spyOn(r, 'getBoundingClientRect').mockReturnValue(
+    { left: 0, top: 100 + i * 40, right: 400, bottom: 140 + i * 40, width: 400, height: 40, x: 0, y: 100 + i * 40, toJSON: () => ({}) }));
+  const grip = rows[0].querySelector<HTMLElement>('.ed-grip')!;
+  const at = (type: string, y: number) => grip.dispatchEvent(new MouseEvent(type, { clientX: 5, clientY: y, bubbles: true }));
+  at('pointerdown', 120);
+  at('pointermove', 175);
+  expect(document.querySelector('.ed-ghost')).not.toBeNull();
+  expect(rows[0].classList.contains('ed-dragging')).toBe(true);
+  at('pointerup', 175);
+  expect(bridge.movePage).toHaveBeenCalledWith('p1', 1);
+  await new Promise(r => setTimeout(r, 300));
+  expect(document.querySelector('.ed-ghost')).toBeNull();
 });

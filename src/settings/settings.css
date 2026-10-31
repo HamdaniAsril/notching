@@ -668,7 +668,8 @@ input:focus-visible,
 }
 
 /* What follows the pointer while dragging: lifted a little, and it lets go softly. */
-.ed-ghost {
+/* body > keeps it above .ed-slot's position: relative, which comes later. */
+body > .ed-ghost {
   position: fixed;
   z-index: 50;
   margin: 0;
@@ -676,20 +677,26 @@ input:focus-visible,
   box-sizing: border-box;
   border-radius: 10px;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
-  transform: scale(1.05) rotate(-1.5deg);
+  transform: scale(calc(var(--s, 1) * 1.05)) rotate(-1.5deg);
   animation: ed-lift 0.14s ease-out;
   transition: opacity 0.16s, transform 0.16s;
 }
 
 @keyframes ed-lift {
   from {
-    transform: scale(1) rotate(0);
+    transform: scale(var(--s, 1)) rotate(0);
   }
 }
 
 .ed-ghost-out {
   opacity: 0;
-  transform: scale(0.96);
+  transform: scale(calc(var(--s, 1) * 0.96));
+}
+
+/* A page row lifted out of the list. */
+.ed-ghost.page-row {
+  padding-inline: 10px;
+  background: var(--sel);
 }
 
 /* A slot lifted out of the black preview keeps its look. */
@@ -839,6 +846,7 @@ input:focus-visible,
   position: relative;
   flex: none;
   width: 520px;
+  transform-origin: top center;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: 16px;

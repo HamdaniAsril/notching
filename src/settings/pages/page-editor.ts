@@ -232,13 +232,18 @@ const AROUND_PX = 56;
 
 // The row inside a panel shaped like the open notch: square on top where it
 // meets the screen's edge, round below. It is drawn at the notch's own size and
-// shrunk as a whole to fit the window.
+// scaled down as a whole to fit the window; negative margins give back the room
+// the scale frees, since a transform keeps the full-size box.
 function notchFrame(ctx: PageContext, row: HTMLElement): HTMLElement {
   const notch = el('div', 'ed-notch');
   notch.append(row);
   const fit = () => {
     const room = notch.clientWidth - AROUND_PX;
-    if (room > 0) row.style.setProperty('zoom', String(Math.min(1, room / ROW_PX)));
+    if (room <= 0) return;
+    const z = Math.min(1, room / ROW_PX);
+    row.style.transform = z < 1 ? `scale(${z})` : '';
+    row.style.marginInline = `${(-ROW_PX * (1 - z)) / 2}px`;
+    row.style.marginBottom = `${-row.offsetHeight * (1 - z)}px`;
   };
   if (typeof ResizeObserver !== 'undefined') {
     const watch = new ResizeObserver(fit);

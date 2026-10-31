@@ -1,7 +1,7 @@
 import { fill } from '../../i18n';
 import type { Page } from '../../modules/types';
 import { MODULES_ICON, pageIconSvg } from '../../pages/icons';
-import { dragWith, dropIndex } from '../drag';
+import { dragWith, dropIndex, liftGhost } from '../drag';
 import { button, el, group, head, note } from '../controls';
 import type { PageContext, PageRender } from '../types';
 import { sharedData } from './home';
@@ -68,7 +68,8 @@ function movable(ctx: PageContext, r: HTMLElement, list: () => HTMLElement[], id
   grip.addEventListener('click', e => e.stopPropagation());
   grip.addEventListener('pointerdown', e => {
     e.preventDefault();
-    r.classList.add('ed-dragging');
+    let ghost: ReturnType<typeof liftGhost> | null = null;
+    const [sx, sy] = [e.clientX, e.clientY];
     const others = () => list().filter(x => x !== r);
     const mark = (y: number) => {
       const rows = others();
@@ -79,9 +80,19 @@ function movable(ctx: PageContext, r: HTMLElement, list: () => HTMLElement[], id
     const end = () => {
       r.classList.remove('ed-dragging');
       others().forEach(x => x.classList.remove('ed-target'));
+      ghost?.end();
+      ghost = null;
     };
+    // Lifted like a widget in the editor: a copy follows the pointer.
     dragWith(e, {
-      onMove: (_x, y) => { mark(y); },
+      onMove: (x, y) => {
+        if (!ghost) {
+          ghost = liftGhost(r, sx, sy);
+          r.classList.add('ed-dragging');
+        }
+        ghost.move(x, y);
+        mark(y);
+      },
       onDrop: (_x, y) => {
         const to = mark(y);
         end();
