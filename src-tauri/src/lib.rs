@@ -23,6 +23,8 @@ mod awake_service;
 #[cfg(target_os = "macos")]
 mod commands;
 #[cfg(target_os = "macos")]
+mod editor_window;
+#[cfg(target_os = "macos")]
 mod keyclean_dim;
 #[cfg(target_os = "macos")]
 mod keyclean_service;
@@ -74,9 +76,19 @@ pub fn run() {
             let core = core.0.lock().unwrap();
             modules::protocol::respond(core.active_dir(), |id| core.servable(id), req.uri().path())
         })
-        .register_uri_scheme_protocol(shot_service::SCHEME, |_ctx, req| match shot_service::dir() {
-            Some(dir) => shot_service::respond(dir, req.uri().path()),
-            None => tauri::http::Response::builder().status(404).body(Vec::new()).unwrap(),
+        // Off the main thread: pictures of several MB, and a wallpaper can be far bigger.
+        .register_asynchronous_uri_scheme_protocol(shot_service::SCHEME, |_ctx, req, responder| {
+            let path = req.uri().path().to_string();
+            std::thread::spawn(move || {
+                let response = if path == shot_service::WALLPAPER_PATH {
+                    shot_service::respond_wallpaper(editor_window::wallpaper_file().as_deref())
+                } else if let Some(dir) = shot_service::dir() {
+                    shot_service::respond(dir, &path)
+                } else {
+                    tauri::http::Response::builder().status(404).body(Vec::new()).unwrap()
+                };
+                responder.respond(response);
+            });
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_screen_info,
@@ -132,6 +144,10 @@ pub fn run() {
             shot_pick::shot_pick_state,
             shot_pick::shot_pick_done,
             shot_pick::shot_pick_cancel,
+            editor_window::open_editor,
+            editor_window::editor_doc,
+            editor_window::editor_commit,
+            editor_window::editor_close,
         ])
         // A file drag can reach an overlay's webview before its sensor (the panel
         // already catches the mouse): that opens the drop zone too (Titipan).

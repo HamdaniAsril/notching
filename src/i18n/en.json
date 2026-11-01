@@ -38,6 +38,11 @@
     "date": "{month} {d}",
     "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
   },
+  "editor": {
+    "title": "Screenshot · {w} × {h}",
+    "undo": "Undo",
+    "redo": "Redo"
+  },
   "clean": {
     "title": "Cleaning the keyboard",
     "hint": "Press Esc 5× to leave"

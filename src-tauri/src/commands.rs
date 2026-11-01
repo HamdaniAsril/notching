@@ -63,7 +63,10 @@ pub fn set_panel_key(app: AppHandle, window: WebviewWindow, key: bool) -> Result
     .map_err(|e| e.to_string())
 }
 
+/// An open editor commits its edits first; the app ends when its window has gone.
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {
-    app.exit(0);
+    if !crate::editor_window::quit(&app) {
+        app.exit(0);
+    }
 }

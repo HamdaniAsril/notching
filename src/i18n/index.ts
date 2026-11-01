@@ -35,6 +35,8 @@ export interface HostStrings {
     date: string; // before yesterday: {d} and {month}
     months: string[];
   };
+  // Screenshot's editor window (§7); Salin and Simpan come from `shot`.
+  editor: { title: string; undo: string; redo: string };
 }
 
 type ShotKind = 'screen' | 'window' | 'area';

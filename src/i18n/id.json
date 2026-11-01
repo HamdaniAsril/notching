@@ -38,6 +38,11 @@
     "date": "{d} {month}",
     "months": ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
   },
+  "editor": {
+    "title": "Screenshot · {w} × {h}",
+    "undo": "Urungkan",
+    "redo": "Ulangi"
+  },
   "clean": {
     "title": "Keyboard sedang dibersihkan",
     "hint": "Tekan Esc 5× untuk keluar"

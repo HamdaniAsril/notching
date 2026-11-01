@@ -109,6 +109,19 @@ impl History {
         true
     }
 
+    /// The edit was undone: the item is its original again. False when it already was.
+    pub fn mark_unedited(&mut self, id: u64, w: u32, h: u32) -> bool {
+        let Some(item) = self.items.iter_mut().find(|i| i.id == id && i.edited) else {
+            return false;
+        };
+        item.edited = false;
+        item.saved = false;
+        item.width = w;
+        item.height = h;
+        item.rev += 1;
+        true
+    }
+
     pub fn mark_saved(&mut self, id: u64) -> bool {
         let Some(item) = self.items.iter_mut().find(|i| i.id == id) else {
             return false;
@@ -290,6 +303,22 @@ mod tests {
         assert_eq!(h.get(id).unwrap().rev, 2);
         assert!(!h.mark_edited(999, 1, 1));
         assert!(!h.mark_saved(999));
+    }
+
+    #[test]
+    fn mark_unedited_goes_back_to_the_original() {
+        let mut h = History::from_index("");
+        let (id, _) = pushed(&mut h, 1);
+        // Never edited: nothing changes, so no view needs a new picture.
+        assert!(!h.mark_unedited(id, 100, 50));
+        assert_eq!(h.get(id).unwrap().rev, 0);
+        h.mark_edited(id, 140, 90);
+        h.mark_saved(id);
+        assert!(h.mark_unedited(id, 100, 50));
+        let it = h.get(id).unwrap();
+        assert!(!it.edited && !it.saved);
+        assert_eq!((it.width, it.height, it.rev), (100, 50, 2));
+        assert!(!h.mark_unedited(999, 1, 1));
     }
 
     #[test]

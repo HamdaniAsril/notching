@@ -1,0 +1,147 @@
+/* Screenshot's editor window (design 1 Nov §7, editor.html v2): black #0b0b0c
+   without frosted glass, Space Grotesk and Space Mono. The title bar lies over
+   the page (editor_window.rs), so the header leaves room for its buttons. The
+   stage's insets are the chrome fit_size counts: 64 top, 56 bottom, 64 left. */
+@import '@fontsource/space-grotesk/latin-400.css';
+@import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-mono/latin-400.css';
+
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0c;
+  --fg: #fff;
+  --dim: rgba(255, 255, 255, 0.45);
+  --icon: rgba(255, 255, 255, 0.6);
+  --soft: rgba(255, 255, 255, 0.08);
+  --soft-hover: rgba(255, 255, 255, 0.14);
+  --red: #e8262e;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font: 12px 'Space Grotesk', -apple-system, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+#editor-root {
+  position: fixed;
+  inset: 0;
+}
+
+.ed-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px 0 84px;
+}
+
+.ed-lab {
+  font: 9px/13px 'Space Mono', ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.ed-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ed-ib,
+.ed-btn {
+  border: 0;
+  margin: 0;
+  font: inherit;
+  cursor: default;
+}
+
+.ed-ib {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--icon);
+}
+
+.ed-ib svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ed-ib:not(:disabled):hover {
+  background: var(--soft);
+  color: var(--fg);
+}
+
+.ed-ib:disabled {
+  opacity: 0.35;
+}
+
+.ed-btn {
+  padding: 7px 14px;
+  border-radius: 10px;
+  background: var(--soft);
+  color: var(--fg);
+  font: 11px 'Space Mono', ui-monospace, monospace;
+}
+
+.ed-btn:hover {
+  background: var(--soft-hover);
+}
+
+.ed-btn.ed-pri {
+  background: #fff;
+  color: #000;
+}
+
+.ed-btn.ed-pri:hover {
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.ed-btn.ed-failed {
+  color: var(--red);
+}
+
+.ed-ib:focus-visible,
+.ed-btn:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* 16 px on the right too, so a picture at 1:1 never touches the edge. */
+.ed-stage {
+  position: absolute;
+  top: 64px;
+  bottom: 56px;
+  left: 64px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ed-img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}

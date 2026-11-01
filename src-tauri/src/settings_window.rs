@@ -9,6 +9,7 @@ use tauri::{
 };
 
 use crate::app_core::CoreState;
+use crate::editor_window::{keep_regular, EDITOR_LABEL};
 use crate::geometry::centered_origin;
 use crate::module_commands::change;
 use crate::overlay::{ConnectedScreens, Overlays};
@@ -23,11 +24,6 @@ pub const SETTINGS_SIZE: (f64, f64) = (680.0, 600.0);
 // fails, and its clean-up would take the Dock icon from the open window. The
 // main thread never takes this lock.
 static OPENING: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
-/// A build that failed because another one won leaves that window's Dock icon.
-fn hide_dock_icon_after_failed_build(settings_window_open: bool) -> bool {
-    !settings_window_open
-}
 
 /// Open at login, as macOS reports it. Same values as LoginItem in src/settings/types.ts.
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
@@ -109,8 +105,8 @@ pub fn set_screen(app: AppHandle, core: State<CoreState>, name: Option<String>) 
 }
 
 /// Brings the one settings window forward, or creates it centred on the screen
-/// whose ⋯ was clicked. While it exists the app has a Dock icon and is in
-/// Cmd+Tab (owner's decision, 28 Oct 2026). Async: creating a window from a
+/// whose ⋯ was clicked. While it (or Screenshot's editor) exists the app has a
+/// Dock icon and is in Cmd+Tab (owner's decision, 28 Oct 2026). Async: creating a window from a
 /// synchronous command can deadlock.
 #[tauri::command]
 pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
@@ -153,7 +149,9 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
     let settings = match builder.build() {
         Ok(win) => win,
         Err(e) => {
-            if hide_dock_icon_after_failed_build(app.get_webview_window(SETTINGS_LABEL).is_some()) {
+            // A build that failed because another one won leaves that window's Dock icon.
+            let open = |label| app.get_webview_window(label).is_some();
+            if !keep_regular(open(SETTINGS_LABEL), open(EDITOR_LABEL)) {
                 let _ = app.set_activation_policy(ActivationPolicy::Accessory);
             }
             return Err(e.to_string());
@@ -162,7 +160,9 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
 
     let handle = app.clone();
     settings.on_window_event(move |event| {
-        if let WindowEvent::Destroyed = event {
+        if let WindowEvent::Destroyed = event
+            && !keep_regular(false, handle.get_webview_window(EDITOR_LABEL).is_some())
+        {
             let _ = handle.set_activation_policy(ActivationPolicy::Accessory);
         }
     });
@@ -179,15 +179,4 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
         .map_err(|e| e.to_string())?;
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_failed_second_open_keeps_the_dock_icon() {
-        assert!(!hide_dock_icon_after_failed_build(true));
-        assert!(hide_dock_icon_after_failed_build(false));
-    }
 }

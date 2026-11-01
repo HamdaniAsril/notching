@@ -32,9 +32,11 @@ pub const SHOT_EVENT: &str = "notching://shot";
 pub const SHOTS_EVENT: &str = "notching://shots";
 /// Thumbnails for the list are this wide in pixels.
 const THUMB_W: u32 = 320;
-const ORIGINAL: &str = "original.png";
-const EDITED: &str = "edited.png";
-const THUMB: &str = "thumb.png";
+pub const ORIGINAL: &str = "original.png";
+pub const EDITED: &str = "edited.png";
+pub const THUMB: &str = "thumb.png";
+/// The editor's shapes, as its page wrote them, to go on with later.
+pub const EDITS: &str = "edits.json";
 const INDEX: &str = "index.json";
 // Under the app's cache folder: the copy a drag out carries.
 const DRAG_DIR: &str = "shot-drag";
@@ -102,7 +104,7 @@ pub fn dir() -> Option<&'static Path> {
     DIR.get().map(PathBuf::as_path)
 }
 
-fn folder(dir: &Path, id: u64) -> PathBuf {
+pub fn folder(dir: &Path, id: u64) -> PathBuf {
     dir.join(id.to_string())
 }
 
@@ -117,13 +119,19 @@ pub fn current_path(dir: &Path, item: &ShotItem) -> PathBuf {
     current_file(&folder(dir, item.id))
 }
 
+/// The original as the editor draws on it; it never changes, so it has no rev.
+pub fn original_url(id: u64) -> String {
+    format!("{SCHEME}://localhost/{id}/{ORIGINAL}")
+}
+
 fn not_found() -> Response<Vec<u8>> {
     Response::builder().status(404).body(Vec::new()).unwrap()
 }
 
-/// `/<id>/current.png` or `/<id>/thumb.png`, nothing else. A thumbnail that could
-/// not be made falls back to the current image. Webviews draw these into canvases
-/// and drag them, hence Access-Control-Allow-Origin.
+/// `/<id>/current.png`, `/<id>/thumb.png` or `/<id>/original.png` (the editor's),
+/// nothing else. A thumbnail that could not be made falls back to the current
+/// image. Webviews draw these into canvases and drag them, hence
+/// Access-Control-Allow-Origin.
 pub fn respond(dir: &Path, path: &str) -> Response<Vec<u8>> {
     let Some((id, name)) = path.strip_prefix('/').and_then(|p| p.split_once('/')) else {
         return not_found();
@@ -135,19 +143,39 @@ pub fn respond(dir: &Path, path: &str) -> Response<Vec<u8>> {
     let folder = dir.join(id);
     let file = match name {
         "current.png" => current_file(&folder),
+        ORIGINAL => folder.join(ORIGINAL),
         THUMB if folder.join(THUMB).is_file() => folder.join(THUMB),
         THUMB => current_file(&folder),
         _ => return not_found(),
     };
-    match fs::read(&file) {
+    serve(&file, "image/png")
+}
+
+fn serve(file: &Path, kind: &str) -> Response<Vec<u8>> {
+    match fs::read(file) {
         Ok(body) => Response::builder()
             .status(200)
-            .header("Content-Type", "image/png")
+            .header("Content-Type", kind)
             .header("Access-Control-Allow-Origin", "*")
             .body(body)
             .unwrap(),
         Err(_) => not_found(),
     }
+}
+
+/// `/wallpaper`: the desktop picture of the editor's screen, when it has one it can draw.
+pub const WALLPAPER_PATH: &str = "/wallpaper";
+
+pub fn respond_wallpaper(file: Option<&Path>) -> Response<Vec<u8>> {
+    let Some(file) = file else { return not_found() };
+    let ext = file.extension().map(|e| e.to_string_lossy().to_ascii_lowercase());
+    let kind = match ext.as_deref() {
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("heic") => "image/heic",
+        _ => return not_found(),
+    };
+    serve(file, kind)
 }
 
 /// The screen whose notch shows the result: the capture's, else the cursor's,
@@ -185,7 +213,7 @@ fn save_index(dir: &Path, history: &History) -> io::Result<()> {
     fs::rename(&tmp, dir.join(INDEX))
 }
 
-fn save_index_logged(dir: &Path, history: &History) {
+pub fn save_index_logged(dir: &Path, history: &History) {
     if let Err(e) = save_index(dir, history) {
         eprintln!("notching: screenshot index not saved: {e}");
     }
@@ -299,7 +327,7 @@ fn write_clipboard(png: &[u8]) -> bool {
 }
 
 /// Puts a PNG on the clipboard from any thread, and waits until it is there.
-fn clipboard(app: &AppHandle, png: Vec<u8>) -> Result<(), String> {
+pub fn clipboard(app: &AppHandle, png: Vec<u8>) -> Result<(), String> {
     let written = if MainThreadMarker::new().is_some() {
         write_clipboard(&png)
     } else {
@@ -325,6 +353,11 @@ fn list(app: &AppHandle) -> Vec<ShotDto> {
     app.state::<ShotState>().0.lock().unwrap().items().iter().map(ShotDto::from).collect()
 }
 
+/// The whole list to every window.
+pub fn emit_shots(app: &AppHandle) {
+    let _ = app.emit(SHOTS_EVENT, list(app));
+}
+
 /// Tells the views: `gone` to every window, `taken` to the one overlay, then the list.
 fn announce(app: &AppHandle, evicted: &[u64], taken: Option<(u64, String)>) {
     let label = taken.as_ref().map(|(_, l)| l.clone());
@@ -334,7 +367,7 @@ fn announce(app: &AppHandle, evicted: &[u64], taken: Option<(u64, String)>) {
             _ => app.emit(SHOT_EVENT, event),
         };
     }
-    let _ = app.emit(SHOTS_EVENT, list(app));
+    emit_shots(app);
 }
 
 // The overlay that shows a result captured on `screen`.
@@ -439,15 +472,17 @@ pub fn save(app: &AppHandle, id: u64) -> Result<String, String> {
             save_index_logged(dir, &history);
         }
     }
-    let _ = app.emit(SHOTS_EVENT, list(app));
+    emit_shots(app);
     Ok(path.to_string_lossy().into_owned())
 }
 
-/// Switched off or uninstalled: the keys and the picker go. Task 7 closes the editor here.
+/// Switched off or uninstalled: the keys and the picker go, and the editor
+/// closes once it has committed its edits.
 pub fn module_gone(app: &AppHandle, id: &str) {
     if id == MODULE_ID {
         crate::shot_hotkey::unregister();
         crate::shot_pick::hide(app);
+        crate::editor_window::request_close(app);
     }
 }
 
@@ -607,16 +642,36 @@ mod tests {
         assert_eq!(cur.headers()["access-control-allow-origin"], "*");
         assert_eq!(respond(d.path(), "/3/thumb.png").body(), b"thumb");
 
-        // An edit becomes the current image.
+        // An edit becomes the current image; the editor still gets the original.
         std::fs::write(folder.join(EDITED), b"edit").unwrap();
         assert_eq!(respond(d.path(), "/3/current.png").body(), b"edit");
+        assert_eq!(respond(d.path(), "/3/original.png").body(), b"orig");
+        assert_eq!(original_url(3), "notchshot://localhost/3/original.png");
 
         for p in [
-            "/3/original.png", "/3/edited.png", "/3/../index.json", "/../3/current.png", "/9/current.png", "/x/current.png",
+            "/3/edited.png", "/3/edits.json", "/3/edited.new.png", "/3/../index.json", "/../3/current.png", "/9/current.png", "/x/current.png",
             "/3", "/", "/3/current.png/x", "/03/current.png", "/%33/current.png", "/index.json",
         ] {
             assert_eq!(respond(d.path(), p).status(), 404, "{p}");
         }
+    }
+
+    #[test]
+    fn wallpaper_is_served_by_its_kind() {
+        let d = tempfile::tempdir().unwrap();
+        for (name, kind) in [("a.png", "image/png"), ("b.JPG", "image/jpeg"), ("c.jpeg", "image/jpeg"), ("d.heic", "image/heic")] {
+            let file = d.path().join(name);
+            std::fs::write(&file, name).unwrap();
+            let r = respond_wallpaper(Some(&file));
+            assert_eq!(r.status(), 200, "{name}");
+            assert_eq!(r.headers()["content-type"], kind);
+            assert_eq!(r.headers()["access-control-allow-origin"], "*");
+            assert_eq!(r.body(), name.as_bytes());
+        }
+        std::fs::write(d.path().join("e.mov"), b"x").unwrap();
+        assert_eq!(respond_wallpaper(Some(&d.path().join("e.mov"))).status(), 404);
+        assert_eq!(respond_wallpaper(Some(&d.path().join("gone.png"))).status(), 404);
+        assert_eq!(respond_wallpaper(None).status(), 404);
     }
 
     #[test]
