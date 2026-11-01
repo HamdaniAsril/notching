@@ -188,30 +188,27 @@ fn save_index_logged(dir: &Path, history: &History) {
 }
 
 /// Pushes an accepted capture and moves its file into `<id>/original.png`; the
-/// folders pushed out go. Returns the new id (None when the file could not be
-/// moved, and then no item is kept) and the evicted ids.
+/// folders pushed out go. Returns the new id and the evicted ids. When the file
+/// cannot be moved nothing changes: the history (evictions included) is put back,
+/// no folder is deleted, and the temp file is removed.
 fn store(dir: &Path, history: &mut History, tmp: &Path, taken_ms: i64, kind: Kind, size: (u32, u32)) -> (Option<u64>, Vec<u64>) {
+    let before = history.to_index();
     let (id, evicted) = history.push(taken_ms, kind, size.0, size.1);
     let target = folder(dir, id);
     // A run that stopped before saving its index may have left this id's folder.
     remove_folder(dir, id);
-    let moved = fs::create_dir_all(&target).and_then(|_| fs::rename(tmp, target.join(ORIGINAL)));
+    if let Err(e) = fs::create_dir_all(&target).and_then(|_| fs::rename(tmp, target.join(ORIGINAL))) {
+        eprintln!("notching: screenshot not stored: {e}");
+        *history = History::from_index(&before);
+        remove_folder(dir, id);
+        let _ = fs::remove_file(tmp);
+        return (None, Vec::new());
+    }
     for old in &evicted {
         remove_folder(dir, *old);
     }
-    let id = match moved {
-        Ok(()) => Some(id),
-        Err(e) => {
-            eprintln!("notching: screenshot not stored: {e}");
-            history.remove(id);
-            remove_folder(dir, id);
-            None
-        }
-    };
-    if id.is_some() || !evicted.is_empty() {
-        save_index_logged(dir, history);
-    }
-    (id, evicted)
+    save_index_logged(dir, history);
+    (Some(id), evicted)
 }
 
 /// The history at start: the folder is made, items whose `original.png` is gone
@@ -374,23 +371,23 @@ fn take_now(app: &AppHandle, target: Target, kind: Kind, screen: usize) {
         let mut history = state.0.lock().unwrap();
         store(dir, &mut history, &tmp, now_ms(), kind, size)
     };
-    if let Some(id) = id {
-        let folder = folder(dir, id);
-        if let Err(e) = write_thumb(&folder.join(ORIGINAL), &folder.join(THUMB), size.0) {
-            eprintln!("notching: screenshot thumbnail: {e}");
-        }
+    // Not stored: store() put everything back, so there is nothing to tell.
+    let Some(id) = id else { return };
+    let folder = folder(dir, id);
+    if let Err(e) = write_thumb(&folder.join(ORIGINAL), &folder.join(THUMB), size.0) {
+        eprintln!("notching: screenshot thumbnail: {e}");
     }
     let png = bytes.unwrap_or_default();
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         let Some(mtm) = MainThreadMarker::new() else { return };
-        let taken = id.map(|id| (id, result_label(&handle, mtm, screen)));
-        if taken.is_some() && !write_clipboard(&png) {
+        let label = result_label(&handle, mtm, screen);
+        if !write_clipboard(&png) {
             eprintln!("notching: the screenshot did not reach the clipboard");
         }
-        announce(&handle, &evicted, taken);
+        announce(&handle, &evicted, Some((id, label)));
         // One line per capture, so a check on the Mac can be matched against the log.
-        eprintln!("notching: screenshot {id:?} taken, {}×{}", size.0, size.1);
+        eprintln!("notching: screenshot {id} taken, {}×{}", size.0, size.1);
     });
 }
 
@@ -674,6 +671,35 @@ mod tests {
         let (id, evicted) = store(d.path(), &mut h, &d.path().join("missing.png"), 1, Kind::Screen, (5, 10));
         assert_eq!((id, evicted), (None, vec![]));
         assert!(h.items().is_empty());
+    }
+
+    #[test]
+    fn failed_store_on_a_full_history_evicts_nothing() {
+        let d = tempfile::tempdir().unwrap();
+        let mut h = load(d.path());
+        for n in 1..=15 {
+            store(d.path(), &mut h, &capture(d.path(), n), n as i64, Kind::Screen, (n, 10));
+        }
+        let before = h.to_index();
+        let folders = |h: &History| h.items().iter().all(|i| d.path().join(i.id.to_string()).join(ORIGINAL).is_file());
+        assert!(folders(&h));
+
+        // No file at all.
+        let (id, evicted) = store(d.path(), &mut h, &d.path().join("missing.png"), 99, Kind::Screen, (5, 10));
+        assert_eq!((id, evicted), (None, vec![]));
+        assert_eq!(h.to_index(), before);
+        assert!(folders(&h));
+
+        // A file that cannot be moved: the next id's folder is blocked by a plain file.
+        std::fs::write(d.path().join("16"), b"in the way").unwrap();
+        let tmp = capture(d.path(), 30);
+        let (id, evicted) = store(d.path(), &mut h, &tmp, 99, Kind::Screen, (30, 10));
+        assert_eq!((id, evicted), (None, vec![]));
+        assert_eq!(h.to_index(), before);
+        assert!(folders(&h));
+        assert!(!tmp.exists(), "the failed capture's temp file stays behind");
+        // The index on disk is untouched too.
+        assert_eq!(load(d.path()).to_index(), before);
     }
 
     #[test]
