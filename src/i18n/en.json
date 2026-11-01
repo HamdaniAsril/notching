@@ -17,8 +17,16 @@
   },
   "shot": {
     "label": "Screenshot · {kind}",
-    "kinds": { "screen": "Screen", "window": "Window", "area": "Area" },
-    "hints": { "screen": "⌘⇧3", "window": "⌘⇧4 + click", "area": "⌘⇧4 + drag" },
+    "kinds": {
+      "screen": "Screen",
+      "window": "Window",
+      "area": "Area"
+    },
+    "hints": {
+      "screen": "⌘⇧3",
+      "window": "⌘⇧4 + click",
+      "area": "⌘⇧4 + drag"
+    },
     "edit": "Click to edit",
     "copied": "Copied to clipboard",
     "copy": "Copy",
@@ -38,7 +46,20 @@
     "time": "{h}:{m}",
     "yesterday": "Yesterday",
     "date": "{month} {d}",
-    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    "months": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ]
   },
   "editor": {
     "title": "Screenshot · {w} × {h}",
@@ -54,8 +75,19 @@
       "text": "Text",
       "sensor": "Censor"
     },
-    "colors": ["Red", "Yellow", "Green", "Blue", "Black", "White"],
-    "widths": ["Thin", "Medium", "Thick"],
+    "colors": [
+      "Red",
+      "Yellow",
+      "Green",
+      "Blue",
+      "Black",
+      "White"
+    ],
+    "widths": [
+      "Thin",
+      "Medium",
+      "Thick"
+    ],
     "corner": "Corners",
     "background": "Background",
     "bg": {
@@ -74,6 +106,93 @@
   "clean": {
     "title": "Cleaning the keyboard",
     "hint": "Press Esc 5× to leave"
+  },
+  "cleaner": {
+    "free": "{size} free",
+    "usedOf": "GB · used of {size}",
+    "parts": {
+      "apps": "Apps",
+      "documents": "Documents",
+      "photos": "Photos",
+      "cleanable": "Cleanable",
+      "other": "Other",
+      "free": "Free"
+    },
+    "unknown": "?",
+    "cleanTitle": "Deep clean",
+    "cleanSub": "Caches, logs, leftovers · {size}",
+    "uninstallTitle": "Clean uninstall",
+    "uninstallSub": "Remove apps and leftovers · {n} apps",
+    "measuring": "Measuring…",
+    "testMode": "TEST MODE",
+    "noFda": "Some folders were skipped. Allow Full Disk Access",
+    "allow": "Open Settings",
+    "diskTitle": "Disk",
+    "selected": "Selected {size}",
+    "clean": "Clean {size}",
+    "remove": "Remove {app} · {size}",
+    "categories": {
+      "appCache": "App caches",
+      "browserCache": "Browser caches",
+      "devCache": "Developer caches",
+      "log": "Logs",
+      "orphan": "Leftovers of removed apps",
+      "trash": "Trash",
+      "build": "Project build folders",
+      "installer": "Old installers",
+      "backup": "Old iPhone backups",
+      "app": "App",
+      "leftover": "Leftovers",
+      "personal": "Personal data"
+    },
+    "groups": {
+      "Application Support": "App data",
+      "Caches": "Caches",
+      "Preferences": "Settings",
+      "Saved Application State": "Window state",
+      "Containers": "Container",
+      "Group Containers": "Shared containers",
+      "LaunchAgents": "Background programs",
+      "Logs": "Logs",
+      "HTTPStorages": "Web data",
+      "WebKit": "Web data",
+      "Cookies": "Cookies",
+      "Application Scripts": "Scripts"
+    },
+    "inUse": "in use",
+    "maybe": "maybe · similar name",
+    "personalHint": "history, bookmarks, passwords, data",
+    "never": "Never clean",
+    "needsFda": "needs Full Disk Access",
+    "confirmPermanent": "{size} removed for good",
+    "confirmTrash": "{size} moved to the Trash",
+    "confirmCount": "{n} items",
+    "yesClean": "Yes, clean",
+    "yesRemove": "Yes, remove",
+    "cancel": "Cancel",
+    "progress": "{done} of {total}",
+    "stop": "Stop",
+    "freed": "+{size}",
+    "back": "Back",
+    "skips": {
+      "inUse": "in use",
+      "protected": "protected",
+      "changed": "changed since the scan",
+      "failed": "failed",
+      "excluded": "never clean",
+      "stopped": "stopped"
+    },
+    "exclusionsBroken": "The never-clean list can't be read",
+    "busy": "Cleaner is still working",
+    "search": "Search apps",
+    "quitFirst": "Quit {app} first",
+    "ownUninstaller": "Use this app's own uninstaller",
+    "showInFinder": "Show in Finder",
+    "unreadable": "can't be read",
+    "rest": "{n} other items",
+    "empty": "Nothing to clean",
+    "noApps": "No apps",
+    "adminHint": "Needs admin rights. Remove it in Finder"
   },
   "settingsWindow": {
     "title": "Settings",

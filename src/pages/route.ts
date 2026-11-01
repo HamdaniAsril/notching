@@ -30,6 +30,11 @@ export const SHOT = {
   emptyH: 72, note: 24,
 } as const;
 const SHOT_ROWS = 3;
+
+// Cleaner (design 1 Nov §4, §5, cleaner-tempat.html A): the start view, a line
+// taller while the Full Disk Access note shows, and its lists, which scroll inside.
+export const CLEANER_KEY = 'cleaner';
+export const CLEANER = { width: 520, home: 188, homeNote: 28, list: 440 } as const;
 const SHOT_TAKE_GAP = 12;
 
 const MODULE_PREFIX = 'module:';
@@ -47,7 +52,10 @@ export type PageView =
   // that height, so the drag stays over it.
   | { kind: 'shelf'; key: typeof SHELF_KEY; shelf: ShelfState; dropping: boolean; height?: number }
   // `shots`: the history, newest first; `notes`: the list's notice lines.
-  | (ShotTarget & { key: typeof SHOT_KEY; shots: Shot[]; notes?: number });
+  | (ShotTarget & { key: typeof SHOT_KEY; shots: Shot[]; notes?: number })
+  // `screen`: Cleaner's start view or one of its lists; `note`: the start view's
+  // Full Disk Access line.
+  | { kind: 'cleaner'; key: typeof CLEANER_KEY; screen: 'home' | 'list'; note: boolean };
 
 // The Modul page's modules: installed, on, with a page or a tile action; in catalog order.
 export function pageModules(s: ModuleState): ModuleInfo[] {
@@ -96,6 +104,10 @@ export function viewSize(v: PageView, fullHeight?: number): CardSize {
   if (v.kind === 'shot') {
     if (v.mode === 'result') return { width: SHOT.resultWidth, height: SHOT.resultHeight };
     return { width: SHOT.listWidth, height: shotListHeight(v.shots.length, v.notes ?? 0) };
+  }
+  if (v.kind === 'cleaner') {
+    const height = v.screen === 'list' ? CLEANER.list : CLEANER.home + (v.note ? CLEANER.homeNote : 0);
+    return { width: CLEANER.width, height };
   }
   if (v.kind === 'shelf') {
     const height = shelfHeight(v.shelf.items.length, v.dropping);

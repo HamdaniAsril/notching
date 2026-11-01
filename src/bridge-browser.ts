@@ -1,5 +1,6 @@
 import type { Bridge, LiveStatus, Notice, Shot, ShotEvent } from './bridge';
 import { fakeAwake } from './bridge-browser-awake';
+import { fakeCleaner } from './bridge-browser-cleaner';
 import { fakeHome } from './bridge-browser-home';
 import { fakeTimer } from './bridge-browser-timer';
 import index from '../modules/index.json';
@@ -236,6 +237,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     onShots: cb => { shotsSubs.add(cb); return () => shotsSubs.delete(cb); },
     onShotDrag: () => () => {},
     shotReady: async () => {},
+    ...fakeCleaner(params),
     clearMissed: async () => {
       state = { ...state, missed: [] };
       stateSubs.forEach(cb => cb(state));

@@ -21,6 +21,7 @@ function mount() {
     frames, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onAction: vi.fn(), onBack: vi.fn(),
     shelf: { startDrag: vi.fn(), remove: vi.fn(), clear: vi.fn() },
     shot: fakeShotDeps(),
+    cleaner: { bridge, now: () => 0, resize: vi.fn() },
   };
   const pv = mountPageView(content, deps);
   const show = (s: ModuleState, key: string | null = null) => pv.show(key ? resolvePage(s, key)! : pickPage(s, null, false), s, STR);

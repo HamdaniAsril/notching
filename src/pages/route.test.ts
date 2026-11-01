@@ -3,7 +3,7 @@ import { hostStrings } from '../i18n';
 import type { ModuleState, Page } from '../modules/types';
 import { BERANDA, homeWidgets, moduleInfo, TEST_STATE, timerInfo } from '../notch/test-helpers';
 import { shot } from '../shot/test-helpers';
-import { missedTargets, noticeTarget, pageModules, pageName, pickPage, resolvePage, SHELF, SHOT, viewSize } from './route';
+import { CLEANER, CLEANER_KEY, type PageView, missedTargets, noticeTarget, pageModules, pageName, pickPage, resolvePage, SHELF, SHOT, viewSize } from './route';
 
 const P1: Page = { id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [{ widget: 'home/reminders', col: 0, width: 2 }] };
 const state = (over: Partial<ModuleState> = {}): ModuleState => ({ ...TEST_STATE, ...over });
@@ -148,4 +148,12 @@ test('the screenshot list grows by rows of 5, up to 3', () => {
 
 test('screenshot pages are not pages to remember', () => {
   expect(resolvePage(state(), 'screenshot')).toBeNull();
+});
+
+test('Cleaner: the start view, taller with its note, and the lists', () => {
+  const home: Extract<PageView, { kind: 'cleaner' }> = { kind: 'cleaner', key: CLEANER_KEY, screen: 'home', note: false };
+  expect(viewSize(home)).toEqual({ width: 520, height: CLEANER.home });
+  expect(viewSize({ ...home, note: true })).toEqual({ width: 520, height: CLEANER.home + CLEANER.homeNote });
+  expect(viewSize({ ...home, screen: 'list' })).toEqual({ width: 520, height: CLEANER.list });
+  expect([CLEANER.home, CLEANER.homeNote, CLEANER.list]).toEqual([188, 28, 440]);
 });

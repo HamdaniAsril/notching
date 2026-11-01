@@ -686,3 +686,46 @@ test('a module change keeps the screenshot page while the module is on', async (
   bridge.emitModuleState({ ...SHOT_STATE, modules: [...SHELF_STATE.modules, shotInfo({ enabled: false })] });
   expect(onResult(root)).toBe(false);
 });
+
+// Cleaner (design 1 Nov §4).
+const cleanerInfo = (over = {}) => moduleInfo('cleaner', {
+  name: 'Cleaner', shortName: 'Cleaner', entry: null, card: null,
+  action: { capability: 'cleaner', method: 'open' }, ...over,
+});
+const CLEANER_STATE: ModuleState = { ...TEST_STATE, modules: [...TEST_STATE.modules, cleanerInfo()] };
+const onCleaner = (root: HTMLElement) => root.querySelector('.cl-home') !== null;
+
+async function openCleaner() {
+  const s = await start(CLEANER_STATE);
+  open(s.app, s.r);
+  s.pick('modules');
+  s.root.querySelector<HTMLElement>('.mods-tile[aria-label="Cleaner"]')!.click();
+  return s;
+}
+
+test('the Cleaner tile opens Cleaner without a core call, and it is never the last page', async () => {
+  const s = await openCleaner();
+  expect(onCleaner(s.root)).toBe(true);
+  expect(s.bridge.moduleCall).not.toHaveBeenCalled();
+  expect(s.bridge.setLastPage).not.toHaveBeenCalledWith('cleaner');
+  expect(s.app.controller.card).toEqual({ width: 520, height: 188 });
+  expect(s.bridge.cleanerOverview).toHaveBeenCalled();
+});
+
+test('closed and opened again within 10 minutes, Cleaner is still there; later it is not', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  try {
+    vi.setSystemTime(0);
+    const s = await openCleaner();
+    close(s.app, s.r);
+    vi.setSystemTime(9 * 60_000);
+    open(s.app, s.r);
+    expect(onCleaner(s.root)).toBe(true);
+    close(s.app, s.r);
+    vi.setSystemTime(20 * 60_000);
+    open(s.app, s.r);
+    expect(onCleaner(s.root)).toBe(false);
+  } finally {
+    vi.useRealTimers();
+  }
+});

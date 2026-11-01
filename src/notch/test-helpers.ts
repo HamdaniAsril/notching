@@ -1,5 +1,5 @@
 import { beforeEach, vi } from 'vitest';
-import type { Bridge, LiveStatus, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys } from '../bridge';
+import type { Bridge, CleanerEvent, LiveStatus, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys } from '../bridge';
 import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
@@ -149,6 +149,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
   const shotSubs = new Set<(e: ShotEvent) => void>();
   const shotsSubs = new Set<(list: Shot[]) => void>();
   const shotDragSubs = new Set<(e: ShotDrag) => void>();
+  const cleanerSubs = new Set<(e: CleanerEvent) => void>();
   let state = initial;
   const bridge = {
     screenInfo: vi.fn(async () => ({ label: 'test', hasNotch: false, notchWidth: 0, notchHeight: 0 })),
@@ -192,6 +193,23 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     onShots: vi.fn((cb: (list: Shot[]) => void) => { shotsSubs.add(cb); return () => { shotsSubs.delete(cb); }; }),
     onShotDrag: vi.fn((cb: (e: ShotDrag) => void) => { shotDragSubs.add(cb); return () => { shotDragSubs.delete(cb); }; }),
     shotReady: vi.fn(async () => {}),
+    cleanerOverview: vi.fn(async () => ({ testMode: false, fda: true, volume: 'Macintosh HD', total: 256e9, free: 44e9 })),
+    cleanerParts: vi.fn(async () => ({ apps: 51e9, documents: 36e9, photos: 26e9, cleanable: 31e9, appCount: 84 })),
+    cleanerDeepScan: vi.fn(async () => ({ scanId: 1, items: [] })),
+    cleanerApps: vi.fn(async () => ({ scanId: 2, items: [] })),
+    cleanerAppDetail: vi.fn(async (_appId: number) => ({ scanId: 3, items: [] })),
+    cleanerBreakdown: vi.fn(async () => ({ name: '~', bytes: 0, dir: true, readable: true, rest: 0, children: [] })),
+    cleanerRun: vi.fn(async (_scanId: number, _ids: number[], _uninstall: number | null) => {}),
+    cleanerStop: vi.fn(async () => {}),
+    cleanerCancelScans: vi.fn(async () => {}),
+    cleanerRunning: vi.fn(async (_scanId: number): Promise<number[]> => []),
+    cleanerReveal: vi.fn(async (_id: number) => {}),
+    cleanerRevealPath: vi.fn(async (_names: string[]) => {}),
+    cleanerExclude: vi.fn(async (_id: number) => {}),
+    cleanerSeen: vi.fn(async () => {}),
+    openFullDiskAccessSettings: vi.fn(async () => {}),
+    onCleaner: vi.fn((cb: (e: CleanerEvent) => void) => { cleanerSubs.add(cb); return () => { cleanerSubs.delete(cb); }; }),
+    emitCleaner: (e: CleanerEvent) => cleanerSubs.forEach(cb => cb(e)),
     emitShot: (e: ShotEvent) => shotSubs.forEach(cb => cb(e)),
     emitShots: (list: Shot[]) => shotsSubs.forEach(cb => cb(list)),
     emitShotDrag: (e: ShotDrag) => shotDragSubs.forEach(cb => cb(e)),

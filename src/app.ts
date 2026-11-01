@@ -10,9 +10,12 @@ import { LAMP_WING, mountNotch, type LampView, type NotchView } from './notch/vi
 import { type FrameSpec, mountFrameHost } from './pages/frames';
 import { MODULES_ICON, pageIconSvg } from './pages/icons';
 import {
-  missedTargets, noticeTarget, pageName, pickPage, resolvePage, type PageView, SHELF_KEY, SHOT_KEY, type ShotTarget, viewSize,
+  CLEANER_KEY, missedTargets, noticeTarget, pageName, pickPage, resolvePage, type PageView, SHELF_KEY, SHOT_KEY, type ShotTarget, viewSize,
 } from './pages/route';
 import { SHELF_ICON } from './shelf/view';
+
+// Cleaner's place lasts this long while the panel is away (design 1 Nov §4).
+const CLEANER_AWAY_MS = 600_000;
 
 // Notices that arrive while the panel is open wait; past this many, the oldest go.
 export const NOTICE_QUEUE_MAX = 5;
@@ -51,6 +54,10 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   let shots: Shot[] = taken;
   let shotNotes = 0;
   let closeWaiters: (() => void)[] = [];
+  // Cleaner (design 1 Nov §4): its screen's size, and when the panel last closed
+  // on it; opened within 10 minutes, it comes back where it was.
+  let cleanerScreen: { screen: 'home' | 'list'; note: boolean } = { screen: 'home', note: false };
+  let cleanerClosedAt = 0;
   let strings = hostStrings(state.lang);
   let page: PageView = pickPage(state, null, false);
   let lastPhase: Phase = 'idle';
@@ -104,6 +111,11 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
         openShelf();
         return;
       }
+      // Cleaner's tile opens Cleaner, also drawn by the notch.
+      if (m.action?.capability === CLEANER_KEY) {
+        openCleaner();
+        return;
+      }
       // Screenshot's tile opens its list, also drawn by the notch.
       if (m.action?.capability === SHOT_KEY) {
         openShot({ kind: 'shot', mode: 'list' });
@@ -114,6 +126,16 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       if (m.action) bridge.moduleCall(m.id, m.action.capability, m.action.method).catch(() => {});
     },
     onBack: () => go('modules'),
+    cleaner: {
+      bridge,
+      now: () => Date.now(),
+      resize: (screen, note) => {
+        cleanerScreen = { screen, note };
+        if (page.kind !== 'cleaner') return;
+        usePage(cleanerPage());
+        view.kick();
+      },
+    },
     shelf: {
       startDrag: ids => void bridge.shelfStartDrag(ids).catch(() => {}),
       remove: ids => void bridge.shelfRemove(ids),
@@ -177,6 +199,17 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     view.kick();
   }
 
+  const cleanerOn = () => state.modules.some(m => m.id === CLEANER_KEY && m.installed && m.enabled);
+  const cleanerPage = (): PageView => ({ kind: 'cleaner', key: CLEANER_KEY, ...cleanerScreen });
+
+  // Cleaner, drawn by the notch. Never the last page.
+  function openCleaner(): void {
+    usePage(cleanerPage());
+    showPage();
+    renderPill();
+    view.kick();
+  }
+
   const shotOn = () => state.modules.some(m => m.id === SHOT_KEY && m.installed && m.enabled);
   const shotPage = (t: ShotTarget): PageView => (t.mode === 'result'
     ? { kind: 'shot', mode: 'result', id: t.id, key: SHOT_KEY, shots }
@@ -209,6 +242,11 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     wiring.onPhase(phase);
     if (phase === 'open') {
       closeWaiters = [];
+      // Away from Cleaner for more than 10 minutes: the last page instead (§4).
+      if (page.kind === 'cleaner' && (!cleanerOn() || Date.now() - cleanerClosedAt > CLEANER_AWAY_MS)) {
+        usePage(pickPage(state, null, false));
+        renderPill();
+      }
       // A notice clicked open shows the page holding the widget that sent it. A
       // screenshot just taken shows its result instead.
       const target = page.kind === 'shot' ? null : showing && noticeTarget(state, showing.moduleId, showing.channel);
@@ -223,7 +261,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
         void bridge.setLastPage(to.key);
       } else if (dropping) {
         void bridge.shelfDropReady();
-      } else if (!to && shelfOn() && shelf.items.length > 0 && page.kind !== 'shelf' && page.kind !== 'shot') {
+      } else if (!to && shelfOn() && shelf.items.length > 0 && page.kind !== 'shelf' && page.kind !== 'shot' && page.kind !== 'cleaner') {
         // Kept files come first while there are any (§4).
         beforeShelf = page.key;
         usePage(shelfPage());
@@ -241,6 +279,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       if (page.kind === 'shelf') usePage(pageBeforeShelf());
       // Nor are Screenshot's pages: the next open shows the last page.
       if (page.kind === 'shot') usePage(pickPage(state, null, false));
+      if (page.kind === 'cleaner') cleanerClosedAt = Date.now();
       dropping = false;
       dragOpened = false;
       peek = false;
@@ -400,6 +439,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     const onShelfPage = page.kind === 'shelf';
     const picked = onShelfPage && shelfOn() ? shelfPage()
       : page.kind === 'shot' && shotOn() ? shotPage(page)
+        : page.kind === 'cleaner' && cleanerOn() ? cleanerPage()
         : pickPage(next, onShelfPage ? beforeShelf : page.key, isOpen());
     const size = sized(picked, picked.key === page.key ? fullHeight : undefined);
     if (picked.key !== page.key || size.width !== controller.card.width || size.height !== controller.card.height) usePage(picked);

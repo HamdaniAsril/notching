@@ -17,8 +17,16 @@
   },
   "shot": {
     "label": "Screenshot · {kind}",
-    "kinds": { "screen": "Layar", "window": "Window", "area": "Area" },
-    "hints": { "screen": "⌘⇧3", "window": "⌘⇧4 + klik", "area": "⌘⇧4 + tarik" },
+    "kinds": {
+      "screen": "Layar",
+      "window": "Window",
+      "area": "Area"
+    },
+    "hints": {
+      "screen": "⌘⇧3",
+      "window": "⌘⇧4 + klik",
+      "area": "⌘⇧4 + tarik"
+    },
     "edit": "Klik untuk edit",
     "copied": "Tersalin ke clipboard",
     "copy": "Salin",
@@ -38,7 +46,20 @@
     "time": "{h}.{m}",
     "yesterday": "Kemarin",
     "date": "{d} {month}",
-    "months": ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+    "months": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "Mei",
+      "Jun",
+      "Jul",
+      "Agu",
+      "Sep",
+      "Okt",
+      "Nov",
+      "Des"
+    ]
   },
   "editor": {
     "title": "Screenshot · {w} × {h}",
@@ -54,8 +75,19 @@
       "text": "Teks",
       "sensor": "Sensor"
     },
-    "colors": ["Merah", "Kuning", "Hijau", "Biru", "Hitam", "Putih"],
-    "widths": ["Tipis", "Sedang", "Tebal"],
+    "colors": [
+      "Merah",
+      "Kuning",
+      "Hijau",
+      "Biru",
+      "Hitam",
+      "Putih"
+    ],
+    "widths": [
+      "Tipis",
+      "Sedang",
+      "Tebal"
+    ],
     "corner": "Sudut",
     "background": "Background",
     "bg": {
@@ -74,6 +106,93 @@
   "clean": {
     "title": "Keyboard sedang dibersihkan",
     "hint": "Tekan Esc 5× untuk keluar"
+  },
+  "cleaner": {
+    "free": "Sisa {size}",
+    "usedOf": "GB · terpakai dari {size}",
+    "parts": {
+      "apps": "App",
+      "documents": "Dokumen",
+      "photos": "Foto",
+      "cleanable": "Bisa dibersihkan",
+      "other": "Lainnya",
+      "free": "Kosong"
+    },
+    "unknown": "?",
+    "cleanTitle": "Deep clean",
+    "cleanSub": "Cache, log, sisa app · {size}",
+    "uninstallTitle": "Clean uninstall",
+    "uninstallSub": "Hapus app beserta sisanya · {n} app",
+    "measuring": "Menghitung…",
+    "testMode": "MODE COBA",
+    "noFda": "Sebagian folder dilewati. Beri izin Full Disk Access",
+    "allow": "Buka Pengaturan",
+    "diskTitle": "Isi disk",
+    "selected": "Dipilih {size}",
+    "clean": "Bersihkan {size}",
+    "remove": "Hapus {app} · {size}",
+    "categories": {
+      "appCache": "Cache app",
+      "browserCache": "Cache browser",
+      "devCache": "Cache alat developer",
+      "log": "Log",
+      "orphan": "Sisa app yang sudah dihapus",
+      "trash": "Tempat Sampah",
+      "build": "Folder build proyek",
+      "installer": "File installer lama",
+      "backup": "Cadangan iPhone lama",
+      "app": "App",
+      "leftover": "Sisa app",
+      "personal": "Data pribadi"
+    },
+    "groups": {
+      "Application Support": "Data app",
+      "Caches": "Cache",
+      "Preferences": "Pengaturan",
+      "Saved Application State": "Status jendela",
+      "Containers": "Container",
+      "Group Containers": "Container bersama",
+      "LaunchAgents": "Program latar belakang",
+      "Logs": "Log",
+      "HTTPStorages": "Data web",
+      "WebKit": "Data web",
+      "Cookies": "Cookie",
+      "Application Scripts": "Skrip"
+    },
+    "inUse": "sedang dipakai",
+    "maybe": "mungkin · nama mirip",
+    "personalHint": "riwayat, bookmark, kata sandi, data",
+    "never": "Jangan pernah bersihkan",
+    "needsFda": "butuh Full Disk Access",
+    "confirmPermanent": "{size} dihapus permanen",
+    "confirmTrash": "{size} dipindah ke Tempat Sampah",
+    "confirmCount": "{n} item",
+    "yesClean": "Ya, bersihkan",
+    "yesRemove": "Ya, hapus",
+    "cancel": "Batal",
+    "progress": "{done} dari {total}",
+    "stop": "Berhenti",
+    "freed": "+{size}",
+    "back": "Kembali",
+    "skips": {
+      "inUse": "sedang dipakai",
+      "protected": "dilindungi",
+      "changed": "berubah sejak dipindai",
+      "failed": "gagal",
+      "excluded": "dikecualikan",
+      "stopped": "dihentikan"
+    },
+    "exclusionsBroken": "Daftar pengecualian tidak bisa dibaca",
+    "busy": "Cleaner masih bekerja",
+    "search": "Cari app",
+    "quitFirst": "Tutup {app} dulu",
+    "ownUninstaller": "Pakai uninstaller bawaan app ini",
+    "showInFinder": "Tampilkan di Finder",
+    "unreadable": "tidak bisa dibaca",
+    "rest": "{n} item lain",
+    "empty": "Tidak ada yang perlu dibersihkan",
+    "noApps": "Tidak ada app",
+    "adminHint": "Butuh izin admin. Hapus lewat Finder"
   },
   "settingsWindow": {
     "title": "Pengaturan",

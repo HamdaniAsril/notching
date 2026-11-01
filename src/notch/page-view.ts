@@ -3,6 +3,7 @@ import type { ModuleInfo, ModuleState } from '../modules/types';
 import type { FrameHost, FrameSpec } from '../pages/frames';
 import { slots, widgetCatalog } from '../pages/layout';
 import { CUSTOM_PAGE, type PageView, STRIP_HEIGHT } from '../pages/route';
+import { type CleanerDeps, type CleanerView, mountCleaner } from '../cleaner/view';
 import { mountShelfView, type ShelfView, type ShelfViewDeps } from '../shelf/view';
 import { mountShotList, type ShotList, type ShotListDeps } from '../shot/list';
 import { mountShotResult, type ShotResult } from '../shot/result';
@@ -15,6 +16,7 @@ export interface PageViewDeps {
   onBack: () => void;
   shelf: Omit<ShelfViewDeps, 'strings'>; // Titipan's drag out, remove and clear
   shot: Omit<ShotListDeps, 'lang'>; // Screenshot's pages: the core's calls, close and back
+  cleaner: Omit<CleanerDeps, 'lang'>; // Cleaner's pages: the core's calls and the panel's size
 }
 
 export interface PageViewHost {
@@ -55,6 +57,31 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
 
   // Screenshot's result or list, kept while the same one shows.
   let shot: { box: HTMLElement; sig: string; render(v: ShotPage): void; destroy(): void } | null = null;
+
+  // Cleaner: kept even while another page or a closed panel hides it, so its
+  // place lasts (design 1 Nov §4); told when it shows and when it goes away.
+  let cleaner: { box: HTMLElement; lang: string; view: CleanerView } | null = null;
+
+  function hideCleaner(): void {
+    if (!cleaner || !content.contains(cleaner.box)) return;
+    cleaner.view.hidden();
+    cleaner.box.remove();
+  }
+
+  function showCleaner(s: ModuleState): void {
+    deps.frames.keep([]);
+    if (cleaner && cleaner.lang !== s.lang) {
+      cleaner.view.destroy();
+      cleaner = null;
+    }
+    if (!cleaner) {
+      const box = el(doc, 'div', 'cl');
+      cleaner = { box, lang: s.lang, view: mountCleaner(box, { ...deps.cleaner, lang: s.lang }) };
+    }
+    if (content.contains(cleaner.box)) return;
+    content.replaceChildren(cleaner.box);
+    cleaner.view.shown();
+  }
 
   function dropShelf(): void {
     shelf?.view.destroy();
@@ -180,6 +207,15 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
 
   return {
     show(v, s, strings) {
+      if (v.kind === 'cleaner') {
+        shown = '';
+        reset();
+        dropShelf();
+        dropShot();
+        showCleaner(s);
+        return;
+      }
+      hideCleaner();
       if (v.kind === 'shelf') {
         shown = '';
         reset();
@@ -229,6 +265,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     clear() {
       shown = '';
       reset();
+      hideCleaner();
       dropShelf();
       dropShot();
       deps.frames.clear();

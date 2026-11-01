@@ -122,7 +122,44 @@ export interface Bridge {
   onShots(cb: (list: Shot[]) => void): () => void;
   onShotDrag(cb: (e: ShotDrag) => void): () => void;
   shotReady(): Promise<void>; // this overlay hears notices now: the launch key notice can go out
+  // Cleaner (design 1 Nov): scans come back under a scan id; the page sends ids, never paths.
+  cleanerOverview(): Promise<CleanerOverview>;
+  cleanerParts(): Promise<CleanerParts>;
+  cleanerDeepScan(): Promise<CleanerScan<CleanerItem>>;
+  cleanerApps(): Promise<CleanerScan<CleanerApp>>;
+  cleanerAppDetail(appId: number): Promise<CleanerScan<CleanerItem>>;
+  cleanerBreakdown(): Promise<CleanerNode>;
+  cleanerRun(scanId: number, ids: number[], uninstall: number | null): Promise<void>; // rejects "stale" | "busy" | "exclusions" | "unknown"
+  cleanerStop(): Promise<void>;
+  cleanerCancelScans(): Promise<void>;
+  cleanerRunning(scanId: number): Promise<number[]>;
+  cleanerReveal(id: number): Promise<void>;
+  cleanerRevealPath(names: string[]): Promise<void>;
+  cleanerExclude(id: number): Promise<void>;
+  cleanerSeen(): Promise<void>;
+  openFullDiskAccessSettings(): Promise<void>;
+  onCleaner(cb: (e: CleanerEvent) => void): () => void;
 }
+
+// Cleaner's DTOs (src-tauri/src/cleaner_service.rs, cleaner_scan.rs, cleaner_apps.rs).
+export type CleanerCategory =
+  | 'appCache' | 'browserCache' | 'devCache' | 'log' | 'orphan' | 'trash' | 'build' | 'installer' | 'backup' | 'app' | 'leftover' | 'personal';
+export type CleanerSkip = 'inUse' | 'protected' | 'changed' | 'failed' | 'excluded' | 'stopped';
+export interface CleanerOverview { testMode: boolean; fda: boolean; volume: string; total: number; free: number }
+// null: can't be read without Full Disk Access.
+export interface CleanerParts { apps: number | null; documents: number | null; photos: number | null; cleanable: number | null; appCount: number }
+export interface CleanerItem {
+  id: number; category: CleanerCategory; label: string; detail: string | null; bytes: number;
+  method: 'permanent' | 'trash'; ticked: boolean; inUse: boolean; confidence: 'sure' | 'maybe' | null;
+}
+export interface CleanerApp { id: number; name: string; bundleId: string; bytes: number; refused: boolean; running: boolean }
+export interface CleanerScan<T> { scanId: number; items: T[] }
+// `rest` > 0: the summed small items of a folder.
+export interface CleanerNode { name: string; bytes: number; dir: boolean; readable: boolean; rest: number; children: CleanerNode[] }
+export interface CleanerOutcome { id: number; freed: number; skip: CleanerSkip | null; detail: string | null }
+export type CleanerEvent =
+  | { phase: 'progress'; done: number; total: number }
+  | { phase: 'done'; freed: number; outcomes: CleanerOutcome[] };
 
 // Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
 export function syncUnlisten(pending: Promise<UnlistenFn>): () => void {
@@ -198,5 +235,22 @@ export function tauriBridge(): Bridge {
     // Sent to this overlay only.
     onShotDrag: cb => syncUnlisten(win.listen<ShotDrag>('notching://shot-drag', e => cb(e.payload))),
     shotReady: () => invoke('shot_ready'),
+    cleanerOverview: () => invoke<CleanerOverview>('cleaner_overview'),
+    cleanerParts: () => invoke<CleanerParts>('cleaner_parts'),
+    cleanerDeepScan: () => invoke<CleanerScan<CleanerItem>>('cleaner_deep_scan'),
+    cleanerApps: () => invoke<CleanerScan<CleanerApp>>('cleaner_apps'),
+    cleanerAppDetail: appId => invoke<CleanerScan<CleanerItem>>('cleaner_app_detail', { appId }),
+    cleanerBreakdown: () => invoke<CleanerNode>('cleaner_breakdown'),
+    cleanerRun: (scanId, ids, uninstall) => invoke('cleaner_run', { scanId, ids, uninstall }),
+    cleanerStop: () => invoke('cleaner_stop'),
+    cleanerCancelScans: () => invoke('cleaner_cancel_scans'),
+    cleanerRunning: scanId => invoke<number[]>('cleaner_running', { scanId }),
+    cleanerReveal: id => invoke('cleaner_reveal', { id }),
+    cleanerRevealPath: names => invoke('cleaner_reveal_path', { names }),
+    cleanerExclude: id => invoke('cleaner_exclude', { id }),
+    cleanerSeen: () => invoke('cleaner_seen'),
+    openFullDiskAccessSettings: () => invoke('open_full_disk_access_settings'),
+    // Broadcast to every window: one run for every screen.
+    onCleaner: cb => syncUnlisten(listen<CleanerEvent>('notching://cleaner', e => cb(e.payload))),
   };
 }

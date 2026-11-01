@@ -51,9 +51,13 @@ export interface HostStrings {
     background: string;
     bg: { solid: string; gradient: string; image: string; none: string; customColor: string; gradientFrom: string; gradientTo: string; wallpaper: string; file: string; padding: string };
   };
+  cleaner: CleanerStrings;
 }
 
 type ShotKind = 'screen' | 'window' | 'area';
+
+// Cleaner's notch pages (design 1 Nov); the Indonesian file is the reference shape.
+export type CleanerStrings = (typeof id)['cleaner'];
 
 // Text of the settings window; the Indonesian file is the reference shape.
 export type SettingsStrings = (typeof id)['settingsWindow'];
