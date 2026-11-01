@@ -1,5 +1,5 @@
 import { beforeEach, vi } from 'vitest';
-import type { Bridge, CleanerEvent, LiveStatus, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys } from '../bridge';
+import type { Bridge, CleanerApp, CleanerEvent, CleanerItem, CleanerNode, CleanerScan, LiveStatus, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys } from '../bridge';
 import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
@@ -195,10 +195,10 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     shotReady: vi.fn(async () => {}),
     cleanerOverview: vi.fn(async () => ({ testMode: false, fda: true, volume: 'Macintosh HD', total: 256e9, free: 44e9 })),
     cleanerParts: vi.fn(async () => ({ apps: 51e9, documents: 36e9, photos: 26e9, cleanable: 31e9, appCount: 84 })),
-    cleanerDeepScan: vi.fn(async () => ({ scanId: 1, items: [] })),
-    cleanerApps: vi.fn(async () => ({ scanId: 2, items: [] })),
-    cleanerAppDetail: vi.fn(async (_appId: number) => ({ scanId: 3, items: [] })),
-    cleanerBreakdown: vi.fn(async () => ({ name: '~', bytes: 0, dir: true, readable: true, rest: 0, children: [] })),
+    cleanerDeepScan: vi.fn(async (): Promise<CleanerScan<CleanerItem>> => ({ scanId: 1, items: [] })),
+    cleanerApps: vi.fn(async (): Promise<CleanerScan<CleanerApp>> => ({ scanId: 2, items: [] })),
+    cleanerAppDetail: vi.fn(async (_appId: number): Promise<CleanerScan<CleanerItem>> => ({ scanId: 3, items: [] })),
+    cleanerBreakdown: vi.fn(async (): Promise<CleanerNode> => ({ name: '~', bytes: 0, dir: true, readable: true, rest: 0, children: [] })),
     cleanerRun: vi.fn(async (_scanId: number, _ids: number[], _uninstall: number | null) => {}),
     cleanerStop: vi.fn(async () => {}),
     cleanerCancelScans: vi.fn(async () => {}),

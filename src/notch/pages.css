@@ -742,3 +742,221 @@
   color: #fff;
   cursor: pointer;
 }
+
+/* Cleaner's lists: a head, a scrolling body, a footer with the button. */
+.cl-list {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.cl-lhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 22px;
+  flex: none;
+}
+
+.cl-back {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--g1);
+  cursor: pointer;
+}
+
+.cl-back:hover {
+  color: #fff;
+}
+
+.cl-lbody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.cl-lfoot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: none;
+  padding-top: 10px;
+}
+
+.cl-row,
+.cl-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px dotted rgba(255, 255, 255, 0.22);
+  font-size: 11px;
+  color: #fff;
+}
+
+.cl-row {
+  cursor: pointer;
+}
+
+.cl-cat:not(.open) .cl-item {
+  display: none;
+}
+
+.cl-item {
+  padding-left: 20px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.cl-cat.muted .cl-row {
+  color: rgba(255, 255, 255, 0.4);
+  cursor: default;
+}
+
+.cl-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-detail {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cl-tag {
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.cl-size {
+  flex: none;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.cl-tick {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  accent-color: #fff;
+  cursor: pointer;
+}
+
+.cl-never {
+  display: none;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+}
+
+.cl-item:hover .cl-never {
+  display: flex;
+}
+
+.cl-go,
+.cl-ghost {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  font: 600 11px "Space Grotesk", -apple-system, sans-serif;
+  cursor: pointer;
+}
+
+.cl-go {
+  background: #fff;
+  color: #000;
+}
+
+.cl-go:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cl-ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.cl-ghost:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* The question, the progress and the result. */
+.cl-run {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  height: 100%;
+}
+
+.cl-rtitle {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cl-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cl-pline {
+  font-size: 12px;
+}
+
+.cl-rbtns {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  align-self: flex-end;
+}
+
+.cl-meter {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.cl-meter-fill {
+  display: block;
+  height: 100%;
+  background: #fff;
+}
+
+.cl-freed {
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 22px;
+}
+
+.cl-skips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.cl-done {
+  margin-top: auto;
+  align-self: flex-end;
+}
