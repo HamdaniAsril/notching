@@ -67,4 +67,4 @@ Masalah kecil yang ditunda:
 
 ## Tahap kedua: Mac asli, hanya melihat
 
-Belum dilakukan.
+Dilewati atas keputusan pemilik (1 November 2026: "Lewati, langsung merge"). Cleaner belum pernah dibuka dengan data asli. Log Cleaner hanya berisi baris `coba`, tanpa satu pun baris `asli`.
