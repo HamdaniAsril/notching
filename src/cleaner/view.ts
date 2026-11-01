@@ -2,6 +2,7 @@ import type { Bridge, CleanerOutcome } from '../bridge';
 import { hostStrings } from '../i18n';
 import type { Lang } from '../kit/protocol';
 import { mountClean, type Plan } from './clean';
+import { mountDisk } from './disk';
 import { el } from './dom';
 import { SCAN_TTL_MS } from './format';
 import { mountHome } from './home';
@@ -27,7 +28,7 @@ export interface CleanerView {
   destroy(): void;
 }
 
-type Screen = 'home' | 'clean' | 'uninstall' | 'run';
+type Screen = 'home' | 'clean' | 'uninstall' | 'disk' | 'run';
 
 // Cleaner in the notch (design 1 Nov §4–§6): one screen at a time, kept while
 // the panel is away for less than 10 minutes (§4); past that, the start view
@@ -48,6 +49,7 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
   const cleanBox = el(doc, 'div', 'cl-screen');
   const runBox = el(doc, 'div', 'cl-screen');
   const uninstallBox = el(doc, 'div', 'cl-screen');
+  const diskBox = el(doc, 'div', 'cl-screen');
 
   const home = mountHome(homeBox, {
     bridge: deps.bridge,
@@ -55,7 +57,10 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
     strings: s,
     onClean: () => showClean(),
     onUninstall: () => showUninstall(),
-    onDisk: () => {},
+    onDisk: () => {
+      show('disk', diskBox);
+      disk.refresh();
+    },
     onNote: n => {
       note = n;
       if (screen === 'home') deps.resize('home', note);
@@ -78,6 +83,8 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
     back: () => showHome(),
     remove: (scanId, ids, plan, appId, name) => void ask(scanId, ids, plan, appId, 'uninstall', name),
   });
+
+  const disk = mountDisk(diskBox, { bridge: deps.bridge, lang: deps.lang, strings: s, back: () => showHome() });
 
   const run = mountRun(runBox, {
     lang: deps.lang,
@@ -174,6 +181,7 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
       home.destroy();
       clean.destroy();
       uninstall.destroy();
+      disk.destroy();
     },
   };
 }

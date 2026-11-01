@@ -134,3 +134,20 @@ test('Clean uninstall: an app removed goes through the question with its app id'
   s.box.querySelector<HTMLElement>('.cl-skip .cl-note-btn')!.click();
   expect(s.bridge.cleanerReveal).toHaveBeenCalledWith(60);
 });
+
+test('the bar opens the breakdown, and it stays after Finder takes the panel away', async () => {
+  const s = await setup();
+  s.bridge.cleanerBreakdown.mockResolvedValue({ name: '~', bytes: 10, dir: true, readable: true, rest: 0, children: [
+    { name: 'dev', bytes: 10, dir: true, readable: true, rest: 0, children: [{ name: 'a', bytes: 9, dir: false, readable: true, rest: 0, children: [] }] },
+  ] });
+  s.box.querySelector<HTMLElement>('.cl-bar')!.click();
+  await tick();
+  expect(s.resize).toHaveBeenLastCalledWith('list', false);
+  s.box.querySelector<HTMLElement>('.cl-node')!.click();
+  s.box.querySelector<HTMLElement>('.cl-reveal')!.click();
+  expect(s.bridge.cleanerRevealPath).toHaveBeenCalledWith(['dev', 'a']);
+  s.view.hidden();
+  s.setNow(60_000);
+  s.view.shown();
+  expect(s.box.querySelector('.cl-node .cl-name')!.textContent).toBe('a');
+});

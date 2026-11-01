@@ -1008,3 +1008,41 @@
 .cl-lfoot .cl-note-text {
   margin-right: auto;
 }
+
+/* The breakdown: a thin bar per row, and Show in Finder on hover. */
+.cl-node.open-able {
+  cursor: pointer;
+}
+
+.cl-node:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cl-nbar {
+  flex: none;
+  width: 80px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.cl-nbar i {
+  display: block;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.cl-reveal {
+  display: none;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+}
+
+.cl-node:hover .cl-reveal {
+  display: flex;
+}
