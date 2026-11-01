@@ -1,5 +1,6 @@
 mod app_core;
 mod awake;
+mod cleaner_apps;
 mod cleaner_rules;
 mod cleaner_run;
 mod cleaner_scan;
