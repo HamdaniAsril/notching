@@ -137,10 +137,25 @@ fn now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
 }
 
-/// macOS gives no call for this; reading the TCC folder fails without it, and
-/// never prompts. Inside the sample folder it counts as granted (§11).
+/// macOS gives no call for this; listing a guarded folder fails without it,
+/// and never prompts. Inside the sample folder it counts as granted (§11).
 pub fn fda(state: &CleanerState) -> bool {
-    state.roots.test_mode || fs::read_dir(state.real_home.join("Library/Application Support/com.apple.TCC")).is_ok()
+    state.roots.test_mode || fda_in(Path::new("/"), &state.real_home)
+}
+
+// Folders only Full Disk Access may list. Not every Mac has each one: macOS 27
+// has no TCC folder in the home (owner's Mac, 1 Nov), and Safari or Mail may
+// never have been opened. One that lists is enough; one that is not there says
+// nothing.
+fn fda_in(root: &Path, home: &Path) -> bool {
+    [
+        root.join("Library/Application Support/com.apple.TCC"),
+        home.join("Library/Application Support/com.apple.TCC"),
+        home.join("Library/Safari"),
+        home.join("Library/Mail"),
+    ]
+    .iter()
+    .any(|p| fs::read_dir(p).is_ok())
 }
 
 pub fn full_disk_access(app: &AppHandle) -> bool {
@@ -760,6 +775,39 @@ mod tests {
     use super::*;
     use crate::cleaner_rules::Method;
     use std::path::PathBuf;
+
+    // A temporary "/" and home: nothing in them is guarded, so a folder that is
+    // there can be listed, as with Full Disk Access.
+    fn fda_dirs(dirs: &[&str]) -> (tempfile::TempDir, PathBuf, PathBuf) {
+        let t = tempfile::tempdir().unwrap();
+        let (root, home) = (t.path().join("root"), t.path().join("root/Users/me"));
+        fs::create_dir_all(&home).unwrap();
+        for d in dirs {
+            fs::create_dir_all(root.join(d)).unwrap();
+        }
+        (t, root, home)
+    }
+
+    #[test]
+    fn access_is_seen_without_the_users_tcc_folder() {
+        // macOS 27 has no ~/Library/Application Support/com.apple.TCC at all.
+        let (_t, root, home) = fda_dirs(&["Library/Application Support/com.apple.TCC"]);
+        assert!(fda_in(&root, &home));
+    }
+
+    #[test]
+    fn access_is_seen_through_the_safari_or_mail_folder() {
+        let (_t, root, home) = fda_dirs(&["Users/me/Library/Safari"]);
+        assert!(fda_in(&root, &home));
+        let (_t, root, home) = fda_dirs(&["Users/me/Library/Mail"]);
+        assert!(fda_in(&root, &home));
+    }
+
+    #[test]
+    fn nothing_listable_is_no_access() {
+        let (_t, root, home) = fda_dirs(&[]);
+        assert!(!fda_in(&root, &home));
+    }
 
     fn item(id: u64) -> Item {
         Item {
