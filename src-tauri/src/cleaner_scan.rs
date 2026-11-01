@@ -209,6 +209,11 @@ impl Maker<'_, '_> {
         if check(&path, cat, &Purpose::Clean, self.env.roots, self.env.excluded).is_err() {
             return;
         }
+        // A folder already emptied (its contents went, it stays) has nothing to offer.
+        let empty = fs::symlink_metadata(&path).is_ok_and(|m| m.is_dir()) && fs::read_dir(&path).is_ok_and(|mut d| d.next().is_none());
+        if empty {
+            return;
+        }
         let id = *self.next_id;
         *self.next_id += 1;
         let bytes = du(&path, self.env.cancel);
@@ -635,6 +640,18 @@ mod tests {
         let p = parts(&e);
         assert_eq!((p.documents, p.photos), (None, None));
         assert!(p.apps.is_some());
+    }
+
+    #[test]
+    fn an_emptied_folder_is_not_offered_again() {
+        let t = sample();
+        fs::create_dir_all(t.roots.home.join("Library/Caches/com.kosong.app")).unwrap();
+        file(&t.roots.home.join("Library/Caches/com.isi.app/x"), 1000);
+        let (f, ex, c) = (std_fake(), Exclusions::default(), AtomicBool::new(false));
+        let e = env(&t, true, &f, &ex, &c, &|_| false, &|_| Some(true), &|_| false);
+        let items = deep_scan(&e, &mut 1);
+        assert!(!items.iter().any(|i| i.path.ends_with("com.kosong.app")));
+        assert!(items.iter().any(|i| i.path.ends_with("com.isi.app")));
     }
 
     #[test]
