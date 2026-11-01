@@ -131,23 +131,48 @@ pub fn combine(enabled: bool, registered: [KeyState; 2], mac_taken: (bool, bool)
     KeysDto { screen: state(registered[0], mac_taken.0), pick: state(registered[1], mac_taken.1) }
 }
 
-/// The keys for the once-per-launch notice ("⌘⇧3", "⌘⇧4", or both joined in `lang`),
-/// when one is not sent yet and a key does not reach Notching.
-pub fn conflict_notice_due(already_sent: bool, keys: &KeysDto, lang: Lang) -> Option<String> {
+/// Who holds the keys a launch notice names; each has its own title.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Holder {
+    /// The Mac's own screenshot shortcuts: `notice.keys.title`.
+    Mac,
+    /// Another app: `notice.other.title`.
+    Other,
+}
+
+impl Holder {
+    fn title_key(self) -> &'static str {
+        match self {
+            Holder::Mac => "notice.keys.title",
+            Holder::Other => "notice.other.title",
+        }
+    }
+}
+
+/// The once-per-launch notice, when it is not sent yet and a key does not reach
+/// Notching: who holds the keys, and which ("⌘⇧3", "⌘⇧4", or both joined in
+/// `lang`). Keys the Mac holds come first, since System Settings can free them;
+/// only then keys another app holds. One notice names only one holder.
+pub fn conflict_notice_due(already_sent: bool, keys: &KeysDto, lang: Lang) -> Option<(Holder, String)> {
     if already_sent {
         return None;
     }
-    let blocked = |s: KeyState| matches!(s, KeyState::Mac | KeyState::Other);
-    let names: Vec<&str> = [(Key::Screen, keys.screen), (Key::Pick, keys.pick)]
-        .into_iter()
-        .filter(|&(_, s)| blocked(s))
-        .map(|(k, _)| k.label())
-        .collect();
+    let held_by = |state: KeyState| {
+        let names: Vec<&str> = [(Key::Screen, keys.screen), (Key::Pick, keys.pick)]
+            .into_iter()
+            .filter(|&(_, s)| s == state)
+            .map(|(k, _)| k.label())
+            .collect();
+        (!names.is_empty()).then_some(names)
+    };
+    let (holder, names) = held_by(KeyState::Mac)
+        .map(|n| (Holder::Mac, n))
+        .or_else(|| held_by(KeyState::Other).map(|n| (Holder::Other, n)))?;
     let and = match lang {
         Lang::Id => " dan ",
         Lang::En => " and ",
     };
-    (!names.is_empty()).then(|| names.join(and))
+    Some((holder, names.join(and)))
 }
 
 /// The frontmost window of `pid`: its first normal (layer 0) window, front to back.
@@ -309,15 +334,16 @@ fn keys(app: &AppHandle) -> KeysDto {
 // The notice for keys that do not reach Notching, once per launch.
 fn notice_if_due(app: &AppHandle) {
     let keys = keys(app);
-    let (lang, title, detail) = {
-        let core = app.state::<CoreState>();
-        let core = core.0.lock().unwrap();
-        (core.lang(), core.module_text(MODULE_ID, "notice.keys.title"), core.module_text(MODULE_ID, "notice.keys.detail"))
-    };
-    let Some(names) = conflict_notice_due(NOTICE_SENT.load(Ordering::SeqCst), &keys, lang) else { return };
+    let lang = app.state::<CoreState>().0.lock().unwrap().lang();
+    let Some((holder, names)) = conflict_notice_due(NOTICE_SENT.load(Ordering::SeqCst), &keys, lang) else { return };
     if NOTICE_SENT.swap(true, Ordering::SeqCst) {
         return;
     }
+    let (title, detail) = {
+        let core = app.state::<CoreState>();
+        let core = core.0.lock().unwrap();
+        (core.module_text(MODULE_ID, holder.title_key()), core.module_text(MODULE_ID, "notice.keys.detail"))
+    };
     let title = title.map_or_else(|| names.clone(), |t| t.replace("{keys}", &names));
     if let Err(e) = crate::notify::post(app, MODULE_ID, "keys", &title, &detail.unwrap_or_default()) {
         eprintln!("notching: the screenshot keys notice was not sent: {e}");
@@ -378,16 +404,60 @@ mod tests {
         KeysDto { screen, pick }
     }
 
+    fn due(sent: bool, screen: KeyState, pick: KeyState, lang: Lang) -> Option<(Holder, String)> {
+        conflict_notice_due(sent, &dto(screen, pick), lang)
+    }
+
+    fn some(holder: Holder, keys: &str) -> Option<(Holder, String)> {
+        Some((holder, keys.to_string()))
+    }
+
     #[test]
     fn conflict_notice_once_per_launch() {
         use KeyState::*;
-        assert_eq!(conflict_notice_due(true, &dto(Mac, Mac), Lang::Id), None);
-        assert_eq!(conflict_notice_due(false, &dto(Mac, Mac), Lang::Id).as_deref(), Some("⌘⇧3 dan ⌘⇧4"));
-        assert_eq!(conflict_notice_due(false, &dto(Mac, Mac), Lang::En).as_deref(), Some("⌘⇧3 and ⌘⇧4"));
-        assert_eq!(conflict_notice_due(false, &dto(Ok, Other), Lang::Id).as_deref(), Some("⌘⇧4"));
-        assert_eq!(conflict_notice_due(false, &dto(Mac, Ok), Lang::En).as_deref(), Some("⌘⇧3"));
-        assert_eq!(conflict_notice_due(false, &dto(Ok, Ok), Lang::Id), None);
-        assert_eq!(conflict_notice_due(false, &dto(Off, Off), Lang::Id), None);
+        assert_eq!(due(true, Mac, Mac, Lang::Id), None);
+        assert_eq!(due(true, Other, Other, Lang::Id), None);
+        assert_eq!(due(false, Ok, Ok, Lang::Id), None);
+        assert_eq!(due(false, Off, Off, Lang::Id), None);
+    }
+
+    #[test]
+    fn conflict_notice_names_the_mac_keys() {
+        use KeyState::*;
+        assert_eq!(due(false, Mac, Mac, Lang::Id), some(Holder::Mac, "⌘⇧3 dan ⌘⇧4"));
+        assert_eq!(due(false, Mac, Mac, Lang::En), some(Holder::Mac, "⌘⇧3 and ⌘⇧4"));
+        assert_eq!(due(false, Mac, Ok, Lang::En), some(Holder::Mac, "⌘⇧3"));
+    }
+
+    #[test]
+    fn conflict_notice_names_keys_of_another_app() {
+        use KeyState::*;
+        assert_eq!(due(false, Ok, Other, Lang::Id), some(Holder::Other, "⌘⇧4"));
+        assert_eq!(due(false, Other, Other, Lang::En), some(Holder::Other, "⌘⇧3 and ⌘⇧4"));
+    }
+
+    // Mixed: the Mac's keys win, and only they are named.
+    #[test]
+    fn conflict_notice_mixed_names_only_the_mac_keys() {
+        use KeyState::*;
+        assert_eq!(due(false, Mac, Other, Lang::Id), some(Holder::Mac, "⌘⇧3"));
+        assert_eq!(due(false, Other, Mac, Lang::En), some(Holder::Mac, "⌘⇧4"));
+    }
+
+    // Both titles exist in the bundled module, in both languages, with a {keys} slot.
+    #[test]
+    fn notice_titles_are_in_the_module_locales() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../modules/screenshot/locales");
+        for lang in ["id", "en"] {
+            let text = std::fs::read_to_string(dir.join(format!("{lang}.json"))).unwrap();
+            let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+            for holder in [Holder::Mac, Holder::Other] {
+                let pointer = format!("/{}", holder.title_key().replace('.', "/"));
+                let title = json.pointer(&pointer).and_then(|v| v.as_str()).unwrap_or_default();
+                assert!(title.contains("{keys}"), "{lang} {pointer}: {title:?}");
+            }
+            assert!(json.pointer("/notice/keys/detail").is_some_and(|v| v.is_string()), "{lang} detail");
+        }
     }
 
     #[test]
