@@ -3,6 +3,8 @@ mod awake;
 mod cleaner_apps;
 mod cleaner_rules;
 mod cleaner_run;
+#[cfg(all(test, target_os = "macos"))]
+mod cleaner_sample_test;
 mod cleaner_scan;
 mod geometry;
 mod home;
