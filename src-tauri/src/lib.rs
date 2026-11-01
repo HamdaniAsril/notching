@@ -9,6 +9,7 @@ mod page_commands;
 mod pages;
 mod settings;
 mod shelf;
+mod shot;
 mod status;
 mod system_stats;
 mod keyclean;
