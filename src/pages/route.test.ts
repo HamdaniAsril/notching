@@ -159,5 +159,10 @@ test('Cleaner: the start view, taller with its note, and the lists', () => {
   expect(viewSize(home)).toEqual({ width: 520, height: CLEANER.home });
   expect(viewSize({ ...home, note: true })).toEqual({ width: 520, height: CLEANER.home + CLEANER.homeNote });
   expect(viewSize({ ...home, screen: 'list' })).toEqual({ width: 520, height: CLEANER.list });
+  // The start view as drawn: a legend on two lines makes it taller, never shorter.
+  expect(viewSize({ ...home, height: 199 })).toEqual({ width: 520, height: 199 });
+  expect(viewSize({ ...home, height: 150 })).toEqual({ width: 520, height: CLEANER.home });
+  expect(viewSize({ ...home, note: true, height: 199 })).toEqual({ width: 520, height: CLEANER.home + CLEANER.homeNote });
+  expect(viewSize({ ...home, screen: 'list', height: 199 })).toEqual({ width: 520, height: CLEANER.list });
   expect([CLEANER.home, CLEANER.homeNote, CLEANER.list]).toEqual([188, 28, 440]);
 });

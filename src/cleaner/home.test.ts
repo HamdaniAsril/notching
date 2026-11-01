@@ -21,7 +21,7 @@ function setup(over: Partial<CleanerOverview> = {}, parts: Promise<CleanerParts>
     onClean: vi.fn(),
     onUninstall: vi.fn(),
     onDisk: vi.fn(),
-    onNote: vi.fn(),
+    onLayout: vi.fn(),
   };
   const home = mountHome(box, deps);
   home.refresh();
@@ -61,6 +61,17 @@ test('Menghitung… shows until the parts arrive', async () => {
   expect(box.querySelector('.cl-measuring')).toBeNull();
 });
 
+test('once measured, the start view tells its drawn height, so the panel can fit it', async () => {
+  // jsdom lays nothing out: the start view is 199 px tall here, as with a legend on two lines.
+  const tall = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains('cl-home') ? 199 : 0;
+  });
+  const { deps } = setup();
+  await tick();
+  expect(deps.onLayout).toHaveBeenLastCalledWith(false, 199);
+  tall.mockRestore();
+});
+
 test('the two tiles show their summaries and open their lists', async () => {
   const { box, deps } = setup();
   await tick();
@@ -77,7 +88,7 @@ test('without Full Disk Access: unknown parts show "?", and the note opens its s
   const { box, deps } = setup({ fda: false }, Promise.resolve({ ...PARTS, documents: null, photos: null }));
   await tick();
   expect(text(box, '.cl-note-text')).toBe('Sebagian folder dilewati. Beri izin Full Disk Access');
-  expect(deps.onNote).toHaveBeenLastCalledWith(true);
+  expect(deps.onLayout).toHaveBeenLastCalledWith(true, expect.any(Number));
   expect([...box.querySelectorAll('.cl-leg')].map(l => l.textContent)).toContain('Dokumen ?');
   box.querySelector<HTMLElement>('.cl-note button')!.click();
   expect(deps.bridge.openFullDiskAccessSettings).toHaveBeenCalled();

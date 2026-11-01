@@ -57,8 +57,8 @@ export type PageView =
   // `shots`: the history, newest first; `notes`: the list's notice lines.
   | (ShotTarget & { key: typeof SHOT_KEY; shots: Shot[]; notes?: number })
   // `screen`: Cleaner's start view or one of its lists; `note`: the start view's
-  // Full Disk Access line.
-  | { kind: 'cleaner'; key: typeof CLEANER_KEY; screen: 'home' | 'list'; note: boolean };
+  // Full Disk Access line; `height`: the start view as drawn, when it is taller.
+  | { kind: 'cleaner'; key: typeof CLEANER_KEY; screen: 'home' | 'list'; note: boolean; height?: number };
 
 // The Modul page's modules: installed, on, with a page or a tile action; in catalog order.
 export function pageModules(s: ModuleState): ModuleInfo[] {
@@ -109,8 +109,9 @@ export function viewSize(v: PageView, fullHeight?: number): CardSize {
     return { width: SHOT.listWidth, height: shotListHeight(v.shots.length, v.notes ?? 0) };
   }
   if (v.kind === 'cleaner') {
-    const height = v.screen === 'list' ? CLEANER.list : CLEANER.home + (v.note ? CLEANER.homeNote : 0);
-    return { width: CLEANER.width, height };
+    if (v.screen === 'list') return { width: CLEANER.width, height: CLEANER.list };
+    const height = CLEANER.home + (v.note ? CLEANER.homeNote : 0);
+    return { width: CLEANER.width, height: Math.max(height, Math.ceil(v.height ?? 0)) };
   }
   if (v.kind === 'shelf') {
     const height = shelfHeight(v.shelf.items.length, v.dropping);

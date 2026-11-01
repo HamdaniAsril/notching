@@ -19,7 +19,8 @@ export interface CleanerDeps {
   bridge: CleanerBridge;
   lang: Lang;
   now(): number;
-  resize(screen: 'home' | 'list', note: boolean): void; // the panel's size follows the screen
+  // The panel's size follows the screen; `height` is the start view's as drawn.
+  resize(screen: 'home' | 'list', note: boolean, height: number): void;
 }
 
 export interface CleanerView {
@@ -40,6 +41,7 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
   let hiddenAt: number | null = null;
   let fresh = true;
   let note = false;
+  let homeHeight = 0;
   let screen: Screen = 'home';
   let running = false;
   let labels = (_id: number) => '';
@@ -61,9 +63,11 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
       show('disk', diskBox);
       disk.refresh();
     },
-    onNote: n => {
+    onLayout: (n, height) => {
       note = n;
-      if (screen === 'home') deps.resize('home', note);
+      // Only a view on the page has a height; one put away keeps the last.
+      if (height > 0) homeHeight = height;
+      if (screen === 'home') deps.resize('home', note, homeHeight);
     },
   });
 
@@ -97,7 +101,7 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
   function show(next: Screen, child: HTMLElement): void {
     screen = next;
     box.replaceChildren(child);
-    deps.resize(next === 'home' ? 'home' : 'list', note);
+    deps.resize(next === 'home' ? 'home' : 'list', note, homeHeight);
   }
 
   function showHome(): void {

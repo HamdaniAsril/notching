@@ -32,7 +32,7 @@ test('Deep clean opens its list, as tall as a list', async () => {
   const s = await setup();
   await s.toList();
   expect(s.box.querySelector('.cl-list')).not.toBeNull();
-  expect(s.resize).toHaveBeenLastCalledWith('list', false);
+  expect(s.resize).toHaveBeenLastCalledWith('list', false, expect.any(Number));
 });
 
 test('Bersihkan asks first; yes runs the scan ids, and the result shows when it is done', async () => {
@@ -142,7 +142,7 @@ test('the bar opens the breakdown, and it stays after Finder takes the panel awa
   ] });
   s.box.querySelector<HTMLElement>('.cl-bar')!.click();
   await tick();
-  expect(s.resize).toHaveBeenLastCalledWith('list', false);
+  expect(s.resize).toHaveBeenLastCalledWith('list', false, expect.any(Number));
   s.box.querySelector<HTMLElement>('.cl-node')!.click();
   s.box.querySelector<HTMLElement>('.cl-reveal')!.click();
   expect(s.bridge.cleanerRevealPath).toHaveBeenCalledWith(['dev', 'a']);

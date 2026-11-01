@@ -715,6 +715,19 @@ test('the Cleaner tile opens Cleaner without a core call, and it is never the la
   expect(s.bridge.cleanerOverview).toHaveBeenCalled();
 });
 
+test('a start view drawn taller than 188 makes the panel taller', async () => {
+  const tall = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+    return this.classList.contains('cl-home') ? 205 : 0;
+  });
+  try {
+    const s = await openCleaner();
+    await new Promise(r => setTimeout(r, 0));
+    expect(s.app.controller.card).toEqual({ width: 520, height: 205 });
+  } finally {
+    tall.mockRestore();
+  }
+});
+
 test('closed and opened again within 10 minutes, Cleaner is still there; later it is not', async () => {
   vi.useFakeTimers({ toFake: ['Date'] });
   try {

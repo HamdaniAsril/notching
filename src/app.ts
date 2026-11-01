@@ -56,7 +56,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   let closeWaiters: (() => void)[] = [];
   // Cleaner (design 1 Nov §4): its screen's size, and when the panel last closed
   // on it; opened within 10 minutes, it comes back where it was.
-  let cleanerScreen: { screen: 'home' | 'list'; note: boolean } = { screen: 'home', note: false };
+  let cleanerScreen: { screen: 'home' | 'list'; note: boolean; height?: number } = { screen: 'home', note: false };
   let cleanerClosedAt = 0;
   let strings = hostStrings(state.lang);
   let page: PageView = pickPage(state, null, false);
@@ -129,8 +129,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     cleaner: {
       bridge,
       now: () => Date.now(),
-      resize: (screen, note) => {
-        cleanerScreen = { screen, note };
+      resize: (screen, note, height) => {
+        cleanerScreen = { screen, note, height };
         if (page.kind !== 'cleaner') return;
         usePage(cleanerPage());
         view.kick();

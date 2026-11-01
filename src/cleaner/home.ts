@@ -12,7 +12,9 @@ export interface HomeDeps {
   onClean(): void;
   onUninstall(): void;
   onDisk(): void;
-  onNote(note: boolean): void; // the Full Disk Access line shows: the panel is taller
+  // Whether the Full Disk Access line shows, and the view's height as drawn: a
+  // legend or a tile that wraps makes it taller, and the panel must fit it.
+  onLayout(note: boolean, height: number): void;
 }
 
 export interface Home {
@@ -54,6 +56,16 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
   const wrap = el(doc, 'div', 'cl-home');
   wrap.append(head, usedRow, bar, legend, tiles, note);
   box.replaceChildren(wrap);
+  let showNote = false;
+  // offsetHeight, not the bounding box: the panel's entrance scales it. A view
+  // not on the page has no height yet and says nothing.
+  const report = () => deps.onLayout(showNote, wrap.offsetHeight);
+  // The panel's width can still settle after a draw, and a new width can wrap
+  // the legend; WebKit tells. (jsdom has no ResizeObserver.)
+  const watch = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => {
+    if (overview && wrap.isConnected) report();
+  });
+  watch?.observe(wrap);
 
   function tile(key: string, icon: string, title: string, open: () => void) {
     const b = button(doc, 'cl-tile');
@@ -97,14 +109,14 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
     }
     clean.sub.textContent = parts?.cleanable != null ? fill(s.cleanSub, { size: size(parts.cleanable) }) : s.measuring;
     uninstall.sub.textContent = parts ? fill(s.uninstallSub, { n: parts.appCount }) : s.measuring;
-    const showNote = !o.fda;
+    showNote = !o.fda;
     note.replaceChildren();
     if (showNote) {
       const open = button(doc, 'lab cl-note-btn', s.allow);
       open.addEventListener('click', () => void deps.bridge.openFullDiskAccessSettings().catch(() => {}));
       note.append(el(doc, 'span', 'cl-note-text', s.noFda), open);
     }
-    deps.onNote(showNote);
+    report();
   }
 
   return {
@@ -125,6 +137,7 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
     loaded: () => parts !== null,
     destroy() {
       seq++;
+      watch?.disconnect();
     },
   };
 }
