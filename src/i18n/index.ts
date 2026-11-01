@@ -11,7 +11,32 @@ export interface HostStrings {
   loadFailed: string;
   settings: string;
   shelf: { drop: string; title: string; hint: string; empty: string; missing: string; receiving: string; clear: string; remove: string };
+  // Screenshot's result and list pages (design 1 Nov §5, §6).
+  shot: {
+    label: string;
+    kinds: Record<ShotKind, string>;
+    hints: Record<ShotKind, string>;
+    edit: string;
+    copied: string;
+    copy: string;
+    save: string;
+    saved: string;
+    delete: string;
+    title: string;
+    empty: string;
+    macKeys: string;
+    otherKeys: string;
+    and: string; // between two keys
+    permission: string;
+    openSettings: string;
+    time: string; // today: {h} and {m}
+    yesterday: string;
+    date: string; // before yesterday: {d} and {month}
+    months: string[];
+  };
 }
+
+type ShotKind = 'screen' | 'window' | 'area';
 
 // Text of the settings window; the Indonesian file is the reference shape.
 export type SettingsStrings = (typeof id)['settingsWindow'];

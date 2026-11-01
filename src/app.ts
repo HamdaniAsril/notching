@@ -1,4 +1,4 @@
-import type { Bridge, LiveStatus, Notice, ShelfState } from './bridge';
+import type { Bridge, LiveStatus, Notice, ShelfState, Shot } from './bridge';
 import { hostStrings } from './i18n';
 import type { ModuleState } from './modules/types';
 import { clampConfig, type NotchConfig } from './notch/config';
@@ -9,7 +9,9 @@ import type { CardSize } from './notch/controller';
 import { LAMP_WING, mountNotch, type LampView, type NotchView } from './notch/view';
 import { type FrameSpec, mountFrameHost } from './pages/frames';
 import { MODULES_ICON, pageIconSvg } from './pages/icons';
-import { missedTargets, noticeTarget, pageName, pickPage, resolvePage, type PageView, SHELF_KEY, viewSize } from './pages/route';
+import {
+  missedTargets, noticeTarget, pageName, pickPage, resolvePage, type PageView, SHELF_KEY, SHOT_KEY, type ShotTarget, viewSize,
+} from './pages/route';
 import { SHELF_ICON } from './shelf/view';
 
 // Notices that arrive while the panel is open wait; past this many, the oldest go.
@@ -31,7 +33,9 @@ export interface App {
 // the custom pages, the Modul page and module pages (design 30 Oct).
 export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): Promise<App> {
   const doc = root.ownerDocument;
-  const [info, initial, kept] = await Promise.all([bridge.screenInfo(), bridge.moduleState(), bridge.shelf(false)]);
+  const [info, initial, kept, taken] = await Promise.all([
+    bridge.screenInfo(), bridge.moduleState(), bridge.shelf(false), bridge.shotList().catch((): Shot[] => []),
+  ]);
   let state: ModuleState = initial;
   // Titipan (design 1 Nov): the shelf, whether a file drag is over this notch,
   // whether that drag opened the panel, whether the panel closes once the pointer
@@ -42,6 +46,11 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   let peek = false;
   let beforeShelf: string | null = null;
   let dropHeight: number | undefined; // the open panel's height when a drag came over it
+  // Screenshot (design 1 Nov §5, §6): the history, the notice lines its list
+  // shows, and what waits for the panel to finish closing (a take button).
+  let shots: Shot[] = taken;
+  let shotNotes = 0;
+  let closeWaiters: (() => void)[] = [];
   let strings = hostStrings(state.lang);
   let page: PageView = pickPage(state, null, false);
   let lastPhase: Phase = 'idle';
@@ -95,6 +104,11 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
         openShelf();
         return;
       }
+      // Screenshot's tile opens its list, also drawn by the notch.
+      if (m.action?.capability === SHOT_KEY) {
+        openShot({ kind: 'shot', mode: 'list' });
+        return;
+      }
       controller.escape();
       view.kick();
       if (m.action) bridge.moduleCall(m.id, m.action.capability, m.action.method).catch(() => {});
@@ -104,6 +118,31 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       startDrag: ids => void bridge.shelfStartDrag(ids).catch(() => {}),
       remove: ids => void bridge.shelfRemove(ids),
       clear: () => void bridge.shelfClear(),
+    },
+    shot: {
+      now: () => Date.now(),
+      close: closeThen,
+      back: () => go('modules'),
+      onNotes: count => {
+        if (count === shotNotes) return;
+        shotNotes = count;
+        if (page.kind === 'shot' && page.mode === 'list') {
+          usePage(shotPage(page));
+          view.kick();
+        }
+      },
+      shotCopy: id => bridge.shotCopy(id),
+      shotSave: id => bridge.shotSave(id),
+      shotDelete: id => bridge.shotDelete(id),
+      shotTakeScreen: () => bridge.shotTakeScreen(),
+      shotPick: mode => bridge.shotPick(mode),
+      shotStartDrag: id => bridge.shotStartDrag(id),
+      shotKeys: () => bridge.shotKeys(),
+      shotPermission: () => bridge.shotPermission(),
+      openKeyboardShortcuts: () => bridge.openKeyboardShortcuts(),
+      openScreenRecordingSettings: () => bridge.openScreenRecordingSettings(),
+      openEditor: id => bridge.openEditor(id),
+      onShot: cb => bridge.onShot(cb),
     },
   });
 
@@ -138,6 +177,29 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     view.kick();
   }
 
+  const shotOn = () => state.modules.some(m => m.id === SHOT_KEY && m.installed && m.enabled);
+  const shotPage = (t: ShotTarget): PageView => (t.mode === 'result'
+    ? { kind: 'shot', mode: 'result', id: t.id, key: SHOT_KEY, shots }
+    : { kind: 'shot', mode: 'list', key: SHOT_KEY, shots, notes: shotNotes });
+
+  // Screenshot's result or list. Like the shelf, never the last page.
+  function openShot(t: ShotTarget): void {
+    usePage(shotPage(t));
+    showPage();
+    renderPill();
+    view.kick();
+  }
+
+  // Closes the panel; settles once it is closed, so a capture never shows it.
+  // Opened again before that, the waiting step is dropped.
+  function closeThen(): Promise<void> {
+    if (controller.phase !== 'open' && controller.phase !== 'closing') return Promise.resolve();
+    return new Promise(resolve => {
+      closeWaiters.push(resolve);
+      closePanel();
+    });
+  }
+
   function showPage(): void {
     if (isOpen()) pages.show(page, state, strings);
   }
@@ -146,17 +208,22 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   function onPhase(phase: Phase): void {
     wiring.onPhase(phase);
     if (phase === 'open') {
-      // A notice clicked open shows the page holding the widget that sent it.
-      const target = showing && noticeTarget(state, showing.moduleId, showing.channel);
-      // The screenshot list is not a page yet; its notices open the panel as is.
+      closeWaiters = [];
+      // A notice clicked open shows the page holding the widget that sent it. A
+      // screenshot just taken shows its result instead.
+      const target = page.kind === 'shot' ? null : showing && noticeTarget(state, showing.moduleId, showing.channel);
       const to = typeof target === 'string' ? resolvePage(state, target) : null;
-      if (to && to.key !== page.key) {
+      if (target && typeof target === 'object' && shotOn()) {
+        // Screenshot's notices open its list, where the fix is.
+        usePage(shotPage(target));
+        renderPill();
+      } else if (to && to.key !== page.key) {
         usePage(to);
         renderPill();
         void bridge.setLastPage(to.key);
       } else if (dropping) {
         void bridge.shelfDropReady();
-      } else if (!to && shelfOn() && shelf.items.length > 0 && page.kind !== 'shelf') {
+      } else if (!to && shelfOn() && shelf.items.length > 0 && page.kind !== 'shelf' && page.kind !== 'shot') {
         // Kept files come first while there are any (§4).
         beforeShelf = page.key;
         usePage(shelfPage());
@@ -172,12 +239,17 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       pages.clear();
       // The shelf is never the last page: the next open picks it again if it holds files.
       if (page.kind === 'shelf') usePage(pageBeforeShelf());
+      // Nor are Screenshot's pages: the next open shows the last page.
+      if (page.kind === 'shot') usePage(pickPage(state, null, false));
       dropping = false;
       dragOpened = false;
       peek = false;
       if (fullHeight !== undefined) usePage(page);
       endNotice();
       pump();
+      const waiting = closeWaiters;
+      closeWaiters = [];
+      waiting.forEach(resolve => resolve());
     }
     lastPhase = phase;
   }
@@ -231,6 +303,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
         : []),
       { id: 'modules', label: strings.modules, svg: MODULES_ICON, missed: missed.has('modules') },
     ];
+    // Module pages, the Modul page and both Screenshot pages light Modul: the list
+    // is reached from there, and the result follows the same rule.
     const active = page.kind === 'custom' || page.kind === 'shelf' ? page.key : 'modules';
     view.setPill(items, active, strings.settings);
     view.setMissed(state.missed.length > 0);
@@ -322,7 +396,9 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     doc.documentElement.lang = next.lang;
     if (!shelfOn()) dropping = false;
     const onShelfPage = page.kind === 'shelf';
-    const picked = onShelfPage && shelfOn() ? shelfPage() : pickPage(next, onShelfPage ? beforeShelf : page.key, isOpen());
+    const picked = onShelfPage && shelfOn() ? shelfPage()
+      : page.kind === 'shot' && shotOn() ? shotPage(page)
+        : pickPage(next, onShelfPage ? beforeShelf : page.key, isOpen());
     const size = sized(picked, picked.key === page.key ? fullHeight : undefined);
     if (picked.key !== page.key || size.width !== controller.card.width || size.height !== controller.card.height) usePage(picked);
     else page = picked;
@@ -388,6 +464,35 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     if (e.phase === 'left' && isOpen()) closePanel();
   });
 
+  // A capture landed on this screen: its result shows, opening the panel if
+  // needed; a new one while it is open takes its place (§5).
+  const offShot = bridge.onShot(e => {
+    if (e.phase !== 'taken') return;
+    // The list normally follows at once; ask for it should it not.
+    if (!shots.some(x => x.id === e.id)) {
+      bridge.shotList().then(list => {
+        shots = list;
+        if (page.kind === 'shot') openShot(page);
+      }, () => {});
+    }
+    openShot({ kind: 'shot', mode: 'result', id: e.id });
+    if (!isOpen()) {
+      controller.click();
+      view.kick();
+    }
+  });
+
+  // One history for every screen.
+  const offShots = bridge.onShots(list => {
+    shots = list;
+    if (page.kind === 'shot') openShot(page);
+  });
+
+  // A screenshot dragged out left the panel: it closes out of the way, as Titipan's.
+  const offShotDrag = bridge.onShotDrag(e => {
+    if (e.phase === 'left' && isOpen()) closePanel();
+  });
+
   const offPeek = bridge.onPointer(p => {
     if (peek && !p.inside && isOpen()) {
       peek = false;
@@ -417,6 +522,9 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       offShelf();
       offDrop();
       offDrag();
+      offShot();
+      offShots();
+      offShotDrag();
       offPeek();
       frames.destroy();
       view.destroy();

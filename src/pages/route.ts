@@ -1,4 +1,4 @@
-import type { ShelfState } from '../bridge';
+import type { ShelfState, Shot } from '../bridge';
 import type { HostStrings } from '../i18n';
 import { hasPage, isModule, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import type { CardSize } from '../notch/controller';
@@ -21,6 +21,16 @@ export const STRIP_HEIGHT = 40;
 export const SHELF = { width: 520, head: 22, tile: 84, gap: 8, columns: 6, maxRows: 3, drop: 104, empty: 84 } as const;
 export const SHELF_KEY = 'shelf';
 export const SHOT_KEY = 'screenshot';
+// Screenshot's pages (design 1 Nov §5, §6; notch-hasil.html, halaman-screenshot.html
+// v2). The result: its picture beside the buttons. The list: a head line, any
+// notices (a line each), up to 3 rows of 5 tiles with their times, then the
+// take buttons 12 px under them.
+export const SHOT = {
+  resultWidth: 420, resultHeight: 172, listWidth: 560, columns: 5, gap: 8, tileH: 62, label: 14, head: 22, buttons: 40,
+  emptyH: 72, note: 24,
+} as const;
+const SHOT_ROWS = 3;
+const SHOT_TAKE_GAP = 12;
 
 const MODULE_PREFIX = 'module:';
 
@@ -36,7 +46,8 @@ export type PageView =
   // `height`: while dropping on a panel already taller than the drop zone, it keeps
   // that height, so the drag stays over it.
   | { kind: 'shelf'; key: typeof SHELF_KEY; shelf: ShelfState; dropping: boolean; height?: number }
-  | (ShotTarget & { key: typeof SHOT_KEY });
+  // `shots`: the history, newest first; `notes`: the list's notice lines.
+  | (ShotTarget & { key: typeof SHOT_KEY; shots: Shot[]; notes?: number });
 
 // The Modul page's modules: installed, on, with a page or a tile action; in catalog order.
 export function pageModules(s: ModuleState): ModuleInfo[] {
@@ -82,8 +93,10 @@ export function viewSize(v: PageView, fullHeight?: number): CardSize {
     return { ...CUSTOM_PAGE, height: Math.round(Math.min(FULL_PAGE_MAX, Math.max(height, fullHeight))) };
   }
   if (v.kind === 'module') return { width: v.module.card!.width, height: BACK_BAR + v.module.card!.height };
-  // Placeholder until the screenshot views have their own sizes.
-  if (v.kind === 'shot') return { ...CUSTOM_PAGE };
+  if (v.kind === 'shot') {
+    if (v.mode === 'result') return { width: SHOT.resultWidth, height: SHOT.resultHeight };
+    return { width: SHOT.listWidth, height: shotListHeight(v.shots.length, v.notes ?? 0) };
+  }
   if (v.kind === 'shelf') {
     const height = shelfHeight(v.shelf.items.length, v.dropping);
     return { width: SHELF.width, height: v.dropping ? Math.max(height, v.height ?? 0) : height };
@@ -99,6 +112,13 @@ export function shelfHeight(items: number, dropping: boolean): number {
   if (items === 0) return head + empty;
   const rows = Math.min(maxRows, Math.ceil(items / columns));
   return head + rows * tile + (rows - 1) * gap;
+}
+
+export function shotListHeight(shots: number, notes: number): number {
+  const { head, tileH, label, gap, columns, buttons, emptyH, note } = SHOT;
+  const rows = Math.min(SHOT_ROWS, Math.max(1, Math.ceil(shots / columns)));
+  const body = shots === 0 ? emptyH : rows * (tileH + label) + (rows - 1) * gap;
+  return head + notes * note + body + SHOT_TAKE_GAP + buttons;
 }
 
 export function pageName(p: Page, strings: HostStrings): string {

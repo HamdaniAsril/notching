@@ -4,6 +4,8 @@ import type { FrameHost, FrameSpec } from '../pages/frames';
 import { slots, widgetCatalog } from '../pages/layout';
 import { CUSTOM_PAGE, type PageView, STRIP_HEIGHT } from '../pages/route';
 import { mountShelfView, type ShelfView, type ShelfViewDeps } from '../shelf/view';
+import { mountShotList, type ShotList, type ShotListDeps } from '../shot/list';
+import { mountShotResult, type ShotResult } from '../shot/result';
 
 export interface PageViewDeps {
   frames: FrameHost;
@@ -12,6 +14,7 @@ export interface PageViewDeps {
   onAction: (m: ModuleInfo) => void; // a tile that runs an action instead of opening a page
   onBack: () => void;
   shelf: Omit<ShelfViewDeps, 'strings'>; // Titipan's drag out, remove and clear
+  shot: Omit<ShotListDeps, 'lang'>; // Screenshot's pages: the core's calls, close and back
 }
 
 export interface PageViewHost {
@@ -21,6 +24,8 @@ export interface PageViewHost {
   collapse(): void;
   clear(): void;
 }
+
+type ShotPage = Extract<PageView, { kind: 'shot' }>;
 
 function el<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
   const e = doc.createElement(tag);
@@ -48,9 +53,42 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
   // Titipan's shelf: kept between renders so its selection lasts.
   let shelf: { view: ShelfView; box: HTMLElement; lang: string } | null = null;
 
+  // Screenshot's result or list, kept while the same one shows.
+  let shot: { box: HTMLElement; sig: string; render(v: ShotPage): void; destroy(): void } | null = null;
+
   function dropShelf(): void {
     shelf?.view.destroy();
     shelf = null;
+  }
+
+  function dropShot(): void {
+    shot?.destroy();
+    shot = null;
+  }
+
+  function mountShot(box: HTMLElement, v: ShotPage, lang: ModuleState['lang']): { render(v: ShotPage): void; destroy(): void } {
+    const shotDeps = { ...deps.shot, lang };
+    if (v.mode === 'result') {
+      const view: ShotResult = mountShotResult(box, shotDeps);
+      return {
+        render: p => { if (p.mode === 'result') view.render(p.id, p.shots.find(x => x.id === p.id)); },
+        destroy: () => view.destroy(),
+      };
+    }
+    const view: ShotList = mountShotList(box, shotDeps);
+    return { render: p => view.render(p.shots), destroy: () => view.destroy() };
+  }
+
+  function showShot(v: ShotPage, s: ModuleState): void {
+    deps.frames.keep([]);
+    const sig = JSON.stringify([v.mode, s.lang]);
+    if (!shot || shot.sig !== sig || !content.contains(shot.box)) {
+      dropShot();
+      const box = el(doc, 'div', 'shot');
+      shot = { box, sig, ...mountShot(box, v, s.lang) };
+      content.replaceChildren(box);
+    }
+    shot.render(v);
   }
 
   function showShelf(v: Extract<PageView, { kind: 'shelf' }>, s: ModuleState, strings: HostStrings): void {
@@ -145,17 +183,19 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
       if (v.kind === 'shelf') {
         shown = '';
         reset();
+        dropShot();
         showShelf(v, s, strings);
         return;
       }
       dropShelf();
-      // Screenshot's views are drawn later; for now the panel shows nothing.
+      // Screenshot's pages are drawn here, not in a module frame.
       if (v.kind === 'shot') {
         shown = '';
         reset();
-        content.replaceChildren();
+        showShot(v, s);
         return;
       }
+      dropShot();
       // The same page with the same widgets keeps its frames (and a full view).
       const sig = JSON.stringify([v, s.lang, v.kind === 'custom' ? slots(v.page, widgetCatalog(s)) : null]);
       if (sig === shown) return;
@@ -190,6 +230,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
       shown = '';
       reset();
       dropShelf();
+      dropShot();
       deps.frames.clear();
       content.replaceChildren();
     },

@@ -1,4 +1,4 @@
-import type { Bridge, LiveStatus, Notice } from './bridge';
+import type { Bridge, LiveStatus, Notice, Shot, ShotEvent } from './bridge';
 import { fakeAwake } from './bridge-browser-awake';
 import { fakeHome } from './bridge-browser-home';
 import { fakeTimer } from './bridge-browser-timer';
@@ -83,6 +83,15 @@ function fakeStats() {
   return { cpu: 5 + 35 * wave(7), memUsed: 9.8 * GiB, memTotal: 16 * GiB, rx: 2_000_000 * wave(5), tx: 200_000 * wave(3) };
 }
 
+// A made-up screenshot: a grey window on a blue desktop, as an SVG data URL.
+function fakeShot(id: number, takenMs: number): Shot {
+  const kind = (['screen', 'window', 'area'] as const)[id % 3];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100"><rect width="160" height="100" fill="#6b7688"/>`
+    + `<rect x="${10 + (id % 4) * 6}" y="12" width="110" height="74" rx="6" fill="#eef0f3"/></svg>`;
+  const url = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  return { id, kind, takenMs, width: 1440, height: 900, saved: false, image: url, thumb: url };
+}
+
 // Stand-in for the native side in a normal browser (`npm run dev`).
 // `?notch=1` fakes a 164 × 32 notch, `?lang=en` switches to English,
 // `?off=system-stat` switches modules off, `?notice=1` sends a sample notice a
@@ -90,7 +99,9 @@ function fakeStats() {
 // with a missed dot, `?status=18:42` shows a status beside the notch (with
 // `&statusModule=keep-awake`, that module's icon),
 // `?demo=1` adds a test page and `?page=p1` opens a page, `?strip=1` puts the
-// Timer strip on Beranda; the
+// Timer strip on Beranda, `?shots=<n>` starts Screenshot's history with n made-up
+// shots (its take buttons add one and show the result; `?keys=mac` and `?access=0`
+// show its notices); the
 // widgets' own switches are in bridge-browser-home.ts. Pointer and clicks come
 // from localPointer().
 export function browserBridge(root: HTMLElement): Bridge {
@@ -115,6 +126,20 @@ export function browserBridge(root: HTMLElement): Bridge {
   const awakeCall = fakeAwake();
   const timerCall = fakeTimer();
   const stateSubs = new Set<(s: ModuleState) => void>();
+  const HOUR = 3600_000;
+  let shots = Array.from({ length: Number(params.get('shots') ?? 0) }, (_, i) => fakeShot(i + 1, Date.now() - i * 5 * HOUR));
+  const shotSubs = new Set<(e: ShotEvent) => void>();
+  const shotsSubs = new Set<(list: Shot[]) => void>();
+  const changed = (...events: ShotEvent[]) => {
+    events.forEach(e => shotSubs.forEach(cb => cb(e)));
+    shotsSubs.forEach(cb => cb(shots));
+  };
+  const take = async () => {
+    const id = Math.max(0, ...shots.map(x => x.id)) + 1;
+    const evicted = shots.slice(14).map(x => ({ phase: 'gone' as const, id: x.id }));
+    shots = [fakeShot(id, Date.now()), ...shots.slice(0, 14)];
+    doc.defaultView?.setTimeout(() => changed(...evicted, { phase: 'taken', id }), 400);
+  };
   const noticeSubs = new Set<(n: Notice) => void>();
   const sample = () => noticeSubs.forEach(cb => cb({
     moduleId: 'home', channel: 'reminder', title: 'Kirim invoice', detail: '14.00', glow: state.notifications.glow, seconds: 3.5,
@@ -187,6 +212,28 @@ export function browserBridge(root: HTMLElement): Bridge {
     shelfDropReady: async () => {},
     onShelfDrop: () => () => {},
     onShelfDrag: () => () => {},
+    shotList: async () => shots,
+    shotCopy: async id => console.info('shotCopy', id),
+    shotSave: async id => {
+      shots = shots.map(x => (x.id === id ? { ...x, saved: true } : x));
+      changed();
+      return `~/Desktop/Screenshot ${id}.png`;
+    },
+    shotDelete: async id => {
+      shots = shots.filter(x => x.id !== id);
+      changed({ phase: 'gone', id });
+    },
+    shotTakeScreen: take,
+    shotPick: take,
+    shotStartDrag: async id => console.info('shotStartDrag', id),
+    shotKeys: async () => ({ screen: params.get('keys') === 'mac' ? 'mac' : 'ok', pick: params.get('keys') === 'mac' ? 'mac' : 'ok' }),
+    shotPermission: async () => params.get('access') !== '0',
+    openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
+    openScreenRecordingSettings: async () => console.info('openScreenRecordingSettings'),
+    openEditor: async id => console.info('openEditor', id),
+    onShot: cb => { shotSubs.add(cb); return () => shotSubs.delete(cb); },
+    onShots: cb => { shotsSubs.add(cb); return () => shotsSubs.delete(cb); },
+    onShotDrag: () => () => {},
     clearMissed: async () => {
       state = { ...state, missed: [] };
       stateSubs.forEach(cb => cb(state));

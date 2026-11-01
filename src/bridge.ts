@@ -55,6 +55,30 @@ export type ShelfDrop = { phase: 'start' } | { phase: 'end'; dropped: boolean };
 // A drag out of the shelf left this panel, or ended (shelf_drag.rs).
 export type ShelfDrag = { phase: 'left' | 'end' };
 
+// One screenshot (ShotDto in src-tauri/src/shot_service.rs), newest first in the
+// list; `image` (the current picture) and `thumb` are notchshot: URLs.
+export interface Shot {
+  id: number;
+  kind: 'screen' | 'window' | 'area';
+  takenMs: number;
+  width: number;
+  height: number;
+  saved: boolean;
+  image: string;
+  thumb: string;
+}
+
+// A capture landed on this screen, or a screenshot left the history (to every window).
+export type ShotEvent = { phase: 'taken' | 'gone'; id: number };
+// A screenshot's key: ours, still the Mac's own, held by another app, or the module is off.
+export type KeyState = 'ok' | 'mac' | 'other' | 'off';
+export interface ShotKeys {
+  screen: KeyState; // ⌘⇧3
+  pick: KeyState; // ⌘⇧4
+}
+// A screenshot dragged out of this panel left it, or the drag ended (shelf_drag.rs).
+export type ShotDrag = { phase: 'left' | 'end' };
+
 // What the notch needs from the native side.
 export interface Bridge {
   screenInfo(): Promise<ScreenInfo>;
@@ -82,6 +106,21 @@ export interface Bridge {
   shelfDropReady(): Promise<void>; // the drop zone shows: catch the drop over the panel
   onShelfDrop(cb: (e: ShelfDrop) => void): () => void;
   onShelfDrag(cb: (e: ShelfDrag) => void): () => void;
+  shotList(): Promise<Shot[]>;
+  shotCopy(id: number): Promise<void>;
+  shotSave(id: number): Promise<string>; // the Desktop file's path
+  shotDelete(id: number): Promise<void>;
+  shotTakeScreen(): Promise<void>; // the screen of this panel
+  shotPick(mode: 'window' | 'area'): Promise<void>;
+  shotStartDrag(id: number): Promise<void>;
+  shotKeys(): Promise<ShotKeys>;
+  shotPermission(): Promise<boolean>;
+  openKeyboardShortcuts(): Promise<void>;
+  openScreenRecordingSettings(): Promise<void>;
+  openEditor(id: number): Promise<void>;
+  onShot(cb: (e: ShotEvent) => void): () => void;
+  onShots(cb: (list: Shot[]) => void): () => void;
+  onShotDrag(cb: (e: ShotDrag) => void): () => void;
 }
 
 // Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
@@ -133,5 +172,23 @@ export function tauriBridge(): Bridge {
     // Sent to this overlay only.
     onShelfDrop: cb => syncUnlisten(win.listen<ShelfDrop>('notching://shelf-drop', e => cb(e.payload))),
     onShelfDrag: cb => syncUnlisten(win.listen<ShelfDrag>('notching://shelf-drag', e => cb(e.payload))),
+    shotList: () => invoke<Shot[]>('shot_list'),
+    shotCopy: id => invoke('shot_copy', { id }),
+    shotSave: id => invoke<string>('shot_save', { id }),
+    shotDelete: id => invoke('shot_delete', { id }),
+    shotTakeScreen: () => invoke('shot_take_screen'),
+    shotPick: mode => invoke('shot_pick', { mode }),
+    shotStartDrag: id => invoke('shot_start_drag', { id }),
+    shotKeys: () => invoke<ShotKeys>('shot_keys'),
+    shotPermission: () => invoke<boolean>('shot_permission'),
+    openKeyboardShortcuts: () => invoke('open_keyboard_shortcuts'),
+    openScreenRecordingSettings: () => invoke('open_screen_recording_settings'),
+    // The editor window's command comes with the editor (plan 11, task 7).
+    openEditor: id => invoke('open_editor', { id }),
+    // `taken` to this overlay only, `gone` to every window: each checks the id.
+    onShot: cb => syncUnlisten(listen<ShotEvent>('notching://shot', e => cb(e.payload))),
+    // Broadcast to every window: one history for every screen.
+    onShots: cb => syncUnlisten(listen<Shot[]>('notching://shots', e => cb(e.payload))),
+    onShotDrag: cb => syncUnlisten(win.listen<ShotDrag>('notching://shot-drag', e => cb(e.payload))),
   };
 }

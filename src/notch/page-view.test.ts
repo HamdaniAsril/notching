@@ -4,6 +4,7 @@ import { hostStrings } from '../i18n';
 import type { ModuleState, Page } from '../modules/types';
 import { mountFrameHost } from '../pages/frames';
 import { pickPage, resolvePage } from '../pages/route';
+import { fakeShotDeps, shot } from '../shot/test-helpers';
 import { mountPageView } from './page-view';
 import { BERANDA, fakeBridge, moduleInfo, TEST_STATE, timerInfo, timers } from './test-helpers';
 
@@ -19,6 +20,7 @@ function mount() {
   const deps = {
     frames, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onAction: vi.fn(), onBack: vi.fn(),
     shelf: { startDrag: vi.fn(), remove: vi.fn(), clear: vi.fn() },
+    shot: fakeShotDeps(),
   };
   const pv = mountPageView(content, deps);
   const show = (s: ModuleState, key: string | null = null) => pv.show(key ? resolvePage(s, key)! : pickPage(s, null, false), s, STR);
@@ -189,4 +191,27 @@ test('frames survive showing the same page again', () => {
   const first = content.querySelector('iframe');
   show({ ...TEST_STATE, missed: ['home.reminder'] });
   expect(content.querySelector('iframe')).toBe(first);
+});
+
+test('a screenshot page keeps its view between renders and goes with the page', () => {
+  const { content, pv, deps } = mount();
+  const result = (id: number) => ({ kind: 'shot' as const, mode: 'result' as const, id, key: 'screenshot' as const, shots: [shot(1), shot(2)] });
+  pv.show(result(1), TEST_STATE, STR);
+  const box = content.querySelector('.shot')!;
+  expect(content.querySelector('.shot-pic img')!.getAttribute('src')).toContain('/1/');
+  pv.show(result(2), TEST_STATE, STR);
+  expect(content.querySelector('.shot')).toBe(box);
+  expect(content.querySelector('.shot-pic img')!.getAttribute('src')).toContain('/2/');
+  // The list is another view.
+  pv.show({ kind: 'shot', mode: 'list', key: 'screenshot', shots: [shot(1)] }, TEST_STATE, STR);
+  expect(content.querySelector('.shot-res')).toBeNull();
+  expect(content.querySelectorAll('.shot-tile')).toHaveLength(1);
+  // Cmd+C copies only on the result page.
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', metaKey: true }));
+  expect(deps.shot.shotCopy).not.toHaveBeenCalled();
+  pv.show(result(2), TEST_STATE, STR);
+  pv.show(pickPage(TEST_STATE, null, false), TEST_STATE, STR);
+  expect(content.querySelector('.shot')).toBeNull();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', metaKey: true }));
+  expect(deps.shot.shotCopy).not.toHaveBeenCalled();
 });

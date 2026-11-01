@@ -322,3 +322,262 @@
 .sh-drop .lab {
   color: #fff;
 }
+
+/* Screenshot (design 1 Nov §5, §6): the result after a capture (notch-hasil.html)
+   and the list of the last 15 (halaman-screenshot.html v2). Sizes in route.ts SHOT. */
+.shot {
+  height: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.shot-lab {
+  height: 14px;
+  line-height: 14px;
+  margin-bottom: 8px;
+}
+
+.shot-row {
+  display: flex;
+  gap: 14px;
+  height: 150px;
+}
+
+.shot-pic {
+  position: relative;
+  flex: none;
+  width: 240px;
+  height: 150px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  outline: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+
+.shot-pic:hover {
+  outline: 1.5px solid #fff;
+}
+
+.shot-pic img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.shot-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 4px 8px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.shot-side {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.shot-done {
+  font-size: 13px;
+  color: #fff;
+}
+
+.shot-size {
+  margin-top: 4px;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.shot-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shot-btn,
+.shot-tbtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.shot-btn {
+  padding: 7px 12px;
+}
+
+.shot-btn:hover,
+.shot-tbtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.shot-btn svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.shot-head {
+  height: 22px;
+}
+
+/* A notice line under the head: the keys or the permission, maybe a button. */
+.shot-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 24px;
+}
+
+.shot-note-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--g1);
+}
+
+.shot-note-btn {
+  flex: none;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+}
+
+.shot-note-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* 5 columns; each row a 62 px picture over its 14 px time. */
+.shot-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-auto-rows: 76px;
+  gap: 8px;
+}
+
+.shot-th {
+  position: relative;
+  height: 62px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  outline: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+
+.shot-th:hover {
+  outline: 1.5px solid #fff;
+}
+
+.shot-th img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.shot-acts {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  padding-bottom: 4px;
+  background: linear-gradient(transparent 40%, rgba(0, 0, 0, 0.75));
+  opacity: 0;
+}
+
+.shot-th:hover .shot-acts {
+  opacity: 1;
+}
+
+.shot-act {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  cursor: pointer;
+}
+
+.shot-act:hover {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.shot-act svg {
+  width: 11px;
+  height: 11px;
+}
+
+.shot-time {
+  margin-top: 3px;
+  line-height: 11px;
+  text-align: center;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.shot-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+
+.shot-take {
+  display: flex;
+  gap: 8px;
+  height: 40px;
+  margin-top: 12px;
+}
+
+.shot-tbtn {
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
+}
+
+.shot-tbtn svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.shot-key {
+  margin-left: auto;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+}

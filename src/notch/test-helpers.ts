@@ -1,5 +1,5 @@
 import { beforeEach, vi } from 'vitest';
-import type { Bridge, LiveStatus, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState } from '../bridge';
+import type { Bridge, LiveStatus, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys } from '../bridge';
 import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
@@ -146,6 +146,9 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
   const shelfSubs = new Set<(s: ShelfState) => void>();
   const dropSubs = new Set<(e: ShelfDrop) => void>();
   const dragSubs = new Set<(e: ShelfDrag) => void>();
+  const shotSubs = new Set<(e: ShotEvent) => void>();
+  const shotsSubs = new Set<(list: Shot[]) => void>();
+  const shotDragSubs = new Set<(e: ShotDrag) => void>();
   let state = initial;
   const bridge = {
     screenInfo: vi.fn(async () => ({ label: 'test', hasNotch: false, notchWidth: 0, notchHeight: 0 })),
@@ -173,6 +176,24 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     shelfDropReady: vi.fn(async () => {}),
     onShelfDrop: vi.fn((cb: (e: ShelfDrop) => void) => { dropSubs.add(cb); return () => { dropSubs.delete(cb); }; }),
     onShelfDrag: vi.fn((cb: (e: ShelfDrag) => void) => { dragSubs.add(cb); return () => { dragSubs.delete(cb); }; }),
+    shotList: vi.fn(async (): Promise<Shot[]> => []),
+    shotCopy: vi.fn(async (_id: number) => {}),
+    shotSave: vi.fn(async (_id: number) => ''),
+    shotDelete: vi.fn(async (_id: number) => {}),
+    shotTakeScreen: vi.fn(async () => {}),
+    shotPick: vi.fn(async (_mode: 'window' | 'area') => {}),
+    shotStartDrag: vi.fn(async (_id: number) => {}),
+    shotKeys: vi.fn(async (): Promise<ShotKeys> => ({ screen: 'ok', pick: 'ok' })),
+    shotPermission: vi.fn(async () => true),
+    openKeyboardShortcuts: vi.fn(async () => {}),
+    openScreenRecordingSettings: vi.fn(async () => {}),
+    openEditor: vi.fn(async (_id: number) => {}),
+    onShot: vi.fn((cb: (e: ShotEvent) => void) => { shotSubs.add(cb); return () => { shotSubs.delete(cb); }; }),
+    onShots: vi.fn((cb: (list: Shot[]) => void) => { shotsSubs.add(cb); return () => { shotsSubs.delete(cb); }; }),
+    onShotDrag: vi.fn((cb: (e: ShotDrag) => void) => { shotDragSubs.add(cb); return () => { shotDragSubs.delete(cb); }; }),
+    emitShot: (e: ShotEvent) => shotSubs.forEach(cb => cb(e)),
+    emitShots: (list: Shot[]) => shotsSubs.forEach(cb => cb(list)),
+    emitShotDrag: (e: ShotDrag) => shotDragSubs.forEach(cb => cb(e)),
     emitShelf: (s: ShelfState) => shelfSubs.forEach(cb => cb(s)),
     emitShelfDrop: (e: ShelfDrop) => dropSubs.forEach(cb => cb(e)),
     emitShelfDrag: (e: ShelfDrag) => dragSubs.forEach(cb => cb(e)),

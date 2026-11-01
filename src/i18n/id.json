@@ -15,6 +15,28 @@
     "clear": "Kosongkan",
     "remove": "Buang"
   },
+  "shot": {
+    "label": "Screenshot · {kind}",
+    "kinds": { "screen": "Layar", "window": "Window", "area": "Area" },
+    "hints": { "screen": "⌘⇧3", "window": "⌘⇧4 + klik", "area": "⌘⇧4 + tarik" },
+    "edit": "Klik untuk edit",
+    "copied": "Tersalin ke clipboard",
+    "copy": "Salin",
+    "save": "Simpan",
+    "saved": "Tersimpan",
+    "delete": "Hapus",
+    "title": "Screenshot · {n}",
+    "empty": "Tekan ⌘⇧3 atau ⌘⇧4 untuk screenshot pertama",
+    "macKeys": "{keys} masih dipakai screenshot bawaan Mac",
+    "otherKeys": "{key} dipakai app lain",
+    "and": " dan ",
+    "permission": "Screenshot butuh izin Perekaman Layar",
+    "openSettings": "Buka Pengaturan Sistem",
+    "time": "{h}.{m}",
+    "yesterday": "Kemarin",
+    "date": "{d} {month}",
+    "months": ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+  },
   "clean": {
     "title": "Keyboard sedang dibersihkan",
     "hint": "Tekan Esc 5× untuk keluar"

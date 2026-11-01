@@ -522,3 +522,161 @@ test('opening the shelf from the pill checks the files again', async () => {
   pick('shelf');
   expect(bridge.shelf).toHaveBeenCalledWith(true);
 });
+
+// Screenshot (design 1 Nov §5, §6).
+const shotInfo = (over = {}) => moduleInfo('screenshot', {
+  name: 'Screenshot', shortName: 'Screenshot', entry: null, card: null,
+  action: { capability: 'screenshot', method: 'open' }, ...over,
+});
+const SHOT_STATE: ModuleState = { ...SHELF_STATE, modules: [...SHELF_STATE.modules, shotInfo()] };
+const shotDto = (id: number) => ({
+  id, kind: 'window' as const, takenMs: Date.now(), width: 1440, height: 900, saved: false,
+  image: `notchshot://localhost/${id}/current.png?v=0`, thumb: `notchshot://localhost/${id}/thumb.png?v=0`,
+});
+const onResult = (root: HTMLElement) => root.querySelector('.shot-res') !== null;
+const onList = (root: HTMLElement) => root.querySelector('.shot-list') !== null;
+const activeIcon = (root: HTMLElement) => root.querySelector('.notch-pill .ic.on')?.getAttribute('data-id');
+const tick = () => new Promise(res => setTimeout(res, 0));
+
+async function startShot(shelfItems = 0) {
+  const s = await startShelf(shelfItems, SHOT_STATE);
+  s.bridge.emitShots([shotDto(1)]);
+  return s;
+}
+
+function taken(bridge: ReturnType<typeof fakeBridge>, id: number): void {
+  bridge.emitShot({ phase: 'taken', id });
+  bridge.emitShots([shotDto(id), shotDto(1)]);
+}
+
+function openList(s: Awaited<ReturnType<typeof startShot>>): void {
+  open(s.app, s.r);
+  s.pick('modules');
+  s.root.querySelector<HTMLElement>('.mods-tile[aria-label="Screenshot"]')!.click();
+}
+
+test('a screenshot taken while closed opens the panel on its result', async () => {
+  const { app, r, root, bridge } = await startShot(2);
+  taken(bridge, 2);
+  expect(app.controller.phase).toBe('open');
+  r.runAll(60);
+  expect(onResult(root)).toBe(true);
+  // Kept files do not take its place.
+  expect(onShelf(root)).toBe(false);
+  expect(root.querySelector('.shot-pic img')!.getAttribute('src')).toBe('notchshot://localhost/2/current.png?v=0');
+  expect(app.controller.card).toEqual({ width: 420, height: 172 });
+  expect(bridge.setLastPage).not.toHaveBeenCalledWith('screenshot');
+});
+
+test('a screenshot taken while open switches the page', async () => {
+  const { app, r, root, bridge } = await startShot();
+  open(app, r);
+  expect(onResult(root)).toBe(false);
+  taken(bridge, 2);
+  expect(onResult(root)).toBe(true);
+  taken(bridge, 3);
+  expect(root.querySelector('.shot-pic img')!.getAttribute('src')).toBe('notchshot://localhost/3/current.png?v=0');
+});
+
+test('a result whose list has not come yet asks for it', async () => {
+  const { app, r, root, bridge } = await startShot();
+  bridge.shotList.mockResolvedValue([shotDto(5), shotDto(1)]);
+  bridge.emitShot({ phase: 'taken', id: 5 });
+  expect(bridge.shotList).toHaveBeenCalled();
+  await tick();
+  r.runAll(60);
+  expect(app.controller.phase).toBe('open');
+  expect(root.querySelector('.shot-pic img')!.getAttribute('src')).toBe('notchshot://localhost/5/current.png?v=0');
+});
+
+test('closing the result goes back to the last page for the next open', async () => {
+  const { app, r, root, bridge } = await startShot();
+  taken(bridge, 2);
+  r.runAll(60);
+  close(app, r);
+  open(app, r);
+  expect(onResult(root)).toBe(false);
+  expect(root.querySelectorAll('iframe')).toHaveLength(3);
+});
+
+test('the Screenshot tile opens the list without a core call', async () => {
+  const s = await startShot();
+  openList(s);
+  expect(s.app.controller.phase).toBe('open');
+  expect(onList(s.root)).toBe(true);
+  expect(s.root.querySelectorAll('.shot-tile')).toHaveLength(1);
+  expect(s.bridge.moduleCall).not.toHaveBeenCalled();
+  expect(s.app.controller.card.width).toBe(560);
+  // Its back bar returns to the Modul page.
+  s.root.querySelector<HTMLElement>('.shot-head button')!.click();
+  expect(s.root.querySelector('.mods-grid')).not.toBeNull();
+});
+
+test('the list lights the Modul icon; the result keeps the rule of other non-custom pages', async () => {
+  const s = await startShot();
+  openList(s);
+  expect(activeIcon(s.root)).toBe('modules');
+  taken(s.bridge, 2);
+  expect(onResult(s.root)).toBe(true);
+  expect(activeIcon(s.root)).toBe('modules');
+  // Neither adds an icon of its own.
+  expect(s.pillIds()).toEqual(['home', 'p1', 'modules']);
+});
+
+test('a notice on the list makes the panel taller', async () => {
+  const s = await startShot();
+  s.bridge.shotPermission.mockResolvedValue(false);
+  openList(s);
+  const before = s.app.controller.card.height;
+  await tick();
+  expect(s.app.controller.card.height).toBe(before + 24);
+});
+
+test('a screenshot notice opens the list, even with kept files', async () => {
+  const { app, r, root, bridge } = await startShot(2);
+  bridge.emitNotice(notice('⌘⇧3 masih dipakai Mac', 'screenshot', 'keys'));
+  clickNotice(app, r);
+  expect(onList(root)).toBe(true);
+  expect(onShelf(root)).toBe(false);
+});
+
+test('Layar closes the panel and takes the screen once it is closed', async () => {
+  const s = await startShot();
+  openList(s);
+  s.root.querySelector<HTMLElement>('.shot-take button')!.click();
+  expect(s.app.controller.phase).toBe('closing');
+  await tick();
+  expect(s.bridge.shotTakeScreen).not.toHaveBeenCalled();
+  s.r.runAll(600);
+  expect(s.app.controller.phase).toBe('idle');
+  await tick();
+  expect(s.bridge.shotTakeScreen).toHaveBeenCalledTimes(1);
+});
+
+test('a gone event for the shown result closes the panel', async () => {
+  const { app, r, bridge } = await startShot();
+  taken(bridge, 2);
+  r.runAll(60);
+  bridge.emitShot({ phase: 'gone', id: 1 });
+  expect(app.controller.phase).toBe('open');
+  bridge.emitShot({ phase: 'gone', id: 2 });
+  expect(app.controller.phase).toBe('closing');
+});
+
+test('a screenshot dragged out of the panel closes it', async () => {
+  const { app, r, bridge } = await startShot();
+  taken(bridge, 2);
+  r.runAll(60);
+  bridge.emitShotDrag({ phase: 'left' });
+  expect(app.controller.phase).toBe('closing');
+});
+
+test('a module change keeps the screenshot page while the module is on', async () => {
+  const { r, root, bridge } = await startShot();
+  taken(bridge, 2);
+  r.runAll(60);
+  bridge.emitModuleState({ ...SHOT_STATE, missed: ['home.reminder'] });
+  expect(onResult(root)).toBe(true);
+  bridge.emitModuleState({ ...SHOT_STATE, modules: [...SHELF_STATE.modules, shotInfo({ enabled: false })] });
+  expect(onResult(root)).toBe(false);
+});

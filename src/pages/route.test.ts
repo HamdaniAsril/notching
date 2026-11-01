@@ -2,7 +2,8 @@ import { expect, test } from 'vitest';
 import { hostStrings } from '../i18n';
 import type { ModuleState, Page } from '../modules/types';
 import { BERANDA, homeWidgets, moduleInfo, TEST_STATE, timerInfo } from '../notch/test-helpers';
-import { missedTargets, noticeTarget, pageModules, pageName, pickPage, resolvePage, SHELF, viewSize } from './route';
+import { shot } from '../shot/test-helpers';
+import { missedTargets, noticeTarget, pageModules, pageName, pickPage, resolvePage, SHELF, SHOT, viewSize } from './route';
 
 const P1: Page = { id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [{ widget: 'home/reminders', col: 0, width: 2 }] };
 const state = (over: Partial<ModuleState> = {}): ModuleState => ({ ...TEST_STATE, ...over });
@@ -121,4 +122,30 @@ test('shelf size by rows', () => {
 
 test('dropping size is 104', () => {
   expect(viewSize({ kind: 'shelf', key: 'shelf', shelf: { items: [] }, dropping: true })).toEqual({ width: 520, height: 104 });
+});
+
+// Screenshot (design 1 Nov §5, §6).
+const shots = (n: number) => Array.from({ length: n }, (_, i) => shot(i + 1));
+
+test('the screenshot result is 420 × 172, however many shots there are', () => {
+  for (const n of [0, 6, 15]) {
+    expect(viewSize({ kind: 'shot', mode: 'result', id: 1, key: 'screenshot', shots: shots(n) })).toEqual({ width: 420, height: 172 });
+  }
+});
+
+test('the screenshot list grows by rows of 5, up to 3', () => {
+  const list = (n: number, notes?: number) => viewSize({ kind: 'shot', mode: 'list', key: 'screenshot', shots: shots(n), notes });
+  const { head, tileH, label, gap, buttons, emptyH } = SHOT;
+  expect(SHOT).toEqual({ resultWidth: 420, resultHeight: 172, listWidth: 560, columns: 5, gap: 8, tileH: 62, label: 14, head: 22, buttons: 40, emptyH: 72, note: 24 });
+  expect(list(0)).toEqual({ width: 560, height: head + emptyH + 12 + buttons });
+  expect(list(6)).toEqual({ width: 560, height: head + 2 * (tileH + label) + gap + 12 + buttons });
+  expect(list(15)).toEqual({ width: 560, height: head + 3 * (tileH + label) + 2 * gap + 12 + buttons });
+  expect(list(5)).toEqual(list(1));
+  expect(list(15).height).toBe(318);
+  // Each notice line under the head adds its own height.
+  expect(list(6, 2).height).toBe(list(6).height + 2 * SHOT.note);
+});
+
+test('screenshot pages are not pages to remember', () => {
+  expect(resolvePage(state(), 'screenshot')).toBeNull();
 });

@@ -15,6 +15,28 @@
     "clear": "Clear",
     "remove": "Remove"
   },
+  "shot": {
+    "label": "Screenshot · {kind}",
+    "kinds": { "screen": "Screen", "window": "Window", "area": "Area" },
+    "hints": { "screen": "⌘⇧3", "window": "⌘⇧4 + click", "area": "⌘⇧4 + drag" },
+    "edit": "Click to edit",
+    "copied": "Copied to clipboard",
+    "copy": "Copy",
+    "save": "Save",
+    "saved": "Saved",
+    "delete": "Delete",
+    "title": "Screenshot · {n}",
+    "empty": "Press ⌘⇧3 or ⌘⇧4 for your first screenshot",
+    "macKeys": "{keys} still taken by the Mac's own screenshots",
+    "otherKeys": "{key} is taken by another app",
+    "and": " and ",
+    "permission": "Screenshot needs Screen Recording access",
+    "openSettings": "Open System Settings",
+    "time": "{h}:{m}",
+    "yesterday": "Yesterday",
+    "date": "{month} {d}",
+    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  },
   "clean": {
     "title": "Cleaning the keyboard",
     "hint": "Press Esc 5× to leave"
