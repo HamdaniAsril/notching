@@ -131,6 +131,9 @@ pub struct Node {
 }
 
 pub const NODE_MIN: u64 = 50_000_000;
+/// The biggest this many always show by name, however small, so a folder of
+/// small files is still more than one "… item lain" row.
+pub const TOP_ALWAYS: usize = 10;
 
 pub fn breakdown(env: &Env) -> Node {
     breakdown_with(env, NODE_MIN)
@@ -478,11 +481,15 @@ fn node(path: &Path, name: String, env: &Env, min: u64, dev: u64) -> Node {
     Node { name, bytes, dir: true, readable: true, rest: 0, children: prune(kids, min) }
 }
 
-// Keeps the big ones (and unreadable folders, so they can say so), biggest
-// first; the rest become one summed node at the end.
-fn prune(kids: Vec<Node>, min: u64) -> Vec<Node> {
-    let (mut keep, small): (Vec<Node>, Vec<Node>) = kids.into_iter().partition(|k| k.bytes >= min || !k.readable);
-    keep.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.name.cmp(&b.name)));
+// Keeps the biggest TOP_ALWAYS, the big ones and unreadable folders (so they
+// can say so), biggest first; the rest become one summed node at the end.
+fn prune(mut kids: Vec<Node>, min: u64) -> Vec<Node> {
+    kids.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.name.cmp(&b.name)));
+    let mut keep = Vec::new();
+    let mut small = Vec::new();
+    for (i, k) in kids.into_iter().enumerate() {
+        if i < TOP_ALWAYS || k.bytes >= min || !k.readable { keep.push(k) } else { small.push(k) }
+    }
     if !small.is_empty() {
         let bytes = small.iter().map(|k| k.bytes).sum();
         keep.push(Node { name: String::new(), bytes, dir: false, readable: true, rest: small.len() as u32, children: Vec::new() });
@@ -643,6 +650,23 @@ mod tests {
     }
 
     #[test]
+    fn the_biggest_ten_always_show_even_when_small() {
+        let t = sample();
+        let h = &t.roots.home;
+        for i in 0..14 {
+            file(&h.join(format!("dev/f{i:02}.txt")), 5000 * (i + 1));
+        }
+        let (f, ex, c) = (std_fake(), Exclusions::default(), AtomicBool::new(false));
+        let e = env(&t, true, &f, &ex, &c, &|_| false, &|_| Some(true), &|_| false);
+        let root = breakdown_with(&e, NODE_MIN);
+        let dev = root.children.iter().find(|n| n.name == "dev").unwrap();
+        let named: Vec<&str> = dev.children.iter().filter(|n| n.rest == 0).map(|n| n.name.as_str()).collect();
+        assert_eq!(named.len(), TOP_ALWAYS);
+        assert_eq!(named[0], "f13.txt");
+        assert_eq!(dev.children.last().unwrap().rest, 4);
+    }
+
+    #[test]
     fn an_emptied_folder_is_not_offered_again() {
         let t = sample();
         fs::create_dir_all(t.roots.home.join("Library/Caches/com.kosong.app")).unwrap();
@@ -795,8 +819,8 @@ mod tests {
         let t = sample();
         let h = &t.roots.home;
         file(&h.join("dev/big/a.bin"), 300_000);
-        for i in 0..5 {
-            file(&h.join(format!("dev/small{i}.txt")), 100);
+        for i in 0..15 {
+            file(&h.join(format!("dev/small{i:02}.txt")), 100);
         }
         file(&t.roots.apps[0].join("Big.app/Contents/x"), 200_000);
         let (f, ex, c) = (std_fake(), Exclusions::default(), AtomicBool::new(false));
@@ -805,7 +829,7 @@ mod tests {
         let dev = root.children.iter().find(|n| n.name == "dev").unwrap();
         assert_eq!(dev.children[0].name, "big");
         let rest = dev.children.iter().find(|n| n.rest > 0).unwrap();
-        assert_eq!(rest.rest, 5);
+        assert_eq!(rest.rest, 6);
         assert!(root.children.iter().any(|n| n.name == "App" && n.bytes >= 200_000));
         // Biggest first.
         assert!(root.children.windows(2).all(|w| w[0].bytes >= w[1].bytes || w[1].rest > 0));

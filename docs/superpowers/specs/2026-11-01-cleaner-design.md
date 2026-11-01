@@ -79,7 +79,7 @@ Semua isi Cleaner ada **di dalam panel notch**, bukan di jendela sendiri. Pemili
 | Lainnya | sisa yang terpakai: sistem, data app, dan lain-lain | abu-abu |
 | (kosong) | ruang yang masih tersisa | hitam pekat |
 
-  - **Warna adalah permintaan pemilik.** Ini pengecualian kedua dari aturan "tidak warna-warni" di desain awal bagian 2, setelah cahaya notifikasi. Pengecualian ini hanya untuk bar ini dan keterangannya. Bagian lain Cleaner tetap hitam-putih.
+  - **Warna adalah permintaan pemilik.** Ini pengecualian kedua dari aturan "tidak warna-warni" di desain awal bagian 2, setelah cahaya notifikasi. Pengecualian ini hanya untuk bar ini dan keterangannya, ditambah centang yang aktif di daftar Cleaner, yang berwarna merah (permintaan pemilik saat dicoba di Mac, 1 November 2026, karena centang abu terang sulit dibedakan). Bagian lain Cleaner tetap hitam-putih.
   - Angkanya tidak harus sama persis dengan Pengaturan Mac, karena macOS tidak memberi rincian kategorinya ke app lain. Yang penting jumlahnya masuk akal dan "Lainnya" tidak negatif.
 - **Klik bar** untuk membuka rincian isi disk (bagian 6).
 - **Di bawah bar ada dua kotak sejajar:**
@@ -154,7 +154,8 @@ Setelah tombol Bersihkan atau Hapus ditekan, muncul ringkasan di panel (perminta
 - Klik bar di tampilan awal untuk membuka rincian.
 - Isinya daftar folder dan file terbesar, diurutkan dari yang terbesar, dengan bar ukuran tipis di setiap baris. Mulainya dari folder rumah, dengan baris tambahan untuk App **(keputusan penulis)**.
 - Klik folder untuk masuk. Ada "‹" untuk kembali.
-- Setiap baris punya tombol **Tampilkan di Finder**. Rincian **tidak bisa menghapus apa pun** (permintaan pemilik).
+- 10 isi terbesar selalu tampil sendiri-sendiri, walaupun kecil. Sisanya yang di bawah 50 MB digabung menjadi satu baris "… item lain" **(keputusan penulis, setelah dicoba di Mac: folder berisi file kecil sebelumnya hanya menampilkan satu baris gabungan)**.
+- Setiap baris punya tombol **Tampilkan di Finder**, yang selalu terlihat. Rincian **tidak bisa menghapus apa pun** (permintaan pemilik).
 - Notching hanya mengingat ringkasan folder dan file besar, bukan daftar semua file, supaya hemat memori.
 - Folder yang tidak bisa dibaca tanpa Full Disk Access diberi keterangan "tidak bisa dibaca".
 
