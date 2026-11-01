@@ -427,6 +427,22 @@ mod tests {
     }
 
     #[test]
+    fn a_browser_profile_is_personal_data_unticked() {
+        let t = sample();
+        let app = info(&t, "Chrome", "com.google.Chrome");
+        file(&t.roots.home.join("Library/Application Support/Google/Chrome/Default/History"), 100);
+        let ex = Exclusions::default();
+        let items = leftovers(&app, &ctx(&t, &ex, &[], None, &|_| false, false), &mut 1);
+        let profile = items.iter().find(|i| i.path.ends_with("Google/Chrome")).unwrap();
+        assert_eq!(profile.category, Category::Personal);
+        assert!(!profile.ticked);
+        let fx = info(&t, "Firefox", "org.mozilla.firefox");
+        file(&t.roots.home.join("Library/Application Support/Firefox/Profiles/x/places.sqlite"), 100);
+        let items = leftovers(&fx, &ctx(&t, &ex, &[], None, &|_| false, false), &mut 1);
+        assert!(!items.iter().any(|i| i.path.ends_with("Application Support/Firefox")), "a maybe profile is never offered");
+    }
+
+    #[test]
     fn launch_agent_by_program_path() {
         let t = sample();
         let app = info(&t, "Coba", "id.coba.app");

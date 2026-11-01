@@ -151,3 +151,35 @@ test('the bar opens the breakdown, and it stays after Finder takes the panel awa
   s.view.shown();
   expect(s.box.querySelector('.cl-node .cl-name')!.textContent).toBe('a');
 });
+
+test('a scan cut short by closing the panel is measured again when it shows', async () => {
+  const s = await setup();
+  s.bridge.cleanerDeepScan.mockRejectedValueOnce('cancelled');
+  await s.toList();
+  expect(s.box.querySelector('.cl-item')).toBeNull();
+  s.view.hidden();
+  s.setNow(60_000);
+  s.view.shown();
+  await tick();
+  expect(s.bridge.cleanerDeepScan).toHaveBeenCalledTimes(2);
+  expect(s.box.querySelector('.cl-item[data-id="1"]')).not.toBeNull();
+});
+
+test('a stale uninstall opens the app again instead of asking with the old scan', async () => {
+  const s = await setup();
+  s.bridge.cleanerApps.mockResolvedValue({ scanId: 3, items: [{ id: 50, name: 'Coba', bundleId: 'id.coba', bytes: 1e6, refused: false, running: false }] });
+  s.bridge.cleanerAppDetail.mockResolvedValue({ scanId: 4, items: [
+    { id: 60, category: 'app', label: 'Coba', detail: null, bytes: 1e6, method: 'trash', ticked: true, inUse: false, confidence: 'sure' },
+  ] });
+  s.box.querySelector<HTMLElement>('[data-tile="uninstall"]')!.click();
+  await tick();
+  s.box.querySelector<HTMLElement>('.cl-app')!.click();
+  await tick();
+  s.bridge.cleanerRun.mockRejectedValueOnce('stale');
+  s.box.querySelector<HTMLElement>('.cl-go')!.click();
+  s.box.querySelector<HTMLElement>('.cl-yes')!.click();
+  await tick();
+  await tick();
+  expect(s.bridge.cleanerAppDetail).toHaveBeenCalledTimes(2);
+  expect(s.box.querySelector('.cl-go')).not.toBeNull();
+});

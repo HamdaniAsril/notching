@@ -134,7 +134,10 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
       running = false;
       if (e === 'stale') {
         if (kind === 'clean') showClean(true);
-        else backTo();
+        else {
+          backTo();
+          uninstall.reopen();
+        }
       } else {
         const why = e === 'exclusions' ? s.exclusionsBroken : e === 'busy' ? s.busy : String(e);
         run.result(0, []);
@@ -166,10 +169,17 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
         showHome();
         return;
       }
+      // A scan the panel cut short is measured again; one that landed is kept.
+      if (screen === 'home' && !home.loaded()) home.refresh();
       if (screen === 'clean') {
-        deps.bridge.cleanerRunning(clean.scan()).then(ids => clean.inUse(ids), () => {});
+        if (!clean.loaded()) clean.refresh();
+        else deps.bridge.cleanerRunning(clean.scan()).then(ids => clean.inUse(ids), () => {});
       }
-      if (screen === 'uninstall') uninstall.revisit();
+      if (screen === 'uninstall') {
+        if (!uninstall.loaded()) uninstall.refresh();
+        else uninstall.revisit();
+      }
+      if (screen === 'disk' && !disk.loaded()) disk.refresh();
     },
     hidden() {
       hiddenAt = deps.now();

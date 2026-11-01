@@ -3,13 +3,14 @@
 //! progress, status and log; Full Disk Access, the volume, running apps, Launch
 //! Services and the Trash.
 
+use std::cell::OnceCell;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use objc2::rc::Retained;
@@ -38,6 +39,10 @@ const EXCLUDE_FILE: &str = "cleaner-exclude.json";
 const LOG_FILE: &str = "cleaner.log";
 const QUIT_WAIT: Duration = Duration::from_secs(2);
 
+/// Each scan takes a block of ids this big, so scans running side by side never
+/// hand out the same id.
+pub const ID_BLOCK: u64 = 1_000_000;
+
 struct Scan {
     made_ms: i64,
     items: HashMap<u64, Item>,
@@ -60,11 +65,17 @@ impl Store {
         &mut self.next_id
     }
 
+    /// The first id of a fresh block for one scan.
+    pub fn reserve(&mut self) -> u64 {
+        let start = *self.ids();
+        self.next_id += ID_BLOCK;
+        start
+    }
+
     /// Keeps a scan's items; drops scans past their time.
     pub fn put(&mut self, items: Vec<Item>, now_ms: i64) -> u64 {
         self.scans.retain(|_, s| now_ms - s.made_ms < SCAN_TTL_MS);
-        let id = *self.ids();
-        self.next_id += 1;
+        let id = self.reserve();
         self.scans.insert(id, Scan { made_ms: now_ms, items: items.into_iter().map(|i| (i.id, i)).collect() });
         id
     }
@@ -101,8 +112,11 @@ pub struct CleanerState {
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
     let paths = app.path();
     let home = paths.home_dir()?;
-    let roots = Roots::from_env(home.clone(), std::env::var_os("NOTCHING_CLEANER_ROOT"));
-    if roots.test_mode {
+    let var = std::env::var_os("NOTCHING_CLEANER_ROOT");
+    let roots = Roots::from_env(home.clone(), var.clone(), |root| root.join(".cleaner-cek").is_file());
+    if roots == Roots::disabled() {
+        eprintln!("notching: NOTCHING_CLEANER_ROOT={var:?} is not a sample folder; Cleaner is off");
+    } else if roots.test_mode {
         eprintln!("notching: Cleaner in test mode, inside {}", roots.home.display());
     }
     app.manage(CleanerState {
@@ -164,26 +178,54 @@ fn snapshot() -> Snapshot {
     Snapshot { running, running_paths, processes }
 }
 
+/// An item's owner is busy: an app with that bundle id runs, or a tool
+/// (brew, npm, xcodebuild…) with that process name.
+pub fn owner_busy(owner: &str, bundles: &HashSet<String>, processes: &HashSet<String>) -> bool {
+    !owner.is_empty() && (bundles.contains(owner) || processes.contains(owner))
+}
+
+/// A scan the panel cancelled measured only part of the disk: it is not kept.
+pub fn finished<T>(cancel: &AtomicBool, value: T) -> Result<T, String> {
+    if cancel.load(Ordering::Relaxed) { Err("cancelled".into()) } else { Ok(value) }
+}
+
+/// Clears the busy flag however the run ends, a panic included.
+pub struct BusyGuard<'a>(pub &'a AtomicBool);
+
+impl Drop for BusyGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::SeqCst);
+    }
+}
+
 impl Snapshot {
     fn running(&self, name: &str) -> bool {
-        self.running.contains(name)
+        owner_busy(name, &self.running, &self.processes)
     }
     fn app_running(&self, app: &AppInfo) -> bool {
         self.running.contains(&app.bundle_id) || self.running_paths.iter().any(|p| p == &app.path)
     }
 }
 
-/// Launch Services: every copy of an app macOS knows, outside the Trash.
-fn copies(bundle_id: &str, home: &Path) -> Option<Vec<PathBuf>> {
+/// Launch Services: every copy of an app macOS knows that is still on disk.
+/// An app in the Trash still counts as installed (§7).
+fn copies(bundle_id: &str) -> Vec<PathBuf> {
     let ws = NSWorkspace::sharedWorkspace();
     let urls = ws.URLsForApplicationsWithBundleIdentifier(&NSString::from_str(bundle_id));
-    let trash = home.join(".Trash");
-    Some(
-        urls.iter()
-            .filter_map(|u| u.path().map(|p| PathBuf::from(p.to_string())))
-            .filter(|p| !p.starts_with(&trash))
-            .collect(),
-    )
+    urls.iter().filter_map(|u| u.path().map(|p| PathBuf::from(p.to_string()))).filter(|p| p.exists()).collect()
+}
+
+/// Another copy than the one being removed, not counting one in the Trash.
+pub fn other_copy(copies: &[PathBuf], target: &Path, trash: &Path) -> bool {
+    copies.iter().any(|p| p != target && !p.starts_with(trash))
+}
+
+/// Shared when another app has the team, or its team can't be read.
+pub fn team_shared(team: &str, others: &[Result<Option<String>, ()>]) -> bool {
+    others.iter().any(|o| match o {
+        Ok(t) => t.as_deref() == Some(team),
+        Err(()) => true,
+    })
 }
 
 fn mounted_images() -> Vec<PathBuf> {
@@ -228,13 +270,7 @@ fn with_env<R>(state: &CleanerState, excluded: &Exclusions, f: impl FnOnce(&Env,
     let snap = snapshot();
     let mounted = mounted_images();
     let listed: HashSet<String> = bundle_ids(&state.roots).into_iter().collect();
-    let home = state.roots.home.clone();
-    let installed = move |bid: &str| -> Option<bool> {
-        if listed.contains(bid) {
-            return Some(true);
-        }
-        copies(bid, &home).map(|c| !c.is_empty())
-    };
+    let installed = move |bid: &str| -> Option<bool> { Some(listed.contains(bid) || !copies(bid).is_empty()) };
     let running = |n: &str| snap.running(n);
     let busy = |t: &str| !t.is_empty() && snap.processes.contains(t);
     let is_mounted = |p: &Path| mounted.iter().any(|m| m == p);
@@ -321,47 +357,49 @@ pub async fn cleaner_overview(app: AppHandle) -> Result<Overview, String> {
 /// The bar's parts and the tiles' summaries. Keeps the app list for Clean uninstall.
 #[tauri::command]
 pub async fn cleaner_parts(app: AppHandle) -> Result<PartsDto, String> {
-    blocking(app, |state| {
+    blocking(app, |state| -> Result<PartsDto, String> {
         state.cancel.store(false, Ordering::Relaxed);
         let excluded = load_exclusions(state).unwrap_or_default();
         let ((documents, photos), cleanable) = with_env(state, &excluded, |env, _| (personal_parts(env), quick_cleanable(env)));
-        let apps = fresh_apps(state);
+        finished(&state.cancel, ())?;
+        let apps = fresh_apps(state)?;
         let bytes: u64 = apps.items.iter().map(|a| a.bytes).sum();
-        PartsDto { apps: Some(bytes), documents, photos, cleanable: Some(cleanable), app_count: apps.items.len() }
+        Ok(PartsDto { apps: Some(bytes), documents, photos, cleanable: Some(cleanable), app_count: apps.items.len() })
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }
 
 // Lists the apps (slow: each is sized) without holding the store, then keeps them.
-fn fresh_apps(state: &CleanerState) -> ScanDto<AppInfo> {
+fn fresh_apps(state: &CleanerState) -> Result<ScanDto<AppInfo>, String> {
     let snap = snapshot();
-    let mut ids = { *state.store.lock().unwrap().ids() };
+    let mut ids = state.store.lock().unwrap().reserve();
     let mut apps = list_apps(&state.roots, &state.cancel, &mut ids);
-    for a in &mut apps {
-        a.running = snap.app_running(a);
-    }
+    let apps = finished(&state.cancel, ())
+        .map(|()| {
+            for a in &mut apps {
+                a.running = snap.app_running(a);
+            }
+            apps
+        })?;
     let mut store = state.store.lock().unwrap();
-    let scan = store.next_id.max(ids);
-    store.next_id = scan + 1;
+    let scan = store.reserve();
     store.apps = Some((scan, now_ms(), apps.clone()));
-    ScanDto { scan_id: scan, items: apps }
+    Ok(ScanDto { scan_id: scan, items: apps })
 }
 
 #[tauri::command]
 pub async fn cleaner_deep_scan(app: AppHandle) -> Result<ScanDto<Item>, String> {
-    blocking(app, |state| {
+    blocking(app, |state| -> Result<ScanDto<Item>, String> {
         state.cancel.store(false, Ordering::Relaxed);
         let excluded = load_exclusions(state).unwrap_or_default();
-        let mut ids = { *state.store.lock().unwrap().ids() };
-        let items = with_env(state, &excluded, |env, _| deep_scan(env, &mut ids));
-        let mut store = state.store.lock().unwrap();
-        store.next_id = store.next_id.max(ids);
-        let scan_id = store.put(items.clone(), now_ms());
-        ScanDto { scan_id, items }
+        let mut ids = state.store.lock().unwrap().reserve();
+        let items = finished(&state.cancel, with_env(state, &excluded, |env, _| deep_scan(env, &mut ids)))?;
+        let scan_id = state.store.lock().unwrap().put(items.clone(), now_ms());
+        Ok(ScanDto { scan_id, items })
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -371,7 +409,7 @@ pub async fn cleaner_apps(app: AppHandle) -> Result<ScanDto<AppInfo>, String> {
             let store = state.store.lock().unwrap();
             if let Some((scan, made, apps)) = &store.apps {
                 if now_ms() - made < SCAN_TTL_MS {
-                    return ScanDto { scan_id: *scan, items: apps.clone() };
+                    return Ok(ScanDto { scan_id: *scan, items: apps.clone() });
                 }
             }
         }
@@ -379,16 +417,26 @@ pub async fn cleaner_apps(app: AppHandle) -> Result<ScanDto<AppInfo>, String> {
         fresh_apps(state)
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }
 
-fn team(app: &Path) -> Option<String> {
-    let out = Command::new("/usr/bin/codesign").arg("-dv").arg("--verbose=2").arg(app).output().ok()?;
-    parse_team(&String::from_utf8_lossy(&out.stderr))
-}
-
-fn vendor(bid: &str) -> String {
-    bid.split('.').take(2).collect::<Vec<_>>().join(".").to_lowercase()
+/// An app's Team ID: Ok(None) for an unsigned or team-less app, Err when
+/// codesign can't say. Kept per path for the run of Notching.
+fn team_of(app: &Path) -> Result<Option<String>, ()> {
+    static CACHE: OnceLock<Mutex<HashMap<PathBuf, Result<Option<String>, ()>>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    if let Some(t) = cache.lock().unwrap().get(app) {
+        return t.clone();
+    }
+    let team = match Command::new("/usr/bin/codesign").arg("-dv").arg("--verbose=2").arg(app).output() {
+        Ok(out) => {
+            let text = String::from_utf8_lossy(&out.stderr);
+            if out.status.success() || text.contains("not signed") { Ok(parse_team(&text)) } else { Err(()) }
+        }
+        Err(_) => Err(()),
+    };
+    cache.lock().unwrap().insert(app.to_path_buf(), team.clone());
+    team
 }
 
 /// The app and what it leaves (§5.2), as a new scan.
@@ -406,11 +454,13 @@ pub async fn cleaner_app_detail(app: AppHandle, app_id: u64) -> Result<ScanDto<I
         let snap = snapshot();
         let mut target = target;
         target.running = snap.app_running(&target);
+        let trash = state.real_home.join(".Trash");
         let other_copy = others.iter().any(|o| o.bundle_id == target.bundle_id)
-            || copies(&target.bundle_id, &state.roots.home).is_none_or(|c| c.iter().any(|p| p != &target.path));
-        let team_id = team(&target.path);
-        let same_vendor: Vec<&AppInfo> = others.iter().filter(|o| vendor(&o.bundle_id) == vendor(&target.bundle_id)).collect();
-        let team_shared = |t: &str| same_vendor.iter().any(|o| team(&o.path).is_none_or(|ot| ot == t));
+            || self::other_copy(&copies(&target.bundle_id), &target.path, &trash);
+        let team_id = team_of(&target.path).ok().flatten();
+        // Every other app's team, read only when a team container turns up.
+        let teams: OnceCell<Vec<Result<Option<String>, ()>>> = OnceCell::new();
+        let team_shared = |t: &str| team_shared(t, teams.get_or_init(|| others.iter().map(|o| team_of(&o.path)).collect()));
         let other_ids: Vec<String> = others.iter().map(|o| o.bundle_id.clone()).collect();
         let ctx = Leftovers {
             roots: &state.roots,
@@ -421,12 +471,10 @@ pub async fn cleaner_app_detail(app: AppHandle, app_id: u64) -> Result<ScanDto<I
             others: &other_ids,
             excluded: &excluded,
         };
-        let mut ids = { *state.store.lock().unwrap().ids() };
+        let mut ids = state.store.lock().unwrap().reserve();
         let mut items = vec![app_item(&target, &mut ids)];
         items.extend(leftovers(&target, &ctx, &mut ids));
-        let mut store = state.store.lock().unwrap();
-        store.next_id = store.next_id.max(ids);
-        let scan_id = store.put(items.clone(), now_ms());
+        let scan_id = state.store.lock().unwrap().put(items.clone(), now_ms());
         Ok(ScanDto { scan_id, items })
     })
     .await
@@ -438,10 +486,10 @@ pub async fn cleaner_breakdown(app: AppHandle) -> Result<Node, String> {
     blocking(app, |state| {
         state.cancel.store(false, Ordering::Relaxed);
         let excluded = Exclusions::default();
-        with_env(state, &excluded, |env, _| breakdown(env))
+        finished(&state.cancel, with_env(state, &excluded, |env, _| breakdown(env)))
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }
 
 /// Moves to the Trash the way Finder does, so "Put Back" works.
@@ -500,14 +548,15 @@ pub fn cleaner_run(app: AppHandle, scan_id: u64, ids: Vec<u64>, uninstall: Optio
     let handle = app.clone();
     std::thread::spawn(move || {
         let state = handle.state::<CleanerState>();
+        let _busy = BusyGuard(&state.busy);
         let snap = snapshot();
         let app_item = items.iter().find(|i| i.category == Category::App).cloned();
         let bid = app_item.as_ref().and_then(|i| i.owner.clone()).unwrap_or_default();
         let app_path = app_item.as_ref().map(|i| i.path.clone()).unwrap_or_default();
         let purpose = if app_item.is_some() { Purpose::Uninstall { bundle_id: &bid, app: &app_path } } else { Purpose::Clean };
         let running = |n: &str| snap.running(n);
-        let home = state.roots.home.clone();
-        let other_copy = || copies(&bid, &home).is_none_or(|c| !c.is_empty());
+        let trash = state.real_home.join(".Trash");
+        let other_copy = || self::other_copy(&copies(&bid), &app_path, &trash);
         let log_dir = state.log_dir.clone();
         let mut log = |line: String| append_log(&log_dir, &line);
         let now = || chrono::Local::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
@@ -540,7 +589,6 @@ pub fn cleaner_run(app: AppHandle, scan_id: u64, ids: Vec<u64>, uninstall: Optio
             .collect();
         let _ = handle.emit(CLEANER_EVENT, CleanerEvent::Done { freed, outcomes: dto });
         let _ = status::set(&handle, MODULE_ID, Activity::On, Some(&size_text(freed, lang, false)));
-        state.busy.store(false, Ordering::SeqCst);
         let generation = state.result_gen.fetch_add(1, Ordering::SeqCst) + 1;
         let later = handle.clone();
         std::thread::spawn(move || {
@@ -710,7 +758,7 @@ pub fn quitting(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cleaner_rules::{Category, Method};
+    use crate::cleaner_rules::Method;
     use std::path::PathBuf;
 
     fn item(id: u64) -> Item {
@@ -737,6 +785,62 @@ mod tests {
         let scan = s.put(vec![item(a)], 1_000);
         assert_eq!(s.take(scan, &[a], 1_000 + SCAN_TTL_MS - 1).unwrap().len(), 1);
         assert_eq!(s.take(scan, &[a], 1_000 + SCAN_TTL_MS + 1).unwrap_err(), "stale");
+    }
+
+    #[test]
+    fn reserved_id_blocks_never_overlap() {
+        let mut s = Store::default();
+        let a = s.reserve();
+        let b = s.reserve();
+        assert!(b >= a + ID_BLOCK);
+        let scan = s.put(vec![], 0);
+        assert!(scan >= b + ID_BLOCK);
+    }
+
+    #[test]
+    fn a_cancelled_scan_is_not_kept() {
+        let cancel = AtomicBool::new(false);
+        assert_eq!(finished(&cancel, 5), Ok(5));
+        cancel.store(true, Ordering::Relaxed);
+        assert_eq!(finished(&cancel, 5), Err("cancelled".to_string()));
+    }
+
+    #[test]
+    fn a_busy_tool_counts_as_in_use() {
+        let bundles: HashSet<String> = ["com.a.b".to_string()].into();
+        let procs: HashSet<String> = ["brew".to_string()].into();
+        assert!(owner_busy("com.a.b", &bundles, &procs));
+        assert!(owner_busy("brew", &bundles, &procs));
+        assert!(!owner_busy("npm", &bundles, &procs));
+        assert!(!owner_busy("", &bundles, &procs));
+    }
+
+    #[test]
+    fn a_team_is_shared_by_any_app_or_an_unreadable_one() {
+        assert!(team_shared("T1", &[Ok(Some("T1".into()))]));
+        assert!(team_shared("T1", &[Ok(None), Err(())]));
+        assert!(!team_shared("T1", &[Ok(None), Ok(Some("T2".into()))]));
+    }
+
+    #[test]
+    fn apps_in_the_trash_are_installed_but_not_other_copies() {
+        let trash = PathBuf::from("/Users/a/.Trash");
+        let target = PathBuf::from("/Applications/A.app");
+        let in_trash = vec![PathBuf::from("/Users/a/.Trash/A.app")];
+        assert!(!in_trash.is_empty(), "installed: a copy in the Trash counts");
+        assert!(!other_copy(&in_trash, &target, &trash));
+        assert!(!other_copy(&[target.clone()], &target, &trash));
+        assert!(other_copy(&[PathBuf::from("/Users/a/Applications/A.app")], &target, &trash));
+    }
+
+    #[test]
+    fn the_busy_flag_clears_even_after_a_panic() {
+        let busy = AtomicBool::new(true);
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _guard = BusyGuard(&busy);
+            panic!("boom");
+        }));
+        assert!(!busy.load(Ordering::SeqCst));
     }
 
     #[test]

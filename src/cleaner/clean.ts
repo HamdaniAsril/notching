@@ -40,9 +40,10 @@ export interface CleanDeps {
 
 export interface CleanList {
   refresh(): void; // scans again
+  loaded(): boolean; // the scan landed (a cancelled one never does)
   scan(): number; // the scan the list shows
   label(id: number): string;
-  inUse(ids: number[]): void; // what runs now (the panel showed again)
+  inUse(ids: number[]): void; // what runs now (the panel showed again); only ever adds marks
   destroy(): void;
 }
 
@@ -59,6 +60,7 @@ export function mountClean(box: HTMLElement, deps: CleanDeps): CleanList {
   let ticked = new Set<number>();
   const open = new Set<CleanerCategory>();
   let seq = 0;
+  let loaded = false;
 
   const head = el(doc, 'div', 'cl-lhead');
   const back = button(doc, 'lab cl-back', `‹ ${s.cleanTitle}`);
@@ -166,6 +168,7 @@ export function mountClean(box: HTMLElement, deps: CleanDeps): CleanList {
   return {
     refresh() {
       const mine = ++seq;
+      loaded = false;
       items = [];
       ticked = new Set();
       body.replaceChildren(el(doc, 'span', 'lab cl-measuring', s.measuring));
@@ -173,17 +176,20 @@ export function mountClean(box: HTMLElement, deps: CleanDeps): CleanList {
       deps.bridge.cleanerDeepScan().then(scan => {
         if (mine !== seq) return;
         scanId = scan.scanId;
+        loaded = true;
         items = scan.items;
         ticked = new Set(items.filter(i => i.ticked && !i.inUse).map(i => i.id));
         if (items.length === 0) body.replaceChildren(el(doc, 'span', 'lab cl-measuring', s.empty));
         else draw();
       }, () => {});
     },
+    loaded: () => loaded,
     scan: () => scanId,
     label: id => items.find(i => i.id === id)?.label ?? '',
     inUse(ids) {
+      // A mark set by the scan stays: the core's answer may not know a busy tool.
       const busy = new Set(ids);
-      items = items.map(i => ({ ...i, inUse: busy.has(i.id) }));
+      items = items.map(i => (busy.has(i.id) ? { ...i, inUse: true } : i));
       busy.forEach(id => ticked.delete(id));
       if (items.length > 0) draw();
     },

@@ -13,6 +13,7 @@ export interface DiskDeps {
 
 export interface Disk {
   refresh(): void; // measures again, from home
+  loaded(): boolean;
   destroy(): void;
 }
 
@@ -107,6 +108,7 @@ export function mountDisk(box: HTMLElement, deps: DiskDeps): Disk {
         draw();
       }, () => {});
     },
+    loaded: () => root !== null,
     destroy() {
       seq++;
     },

@@ -110,3 +110,12 @@ test('the back bar goes back', async () => {
   box.querySelector<HTMLElement>('.cl-back')!.click();
   expect(deps.back).toHaveBeenCalled();
 });
+
+test('what runs now only adds busy marks; one set by the scan stays', async () => {
+  const { box, view } = setup();
+  await tick();
+  view.inUse([]);
+  expect(itemTick(box, 3).disabled).toBe(true);
+  view.inUse([2]);
+  expect([itemTick(box, 2).disabled, itemTick(box, 2).checked]).toEqual([true, false]);
+});

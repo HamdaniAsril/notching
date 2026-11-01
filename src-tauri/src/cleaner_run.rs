@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::cleaner_rules::{check, log_line, Category, Exclusions, Method, Purpose, Roots, Skip};
-use crate::cleaner_scan::{du, ident, Item};
+use crate::cleaner_scan::{du, ident, real_dirs, Item};
 
 pub trait Trash {
     fn trash(&self, p: &Path) -> Result<(), String>;
@@ -25,8 +25,13 @@ pub struct Outcome {
 /// inode; for the Trash route also its date), and its owner not running.
 pub fn recheck(item: &Item, purpose: &Purpose, roots: &Roots, excluded: &Exclusions, running: &dyn Fn(&str) -> bool) -> Result<(), Skip> {
     check(&item.path, item.category, purpose, roots, excluded)?;
+    if !real_dirs(&item.path, roots) {
+        return Err(Skip::Protected);
+    }
     let (Some(then), Some(now)) = (item.ident, ident(&item.path)) else { return Err(Skip::Changed) };
-    if then.dev != now.dev || then.ino != now.ino || (item.method == Method::Trash && then.mtime_ms != now.mtime_ms) {
+    // What can't come back, and the Trash (something trashed since), must be as scanned.
+    let dated = item.method == Method::Trash || item.category == Category::Trash;
+    if then.dev != now.dev || then.ino != now.ino || (dated && then.mtime_ms != now.mtime_ms) {
         return Err(Skip::Changed);
     }
     if item.owner.as_deref().is_some_and(|o| !o.is_empty() && running(o)) {
@@ -82,7 +87,13 @@ pub struct RunCtx<'a> {
 /// before the next item once `stop` is set. Every item gets a log line.
 pub fn run(items: &[Item], purpose: &Purpose, ctx: RunCtx, mut on_each: impl FnMut(usize, &Outcome)) -> Vec<Outcome> {
     let mut ordered: Vec<&Item> = items.iter().collect();
-    ordered.sort_by_key(|i| i.category != Category::App);
+    // The app first (its leftovers wait on it); then the Trash, before anything
+    // else is moved into it.
+    ordered.sort_by_key(|i| match i.category {
+        Category::App => 0,
+        Category::Trash => 1,
+        _ => 2,
+    });
     let mut outcomes = Vec::with_capacity(ordered.len());
     // Set once the app is gone and a second copy shows up, or the app stayed.
     let mut halt: Option<Skip> = None;
@@ -256,6 +267,51 @@ mod tests {
         assert_eq!(out[0].result, Err(Skip::Failed));
         assert_eq!(out[0].detail.as_deref(), Some("admin"));
         assert!(dmg.exists());
+    }
+
+    #[test]
+    fn the_trash_is_emptied_first_so_items_moved_there_stay() {
+        let t = sample();
+        let home_trash = t.roots.home.join(".Trash");
+        file(&home_trash.join("old.txt"), 10);
+        let orphan = t.roots.home.join("Library/Caches/com.gone.app");
+        file(&orphan.join("x"), 10);
+        let into_trash = FakeTrash { dir: home_trash.clone(), fail: false, moved: RefCell::new(vec![]) };
+        let items = [item(1, orphan.clone(), Category::Orphan, None), item(2, home_trash.clone(), Category::Trash, None)];
+        let stop = AtomicBool::new(false);
+        let mut log = |_: String| {};
+        let ctx = RunCtx { roots: &t.roots, excluded: &Exclusions::default(), running: &|_| false, trash: &into_trash,
+                           other_copy: &|| false, stop: &stop, log: &mut log, now: &|| "T".into() };
+        let out = run(&items, &Purpose::Clean, ctx, |_, _| {});
+        assert!(out.iter().all(|o| o.result.is_ok()), "{out:?}");
+        assert!(home_trash.join("com.gone.app/x").exists());
+        assert!(!home_trash.join("old.txt").exists());
+    }
+
+    #[test]
+    fn a_trash_changed_after_the_scan_is_skipped() {
+        let t = sample();
+        let home_trash = t.roots.home.join(".Trash");
+        file(&home_trash.join("old.txt"), 10);
+        let it = item(1, home_trash.clone(), Category::Trash, None);
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        file(&home_trash.join("just-trashed.txt"), 10);
+        let (out, _) = go(&t, &[it], &Purpose::Clean, None, false);
+        assert_eq!(out[0].result, Err(Skip::Changed));
+        assert!(home_trash.join("just-trashed.txt").exists());
+    }
+
+    #[test]
+    fn a_link_in_the_middle_is_refused() {
+        let t = sample();
+        let outside = t.roots.home.parent().unwrap().join("outside");
+        file(&outside.join("Proj/x"), 10);
+        fs::create_dir_all(t.roots.home.join("Library/Developer/Xcode")).unwrap();
+        std::os::unix::fs::symlink(&outside, t.roots.home.join("Library/Developer/Xcode/DerivedData")).unwrap();
+        let it = item(1, t.roots.home.join("Library/Developer/Xcode/DerivedData/Proj"), Category::DevCache, None);
+        let (out, _) = go(&t, &[it], &Purpose::Clean, None, false);
+        assert_eq!(out[0].result, Err(Skip::Protected));
+        assert!(outside.join("Proj/x").exists());
     }
 
     #[test]

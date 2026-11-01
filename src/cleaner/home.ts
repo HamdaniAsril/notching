@@ -17,6 +17,7 @@ export interface HomeDeps {
 
 export interface Home {
   refresh(): void; // measures again
+  loaded(): boolean; // the parts landed
   destroy(): void;
 }
 
@@ -121,6 +122,7 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
         draw();
       }, () => {});
     },
+    loaded: () => parts !== null,
     destroy() {
       seq++;
     },

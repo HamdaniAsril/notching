@@ -27,12 +27,22 @@ impl Roots {
         Roots { home: root.join("home"), apps: vec![root.join("Applications")], test_mode: true }
     }
 
-    /// Test mode only for a non-empty absolute path; anything else is the real Mac.
-    pub fn from_env(home: PathBuf, var: Option<OsString>) -> Roots {
-        match var.map(PathBuf::from) {
-            Some(root) if root.is_absolute() && root.parent().is_some() => Roots::test(&root),
-            _ => Roots::real(home),
+    /// No variable (or an empty one): the real Mac. A variable naming a sample
+    /// folder (`marked`, made by scripts/cleaner-cek.sh): test mode there. Any
+    /// other value turns Cleaner off rather than falling back to the real Mac.
+    pub fn from_env(home: PathBuf, var: Option<OsString>, marked: impl Fn(&Path) -> bool) -> Roots {
+        let Some(var) = var.filter(|v| !v.is_empty()) else { return Roots::real(home) };
+        let root = PathBuf::from(var);
+        if root.is_absolute() && root.parent().is_some() && root != home && marked(&root) {
+            Roots::test(&root)
+        } else {
+            Roots::disabled()
         }
+    }
+
+    /// Nothing to scan and nothing to remove: an empty folder of the system's.
+    pub fn disabled() -> Roots {
+        Roots { home: PathBuf::from("/var/empty/notching-cleaner-off"), apps: Vec::new(), test_mode: true }
     }
 }
 
@@ -158,6 +168,23 @@ const PROTECTED_LIBRARY: &[&str] = &[
     "PersonalizationPortrait",
 ];
 
+// Browser profiles: history, bookmarks, passwords, cookies (§7). Only ever
+// offered as personal data of the browser being uninstalled. Matched as the
+// start of the path under Application Support.
+const BROWSER_PROFILES: &[&str] = &[
+    "Google/Chrome",
+    "Chromium",
+    "Firefox",
+    "Mozilla",
+    "Microsoft Edge",
+    "BraveSoftware",
+    "Arc",
+    "Vivaldi",
+    "com.operasoftware.Opera",
+    "Orion",
+    "zen",
+];
+
 // Hidden folders under home are never touched, except these caches and the Trash.
 const HIDDEN_ALLOWED: &[&str] = &[".Trash", ".npm/_cacache", ".cargo/registry/cache"];
 
@@ -178,6 +205,11 @@ pub fn check(path: &Path, cat: Category, purpose: &Purpose, roots: &Roots, exclu
     }
     if excluded.covers(path) {
         return Err(Skip::Excluded);
+    }
+    // An app and its data only ever go in an uninstall (§5.2).
+    let app_data = matches!(cat, Category::App | Category::Leftover | Category::Personal);
+    if app_data && !matches!(purpose, Purpose::Uninstall { .. }) {
+        return Err(Skip::Protected);
     }
     let home = &roots.home;
     if path == Path::new("/") || ROOT_FOLDERS.iter().any(|r| path == home.join(r)) || roots.apps.iter().any(|a| path == a) {
@@ -209,6 +241,13 @@ pub fn check(path: &Path, cat: Category, purpose: &Purpose, roots: &Roots, exclu
         if let Some(second) = parts.next() {
             if PROTECTED_LIBRARY.contains(&second) {
                 return Err(Skip::Protected);
+            }
+            if second == "Application Support" {
+                let rest: PathBuf = parts.collect();
+                let rest = rest.to_string_lossy().to_lowercase();
+                if BROWSER_PROFILES.iter().any(|b| rest.starts_with(&b.to_lowercase())) {
+                    return Err(Skip::Protected);
+                }
             }
         }
     }
@@ -366,8 +405,9 @@ pub struct Exclusions {
 }
 
 impl Exclusions {
+    /// The path is excluded, or holds something excluded.
     pub fn covers(&self, path: &Path) -> bool {
-        self.paths.iter().any(|e| path.starts_with(e))
+        self.paths.iter().any(|e| path.starts_with(e) || e.starts_with(path))
     }
 }
 
@@ -596,12 +636,49 @@ mod tests {
 
     #[test]
     fn test_mode_roots_from_env() {
-        let r = Roots::from_env(p("/Users/a"), Some(OsString::from("/Users/a/cleaner-cek")));
+        let marked = |_: &Path| true;
+        let r = Roots::from_env(p("/Users/a"), Some(OsString::from("/Users/a/cleaner-cek")), marked);
         assert!(r.test_mode);
         assert_eq!(r.home, p("/Users/a/cleaner-cek/home"));
         assert_eq!(r.apps, vec![p("/Users/a/cleaner-cek/Applications")]);
-        assert!(!Roots::from_env(p("/Users/a"), Some(OsString::from("rel"))).test_mode);
-        assert!(!Roots::from_env(p("/Users/a"), Some(OsString::from(""))).test_mode);
-        assert!(!Roots::from_env(p("/Users/a"), None).test_mode);
+        assert!(!Roots::from_env(p("/Users/a"), None, marked).test_mode);
+        assert!(!Roots::from_env(p("/Users/a"), Some(OsString::from("")), marked).test_mode);
+    }
+
+    #[test]
+    fn bad_test_root_disables_cleaner_instead_of_the_real_mac() {
+        let marked = |p: &Path| p.ends_with("cleaner-cek");
+        for bad in ["rel", "/", "/Users/a", "/Users/a/other"] {
+            let r = Roots::from_env(p("/Users/a"), Some(OsString::from(bad)), marked);
+            assert_eq!(r, Roots::disabled(), "{bad}");
+        }
+        assert!(Roots::disabled().apps.is_empty() && Roots::disabled().test_mode);
+    }
+
+    #[test]
+    fn browser_profiles_are_personal_data() {
+        let un = Purpose::Uninstall { bundle_id: "com.google.Chrome", app: Path::new("/Applications/Google Chrome.app") };
+        for path in ["/Users/a/Library/Application Support/Google/Chrome", "/Users/a/Library/Application Support/Google/Chrome Canary",
+                     "/Users/a/Library/Application Support/Firefox", "/Users/a/Library/Application Support/BraveSoftware/Brave-Browser",
+                     "/Users/a/Library/Application Support/Microsoft Edge", "/Users/a/Library/Application Support/Arc"] {
+            assert_eq!(check(&p(path), Category::Leftover, &un, &roots(), &none()), Err(Skip::Protected), "{path}");
+            assert_eq!(check(&p(path), Category::Personal, &un, &roots(), &none()), Ok(()), "{path}");
+        }
+        assert_eq!(check(&p("/Users/a/Library/Application Support/Google/DriveFS"), Category::Leftover, &un, &roots(), &none()), Ok(()));
+    }
+
+    #[test]
+    fn an_exclusion_inside_an_item_protects_the_item() {
+        let ex = Exclusions { paths: vec![p("/Users/a/Library/Containers/com.x.y/Data/Library/Caches/c")] };
+        let un = Purpose::Uninstall { bundle_id: "com.x.y", app: Path::new("/Applications/X.app") };
+        assert_eq!(check(&p("/Users/a/Library/Containers/com.x.y"), Category::Leftover, &un, &roots(), &ex), Err(Skip::Excluded));
+    }
+
+    #[test]
+    fn app_data_only_goes_in_an_uninstall() {
+        for cat in [Category::Leftover, Category::Personal] {
+            assert_eq!(clean("/Users/a/Library/Preferences/com.x.y.plist", cat), Err(Skip::Protected));
+        }
+        assert_eq!(check(&p("/Applications/X.app"), Category::App, &Purpose::Clean, &roots(), &none()), Err(Skip::Protected));
     }
 }

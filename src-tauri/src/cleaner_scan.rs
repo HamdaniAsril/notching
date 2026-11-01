@@ -151,8 +151,36 @@ const NEEDS_FDA: &[&str] = &[
     "Library/Application Support/MobileSync",
 ];
 
+// iCloud Drive and other cloud folders may ask even with Full Disk Access.
+const NEVER_OPEN: &[&str] = &["Library/Mobile Documents", "Library/CloudStorage"];
+
 pub fn may_open(path: &Path, roots: &Roots, fda: bool) -> bool {
-    fda || !NEEDS_FDA.iter().any(|n| path.starts_with(roots.home.join(n)))
+    let under = |names: &[&str]| names.iter().any(|n| path.starts_with(roots.home.join(n)));
+    !under(NEVER_OPEN) && (fda || !under(NEEDS_FDA))
+}
+
+/// Every folder from home (or the app folder) down to the item's parent is a
+/// real folder, not a link that leads somewhere else (§7).
+pub fn real_dirs(path: &Path, roots: &Roots) -> bool {
+    let base = if path.starts_with(&roots.home) {
+        &roots.home
+    } else if let Some(apps) = roots.apps.iter().find(|a| path.starts_with(a)) {
+        apps
+    } else {
+        return false;
+    };
+    let mut at = path.parent();
+    while let Some(dir) = at {
+        if dir == base.as_path() {
+            return true;
+        }
+        match fs::symlink_metadata(dir) {
+            Ok(m) if m.is_dir() => {}
+            _ => return false,
+        }
+        at = dir.parent();
+    }
+    false
 }
 
 fn children(dir: &Path) -> Vec<PathBuf> {
@@ -175,7 +203,7 @@ struct Maker<'e, 'a> {
 impl Maker<'_, '_> {
     /// Adds the item when the rules allow it; an excluded or protected one is dropped.
     fn add(&mut self, path: PathBuf, cat: Category, label: String, detail: Option<String>, owner: Option<String>, in_use: bool) {
-        if !may_open(&path, self.env.roots, self.env.fda) {
+        if !may_open(&path, self.env.roots, self.env.fda) || !real_dirs(&path, self.env.roots) {
             return;
         }
         if check(&path, cat, &Purpose::Clean, self.env.roots, self.env.excluded).is_err() {
@@ -607,6 +635,29 @@ mod tests {
         let p = parts(&e);
         assert_eq!((p.documents, p.photos), (None, None));
         assert!(p.apps.is_some());
+    }
+
+    #[test]
+    fn cloud_folders_are_never_opened() {
+        let t = sample();
+        for p in ["Library/Mobile Documents", "Library/Mobile Documents/x", "Library/CloudStorage/GoogleDrive"] {
+            assert!(!may_open(&t.roots.home.join(p), &t.roots, true), "{p}");
+        }
+    }
+
+    #[test]
+    fn an_item_reached_through_a_linked_folder_is_not_offered() {
+        let t = sample();
+        let h = &t.roots.home;
+        let outside = t.roots.home.parent().unwrap().join("outside");
+        file(&outside.join("Proj-abc/x"), 100);
+        fs::create_dir_all(h.join("Library/Developer/Xcode")).unwrap();
+        std::os::unix::fs::symlink(&outside, h.join("Library/Developer/Xcode/DerivedData")).unwrap();
+        let (f, ex, c) = (std_fake(), Exclusions::default(), AtomicBool::new(false));
+        let e = env(&t, true, &f, &ex, &c, &|_| false, &|_| Some(true), &|_| false);
+        assert!(!deep_scan(&e, &mut 1).iter().any(|i| i.path.ends_with("Proj-abc")));
+        assert!(!real_dirs(&h.join("Library/Developer/Xcode/DerivedData/Proj-abc"), &t.roots));
+        assert!(real_dirs(&h.join("Library/Developer/Xcode"), &t.roots));
     }
 
     #[test]

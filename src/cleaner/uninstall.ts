@@ -15,6 +15,8 @@ export interface UninstallDeps {
 
 export interface Uninstall {
   refresh(): void; // lists the apps again
+  reopen(): void; // the open app, scanned again (its scan was past its time)
+  loaded(): boolean; // what shows has landed
   revisit(): void; // the panel showed again: what runs now
   label(id: number): string;
   destroy(): void;
@@ -35,6 +37,7 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
   let items: CleanerItem[] = [];
   let ticked = new Set<number>();
   let seq = 0;
+  let loaded = false;
 
   const search = el(doc, 'input', 'cl-search');
   search.type = 'search';
@@ -83,6 +86,7 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
     items = [];
     ticked = new Set();
     const mine = ++seq;
+    loaded = a.refused;
     if (a.refused) {
       drawDetail();
       return;
@@ -91,6 +95,7 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
     deps.bridge.cleanerAppDetail(a.id).then(scan => {
       if (mine !== seq) return;
       scanId = scan.scanId;
+      loaded = true;
       items = scan.items;
       ticked = new Set(items.filter(i => i.ticked).map(i => i.id));
       drawDetail();
@@ -164,12 +169,14 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
   return {
     refresh() {
       const mine = ++seq;
+      loaded = false;
       current = null;
       search.value = '';
       frame(head(s.uninstallTitle, () => deps.back()), el(doc, 'span', 'lab cl-measuring', s.measuring));
       deps.bridge.cleanerApps().then(scan => {
         if (mine !== seq) return;
         appsScan = scan.scanId;
+        loaded = true;
         apps = [...scan.items].sort((x, y) => y.bytes - x.bytes);
         drawList();
       }, () => {});
@@ -187,6 +194,10 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
         }
       }, () => {});
     },
+    reopen() {
+      if (current) openApp(current);
+    },
+    loaded: () => loaded,
     label: id => items.find(i => i.id === id)?.label ?? '',
     destroy() {
       seq++;
