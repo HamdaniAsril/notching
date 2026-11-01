@@ -1,8 +1,11 @@
-//! Dragging kept files out of the shelf (Titipan, design 1 Nov §5), main thread
-//! only. The drag offers Copy alone, so Finder copies even on the same disk and
-//! the original never moves. Items leave the shelf once a destination took them.
+//! Dragging files out of a notch panel, main thread only: kept files out of the
+//! shelf (Titipan, design 1 Nov §5), and a screenshot out of its result or list
+//! (Screenshot, design 1 Nov §5, §6). The drag offers Copy alone, so Finder copies
+//! even on the same disk and the original never moves. Shelf items leave the
+//! shelf once a destination took them; a screenshot stays in its history.
 
 use std::cell::{Cell, RefCell};
+use std::path::PathBuf;
 
 use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, ProtocolObject};
@@ -22,9 +25,30 @@ use crate::shelf_service::{ShelfState, DRAG_OUT};
 /// Sent to the overlay the drag started from: `left` once the cursor leaves its
 /// panel, so the panel closes out of the way; `end` when the drag is over.
 pub const DRAG_EVENT: &str = "notching://shelf-drag";
+/// The same for a screenshot's drag.
+pub const SHOT_DRAG_EVENT: &str = "notching://shot-drag";
 /// The dragged previews, in points; each next one a little offset.
 const IMAGE: f64 = 48.0;
 const STAGGER: f64 = 8.0;
+
+/// A file to drag, with its PNG preview if it has one.
+pub type DragFile = (PathBuf, Option<Vec<u8>>);
+
+/// What is dragged: shelf items by id, or a copy of a screenshot.
+#[derive(Clone, Debug, PartialEq)]
+pub enum DragOwner {
+    Shelf(Vec<u64>),
+    Shot,
+}
+
+impl DragOwner {
+    fn event(&self) -> &'static str {
+        match self {
+            DragOwner::Shelf(_) => DRAG_EVENT,
+            DragOwner::Shot => SHOT_DRAG_EVENT,
+        }
+    }
+}
 
 /// An item stays on the shelf when the drag was cancelled, or ended on one of
 /// Notching's own overlays (its webview takes any drop, as Copy).
@@ -32,10 +56,19 @@ pub fn keeps_items(op: usize, on_own_overlay: bool) -> bool {
     op == 0 || on_own_overlay
 }
 
+/// The shelf items a finished drag takes off the shelf: none for a screenshot.
+pub fn items_to_remove(owner: &DragOwner, op: usize, on_own_overlay: bool) -> Option<&[u64]> {
+    match owner {
+        DragOwner::Shelf(ids) if !keeps_items(op, on_own_overlay) => Some(ids),
+        _ => None,
+    }
+}
+
 pub struct DragIvars {
     app: AppHandle,
     label: String,
-    ids: Vec<u64>,
+    owner: DragOwner,
+    files: usize,
     left: Cell<bool>,
 }
 
@@ -59,7 +92,7 @@ define_class!(
             let iv = self.ivars();
             if !iv.left.get() && !in_panel(&iv.app, &iv.label, point) {
                 iv.left.set(true);
-                let _ = iv.app.emit_to(EventTarget::webview_window(&iv.label), DRAG_EVENT, serde_json::json!({ "phase": "left" }));
+                let _ = iv.app.emit_to(EventTarget::webview_window(&iv.label), iv.owner.event(), serde_json::json!({ "phase": "left" }));
             }
         }
 
@@ -67,12 +100,13 @@ define_class!(
         fn ended(&self, _session: &NSDraggingSession, point: NSPoint, op: NSDragOperation) {
             let iv = self.ivars();
             DRAG_OUT.store(false, std::sync::atomic::Ordering::SeqCst);
-            let keep = keeps_items(op.0, on_own_overlay(&iv.app, point));
-            eprintln!("notching: shelf drag of {} item(s) ended, operation {}, kept: {keep}", iv.ids.len(), op.0);
-            if !keep {
-                crate::shelf_service::shelf_remove(iv.app.clone(), iv.ids.clone());
+            let remove = items_to_remove(&iv.owner, op.0, on_own_overlay(&iv.app, point));
+            let what = if matches!(iv.owner, DragOwner::Shot) { "screenshot" } else { "shelf" };
+            eprintln!("notching: {what} drag of {} item(s) ended, operation {}, kept: {}", iv.files, op.0, remove.is_none());
+            if let Some(ids) = remove {
+                crate::shelf_service::shelf_remove(iv.app.clone(), ids.to_vec());
             }
-            let _ = iv.app.emit_to(EventTarget::webview_window(&iv.label), DRAG_EVENT, serde_json::json!({ "phase": "end" }));
+            let _ = iv.app.emit_to(EventTarget::webview_window(&iv.label), iv.owner.event(), serde_json::json!({ "phase": "end" }));
             // The source stays in SOURCE until the next drag replaces it: dropping
             // it here would free it while this method still runs.
         }
@@ -117,26 +151,34 @@ pub fn shelf_start_drag(app: AppHandle, window: tauri::WebviewWindow, ids: Vec<u
     }
     // A file moved away since the shelf opened is not dragged (§6).
     crate::shelf_service::refresh(&app);
-    let items: Vec<(String, Option<Vec<u8>>, u64)> = {
+    let (files, ids): (Vec<DragFile>, Vec<u64>) = {
         let shelf = app.state::<ShelfState>();
         let shelf = shelf.0.lock().unwrap();
-        shelf.get(&ids).into_iter().map(|i| (i.path.to_string_lossy().into_owned(), i.thumb.clone(), i.id)).collect()
+        shelf.get(&ids).into_iter().map(|i| ((i.path.clone(), i.thumb.clone()), i.id)).unzip()
     };
-    if items.is_empty() {
+    if files.is_empty() {
         return Err("nothing to drag".into());
     }
-    let label = window.label().to_string();
+    begin_on_main(&app, window.label(), files, DragOwner::Shelf(ids))
+}
+
+/// `begin` from any thread, on the main thread. A drag that cannot start leaves
+/// the way free for the next.
+pub fn begin_on_main(app: &AppHandle, label: &str, files: Vec<DragFile>, owner: DragOwner) -> Result<(), String> {
+    let label = label.to_string();
     let handle = app.clone();
     app.run_on_main_thread(move || {
-        if let Err(e) = begin(&handle, &label, items) {
-            eprintln!("notching: shelf drag: {e}");
+        if let Err(e) = begin(&handle, &label, files, owner) {
+            eprintln!("notching: drag out: {e}");
             DRAG_OUT.store(false, std::sync::atomic::Ordering::SeqCst);
         }
     })
     .map_err(|e| e.to_string())
 }
 
-fn begin(app: &AppHandle, label: &str, items: Vec<(String, Option<Vec<u8>>, u64)>) -> Result<(), String> {
+/// Starts dragging these files out of overlay `label`'s panel, each shown by its
+/// PNG preview or else its Finder icon.
+pub fn begin(app: &AppHandle, label: &str, files: Vec<DragFile>, owner: DragOwner) -> Result<(), String> {
     let mtm = MainThreadMarker::new().ok_or("not on the main thread")?;
     let panel = app.get_webview_panel(label).map_err(|_| format!("no overlay {label}"))?;
     let window = panel.as_panel();
@@ -167,8 +209,9 @@ fn begin(app: &AppHandle, label: &str, items: Vec<(String, Option<Vec<u8>>, u64)
     };
 
     let mut dragged = Vec::new();
-    let ids: Vec<u64> = items.iter().map(|(_, _, id)| *id).collect();
-    for (i, (path, png, _)) in items.into_iter().enumerate() {
+    let count = files.len();
+    for (i, (path, png)) in files.into_iter().enumerate() {
+        let path = path.to_string_lossy();
         let url = NSURL::fileURLWithPath(&NSString::from_str(&path));
         let item = NSDraggingItem::initWithPasteboardWriter(NSDraggingItem::alloc(), ProtocolObject::from_ref(&*url));
         let image = png
@@ -180,7 +223,7 @@ fn begin(app: &AppHandle, label: &str, items: Vec<(String, Option<Vec<u8>>, u64)
         dragged.push(item);
     }
 
-    let source = DragSource::new(mtm, DragIvars { app: app.clone(), label: label.to_string(), ids, left: Cell::new(false) });
+    let source = DragSource::new(mtm, DragIvars { app: app.clone(), label: label.to_string(), owner, files: count, left: Cell::new(false) });
     DRAG_OUT.store(true, std::sync::atomic::Ordering::SeqCst);
     view.beginDraggingSessionWithItems_event_source(
         &NSArray::from_retained_slice(&dragged),
@@ -208,5 +251,26 @@ mod tests {
     #[test]
     fn drop_on_own_overlay_keeps_items() {
         assert!(keeps_items(NSDragOperation::Copy.0, true));
+    }
+
+    #[test]
+    fn accepted_shelf_drag_removes_its_items() {
+        let owner = DragOwner::Shelf(vec![3, 5]);
+        assert_eq!(items_to_remove(&owner, NSDragOperation::Copy.0, false), Some(&[3, 5][..]));
+        assert_eq!(items_to_remove(&owner, 0, false), None);
+        assert_eq!(items_to_remove(&owner, NSDragOperation::Copy.0, true), None);
+    }
+
+    #[test]
+    fn shot_drags_never_remove_shelf_items() {
+        for (op, own) in [(0, false), (NSDragOperation::Copy.0, false), (NSDragOperation::Copy.0, true)] {
+            assert_eq!(items_to_remove(&DragOwner::Shot, op, own), None);
+        }
+    }
+
+    #[test]
+    fn each_owner_has_its_event() {
+        assert_eq!(DragOwner::Shelf(vec![1]).event(), "notching://shelf-drag");
+        assert_eq!(DragOwner::Shot.event(), "notching://shot-drag");
     }
 }

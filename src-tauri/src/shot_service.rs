@@ -20,6 +20,8 @@ use crate::app_core::CoreState;
 use crate::geometry::{to_cg, Rect};
 use crate::overlay::Overlays;
 use crate::screens::current_screens;
+use crate::shelf_drag::DragOwner;
+use crate::shelf_service::DRAG_OUT;
 use crate::shot::{capture_args, desktop_name, png_size, History, Kind, ShotItem, Target};
 
 pub const MODULE_ID: &str = "screenshot";
@@ -34,6 +36,8 @@ const ORIGINAL: &str = "original.png";
 const EDITED: &str = "edited.png";
 const THUMB: &str = "thumb.png";
 const INDEX: &str = "index.json";
+// Under the app's cache folder: the copy a drag out carries.
+const DRAG_DIR: &str = "shot-drag";
 // A capture is written here first, and moved into its folder once it is accepted.
 const TMP_PREFIX: &str = ".take-";
 const SCREENCAPTURE: &str = "/usr/sbin/screencapture";
@@ -245,6 +249,21 @@ fn save_copy(src: &Path, folder: &Path, local: chrono::NaiveDateTime) -> io::Res
             Err(e) => return Err(e),
         }
     }
+}
+
+/// Copies `src` into `cache` under the Desktop name for `local` (no number: the
+/// folder holds only this drag's file), for a drag out to carry. Files of earlier
+/// drags go; those drags have ended.
+fn drag_copy(src: &Path, cache: &Path, local: chrono::NaiveDateTime) -> io::Result<PathBuf> {
+    fs::create_dir_all(cache)?;
+    let path = cache.join(desktop_name(local, |_| false));
+    for entry in fs::read_dir(cache)?.flatten() {
+        if entry.path() != path {
+            let _ = fs::remove_file(entry.path());
+        }
+    }
+    fs::copy(src, &path)?;
+    Ok(path)
 }
 
 /// A thumbnail `THUMB_W` px wide (or the picture itself when it is narrower), by `sips`.
@@ -518,6 +537,21 @@ pub fn shot_delete(app: AppHandle, id: u64) -> Result<(), String> {
     Ok(())
 }
 
+/// Drags the current image out of this overlay's panel as a PNG with the name
+/// Simpan would give it (§5). The history keeps the screenshot.
+#[tauri::command]
+pub fn shot_start_drag(app: AppHandle, window: WebviewWindow, id: u64) -> Result<(), String> {
+    if DRAG_OUT.load(Ordering::SeqCst) {
+        return Err("a drag is already running".into());
+    }
+    let dir = dir().ok_or("no screenshots folder")?;
+    let item = app.state::<ShotState>().0.lock().unwrap().get(id).cloned().ok_or("gone")?;
+    let cache = app.path().app_cache_dir().map_err(|e| e.to_string())?.join(DRAG_DIR);
+    let file = drag_copy(&current_path(dir, &item), &cache, local_time(item.taken_ms)).map_err(|e| e.to_string())?;
+    let preview = fs::read(folder(dir, id).join(THUMB)).ok();
+    crate::shelf_drag::begin_on_main(&app, window.label(), vec![(file, preview)], DragOwner::Shot)
+}
+
 #[tauri::command]
 pub fn shot_permission() -> bool {
     unsafe { CGPreflightScreenCaptureAccess() }
@@ -748,6 +782,27 @@ mod tests {
         assert_eq!(std::fs::read(&saved).unwrap(), b"new");
         assert_eq!(std::fs::read(&first).unwrap(), b"mine");
         assert_eq!(save_copy(&src, &desk, t).unwrap(), desk.join("Screenshot 2026-11-01 14.02.05 (3).png"));
+    }
+
+    #[test]
+    fn drag_copy_has_the_desktop_name_and_replaces_the_last_one() {
+        let d = tempfile::tempdir().unwrap();
+        let src = d.path().join("edited.png");
+        std::fs::write(&src, b"edit").unwrap();
+        let cache = d.path().join("shot-drag");
+        let t = NaiveDate::from_ymd_opt(2026, 11, 1).unwrap().and_hms_opt(14, 2, 5).unwrap();
+        let named = cache.join("Screenshot 2026-11-01 14.02.05.png");
+        assert_eq!(drag_copy(&src, &cache, t).unwrap(), named);
+        assert_eq!(std::fs::read(&named).unwrap(), b"edit");
+        // The same name again: no number, the file is simply written anew.
+        std::fs::write(&src, b"edit 2").unwrap();
+        assert_eq!(drag_copy(&src, &cache, t).unwrap(), named);
+        assert_eq!(std::fs::read(&named).unwrap(), b"edit 2");
+        // Another screenshot's drag leaves only its own file.
+        let later = t + chrono::Duration::seconds(1);
+        let next = drag_copy(&src, &cache, later).unwrap();
+        assert_eq!(next, cache.join("Screenshot 2026-11-01 14.02.06.png"));
+        assert_eq!(std::fs::read_dir(&cache).unwrap().count(), 1);
     }
 
     #[test]

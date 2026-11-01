@@ -123,6 +123,7 @@ pub fn run() {
             shot_service::shot_copy,
             shot_service::shot_save,
             shot_service::shot_delete,
+            shot_service::shot_start_drag,
             shot_service::shot_permission,
             shot_service::open_screen_recording_settings,
             shot_hotkey::shot_keys,
