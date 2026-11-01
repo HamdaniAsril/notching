@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { emptyDoc, type Doc, type Shape, type Style } from './model';
-import { arrowHead, compose, coverRect, drawSelection, drawShapes, exportPng, measureText, outputSize, textFont, type Source } from './render';
+import { arrowHead, composeBase, coverRect, createBaseCache, drawMarks, drawSelection, drawShapes, exportPng, measureText, outputSize, textFont, type Source } from './render';
 
 type Call = [string, ...unknown[]];
 
@@ -168,6 +168,12 @@ test('the selection keeps its size on screen: 4 grips for a box, 2 for an arrow'
   expect(names(arrow.calls)).not.toContain('strokeRect');
 });
 
+// The whole result drawn straight on one canvas: the base, then the marks.
+const compose = (ctx: CanvasRenderingContext2D, c: Parameters<typeof composeBase>[1]) => {
+  composeBase(ctx, c);
+  drawMarks(ctx, c);
+};
+
 const style = (patch: Partial<Style> = {}): Style => ({ ...emptyDoc().style, ...patch });
 
 test('outputSize adds padding only with a background', () => {
@@ -191,7 +197,8 @@ test('an image background covers the box without squashing', () => {
   expect(coverRect(500, 500, 1000, 1000)).toEqual({ sx: 0, sy: 0, sw: 500, sh: 500 });
 });
 
-const comp = (st: Style, shapes: Shape[] = [], backdrop: Source | null = null) => ({ image: image(3000, 1000), w: 3000, h: 1000, shapes, style: st, scale: 2, backdrop });
+const ORIGINAL = image(3000, 1000); // one object, as the board has one <img>
+const comp = (st: Style, shapes: Shape[] = [], backdrop: Source | null = null) => ({ image: ORIGINAL, w: 3000, h: 1000, shapes, style: st, scale: 2, backdrop });
 
 test('without a background the picture keeps its size and a rounded corner leaves the rest transparent', () => {
   const { ctx, calls, props } = recorder();
@@ -200,7 +207,7 @@ test('without a background the picture keeps its size and a rounded corner leave
   expect(calls[0]).toEqual(['clearRect', 0, 0, 3000, 1000]);
   // A radius of 10 × scale 2, at the picture's own corner.
   const arcs = calls.filter(c => c[0] === 'arcTo');
-  expect(arcs).toHaveLength(4);
+  expect(arcs).toHaveLength(8); // the corners clip the original, and again the marks
   expect(arcs.every(a => a[5] === 20)).toBe(true);
   expect(calls).toContainEqual(['moveTo', 20, 0]);
   expect(names(calls).indexOf('clip')).toBeGreaterThan(-1);
@@ -344,4 +351,139 @@ test('exportPng rejects when the canvas gives no PNG, so the editor can say so',
   const made = { width: 0, height: 0, getContext: () => canvas.ctx, toBlob: (cb: (b: Blob | null) => void) => cb(null) };
   vi.stubGlobal('document', { createElement: () => made });
   await expect(exportPng(image(), bgDoc({ corner: 5 }), 1)).rejects.toThrow();
+});
+
+// ---- the base layer ----------------------------------------------------------
+
+function layerStub() {
+  const layers: { width: number; height: number; sizings: number; rec: ReturnType<typeof recorder> }[] = [];
+  const make = () => {
+    const rec = recorder();
+    // Setting a canvas's size reallocates its bitmap: count the times it is set.
+    let w = 0;
+    let h = 0;
+    const l = {
+      sizings: 0,
+      rec,
+      getContext: () => rec.ctx,
+      get width() { return w; },
+      set width(v: number) { w = v; l.sizings++; },
+      get height() { return h; },
+      set height(v: number) { h = v; l.sizings++; },
+    };
+    layers.push(l);
+    return l as unknown as HTMLCanvasElement;
+  };
+  return { layers, make };
+}
+
+const solidStyle = (color = '#111111') => style({ background: { kind: 'solid', color } });
+
+test('the base is drawn once into its layer and blitted for every redraw after', () => {
+  const { layers, make } = layerStub();
+  const cache = createBaseCache(make);
+  const main = recorder();
+  const c = comp(solidStyle());
+  for (let i = 0; i < 5; i++) cache.draw(main.ctx, c);
+  expect(cache.rebuilds).toBe(1);
+  expect(layers).toHaveLength(1);
+  expect([layers[0].width, layers[0].height]).toEqual([3256, 1256]);
+  // The layer holds the background, shadow and original; the main canvas only the blits.
+  expect(names(layers[0].rec.calls)).toContain('fillRect');
+  expect(names(main.calls).filter(n => n === 'drawImage')).toHaveLength(5);
+  expect(names(main.calls)).not.toContain('fillRect');
+  expect(main.calls).toContainEqual(['drawImage', layers[0], 0, 0]);
+});
+
+test('a shape drawn, moved or removed does not rebuild the base', () => {
+  const cache = createBaseCache(layerStub().make);
+  const main = recorder();
+  const st = solidStyle();
+  cache.draw(main.ctx, comp(st, []));
+  cache.draw(main.ctx, comp(st, [{ id: 1, type: 'rect', color: '#000', width: 4, x1: 0, y1: 0, x2: 9, y2: 9 }]));
+  cache.draw(main.ctx, comp(st, [{ id: 1, type: 'rect', color: '#000', width: 4, x1: 50, y1: 5, x2: 90, y2: 90 }]));
+  expect(cache.rebuilds).toBe(1);
+});
+
+test('a new style, a loaded background picture, or the original arriving rebuilds the base', () => {
+  const cache = createBaseCache(layerStub().make);
+  const main = recorder();
+  const st = style({ background: { kind: 'image', src: 'data:image/jpeg;base64,AA', from: 'file' } });
+  cache.draw(main.ctx, comp(st));
+  expect(cache.rebuilds).toBe(1);
+  cache.draw(main.ctx, comp(st, [], image(800, 600))); // the picture loaded
+  expect(cache.rebuilds).toBe(2);
+  cache.draw(main.ctx, comp({ ...st, corner: 5 }, [], undefined));
+  expect(cache.rebuilds).toBe(3);
+  // The same content in a new object is a new style: styles are replaced on every change.
+  const c = comp(st);
+  cache.draw(main.ctx, c);
+  expect(cache.rebuilds).toBe(4);
+  cache.draw(main.ctx, c);
+  expect(cache.rebuilds).toBe(4);
+  // The original loading (it had no size before).
+  const pending = { ...c, image: { width: 0, height: 0 } as unknown as Source };
+  cache.draw(main.ctx, pending);
+  const rebuilds = cache.rebuilds;
+  cache.draw(main.ctx, { ...pending, image: pending.image });
+  expect(cache.rebuilds).toBe(rebuilds);
+  cache.draw(main.ctx, c);
+  expect(cache.rebuilds).toBe(rebuilds + 1);
+});
+
+test('a new output size resizes the layer; the same size leaves the bitmap alone', () => {
+  const { layers, make } = layerStub();
+  const cache = createBaseCache(make);
+  const main = recorder();
+  const bg = { kind: 'solid', color: '#111111' } as const;
+  cache.draw(main.ctx, comp(style({ padding: 64, background: bg })));
+  expect(layers[0].sizings).toBe(2); // width and height, once
+  // Corners change the base but not its size: no new bitmap.
+  cache.draw(main.ctx, comp(style({ padding: 64, corner: 9, background: bg })));
+  expect(cache.rebuilds).toBe(2);
+  expect(layers[0].sizings).toBe(2);
+  // A wider padding does.
+  cache.draw(main.ctx, comp(style({ padding: 100, background: bg })));
+  expect(layers[0].sizings).toBe(4);
+  expect([layers[0].width, layers[0].height]).toEqual([3400, 1400]);
+});
+
+test('drop lets go of the layer', () => {
+  const { layers, make } = layerStub();
+  const cache = createBaseCache(make);
+  const main = recorder();
+  const c = comp(style());
+  cache.draw(main.ctx, c);
+  cache.drop();
+  cache.draw(main.ctx, c);
+  expect(layers).toHaveLength(2);
+});
+
+test('exportPng draws as the board does: a base layer blitted, then the marks', async () => {
+  const out = recorder();
+  const lay = recorder();
+  const made: unknown[] = [];
+  const stub = (rec: ReturnType<typeof recorder>) => ({
+    width: 0,
+    height: 0,
+    getContext: () => rec.ctx,
+    toBlob: (cb: (b: Blob | null) => void) => cb(new Blob(['x'])),
+  });
+  const output = stub(out);
+  const layer = stub(lay);
+  vi.stubGlobal('document', {
+    createElement: () => {
+      const next = made.length === 0 ? output : layer;
+      made.push(next);
+      return next;
+    },
+  });
+  const rect: Shape = { id: 1, type: 'rect', color: '#E8262E', width: 8, x1: 5, y1: 5, x2: 80, y2: 40 };
+  await exportPng(image(3000, 1000), { ...bgDoc({ padding: 64, background: { kind: 'solid', color: '#111111' } }), shapes: [rect] }, 2);
+  expect(names(lay.calls)).toContain('fillRect'); // the background went into the layer
+  expect(names(out.calls)).not.toContain('fillRect');
+  const blit = out.calls.findIndex(c => c[0] === 'drawImage' && c[1] === layer);
+  const marks = out.calls.findIndex(c => c[0] === 'strokeRect');
+  expect(blit).toBeGreaterThan(-1);
+  expect(marks).toBeGreaterThan(blit);
 });

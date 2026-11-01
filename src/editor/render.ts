@@ -232,8 +232,10 @@ export interface Composition {
   scratch?: Scratch;
 }
 
-// Clears `ctx` (which is `outputSize` big) and draws the whole result on it.
-export function compose(ctx: CanvasRenderingContext2D, c: Composition): void {
+// Everything under the marks: clears `ctx` (which is `outputSize` big), then the
+// background, the shadow and the original. None of it changes while a shape is
+// being drawn, so the board keeps it in a layer (`createBaseCache`).
+export function composeBase(ctx: CanvasRenderingContext2D, c: Composition): void {
   const { w, h, style, scale } = c;
   const out = outputSize(w, h, style, scale);
   const bg = style.background;
@@ -273,8 +275,64 @@ export function compose(ctx: CanvasRenderingContext2D, c: Composition): void {
     ctx.clip();
   }
   if (sourceSize(c.image).w > 0) ctx.drawImage(c.image, 0, 0, w, h);
+  ctx.restore();
+}
+
+// The marks, on the picture and clipped to its corners.
+export function drawMarks(ctx: CanvasRenderingContext2D, c: Composition): void {
+  const out = outputSize(c.w, c.h, c.style, c.scale);
+  const radius = c.style.corner * c.scale;
+  ctx.save();
+  ctx.translate(out.ox, out.oy);
+  if (radius > 0) {
+    roundedRect(ctx, 0, 0, c.w, c.h, radius);
+    ctx.clip();
+  }
   drawShapes(ctx, c.shapes, c.image, c.scratch);
   ctx.restore();
+}
+
+// The base kept in an offscreen canvas of its own, drawn again only when what
+// it is made of changes: the style (an object, replaced on every change), the
+// size, the loaded background picture, or the original once it has loaded. A
+// shape drawn or moved leaves it alone, so a stroke costs one blit and the marks,
+// not a background and a 60 px shadow per pointer move. The board and the export
+// both draw as `base.draw` then `drawMarks`, so they agree to the pixel.
+export interface BaseCache {
+  readonly rebuilds: number;
+  // Clears `ctx` and draws the base on it.
+  draw(ctx: CanvasRenderingContext2D, c: Composition): void;
+  drop(): void;
+}
+
+export function createBaseCache(make: () => HTMLCanvasElement): BaseCache {
+  let layer: HTMLCanvasElement | null = null;
+  let key: unknown[] | null = null;
+  const cache: BaseCache & { rebuilds: number } = {
+    rebuilds: 0,
+    draw(ctx, c) {
+      const out = outputSize(c.w, c.h, c.style, c.scale);
+      const now = [c.style, c.w, c.h, c.scale, c.backdrop, c.image, sourceSize(c.image).w > 0];
+      if (!layer || !key || key.some((k, i) => k !== now[i])) {
+        layer ??= make();
+        // A new size reallocates the bitmap, so only a real change sets it.
+        if (layer.width !== out.w) layer.width = out.w;
+        if (layer.height !== out.h) layer.height = out.h;
+        const lctx = layer.getContext('2d');
+        if (!lctx) return composeBase(ctx, c);
+        composeBase(lctx, c);
+        key = now;
+        cache.rebuilds++;
+      }
+      ctx.clearRect(0, 0, out.w, out.h);
+      ctx.drawImage(layer, 0, 0);
+    },
+    drop() {
+      layer = null;
+      key = null;
+    },
+  };
+  return cache;
 }
 
 // The PNG for Salin, Simpan and keep, at the original's resolution plus the
@@ -290,7 +348,13 @@ export async function exportPng(image: Source, doc: Doc, scale: number): Promise
   if (!ctx) throw new Error('no 2d context for the export');
   const bg = doc.style.background;
   const backdrop = bg.kind === 'image' ? await loadImage(bg.src) : null;
-  compose(ctx, { image, w, h, shapes: doc.shapes, style: doc.style, scale, backdrop });
+  // The same two steps as the board's redraw (a base layer, then the marks), so
+  // the board and the file agree to the pixel.
+  const c = { image, w, h, shapes: doc.shapes, style: doc.style, scale, backdrop };
+  const base = createBaseCache(() => document.createElement('canvas'));
+  base.draw(ctx, c);
+  drawMarks(ctx, c);
+  base.drop();
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(b => (b ? resolve(b) : reject(new Error('the canvas gave no PNG'))), 'image/png');
   });

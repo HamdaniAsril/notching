@@ -29,7 +29,7 @@ import {
   type Tool,
 } from './model';
 import { loadImage } from './background';
-import { FONT_PROBE, compose, drawSelection, exportPng, measureText, outputSize, type Source } from './render';
+import { FONT_PROBE, createBaseCache, drawMarks, drawSelection, exportPng, measureText, outputSize, type Source } from './render';
 
 // What the board needs of the opened screenshot.
 export interface BoardDoc {
@@ -108,6 +108,9 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
   let styleDraft: Style | null = null;
   let backdrop: Source | null = null; // the loaded picture of an image background
   let backdropSrc: string | null = null;
+  // Background, shadow and original, drawn once and blitted until one of them changes.
+  const base = createBaseCache(() => doc.createElement('canvas'));
+  let frame: number | null = null; // a redraw waiting for the next frame
 
   const curStyle = (): Style => styleDraft ?? history.doc.style;
   const off = () => outputSize(d.width, d.height, curStyle(), scale);
@@ -148,7 +151,23 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     );
   };
 
+  // At most one redraw per frame, for what comes faster than that: a pointer
+  // moving, a slider dragged. Anything that ends a step redraws at once.
+  function redrawSoon(): void {
+    if (frame !== null) return;
+    frame = requestAnimationFrame(() => {
+      frame = null;
+      paint();
+    });
+  }
+
   function redraw(): void {
+    if (frame !== null) cancelAnimationFrame(frame);
+    frame = null;
+    paint();
+  }
+
+  function paint(): void {
     if (!ctx) return;
     const style = curStyle();
     const out = outputSize(d.width, d.height, style, scale);
@@ -157,7 +176,9 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     if (canvas.height !== out.h) canvas.height = out.h;
     wantBackdrop(style);
     const list = shown();
-    compose(ctx, { image, w: d.width, h: d.height, shapes: list, style, scale, backdrop });
+    const c = { image, w: d.width, h: d.height, shapes: list, style, scale, backdrop };
+    base.draw(ctx, c);
+    drawMarks(ctx, c);
     const sel = selected === null ? undefined : list.find(s => s.id === selected);
     if (tool === 'select' && sel) {
       ctx.save();
@@ -324,7 +345,7 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     } else {
       preview = resize(g.orig, g.handle, x, y);
     }
-    redraw();
+    redrawSoon();
   };
 
   // A bare click with a box tool leaves no speck behind; a pen click is a dot.
@@ -393,7 +414,7 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     previewStyle(next) {
       commitText(); // the canvas may change size under an open box
       styleDraft = next;
-      redraw();
+      redrawSoon();
       onChange();
     },
     setStyle,
@@ -449,6 +470,9 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
       doc.removeEventListener('pointerdown', onPressAnywhere, true);
       cancelText();
       backdropSrc = null; // a picture still loading is not wanted any more
+      if (frame !== null) cancelAnimationFrame(frame);
+      frame = null;
+      base.drop();
       setTextMeasure(null);
     },
   };

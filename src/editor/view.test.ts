@@ -66,19 +66,50 @@ let fake: ReturnType<typeof fakeBridge>;
 // pixels.
 const SHOWN = { left: 100, top: 50, width: DOC.width / 2, height: DOC.height / 2 };
 
-beforeEach(() => {
-  const ctx = new Proxy(
-    {},
-    {
-      get: (_t, name) => {
-        if (name === 'measureText') return (t: string) => ({ width: t.length * 10 });
-        if (name === 'createLinearGradient') return () => ({ addColorStop() {} });
-        return () => {};
+// Each canvas has a stand-in context of its own that takes every call and keeps
+// a list of their names, so the board's canvas can be told from its layer.
+const calls = new Map<HTMLCanvasElement, string[]>();
+const contexts = new WeakMap<HTMLCanvasElement, CanvasRenderingContext2D>();
+const callsOn = (c: HTMLCanvasElement, name: string) => (calls.get(c) ?? []).filter(n => n === name).length;
+// Frames are run by hand: `frame()` is the browser's next one.
+let frames: (FrameRequestCallback | null)[] = [];
+const frame = () => {
+  const due = frames;
+  frames = [];
+  for (const cb of due) cb?.(0);
+};
+
+function stubContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
+  let ctx = contexts.get(canvas);
+  if (!ctx) {
+    const log: string[] = [];
+    calls.set(canvas, log);
+    ctx = new Proxy(
+      {},
+      {
+        get: (_t, name) => {
+          if (name === 'measureText') return (t: string) => ({ width: t.length * 10 });
+          if (name === 'createLinearGradient') return () => ({ addColorStop() {} });
+          return () => log.push(String(name));
+        },
+        set: () => true,
       },
-      set: () => true,
-    },
-  );
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+    ) as unknown as CanvasRenderingContext2D;
+    contexts.set(canvas, ctx);
+  }
+  return ctx;
+}
+
+beforeEach(() => {
+  frames = [];
+  calls.clear();
+  vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+    frames[id - 1] = null;
+  });
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (this: HTMLCanvasElement) {
+    return stubContext(this) as never;
+  });
   vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(cb => cb(new Blob(['png'], { type: 'image/png' })));
   vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue({ ...SHOWN, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) });
   document.body.replaceChildren();
@@ -91,6 +122,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 const flush = () => new Promise(r => setTimeout(r, 0));
@@ -928,6 +960,7 @@ test('Jarak goes through the history too, and shows in the canvas', async () => 
   solid('#FFFFFF').click();
   const k = scaleFor(DOC.width, DOC.height);
   setRange(paddingRange(), 100);
+  frame();
   expect(canvas().width).toBe(DOC.width + 2 * Math.round(100 * k)); // live
   fire(paddingRange(), 'change');
   undoBtn().click(); // the padding
@@ -1059,16 +1092,74 @@ test('Cmd+Z works with a slider focused', async () => {
   expect(cornerRange().value).toBe('0');
 });
 
-test('when the picture cannot be made, Salin does not claim a copy, and a close still keeps the edits', async () => {
+test('when the picture cannot be made, Salin stays open, says so for 2 s, commits nothing', async () => {
+  vi.useFakeTimers();
   const error = vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.mocked(HTMLCanvasElement.prototype.toBlob as ReturnType<typeof vi.fn>).mockImplementation(cb => cb(null));
   await mount();
   solid('#FFFFFF').click();
   button('Salin')!.click();
-  await flush();
+  await vi.advanceTimersByTimeAsync(0);
   expect(fake.bridge.commit).not.toHaveBeenCalled();
-  expect(fake.bridge.close).toHaveBeenCalledTimes(1);
+  expect(fake.bridge.close).not.toHaveBeenCalled();
   expect(error).toHaveBeenCalledWith('notching: the picture was not exported', expect.any(Error));
+  expect(button('Gagal menyalin')).toBeTruthy();
+  expect(button('Gagal menyalin')!.classList.contains('ed-pri')).toBe(true);
+  await vi.advanceTimersByTimeAsync(1999);
+  expect(button('Gagal menyalin')).toBeTruthy();
+  await vi.advanceTimersByTimeAsync(1);
+  expect(button('Salin')).toBeTruthy();
+  expect(button('Gagal menyalin')).toBeUndefined();
+  error.mockRestore();
+});
+
+test('after a failed Salin the edits are still there, and Salin tries again', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const toBlob = vi.mocked(HTMLCanvasElement.prototype.toBlob as ReturnType<typeof vi.fn>);
+  toBlob.mockImplementationOnce(cb => cb(null));
+  await mount();
+  solid('#FFFFFF').click();
+  button('Salin')!.click();
+  await flush();
+  expect(fake.bridge.close).not.toHaveBeenCalled();
+  button('Gagal menyalin')!.click();
+  await flush();
+  expect(fake.order).toEqual(['commit copy', 'close']);
+  const [, edits, png] = fake.bridge.commit.mock.calls[0];
+  expect(parse(edits).style.background).toEqual({ kind: 'solid', color: '#FFFFFF' });
+  expect(png).toBeInstanceOf(Blob);
+  error.mockRestore();
+});
+
+test('a Salin the core refuses stays open as well, in English too', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  fake.bridge.commit.mockRejectedValueOnce('clipboard busy');
+  await mount('en');
+  button('Copy')!.click();
+  await flush();
+  expect(fake.bridge.close).not.toHaveBeenCalled();
+  expect(button("Couldn't copy")).toBeTruthy();
+  expect(error).toHaveBeenCalledWith('notching: editor commit failed', 'clipboard busy');
+  // Cmd+C works again at once.
+  cmdC();
+  await flush();
+  expect(fake.order).toEqual(['commit copy', 'close']);
+  error.mockRestore();
+});
+
+test('a close asked while a Salin fails is not forgotten', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  let refuse!: (e: unknown) => void;
+  fake.bridge.commit.mockImplementationOnce(() => new Promise<never>((_, no) => (refuse = no)));
+  await mount();
+  button('Salin')!.click();
+  fake.emitClose();
+  await flush();
+  expect(fake.bridge.close).not.toHaveBeenCalled();
+  refuse('no');
+  await flush();
+  // The copy failed, and the close that came meanwhile keeps the edits and goes.
+  expect(fake.order).toEqual(['closing', 'commit keep', 'close']);
   error.mockRestore();
 });
 
@@ -1108,4 +1199,128 @@ test('a doc saved with a background opens with it, and its controls show it', as
   const k = scaleFor(DOC.width, DOC.height);
   expect(canvas().width).toBe(DOC.width + 2 * Math.round(120 * k));
   expect(undoBtn().disabled).toBe(true);
+});
+
+// ---- redraws: one per frame, and the base only when it changes ----------------
+
+const board = () => canvas();
+const paints = () => callsOn(board(), 'clearRect');
+const layers = () => [...calls.keys()].filter(c => c !== board());
+const rebuilds = () => layers().reduce((n, l) => n + callsOn(l, 'clearRect'), 0);
+
+test('several pointer moves are one redraw per frame', async () => {
+  await mount();
+  toolBtn('pen').click();
+  const before = paints();
+  mouse('pointerdown', px(10, 10));
+  const afterDown = paints();
+  expect(afterDown).toBe(before + 1); // a press is shown at once
+  for (let i = 1; i <= 6; i++) mouse('pointermove', px(10 + i * 20, 10 + i * 5));
+  expect(paints()).toBe(afterDown); // nothing yet: the frame has not come
+  frame();
+  expect(paints()).toBe(afterDown + 1);
+  // Nothing left waiting.
+  frame();
+  expect(paints()).toBe(afterDown + 1);
+  mouse('pointermove', px(200, 100));
+  mouse('pointermove', px(210, 100));
+  frame();
+  expect(paints()).toBe(afterDown + 2);
+});
+
+test('letting go redraws at once and drops the frame still waiting', async () => {
+  await mount();
+  toolBtn('rect').click();
+  mouse('pointerdown', px(10, 10));
+  mouse('pointermove', px(100, 80));
+  const waiting = paints();
+  mouse('pointerup', px(100, 80));
+  expect(paints()).toBe(waiting + 1);
+  frame();
+  expect(paints()).toBe(waiting + 1);
+  // The shape is in, once.
+  expect(parse((await salin()).edits).shapes).toHaveLength(1);
+});
+
+test('slider ticks are one redraw per frame, and the canvas takes its new size then', async () => {
+  await mount();
+  solid('#FFFFFF').click();
+  const before = paints();
+  const k = scaleFor(DOC.width, DOC.height);
+  for (const v of [70, 80, 90, 100]) setRange(paddingRange(), v);
+  expect(paints()).toBe(before);
+  expect(canvas().width).toBe(DOC.width + 2 * Math.round(64 * k)); // not yet reallocated
+  frame();
+  expect(paints()).toBe(before + 1);
+  expect(canvas().width).toBe(DOC.width + 2 * Math.round(100 * k));
+});
+
+// Picture pixels as the pointer sees them while the default 64 padding is on.
+const pxPadded = (ix: number, iy: number): [number, number] => {
+  const pad = Math.round(64 * scaleFor(DOC.width, DOC.height));
+  return [SHOWN.left + (pad + ix) / ((DOC.width + 2 * pad) / SHOWN.width), SHOWN.top + (pad + iy) / ((DOC.height + 2 * pad) / SHOWN.height)];
+};
+function dragPadded(path: [number, number][]) {
+  mouse('pointerdown', pxPadded(...path[0]));
+  for (const p of path.slice(1)) mouse('pointermove', pxPadded(...p));
+  mouse('pointerup', pxPadded(...path[path.length - 1]));
+}
+
+// What a Simpan hands to the core, with the window left open.
+async function simpan() {
+  const known = new Set(calls.keys());
+  root.querySelector<HTMLButtonElement>('.ed-right .ed-btn:not(.ed-pri)')!.click(); // Simpan, then Tersimpan
+  await flush();
+  // The export's own canvas is not the board's layer.
+  for (const c of [...calls.keys()]) if (!known.has(c)) calls.delete(c);
+  const all = fake.bridge.commit.mock.calls;
+  return parse(all[all.length - 1][1]);
+}
+
+test('a stroke draws over the same base: only a style change rebuilds it', async () => {
+  await mount();
+  solid('#FFFFFF').click();
+  const base = rebuilds();
+  expect(base).toBeGreaterThan(0);
+  toolBtn('pen').click();
+  dragPadded([[10, 10], [60, 40], [90, 90]]);
+  frame();
+  dragPadded([[100, 100], [160, 140]]);
+  frame();
+  const drawn = (await simpan()).shapes;
+  expect(drawn).toHaveLength(2); // the strokes did land
+  expect(rebuilds()).toBe(base); // two strokes, many frames, one base
+  // Moving a shape, undoing it, redoing it, deleting it: still the one base.
+  toolBtn('select').click();
+  dragPadded([[60, 40], [120, 90]]);
+  expect((await simpan()).shapes[0]).not.toEqual(drawn[0]); // the first stroke moved
+  undoBtn().click();
+  redoBtn().click();
+  key('Delete');
+  expect(rebuilds()).toBe(base);
+  // A new style rebuilds it; so does undoing the style.
+  solid('#111111').click();
+  expect(rebuilds()).toBe(base + 1);
+  undoBtn().click();
+  expect(rebuilds()).toBe(base + 2);
+});
+
+test('a slider drag rebuilds the base once per frame, not once per tick', async () => {
+  await mount();
+  solid('#FFFFFF').click();
+  const before = rebuilds();
+  for (const v of [5, 10, 15, 20, 25]) setRange(cornerRange(), v);
+  frame();
+  expect(rebuilds()).toBe(before + 1);
+});
+
+test('destroy drops a frame still waiting', async () => {
+  const view = await mount();
+  toolBtn('pen').click();
+  mouse('pointerdown', px(10, 10));
+  mouse('pointermove', px(50, 50));
+  const painted = paints();
+  view.destroy();
+  frame();
+  expect(paints()).toBe(painted);
 });

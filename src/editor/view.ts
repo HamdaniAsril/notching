@@ -86,6 +86,8 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   let ended = false;
   let queue: Promise<unknown> = Promise.resolve();
   let failTimer: ReturnType<typeof setTimeout> | null = null;
+  let copyTimer: ReturnType<typeof setTimeout> | null = null;
+  let closeAsked = false; // the close request came while a Salin was under way
 
   let board: Board | null = null;
   let colorIndex = 0;
@@ -128,7 +130,9 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   };
 
   // The page's last act: commit (not when the screenshot is gone), then close.
-  // Even a failed commit closes, so the window never stays stuck.
+  // Even a failed commit closes, so the window never stays stuck; but a failed
+  // Salin stays open and says so, as a failed Simpan does: nothing was copied,
+  // and the edits are still there to try again.
   const end = async (action: 'copy' | 'keep' | null) => {
     if (ended) return;
     ended = true;
@@ -137,11 +141,29 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
         await commit(action);
       } catch (e) {
         console.error('notching: editor commit failed', e);
+        if (action === 'copy') {
+          ended = false;
+          showCopyFailed();
+          // A close that was asked meanwhile is not forgotten.
+          if (closeAsked) await end('keep');
+          return;
+        }
       }
     }
     await bridge.close();
   };
 
+  const copyBtn = button(doc, 'ed-btn ed-pri');
+  const showCopyFailed = () => {
+    if (copyTimer) clearTimeout(copyTimer);
+    copyBtn.textContent = s.shot.copyFailed;
+    copyBtn.classList.add('ed-failed');
+    copyTimer = setTimeout(() => {
+      copyTimer = null;
+      copyBtn.textContent = s.shot.copy;
+      copyBtn.classList.remove('ed-failed');
+    }, SAVE_FAILED_MS);
+  };
   const saveBtn = button(doc, 'ed-btn');
   const showSave = (state: 'save' | 'saved' | 'failed') => {
     saveBtn.textContent = state === 'saved' ? s.shot.saved : state === 'failed' ? s.shot.saveFailed : s.shot.save;
@@ -261,6 +283,7 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   doc.addEventListener('pointerdown', onPress);
   const unlisten = [
     bridge.onClose(() => {
+      closeAsked = true;
       bridge.closing().catch(e => console.error('notching: editor close not acknowledged', e));
       void end('keep');
     }),
@@ -287,7 +310,7 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
     };
     showSave('save');
     saveBtn.addEventListener('click', () => void save());
-    const copyBtn = button(doc, 'ed-btn ed-pri', s.shot.copy);
+    copyBtn.textContent = s.shot.copy;
     copyBtn.addEventListener('click', copy);
     const right = el(doc, 'div', 'ed-right');
     right.append(
@@ -410,6 +433,7 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
       doc.removeEventListener('pointerdown', onPress);
       for (const off of unlisten) off();
       if (failTimer) clearTimeout(failTimer);
+      if (copyTimer) clearTimeout(copyTimer);
       board?.destroy();
     },
   };
