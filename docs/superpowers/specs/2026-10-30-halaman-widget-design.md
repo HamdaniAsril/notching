@@ -237,7 +237,7 @@ Simulasi ukuran panel tanggal 29 Oktober (`2026-10-27-notch-mockups/panel-sizes.
 
    Detail tiap modul mengikuti §6 desain awal.
 4. **Sesudah itu, seperti rencana awal:**
-   - tahap 2 (widget Now playing, Kalender, Pantau agent, katalog modul),
+   - tahap 2 (widget Now playing, katalog modul),
    - versi Windows,
    - rilis publik.
 

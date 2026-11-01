@@ -274,11 +274,11 @@ Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
 | Tahap | Modul |
 |---|---|
 | 1 (versi pertama) | Beranda, Timer, Keep awake, Freeze keyboard, Kamera cermin, System stat. Modul Catatan dibatalkan pemilik ide pada 31 Oktober 2026. |
-| 2 | Kalender, Pantau agent. Music bukan lagi modul. Pada 1 November 2026 pemilik ide mengubahnya menjadi widget Now playing, tanpa lirik (lihat desain halaman 30 Oktober). |
+| 2 | Tidak ada modul. Kalender dan Pantau agent dibatalkan pemilik ide pada 1 November 2026. Music juga bukan lagi modul. Pada 1 November 2026 pemilik ide mengubahnya menjadi widget Now playing, tanpa lirik (lihat desain halaman 30 Oktober). |
 | 3 | Uninstall app dibatalkan pemilik ide pada 1 November 2026. Tahap ini kosong. |
 
 - **Tahap 1** berisi modul harian yang relatif mudah dibuat sama baiknya di Mac dan Windows.
-- **Tahap 2** butuh izin sistem atau data dari luar. Contohnya, macOS membatasi app lain membaca lagu yang sedang diputar.
+- **Tahap 2** sekarang berisi widget Now playing dan katalog modul. Now playing butuh izin sistem, karena macOS membatasi app lain membaca lagu yang sedang diputar.
 
 ### Sistem modul
 
@@ -369,7 +369,7 @@ Di bagian bawah ada garis titik-titik. Di bawah garis itu tampil status mini mod
 | Lokasi | Nama kota diketik sekali di pengaturan Beranda. Pencariannya memakai Open-Meteo Geocoding. Lokasi perangkat jadi pilihan tambahan, bawaannya mati, dan dikerjakan di rencana 5 bersama halaman Izin (diputuskan pemilik ide pada 29 Oktober 2026). Cuaca dan sholat memakai kota yang sama. |
 | Cuaca | [Open-Meteo](https://open-meteo.com): gratis, tanpa akun, tanpa kunci API. Diperbarui setiap 30 menit **(keputusan penulis)**, hanya selama kartu Beranda terbuka. Saat offline, tampilkan data terakhir. |
 | Waktu sholat | Dihitung di perangkat, tanpa internet, dengan rumus Adhan. Bawaannya metode Kemenag RI, bisa diganti di pengaturan. Diputuskan pemilik ide pada 29 Oktober 2026: <ul><li>Rumus [adhan-js](https://github.com/batoulapps/adhan-js) (MIT) diterjemahkan ke Rust di dalam app, supaya notifikasi sholat tetap jalan walau kartu Beranda tertutup. Hasilnya sama dengan adhan-js sampai ke detik.</li><li>Kemenag RI: Subuh 20°, Isya 18°, Ashar mazhab Syafi'i, ihtiyat Subuh +2, Dzuhur +3, Ashar +2, Maghrib +3, Isya +2 menit, dibulatkan ke atas. Hasilnya sama dengan jadwal resmi Kemenag untuk Jakarta pada 29 dan 30 Oktober 2026.</li></ul> |
-| Reminder | Disimpan lokal. Sinkron dengan Apple Reminders atau Google menyusul di tahap 2, bersama Kalender. |
+| Reminder | Disimpan lokal. Sinkron dengan Apple Reminders atau Google semula direncanakan bersama Kalender. Kalender dibatalkan, jadi sinkron belum dijadwalkan. |
 
 ### Cara menambah reminder (keputusan penulis)
 
