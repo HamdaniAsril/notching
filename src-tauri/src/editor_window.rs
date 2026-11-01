@@ -14,6 +14,7 @@ use objc2_app_kit::{NSEvent, NSScreen, NSWindow, NSWorkspace};
 use objc2_foundation::{NSPoint, NSRect, NSSize};
 use serde::Serialize;
 use tauri::ipc::{InvokeBody, Request};
+use tauri::menu::{AboutMetadata, Menu, MenuId, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::webview::PageLoadEvent;
 use tauri::window::Color;
 use tauri::{
@@ -54,6 +55,8 @@ const NEW_EDITED: &str = "edited.new.png";
 const NEW_THUMB: &str = "thumb.new.png";
 const NEW_EDITS: &str = "edits.new.json";
 const WALLPAPER_KINDS: [&str; 4] = ["png", "jpg", "jpeg", "heic"];
+/// The app menu's own Quit, in place of the stock one that ends the app at once.
+const QUIT_MENU_ID: &str = "quit";
 
 // Two clicks close together must not both build the window. The main thread never takes it.
 static OPENING: Mutex<()> = Mutex::new(());
@@ -88,6 +91,18 @@ struct Editor {
 impl Editor {
     const fn new() -> Editor {
         Editor { id: None, screen: 0, next: None, waiting: None, quitting: false }
+    }
+
+    /// A close is done: the screenshot opened meanwhile, if it is to show, becomes
+    /// the one shown. None when quitting or none waits: the window goes.
+    fn finishing(&mut self) -> Option<Open> {
+        self.waiting = None;
+        let next = if self.quitting { None } else { self.next.take() };
+        if let Some(open) = next {
+            self.id = Some(open.id);
+            self.screen = open.screen;
+        }
+        next
     }
 }
 
@@ -423,6 +438,13 @@ pub fn request_close(app: &AppHandle) {
     });
 }
 
+/// The module was switched off or uninstalled: the editor commits its edits and
+/// closes, and a screenshot opened meanwhile does not take its place.
+pub fn module_gone(app: &AppHandle) {
+    editor().next = None;
+    request_close(app);
+}
+
 /// Every way of quitting the app (the pill's Keluar, Cmd+Q in Keyboard Cleaning
 /// Mode): an open editor commits its edits first, and the app ends when its
 /// window has gone.
@@ -435,20 +457,74 @@ pub fn quit(app: &AppHandle) {
     request_close(app);
 }
 
+/// The menu bar while the app is Regular (the editor or settings open): Tauri's
+/// stock App, Edit and Window menus, the editor's and settings' text editing and
+/// Close Window included, but Quit goes through `quit`. The stock Quit calls
+/// `terminate:`, which ends the app with no event Tauri hands on, edits and all.
+pub fn app_menu(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let name = app.package_info().name.clone();
+    let about = AboutMetadata {
+        name: Some(name.clone()),
+        version: Some(app.package_info().version.to_string()),
+        copyright: app.config().bundle.copyright.clone(),
+        authors: app.config().bundle.publisher.clone().map(|p| vec![p]),
+        ..Default::default()
+    };
+    let app_items = Submenu::with_items(
+        app,
+        &name,
+        true,
+        &[
+            &PredefinedMenuItem::about(app, None, Some(about))?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::services(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(app, QUIT_MENU_ID, format!("Quit {name}"), true, Some("CmdOrCtrl+Q"))?,
+        ],
+    )?;
+    let edit = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+    let window = Submenu::with_items(
+        app,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::maximize(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
+    Menu::with_items(app, &[&app_items, &edit, &window])
+}
+
+/// The app menu's items Notching handles itself: only Quit.
+pub fn on_menu_event(app: &AppHandle, id: &MenuId) {
+    if id == QUIT_MENU_ID {
+        quit(app);
+    }
+}
+
 // The page committed (or never will): the screenshot opened meanwhile takes its
 // place, else the window goes.
 fn finish(app: &AppHandle) {
     let Some(window) = app.get_webview_window(EDITOR_LABEL) else { return };
-    let next = {
-        let mut e = editor();
-        e.waiting = None;
-        let next = if e.quitting { None } else { e.next.take() };
-        if let Some(open) = next {
-            e.id = Some(open.id);
-            e.screen = open.screen;
-        }
-        next
-    };
+    let next = editor().finishing();
     match next {
         Some(open) => {
             let _ = window.set_title(&title(open.size));
@@ -798,6 +874,29 @@ mod tests {
         for name in ["e.madesktop", "f", "g.png", "missing.png"] {
             assert!(!is_wallpaper_file(&d.path().join(name)), "{name}");
         }
+    }
+
+    #[test]
+    fn a_finished_close_shows_the_waiting_screenshot_unless_it_was_dropped() {
+        let open = Open { id: 9, screen: 1, frame: Rect { x: 0.0, y: 0.0, w: 640.0, h: 480.0 }, size: (10, 10) };
+        let waiting = |quitting| Editor {
+            id: Some(4),
+            screen: 0,
+            next: Some(open),
+            waiting: Some(Waiting { ask: 1, acked: true }),
+            quitting,
+        };
+        // Another screenshot was opened: it takes the window's place.
+        let mut e = waiting(false);
+        assert_eq!(e.finishing(), Some(open));
+        assert_eq!((e.id, e.screen, e.next, e.waiting), (Some(9), 1, None, None));
+        // Quitting: the window goes.
+        assert_eq!(waiting(true).finishing(), None);
+        // The module switched off (`module_gone` drops `next`): the window goes too.
+        let mut e = waiting(false);
+        e.next = None;
+        assert_eq!(e.finishing(), None);
+        assert_eq!((e.id, e.waiting), (Some(4), None));
     }
 
     #[test]

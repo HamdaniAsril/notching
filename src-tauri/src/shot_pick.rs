@@ -30,7 +30,7 @@ pub const PICK_LEVEL: i64 = 27;
 /// To each pick panel as it shows: `PickState`.
 pub const PICK_EVENT: &str = "notching://pick";
 /// The panels are ordered out this long before the capture, so none is in it.
-const PICK_SETTLE_MS: u64 = 120;
+const PICK_SETTLE: Duration = Duration::from_millis(120);
 
 mod panel {
     tauri_nspanel::tauri_panel! {
@@ -132,12 +132,18 @@ pub fn target(choice: PickChoice, screen_cg: Rect) -> (Target, Kind) {
 }
 
 /// Opens the picker on every screen; the cursor's panel becomes key for Esc.
-/// Does nothing while it is already up or the module is off. Main thread only.
+/// Does nothing while it is already up or the module is off. Without Screen
+/// Recording access it does not open: macOS is asked and the notch says why, as
+/// for a capture. Main thread only.
 pub fn show(app: &AppHandle, mode: PickMode) {
     let Some(mtm) = MainThreadMarker::new() else { return };
     // A second ⌘⇧4 while the picker is up. Only the main thread opens it, so
     // nothing can open it between this check and the end of `show`.
     if SHOWN.lock().unwrap().is_some() || !shot_service::enabled(app) {
+        return;
+    }
+    if !shot_service::screen_access() {
+        shot_service::refused(app);
         return;
     }
     let screens = current_screens(mtm);
@@ -197,6 +203,16 @@ pub fn hide(app: &AppHandle) {
             panel.hide();
         }
     }
+}
+
+/// ⌘⇧3 while the picker is up: it goes first, and the capture waits until it is
+/// off the screen. Returns how long to wait (zero when it was not up). Main thread.
+pub fn hide_for_capture(app: &AppHandle) -> Duration {
+    if SHOWN.lock().unwrap().is_none() {
+        return Duration::ZERO;
+    }
+    hide(app);
+    PICK_SETTLE
 }
 
 /// Esc's key code (kVK_Escape), as keyclean_tap.rs has it.
@@ -306,10 +322,7 @@ pub fn shot_pick_done(app: AppHandle, window: WebviewWindow, choice: PickChoice)
     let Some(shown) = SHOWN.lock().unwrap().take().and_then(|mut m| m.remove(window.label())) else { return };
     hide(&app);
     let (target, kind) = target(choice, shown.cg);
-    std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_millis(PICK_SETTLE_MS));
-        shot_service::take(&app, target, kind, shown.screen);
-    });
+    shot_service::take_after(&app, target, kind, shown.screen, PICK_SETTLE);
 }
 
 /// Esc.

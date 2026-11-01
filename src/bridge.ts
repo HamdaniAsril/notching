@@ -121,6 +121,7 @@ export interface Bridge {
   onShot(cb: (e: ShotEvent) => void): () => void;
   onShots(cb: (list: Shot[]) => void): () => void;
   onShotDrag(cb: (e: ShotDrag) => void): () => void;
+  shotReady(): Promise<void>; // this overlay hears notices now: the launch key notice can go out
 }
 
 // Turns tauri's async listen() into the synchronous unsubscribe the Bridge promises.
@@ -196,5 +197,6 @@ export function tauriBridge(): Bridge {
     onShots: cb => syncUnlisten(listen<Shot[]>('notching://shots', e => cb(e.payload))),
     // Sent to this overlay only.
     onShotDrag: cb => syncUnlisten(win.listen<ShotDrag>('notching://shot-drag', e => cb(e.payload))),
+    shotReady: () => invoke('shot_ready'),
   };
 }

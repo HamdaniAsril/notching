@@ -68,6 +68,10 @@ pub fn run() {
         .plugin(tauri_nspanel::init())
         .manage(overlay::Overlays::default())
         .manage(overlay::ConnectedScreens::default())
+        // While the editor or settings is open the app has a menu bar: its Quit lets
+        // the editor commit first, as every other way of quitting does.
+        .menu(editor_window::app_menu)
+        .on_menu_event(|app, event| editor_window::on_menu_event(app, event.id()))
         .register_uri_scheme_protocol(modules::protocol::SCHEME, |ctx, req| {
             use tauri::Manager;
             let Some(core) = ctx.app_handle().try_state::<app_core::CoreState>() else {
@@ -139,6 +143,7 @@ pub fn run() {
             shot_service::shot_permission,
             shot_service::open_screen_recording_settings,
             shot_hotkey::shot_keys,
+            shot_hotkey::shot_ready,
             shot_hotkey::open_keyboard_shortcuts,
             shot_pick::shot_pick,
             shot_pick::shot_pick_state,
@@ -207,6 +212,7 @@ pub fn run() {
             tauri::RunEvent::Exit => {
                 lamp_service::quitting(app);
                 shelf_service::quitting(app);
+                shot_service::quitting(app);
             }
             _ => {}
         });

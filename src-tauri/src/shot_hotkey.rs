@@ -4,18 +4,18 @@
 
 use std::ffi::c_void;
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, Once, OnceLock};
 
 use objc2::MainThreadMarker;
 use objc2_app_kit::{NSEvent, NSWorkspace};
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, WebviewWindow};
 
 use crate::app_core::CoreState;
 use crate::geometry::Rect;
 use crate::locale::Lang;
 use crate::notify::{window_list, WindowBox};
+use crate::overlay::Overlays;
 use crate::shot::{parse_key_conflicts, pick_screen, KeyState, Kind, Target};
 use crate::shot_service::{self, MODULE_ID};
 
@@ -73,8 +73,6 @@ const CMD_SHIFT: u32 = 0x0100 | 0x0200; // cmdKey | shiftKey
 // Marks Notching's hot keys among any others the app target sees.
 const SIGNATURE: u32 = u32::from_be_bytes(*b"ncsh");
 const KEYBOARD_SHORTCUTS_PANE: &str = "x-apple.systempreferences:com.apple.Keyboard-Settings.extension?Shortcuts";
-// At launch the notch pages are still loading; a notice sent sooner is lost.
-const LAUNCH_NOTICE_DELAY: std::time::Duration = std::time::Duration::from_secs(3);
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Key {
@@ -136,8 +134,10 @@ pub fn combine(enabled: bool, registered: [KeyState; 2], mac_taken: (bool, bool)
 pub enum Holder {
     /// The Mac's own screenshot shortcuts: `notice.keys.title`.
     Mac,
-    /// Another app: `notice.other.title`.
+    /// Another app, one key: `notice.other.title`.
     Other,
+    /// Another app, both keys: `notice.otherMany.title` ("are taken" in English).
+    OtherMany,
 }
 
 impl Holder {
@@ -145,6 +145,7 @@ impl Holder {
         match self {
             Holder::Mac => "notice.keys.title",
             Holder::Other => "notice.other.title",
+            Holder::OtherMany => "notice.otherMany.title",
         }
     }
 }
@@ -165,14 +166,20 @@ pub fn conflict_notice_due(already_sent: bool, keys: &KeysDto, lang: Lang) -> Op
             .collect();
         (!names.is_empty()).then_some(names)
     };
-    let (holder, names) = held_by(KeyState::Mac)
-        .map(|n| (Holder::Mac, n))
-        .or_else(|| held_by(KeyState::Other).map(|n| (Holder::Other, n)))?;
+    let (holder, names) = held_by(KeyState::Mac).map(|n| (Holder::Mac, n)).or_else(|| {
+        held_by(KeyState::Other).map(|n| (if n.len() > 1 { Holder::OtherMany } else { Holder::Other }, n))
+    })?;
     let and = match lang {
         Lang::Id => " dan ",
         Lang::En => " and ",
     };
     Some((holder, names.join(and)))
+}
+
+/// The launch notice goes to the overlay under the cursor, so it waits until
+/// every overlay shown has said its page hears notices (`shot_ready`).
+pub fn overlays_ready(shown: &[String], ready: &[String]) -> bool {
+    !shown.is_empty() && shown.iter().all(|label| ready.contains(label))
 }
 
 /// The frontmost window of `pid`: its first normal (layer 0) window, front to back.
@@ -189,7 +196,11 @@ static HOT_KEYS: Mutex<HotKeys> = Mutex::new(HotKeys([std::ptr::null_mut(); 2]))
 static REGISTERED: Mutex<[KeyState; 2]> = Mutex::new([KeyState::Off; 2]);
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static HANDLER: Once = Once::new();
-static NOTICE_SENT: AtomicBool = AtomicBool::new(false);
+// Overlays whose page listens for notices, by label (`shot_ready`).
+static READY: Mutex<Vec<String>> = Mutex::new(Vec::new());
+// True once the launch notice went out; held while it is decided and sent, so
+// two overlays getting ready at once cannot both send it.
+static NOTICE_SENT: Mutex<bool> = Mutex::new(false);
 
 // Called by the app's event target, on the main thread.
 extern "C" fn on_hot_key(_next: *mut c_void, event: *mut c_void, _data: *mut c_void) -> i32 {
@@ -218,9 +229,11 @@ extern "C" fn on_hot_key(_next: *mut c_void, event: *mut c_void, _data: *mut c_v
 }
 
 /// ⌘⇧3: the screen of the frontmost window, or the cursor's. Only the frames are
-/// read here; `take` captures on a thread of its own.
+/// read here; `take` captures on a thread of its own, after the picker, if it was
+/// up, has left the screen.
 fn screen(app: &AppHandle) {
     let Some(mtm) = MainThreadMarker::new() else { return };
+    let settle = crate::shot_pick::hide_for_capture(app);
     let frames = shot_service::cg_frames(mtm);
     let front = NSWorkspace::sharedWorkspace()
         .frontmostApplication()
@@ -230,7 +243,7 @@ fn screen(app: &AppHandle) {
     let p = NSEvent::mouseLocation();
     let index = pick_screen(&frames, front, (p.x, primary - p.y));
     if let Some(&rect) = frames.get(index) {
-        shot_service::take(app, Target::Screen { rect }, Kind::Screen, index);
+        shot_service::take_after(app, Target::Screen { rect }, Kind::Screen, index, settle);
     }
 }
 
@@ -290,13 +303,13 @@ pub fn unregister() {
 }
 
 /// Which of ⌘⇧3 and ⌘⇧4 the Mac's own screenshot shortcuts hold. Read only;
-/// when the setting cannot be read, neither counts as taken.
+/// when the setting cannot be read, both count as taken, as the Mac's default has them.
 fn mac_taken() -> (bool, bool) {
     match read_symbolic_hotkeys() {
         Ok(json) => parse_key_conflicts(&json),
         Err(e) => {
-            eprintln!("notching: the Mac's screenshot shortcuts not read: {e}");
-            (false, false)
+            eprintln!("notching: the Mac's screenshot shortcuts not read, so taken as the Mac's: {e}");
+            (true, true)
         }
     }
 }
@@ -331,37 +344,38 @@ fn keys(app: &AppHandle) -> KeysDto {
     combine(enabled, *REGISTERED.lock().unwrap(), mac)
 }
 
-// The notice for keys that do not reach Notching, once per launch.
+// The notice for keys that do not reach Notching, once per launch, once every
+// overlay hears notices. It counts as sent only when it was posted.
 fn notice_if_due(app: &AppHandle) {
-    let keys = keys(app);
-    let lang = app.state::<CoreState>().0.lock().unwrap().lang();
-    let Some((holder, names)) = conflict_notice_due(NOTICE_SENT.load(Ordering::SeqCst), &keys, lang) else { return };
-    if NOTICE_SENT.swap(true, Ordering::SeqCst) {
+    let mut sent = NOTICE_SENT.lock().unwrap_or_else(|e| e.into_inner());
+    if *sent {
         return;
     }
+    let shown: Vec<String> = app.state::<Overlays>().0.lock().unwrap().keys().cloned().collect();
+    if !overlays_ready(&shown, &READY.lock().unwrap()) {
+        return;
+    }
+    let keys = keys(app);
+    let lang = app.state::<CoreState>().0.lock().unwrap().lang();
+    let Some((holder, names)) = conflict_notice_due(*sent, &keys, lang) else { return };
     let (title, detail) = {
         let core = app.state::<CoreState>();
         let core = core.0.lock().unwrap();
         (core.module_text(MODULE_ID, holder.title_key()), core.module_text(MODULE_ID, "notice.keys.detail"))
     };
     let title = title.map_or_else(|| names.clone(), |t| t.replace("{keys}", &names));
-    if let Err(e) = crate::notify::post(app, MODULE_ID, "keys", &title, &detail.unwrap_or_default()) {
-        eprintln!("notching: the screenshot keys notice was not sent: {e}");
+    match crate::notify::post(app, MODULE_ID, "keys", &title, &detail.unwrap_or_default()) {
+        Ok(()) => *sent = true,
+        Err(e) => eprintln!("notching: the screenshot keys notice was not sent: {e}"),
     }
 }
 
-/// At launch, on the main thread: the keys when the module is on, then the notice
-/// once the notch pages are up.
+/// At launch, on the main thread: the keys when the module is on. The notice
+/// follows once the overlays' pages are up (`shot_ready`).
 pub fn start(app: &AppHandle) {
-    if !shot_service::enabled(app) {
-        return;
+    if shot_service::enabled(app) {
+        register(app);
     }
-    register(app);
-    let app = app.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(LAUNCH_NOTICE_DELAY);
-        notice_if_due(&app);
-    });
 }
 
 /// The module was switched back on or reinstalled: the keys again, and the notice
@@ -380,6 +394,22 @@ pub fn module_on(app: &AppHandle, id: &str) {
     } else {
         let _ = app.run_on_main_thread(on_main);
     }
+}
+
+/// An overlay's page listens for notices now: the launch notice goes once all have.
+#[tauri::command]
+pub fn shot_ready(app: AppHandle, window: WebviewWindow) {
+    let label = window.label();
+    if !label.starts_with("notch-") {
+        return;
+    }
+    {
+        let mut ready = READY.lock().unwrap();
+        if !ready.iter().any(|l| l == label) {
+            ready.push(label.to_string());
+        }
+    }
+    std::thread::spawn(move || notice_if_due(&app));
 }
 
 #[tauri::command]
@@ -433,7 +463,10 @@ mod tests {
     fn conflict_notice_names_keys_of_another_app() {
         use KeyState::*;
         assert_eq!(due(false, Ok, Other, Lang::Id), some(Holder::Other, "⌘⇧4"));
-        assert_eq!(due(false, Other, Other, Lang::En), some(Holder::Other, "⌘⇧3 and ⌘⇧4"));
+        assert_eq!(due(false, Other, Ok, Lang::En), some(Holder::Other, "⌘⇧3"));
+        // Both: the plural title.
+        assert_eq!(due(false, Other, Other, Lang::En), some(Holder::OtherMany, "⌘⇧3 and ⌘⇧4"));
+        assert_eq!(due(false, Other, Other, Lang::Id), some(Holder::OtherMany, "⌘⇧3 dan ⌘⇧4"));
     }
 
     // Mixed: the Mac's keys win, and only they are named.
@@ -444,20 +477,32 @@ mod tests {
         assert_eq!(due(false, Other, Mac, Lang::En), some(Holder::Mac, "⌘⇧4"));
     }
 
-    // Both titles exist in the bundled module, in both languages, with a {keys} slot.
+    // Every title exists in the bundled module, in both languages, with a {keys} slot.
     #[test]
     fn notice_titles_are_in_the_module_locales() {
         let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../modules/screenshot/locales");
         for lang in ["id", "en"] {
             let text = std::fs::read_to_string(dir.join(format!("{lang}.json"))).unwrap();
             let json: serde_json::Value = serde_json::from_str(&text).unwrap();
-            for holder in [Holder::Mac, Holder::Other] {
+            for holder in [Holder::Mac, Holder::Other, Holder::OtherMany] {
                 let pointer = format!("/{}", holder.title_key().replace('.', "/"));
                 let title = json.pointer(&pointer).and_then(|v| v.as_str()).unwrap_or_default();
                 assert!(title.contains("{keys}"), "{lang} {pointer}: {title:?}");
             }
             assert!(json.pointer("/notice/keys/detail").is_some_and(|v| v.is_string()), "{lang} detail");
         }
+    }
+
+    #[test]
+    fn launch_notice_waits_for_every_shown_overlay() {
+        let labels = |l: &[&str]| l.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert!(overlays_ready(&labels(&["notch-0", "notch-1"]), &labels(&["notch-1", "notch-0"])));
+        assert!(!overlays_ready(&labels(&["notch-0", "notch-1"]), &labels(&["notch-0"])));
+        // A parked overlay that got ready earlier does not stand in for a shown one.
+        assert!(!overlays_ready(&labels(&["notch-0"]), &labels(&["notch-2"])));
+        assert!(overlays_ready(&labels(&["notch-0"]), &labels(&["notch-0", "notch-2"])));
+        // No overlay yet: nowhere to show it.
+        assert!(!overlays_ready(&[], &labels(&["notch-0"])));
     }
 
     #[test]

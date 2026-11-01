@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Mutex, OnceLock};
+use std::time::Duration;
 
 use objc2::MainThreadMarker;
 use objc2_app_kit::{NSEvent, NSPasteboard, NSPasteboardTypePNG};
@@ -38,7 +39,7 @@ pub const THUMB: &str = "thumb.png";
 /// The editor's shapes, as its page wrote them, to go on with later.
 pub const EDITS: &str = "edits.json";
 const INDEX: &str = "index.json";
-// Under the app's cache folder: the copy a drag out carries.
+// Under the app's cache folder: the copies drags out carry, one folder per drag.
 const DRAG_DIR: &str = "shot-drag";
 // A capture is written here first, and moved into its folder once it is accepted.
 const TMP_PREFIX: &str = ".take-";
@@ -49,6 +50,7 @@ pub struct ShotState(pub Mutex<History>);
 
 static DIR: OnceLock<PathBuf> = OnceLock::new();
 static NEXT_TMP: AtomicU64 = AtomicU64::new(0);
+static NEXT_DRAG: AtomicU64 = AtomicU64::new(0);
 
 #[link(name = "CoreGraphics", kind = "framework")]
 unsafe extern "C" {
@@ -279,19 +281,28 @@ fn save_copy(src: &Path, folder: &Path, local: chrono::NaiveDateTime) -> io::Res
     }
 }
 
-/// Copies `src` into `cache` under the Desktop name for `local` (no number: the
-/// folder holds only this drag's file), for a drag out to carry. Files of earlier
-/// drags go; those drags have ended.
-fn drag_copy(src: &Path, cache: &Path, local: chrono::NaiveDateTime) -> io::Result<PathBuf> {
-    fs::create_dir_all(cache)?;
-    let path = cache.join(desktop_name(local, |_| false));
-    for entry in fs::read_dir(cache)?.flatten() {
-        if entry.path() != path {
-            let _ = fs::remove_file(entry.path());
-        }
-    }
+/// Copies `src` into `cache/<n>/` under the Desktop name for `local` (no number:
+/// the folder is this drag's alone), for drag `n` to carry. Earlier drags' files
+/// stay, since where they were dropped (Titipan, a Mail draft) may read them
+/// later; the whole folder goes at start and quit (`clear_drags`).
+fn drag_copy(src: &Path, cache: &Path, n: u64, local: chrono::NaiveDateTime) -> io::Result<PathBuf> {
+    let folder = cache.join(n.to_string());
+    fs::create_dir_all(&folder)?;
+    let path = folder.join(desktop_name(local, |_| false));
     fs::copy(src, &path)?;
     Ok(path)
+}
+
+/// Every drag's copy goes.
+fn clear_drags(cache: &Path) {
+    match fs::remove_dir_all(cache) {
+        Err(e) if e.kind() != io::ErrorKind::NotFound => eprintln!("notching: screenshot drag copies not removed: {e}"),
+        _ => {}
+    }
+}
+
+fn drag_cache(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path().app_cache_dir().map(|c| c.join(DRAG_DIR)).map_err(|e| e.to_string())
 }
 
 /// A thumbnail `THUMB_W` px wide (or the picture itself when it is narrower), by `sips`.
@@ -391,8 +402,18 @@ pub fn enabled(app: &AppHandle) -> bool {
 /// Takes a screenshot on a thread of its own; `screen` is the NSScreen index the
 /// capture belongs to, whose notch shows the result.
 pub fn take(app: &AppHandle, target: Target, kind: Kind, screen: usize) {
+    take_after(app, target, kind, screen, Duration::ZERO);
+}
+
+/// `take` once `delay` has passed, for a picker that must be off the screen first.
+pub fn take_after(app: &AppHandle, target: Target, kind: Kind, screen: usize, delay: Duration) {
     let app = app.clone();
-    std::thread::spawn(move || take_now(&app, target, kind, screen));
+    std::thread::spawn(move || {
+        if !delay.is_zero() {
+            std::thread::sleep(delay);
+        }
+        take_now(&app, target, kind, screen);
+    });
 }
 
 fn take_now(app: &AppHandle, target: Target, kind: Kind, screen: usize) {
@@ -443,8 +464,8 @@ fn take_now(app: &AppHandle, target: Target, kind: Kind, screen: usize) {
     });
 }
 
-// No Screen Recording access: macOS is asked (it prompts once), and the notch says why.
-fn refused(app: &AppHandle) {
+/// No Screen Recording access: macOS is asked (it prompts once), and the notch says why.
+pub fn refused(app: &AppHandle) {
     let _ = app.run_on_main_thread(|| {
         unsafe { CGRequestScreenCaptureAccess() };
     });
@@ -482,7 +503,14 @@ pub fn module_gone(app: &AppHandle, id: &str) {
     if id == MODULE_ID {
         crate::shot_hotkey::unregister();
         crate::shot_pick::hide(app);
-        crate::editor_window::request_close(app);
+        crate::editor_window::module_gone(app);
+    }
+}
+
+/// The app is quitting: drags' copies go.
+pub fn quitting(app: &AppHandle) {
+    if let Ok(cache) = drag_cache(app) {
+        clear_drags(&cache);
     }
 }
 
@@ -518,6 +546,10 @@ pub fn start(app: &AppHandle) {
         }
     };
     app.manage(ShotState(Mutex::new(history)));
+    // Drags of an earlier run that ended without quitting.
+    if let Ok(cache) = drag_cache(app) {
+        clear_drags(&cache);
+    }
     crate::shot_hotkey::start(app);
 }
 
@@ -541,8 +573,10 @@ pub fn shot_take_screen(app: AppHandle, window: WebviewWindow) {
     });
 }
 
+// Copy, Simpan, Hapus and a drag read and write pictures of several MB: async
+// commands, off the main thread; the clipboard and the drag session still go to it.
 #[tauri::command]
-pub fn shot_copy(app: AppHandle, id: u64) -> Result<(), String> {
+pub async fn shot_copy(app: AppHandle, id: u64) -> Result<(), String> {
     let dir = dir().ok_or("no screenshots folder")?;
     let item = app.state::<ShotState>().0.lock().unwrap().get(id).cloned().ok_or("gone")?;
     let png = fs::read(current_path(dir, &item)).map_err(|e| e.to_string())?;
@@ -550,14 +584,14 @@ pub fn shot_copy(app: AppHandle, id: u64) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn shot_save(app: AppHandle, id: u64) -> Result<String, String> {
+pub async fn shot_save(app: AppHandle, id: u64) -> Result<String, String> {
     save(&app, id)
 }
 
 /// Removes the screenshot from the history with its folder. A Desktop copy and
 /// the clipboard stay as they are.
 #[tauri::command]
-pub fn shot_delete(app: AppHandle, id: u64) -> Result<(), String> {
+pub async fn shot_delete(app: AppHandle, id: u64) -> Result<(), String> {
     let dir = dir().ok_or("no screenshots folder")?;
     {
         let state = app.state::<ShotState>();
@@ -575,14 +609,14 @@ pub fn shot_delete(app: AppHandle, id: u64) -> Result<(), String> {
 /// Drags the current image out of this overlay's panel as a PNG with the name
 /// Simpan would give it (§5). The history keeps the screenshot.
 #[tauri::command]
-pub fn shot_start_drag(app: AppHandle, window: WebviewWindow, id: u64) -> Result<(), String> {
+pub async fn shot_start_drag(app: AppHandle, window: WebviewWindow, id: u64) -> Result<(), String> {
     if DRAG_OUT.load(Ordering::SeqCst) {
         return Err("a drag is already running".into());
     }
     let dir = dir().ok_or("no screenshots folder")?;
     let item = app.state::<ShotState>().0.lock().unwrap().get(id).cloned().ok_or("gone")?;
-    let cache = app.path().app_cache_dir().map_err(|e| e.to_string())?.join(DRAG_DIR);
-    let file = drag_copy(&current_path(dir, &item), &cache, local_time(item.taken_ms)).map_err(|e| e.to_string())?;
+    let n = NEXT_DRAG.fetch_add(1, Ordering::Relaxed);
+    let file = drag_copy(&current_path(dir, &item), &drag_cache(&app)?, n, local_time(item.taken_ms)).map_err(|e| e.to_string())?;
     let preview = fs::read(folder(dir, id).join(THUMB)).ok();
     crate::shelf_drag::begin_on_main(&app, window.label(), vec![(file, preview)], DragOwner::Shot)
 }
@@ -845,24 +879,26 @@ mod tests {
     }
 
     #[test]
-    fn drag_copy_has_the_desktop_name_and_replaces_the_last_one() {
+    fn each_drag_has_its_own_file_with_the_desktop_name() {
         let d = tempfile::tempdir().unwrap();
         let src = d.path().join("edited.png");
         std::fs::write(&src, b"edit").unwrap();
         let cache = d.path().join("shot-drag");
         let t = NaiveDate::from_ymd_opt(2026, 11, 1).unwrap().and_hms_opt(14, 2, 5).unwrap();
-        let named = cache.join("Screenshot 2026-11-01 14.02.05.png");
-        assert_eq!(drag_copy(&src, &cache, t).unwrap(), named);
-        assert_eq!(std::fs::read(&named).unwrap(), b"edit");
-        // The same name again: no number, the file is simply written anew.
+        let first = cache.join("0").join("Screenshot 2026-11-01 14.02.05.png");
+        assert_eq!(drag_copy(&src, &cache, 0, t).unwrap(), first);
+        assert_eq!(std::fs::read(&first).unwrap(), b"edit");
+        // The same screenshot dragged again after an edit: a new file, the first
+        // one (dropped somewhere that may read it later) untouched.
         std::fs::write(&src, b"edit 2").unwrap();
-        assert_eq!(drag_copy(&src, &cache, t).unwrap(), named);
-        assert_eq!(std::fs::read(&named).unwrap(), b"edit 2");
-        // Another screenshot's drag leaves only its own file.
-        let later = t + chrono::Duration::seconds(1);
-        let next = drag_copy(&src, &cache, later).unwrap();
-        assert_eq!(next, cache.join("Screenshot 2026-11-01 14.02.06.png"));
-        assert_eq!(std::fs::read_dir(&cache).unwrap().count(), 1);
+        let second = drag_copy(&src, &cache, 1, t).unwrap();
+        assert_eq!(second, cache.join("1").join("Screenshot 2026-11-01 14.02.05.png"));
+        assert_eq!(std::fs::read(&second).unwrap(), b"edit 2");
+        assert_eq!(std::fs::read(&first).unwrap(), b"edit");
+        // Start and quit take them all; an absent folder is fine.
+        clear_drags(&cache);
+        assert!(!cache.exists());
+        clear_drags(&cache);
     }
 
     #[test]

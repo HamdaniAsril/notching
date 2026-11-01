@@ -234,6 +234,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     onShot: cb => { shotSubs.add(cb); return () => shotSubs.delete(cb); },
     onShots: cb => { shotsSubs.add(cb); return () => shotsSubs.delete(cb); },
     onShotDrag: () => () => {},
+    shotReady: async () => {},
     clearMissed: async () => {
       state = { ...state, missed: [] };
       stateSubs.forEach(cb => cb(state));

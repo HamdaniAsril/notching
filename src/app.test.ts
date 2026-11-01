@@ -234,6 +234,12 @@ const notice = (title: string, moduleId: string | null = 'home', channel: string
   ({ moduleId, channel, title, detail: '14.00', glow: true, seconds: 3.5 });
 const earText = (root: HTMLElement) => root.querySelector('.ear.r')!.textContent;
 
+test('the overlay says it is ready for notices once it listens for them', async () => {
+  const { bridge } = await start();
+  expect(bridge.shotReady).toHaveBeenCalledTimes(1);
+  expect(bridge.onNotice.mock.invocationCallOrder[0]).toBeLessThan(bridge.shotReady.mock.invocationCallOrder[0]);
+});
+
 test('a notice shows on this notch', async () => {
   const { root, app, bridge, r } = await start();
   bridge.emitNotice(notice('Kirim invoice'));

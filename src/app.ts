@@ -291,6 +291,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   };
   const offStatus = bridge.onStatus(showStatus);
   showStatus(await bridge.status());
+  // Notices reach this overlay now: Screenshot's launch notice about its keys can go.
+  bridge.shotReady().catch(e => console.error('notching: shot_ready failed', e));
 
   function renderPill(): void {
     const missed = missedTargets(state);

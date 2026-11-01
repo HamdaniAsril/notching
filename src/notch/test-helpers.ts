@@ -191,6 +191,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     onShot: vi.fn((cb: (e: ShotEvent) => void) => { shotSubs.add(cb); return () => { shotSubs.delete(cb); }; }),
     onShots: vi.fn((cb: (list: Shot[]) => void) => { shotsSubs.add(cb); return () => { shotsSubs.delete(cb); }; }),
     onShotDrag: vi.fn((cb: (e: ShotDrag) => void) => { shotDragSubs.add(cb); return () => { shotDragSubs.delete(cb); }; }),
+    shotReady: vi.fn(async () => {}),
     emitShot: (e: ShotEvent) => shotSubs.forEach(cb => cb(e)),
     emitShots: (list: Shot[]) => shotsSubs.forEach(cb => cb(list)),
     emitShotDrag: (e: ShotDrag) => shotDragSubs.forEach(cb => cb(e)),
