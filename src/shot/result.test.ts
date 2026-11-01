@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { Shot } from '../bridge';
 import { fakeShotDeps, shot } from './test-helpers';
 import { mountShotResult } from './result';
@@ -95,6 +95,23 @@ test('Simpan saves, reads Tersimpan, and the panel stays open', async () => {
   expect(deps.close).not.toHaveBeenCalled();
 });
 
+test('a failed Simpan says so for 2 s, then offers Simpan again', async () => {
+  vi.useFakeTimers();
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  deps.shotSave.mockRejectedValue('gone');
+  mount();
+  button('Simpan').click();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(button('Gagal menyimpan')).toBeTruthy();
+  expect(logged).toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(1999);
+  expect(button('Gagal menyimpan')).toBeTruthy();
+  await vi.advanceTimersByTimeAsync(1);
+  expect(button('Simpan')).toBeTruthy();
+  expect(button('Tersimpan')).toBeUndefined();
+  expect(deps.close).not.toHaveBeenCalled();
+});
+
 test('a saved item starts as Tersimpan', () => {
   mount(shot(7, { saved: true }));
   expect(button('Tersimpan')).toBeTruthy();
@@ -163,4 +180,9 @@ test('destroy stops listening', () => {
   deps.emitShot({ phase: 'gone', id: 7 });
   expect(deps.close).not.toHaveBeenCalled();
   expect(box.childElementCount).toBe(0);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });

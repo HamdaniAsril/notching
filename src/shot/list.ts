@@ -1,7 +1,8 @@
 import type { Shot, ShotKeys } from '../bridge';
 import { fill, hostStrings, type HostStrings } from '../i18n';
 import { SHOT } from '../pages/route';
-import { button, COPY_ICON, DELETE_ICON, el, image, openEditor, presses, SAVE_ICON, SAVED_ICON, type ShotDeps } from './common';
+import { presses } from '../notch/presses';
+import { button, COPY_ICON, DELETE_ICON, el, image, openEditor, SAVE_ICON, SAVED_ICON, saves, type ShotDeps } from './common';
 
 export interface ShotListDeps extends ShotDeps {
   back(): void; // "‹ Modul"
@@ -44,7 +45,7 @@ function keysIn(keys: ShotKeys, state: ShotKeys['screen'], s: HostStrings['shot'
 export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
   const doc = box.ownerDocument;
   const s = hostStrings(deps.lang).shot;
-  const saved = new Set<string>(); // saved here, by picture URL
+  const save = saves(deps.shotSave, () => show());
   const press = presses(doc, id => void deps.shotStartDrag(id).catch(() => {}));
   let shots: Shot[] = [];
   let built = '';
@@ -99,8 +100,8 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
     deps.onNotes(lines.length);
   });
 
-  function act(icon: string, label: string, run: () => void): HTMLButtonElement {
-    const b = button(doc, 'shot-act');
+  function act(icon: string, label: string, run: () => void, failed = false): HTMLButtonElement {
+    const b = button(doc, failed ? 'shot-act failed' : 'shot-act');
     b.innerHTML = icon;
     b.setAttribute('aria-label', label);
     b.title = label;
@@ -113,7 +114,7 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
   }
 
   function tile(shot: Shot): HTMLElement {
-    const isSaved = shot.saved || saved.has(shot.image);
+    const saving = save.state(shot);
     const t = el(doc, 'div', 'shot-tile');
     t.dataset.id = String(shot.id);
     const th = el(doc, 'div', 'shot-th');
@@ -123,12 +124,7 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
         deps.shotCopy(shot.id).catch(() => {});
         void deps.close();
       }),
-      act(isSaved ? SAVED_ICON : SAVE_ICON, isSaved ? s.saved : s.save, () => {
-        deps.shotSave(shot.id).then(() => {
-          saved.add(shot.image);
-          show();
-        }, () => {});
-      }),
+      act(saving === 'saved' ? SAVED_ICON : SAVE_ICON, s[saving === 'failed' ? 'saveFailed' : saving], () => save.save(shot), saving === 'failed'),
       act(DELETE_ICON, s.delete, () => void deps.shotDelete(shot.id).catch(() => {})),
     );
     th.append(image(doc, shot.thumb), acts);
@@ -139,7 +135,7 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
 
   function show(): void {
     const sorted = [...shots].sort((a, b) => b.takenMs - a.takenMs || b.id - a.id).slice(0, SHOT.columns * 3);
-    const sig = JSON.stringify([sorted, sorted.map(x => saved.has(x.image))]);
+    const sig = JSON.stringify([sorted, sorted.map(x => save.state(x))]);
     if (sig === built) return;
     built = sig;
     count.textContent = fill(s.title, { n: sorted.length });
@@ -160,6 +156,7 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
     destroy() {
       gone = true;
       press.destroy();
+      save.destroy();
       box.replaceChildren();
     },
   };

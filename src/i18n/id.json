@@ -24,6 +24,7 @@
     "copy": "Salin",
     "save": "Simpan",
     "saved": "Tersimpan",
+    "saveFailed": "Gagal menyimpan",
     "delete": "Hapus",
     "title": "Screenshot · {n}",
     "empty": "Tekan ⌘⇧3 atau ⌘⇧4 untuk screenshot pertama",

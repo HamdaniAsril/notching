@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { hostStrings } from '../i18n';
 import { fakeShotDeps, shot } from './test-helpers';
 import { mountShotList, timeLabel } from './list';
@@ -124,6 +124,22 @@ test('the hover buttons copy, save and delete', async () => {
   expect(act(5, 'Tersimpan')).not.toBeNull();
 });
 
+test('a failed hover Simpan says so for 2 s, then offers Simpan again', async () => {
+  vi.useFakeTimers();
+  const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+  deps.shotSave.mockRejectedValue('gone');
+  mountShotList(box, deps).render([shot(5)]);
+  const save = () => tile(5).querySelectorAll<HTMLButtonElement>('.shot-acts button')[1];
+  save().click();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(save().getAttribute('aria-label')).toBe('Gagal menyimpan');
+  expect(save().classList.contains('failed')).toBe(true);
+  expect(logged).toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(save().getAttribute('aria-label')).toBe('Simpan');
+  expect(save().classList.contains('failed')).toBe(false);
+});
+
 test('a tile click opens the editor; a drag drags it', () => {
   mountShotList(box, deps).render([shot(4), shot(5)]);
   const pic = (id: number) => tile(id).querySelector<HTMLElement>('.shot-th')!;
@@ -200,4 +216,9 @@ test('names are text, not markup', () => {
   mountShotList(box, deps).render([shot(1)]);
   expect(box.querySelector('.shot-head button')!.textContent).toBe('‹ Modules');
   expect(box.querySelector('[style]')).toBeNull();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });

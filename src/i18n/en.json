@@ -24,6 +24,7 @@
     "copy": "Copy",
     "save": "Save",
     "saved": "Saved",
+    "saveFailed": "Couldn't save",
     "delete": "Delete",
     "title": "Screenshot · {n}",
     "empty": "Press ⌘⇧3 or ⌘⇧4 for your first screenshot",

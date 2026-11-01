@@ -1,6 +1,5 @@
-import type { Bridge } from '../bridge';
+import type { Bridge, Shot } from '../bridge';
 import type { Lang } from '../kit/protocol';
-import { DRAG_SLOP } from '../shelf/view';
 
 // What Screenshot's pages ask of the core, as the bridge has it.
 export type ShotBridge = Pick<Bridge,
@@ -40,46 +39,43 @@ export function image(doc: Document, src: string): HTMLImageElement {
   return img;
 }
 
-// A press on a picture: past DRAG_SLOP with the button down it drags the
-// screenshot out (as Titipan's tiles do), else its click opens the editor.
-export interface Presses {
-  watch(pic: HTMLElement, id: number, onClick: () => void): void;
+// Saving from a page: saved pictures (by URL, so an edited one can be saved
+// again) and, for SAVE_FAILED_MS, those whose save failed. `redraw` shows a change.
+export const SAVE_FAILED_MS = 2000;
+
+export type SaveState = 'save' | 'saved' | 'failed';
+
+export interface Saves {
+  state(shot: Shot): SaveState;
+  save(shot: Shot): void;
   destroy(): void;
 }
 
-export function presses(doc: Document, startDrag: (id: number) => void): Presses {
-  let press: { id: number; x: number; y: number; dragged: boolean } | null = null;
-
-  function onMove(e: MouseEvent): void {
-    if (!press || press.dragged || (e.buttons & 1) === 0) return;
-    if (Math.hypot(e.clientX - press.x, e.clientY - press.y) <= DRAG_SLOP) return;
-    press.dragged = true;
-    startDrag(press.id);
-  }
-
-  function onUp(): void {
-    // Cleared after the click that follows, so that click knows it was a drag.
-    setTimeout(() => { if (press && !press.dragged) press = null; }, 0);
-  }
-
-  doc.addEventListener('mousemove', onMove);
-  doc.addEventListener('mouseup', onUp);
-
+export function saves(shotSave: ShotDeps['shotSave'], redraw: () => void): Saves {
+  const saved = new Set<string>();
+  const failed = new Set<string>();
+  const timers = new Set<ReturnType<typeof setTimeout>>();
   return {
-    watch(pic, id, onClick) {
-      pic.addEventListener('dragstart', e => e.preventDefault());
-      pic.addEventListener('mousedown', e => {
-        if (e.button === 0) press = { id, x: e.clientX, y: e.clientY, dragged: false };
-      });
-      pic.addEventListener('click', () => {
-        const wasDrag = press?.dragged === true && press.id === id;
-        press = null;
-        if (!wasDrag) onClick();
+    state: shot => (shot.saved || saved.has(shot.image) ? 'saved' : failed.has(shot.image) ? 'failed' : 'save'),
+    save(shot) {
+      shotSave(shot.id).then(() => {
+        saved.add(shot.image);
+        redraw();
+      }, e => {
+        console.error('notching: screenshot not saved', e);
+        failed.add(shot.image);
+        redraw();
+        const t = setTimeout(() => {
+          timers.delete(t);
+          failed.delete(shot.image);
+          redraw();
+        }, SAVE_FAILED_MS);
+        timers.add(t);
       });
     },
     destroy() {
-      doc.removeEventListener('mousemove', onMove);
-      doc.removeEventListener('mouseup', onUp);
+      timers.forEach(clearTimeout);
+      timers.clear();
     },
   };
 }

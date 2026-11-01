@@ -1,6 +1,7 @@
 import type { Shot } from '../bridge';
 import { fill, hostStrings } from '../i18n';
-import { button, COPY_ICON, DELETE_ICON, el, image, openEditor, presses, SAVE_ICON, SAVED_ICON, type ShotDeps } from './common';
+import { presses } from '../notch/presses';
+import { button, COPY_ICON, DELETE_ICON, el, image, openEditor, SAVE_ICON, SAVED_ICON, saves, type ShotDeps } from './common';
 
 export interface ShotResult {
   // `shot` is undefined while the history has not brought it yet.
@@ -18,8 +19,7 @@ export function mountShotResult(box: HTMLElement, deps: ShotDeps): ShotResult {
   let id: number | null = null;
   let current: Shot | undefined;
   let built = '';
-  // Pictures saved here, by URL: an edit gives a new URL, which can be saved again.
-  const saved = new Set<string>();
+  const save = saves(deps.shotSave, () => { if (current) show(current); });
   const press = presses(doc, i => void deps.shotStartDrag(i).catch(() => {}));
 
   function copy(): void {
@@ -56,7 +56,7 @@ export function mountShotResult(box: HTMLElement, deps: ShotDeps): ShotResult {
   }
 
   function build(shot: Shot): void {
-    const isSaved = shot.saved || saved.has(shot.image);
+    const saving = save.state(shot);
     const wrap = el(doc, 'div', 'shot-res');
     const row = el(doc, 'div', 'shot-row');
     const pic = el(doc, 'div', 'shot-pic');
@@ -65,14 +65,10 @@ export function mountShotResult(box: HTMLElement, deps: ShotDeps): ShotResult {
     press.watch(pic, shot.id, () => openEditor(deps, shot.id));
     const info = el(doc, 'div');
     info.append(el(doc, 'div', 'shot-done', s.copied), el(doc, 'div', 'shot-size', `${shot.width} × ${shot.height}`));
-    const save = action(isSaved ? SAVED_ICON : SAVE_ICON, isSaved ? s.saved : s.save, () => {
-      deps.shotSave(shot.id).then(() => {
-        saved.add(shot.image);
-        if (current) show(current);
-      }, () => {});
-    });
+    const saveBtn = action(saving === 'saved' ? SAVED_ICON : SAVE_ICON, s[saving === 'failed' ? 'saveFailed' : saving], () => save.save(shot));
+    saveBtn.classList.toggle('failed', saving === 'failed');
     const btns = el(doc, 'div', 'shot-btns');
-    btns.append(action(COPY_ICON, s.copy, copy), save, action(DELETE_ICON, s.delete, () => {
+    btns.append(action(COPY_ICON, s.copy, copy), saveBtn, action(DELETE_ICON, s.delete, () => {
       deps.shotDelete(shot.id).catch(() => {});
       void deps.close();
     }));
@@ -84,7 +80,7 @@ export function mountShotResult(box: HTMLElement, deps: ShotDeps): ShotResult {
   }
 
   function show(shot: Shot): void {
-    const sig = JSON.stringify([shot, saved.has(shot.image)]);
+    const sig = JSON.stringify([shot, save.state(shot)]);
     if (sig === built) return;
     built = sig;
     build(shot);
@@ -106,6 +102,7 @@ export function mountShotResult(box: HTMLElement, deps: ShotDeps): ShotResult {
       doc.removeEventListener('copy', onCopy);
       offShot();
       press.destroy();
+      save.destroy();
       box.replaceChildren();
     },
   };

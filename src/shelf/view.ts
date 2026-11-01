@@ -1,8 +1,7 @@
 import type { ShelfItem, ShelfState } from '../bridge';
 import { fill, type HostStrings } from '../i18n';
+import { presses } from '../notch/presses';
 
-// Past this many pixels with the button down, a press on a tile becomes a drag.
-export const DRAG_SLOP = 4;
 const NAME_MAX = 12;
 
 // Titipan's tray, as in modules/shelf/icon.svg, drawn in currentColor for the pill.
@@ -51,10 +50,13 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
   let selected = new Set<number>();
   let anchor: number | null = null;
   let built = ''; // what the tiles show, but their thumbs
-  // A press on a tile that may become a drag.
-  let press: { id: number; x: number; y: number; dragged: boolean } | null = null;
 
   const draggable = (i: ShelfItem | undefined) => i?.state === 'ready';
+  // A press on a tile that became a drag: the tile, or the selection it is in.
+  const press = presses(doc, id => {
+    const ids = selected.has(id) ? items.filter(i => selected.has(i.id) && draggable(i)).map(i => i.id) : [id];
+    if (ids.length > 0) deps.startDrag(ids);
+  });
 
   function select(id: number, e: MouseEvent): void {
     const order = items.map(i => i.id);
@@ -75,23 +77,6 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
   function paintSelection(): void {
     box.querySelectorAll<HTMLElement>('.sh-tile').forEach(t => t.classList.toggle('sel', selected.has(Number(t.dataset.id))));
   }
-
-  function onMove(e: MouseEvent): void {
-    if (!press || press.dragged || (e.buttons & 1) === 0) return;
-    if (Math.hypot(e.clientX - press.x, e.clientY - press.y) <= DRAG_SLOP) return;
-    press.dragged = true;
-    const id = press.id;
-    const ids = selected.has(id) ? items.filter(i => selected.has(i.id) && draggable(i)).map(i => i.id) : [id];
-    if (ids.length > 0) deps.startDrag(ids);
-  }
-
-  function onUp(): void {
-    // Cleared after the click that follows, so that click knows it was a drag.
-    setTimeout(() => { if (press && !press.dragged) press = null; }, 0);
-  }
-
-  doc.addEventListener('mousemove', onMove);
-  doc.addEventListener('mouseup', onUp);
 
   function image(src: string): HTMLImageElement {
     const img = el(doc, 'img');
@@ -122,16 +107,7 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
       deps.remove([i.id]);
     });
     t.append(x);
-    t.addEventListener('dragstart', e => e.preventDefault());
-    t.addEventListener('mousedown', e => {
-      if (e.button !== 0) return;
-      press = draggable(i) ? { id: i.id, x: e.clientX, y: e.clientY, dragged: false } : null;
-    });
-    t.addEventListener('click', e => {
-      const wasDrag = press?.dragged === true && press.id === i.id;
-      press = null;
-      if (!wasDrag) select(i.id, e);
-    });
+    press.watch(t, i.id, e => select(i.id, e), () => draggable(i));
     return t;
   }
 
@@ -174,8 +150,7 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
       box.replaceChildren(head, grid);
     },
     destroy() {
-      doc.removeEventListener('mousemove', onMove);
-      doc.removeEventListener('mouseup', onUp);
+      press.destroy();
       box.replaceChildren();
     },
   };

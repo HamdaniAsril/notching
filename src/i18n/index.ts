@@ -21,6 +21,7 @@ export interface HostStrings {
     copy: string;
     save: string;
     saved: string;
+    saveFailed: string; // for SAVE_FAILED_MS, then Simpan again
     delete: string;
     title: string;
     empty: string;

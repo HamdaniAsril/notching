@@ -537,6 +537,12 @@
   height: 11px;
 }
 
+/* A save that just failed (common.ts SAVE_FAILED_MS). */
+.shot-btn.failed,
+.shot-act.failed {
+  color: var(--red);
+}
+
 .shot-time {
   margin-top: 3px;
   line-height: 11px;
