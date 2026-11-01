@@ -635,11 +635,21 @@ pub fn cleaner_exclude(app: AppHandle, id: u64) -> Result<(), String> {
     save_exclusions(&state, &e)
 }
 
+#[derive(Serialize)]
+pub struct ExclusionsDto {
+    /// Cleaner's home (the sample's in test mode), for showing paths with "~".
+    home: String,
+    paths: Vec<String>,
+}
+
 #[tauri::command]
-pub fn cleaner_exclusions(app: AppHandle) -> Result<Vec<String>, String> {
+pub fn cleaner_exclusions(app: AppHandle) -> Result<ExclusionsDto, String> {
     let state = app.state::<CleanerState>();
     let e = load_exclusions(&state).map_err(|_| "exclusions".to_string())?;
-    Ok(e.paths.iter().map(|p| p.to_string_lossy().into_owned()).collect())
+    Ok(ExclusionsDto {
+        home: state.roots.home.to_string_lossy().into_owned(),
+        paths: e.paths.iter().map(|p| p.to_string_lossy().into_owned()).collect(),
+    })
 }
 
 #[tauri::command]

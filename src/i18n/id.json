@@ -192,7 +192,11 @@
     "rest": "{n} item lain",
     "empty": "Tidak ada yang perlu dibersihkan",
     "noApps": "Tidak ada app",
-    "adminHint": "Butuh izin admin. Hapus lewat Finder"
+    "adminHint": "Butuh izin admin. Hapus lewat Finder",
+    "exclusions": "Jangan pernah bersihkan",
+    "exclusionsEmpty": "Belum ada yang dikecualikan.",
+    "unexclude": "Hapus dari daftar",
+    "openLog": "Buka log"
   },
   "settingsWindow": {
     "title": "Pengaturan",
@@ -276,7 +280,9 @@
       "screenRecordingHint": "Untuk mengambil gambar layar.",
       "granted": "Diizinkan",
       "missing": "Belum diizinkan",
-      "open": "Buka Pengaturan Sistem"
+      "open": "Buka Pengaturan Sistem",
+      "fullDiskAccess": "Full Disk Access",
+      "fullDiskAccessHint": "Untuk membaca cache, Tempat Sampah, dan cadangan iPhone."
     },
     "about": {
       "name": "Notching",

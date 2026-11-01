@@ -1,8 +1,8 @@
 import { button, el, group, head, note, row } from '../controls';
 import type { PageContext, PageRender, SettingsInfo } from '../types';
 
-// Modules that need Accessibility (Keyboard Cleaning Mode) or Screen Recording
-// (Screenshot), with what macOS says now and a way to System Settings. macOS gives
+// Modules that need Accessibility (Keyboard Cleaning Mode), Screen Recording
+// (Screenshot) or Full Disk Access (Cleaner), with what macOS says now and a way to System Settings. macOS gives
 // no event when it changes, so the page asks again every 2 s while it is open.
 // Without such modules it says so.
 export const ACCESS_POLL_MS = 2000;
@@ -11,7 +11,7 @@ type PermissionStrings = PageContext['strings']['permissions'];
 
 // One system permission a manifest can ask for, in the order the page lists them.
 interface Permission {
-  id: 'accessibility' | 'screen-recording';
+  id: 'accessibility' | 'screen-recording' | 'full-disk-access';
   label(s: PermissionStrings): string;
   hint(s: PermissionStrings): string;
   granted(info: SettingsInfo): boolean;
@@ -27,6 +27,10 @@ const PERMISSIONS: Permission[] = [
   {
     id: 'screen-recording', label: s => s.screenRecording, hint: s => s.screenRecordingHint, granted: i => i.screenRecording,
     openKey: 'permissions.openScreenRecording', open: b => b.openScreenRecordingSettings(),
+  },
+  {
+    id: 'full-disk-access', label: s => s.fullDiskAccess, hint: s => s.fullDiskAccessHint, granted: i => i.fullDiskAccess,
+    openKey: 'permissions.openFullDiskAccess', open: b => b.openFullDiskAccessSettings(),
   },
 ];
 

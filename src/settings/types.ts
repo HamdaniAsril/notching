@@ -36,6 +36,7 @@ export interface SettingsInfo {
   home: HomeSettingsInfo;
   accessibility: boolean; // macOS lets Notching lock the keyboard (Keyboard Cleaning Mode)
   screenRecording: boolean; // macOS lets Notching capture the screen (Screenshot)
+  fullDiskAccess: boolean; // macOS lets Notching read every folder (Cleaner)
 }
 
 export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'permissions' | 'about';
@@ -74,6 +75,10 @@ export interface SettingsBridge {
   openScreenRecordingSettings(): Promise<void>; // System Settings › Privacy & Security › Screen Recording
   shotKeys(): Promise<ShotKeys>; // how ⌘⇧3 and ⌘⇧4 stand, for Screenshot's page
   openKeyboardShortcuts(): Promise<void>; // System Settings › Keyboard › Keyboard Shortcuts › Screenshots
+  openFullDiskAccessSettings(): Promise<void>; // System Settings › Privacy & Security › Full Disk Access
+  cleanerExclusions(): Promise<{ home: string; paths: string[] }>; // Cleaner's never-clean list; rejects when unreadable
+  cleanerUnexclude(path: string): Promise<void>;
+  cleanerOpenLog(): Promise<void>; // shows cleaner.log in Finder
 }
 
 export interface SettingsEnv {

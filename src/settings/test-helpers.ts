@@ -15,6 +15,7 @@ export const TEST_INFO: SettingsInfo = {
   home: { place: null, prayerMethod: 'kemenag' },
   accessibility: false,
   screenRecording: false,
+  fullDiskAccess: false,
 };
 
 // Settings bridge whose methods are mocks; emit* plays the native side's events.
@@ -54,6 +55,10 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     openScreenRecordingSettings: vi.fn(async () => {}),
     shotKeys: vi.fn(async (): Promise<ShotKeys> => ({ screen: 'ok', pick: 'ok' })),
     openKeyboardShortcuts: vi.fn(async () => {}),
+    openFullDiskAccessSettings: vi.fn(async () => {}),
+    cleanerExclusions: vi.fn(async (): Promise<{ home: string; paths: string[] }> => ({ home: '/Users/a', paths: [] })),
+    cleanerUnexclude: vi.fn(async (_path: string) => {}),
+    cleanerOpenLog: vi.fn(async () => {}),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
   };

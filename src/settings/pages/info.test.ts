@@ -87,3 +87,21 @@ test('a module that is not installed asks for no permission', async () => {
   app.go({ page: 'permissions' });
   expect(row(root, 'permission.screenshot.screen-recording')).toBeNull();
 });
+
+const CLEANER = moduleInfo('cleaner', { name: 'Cleaner', entry: null, card: null,
+  action: { capability: 'cleaner', method: 'open' }, permissions: ['full-disk-access'] });
+
+test('full disk access row shows for cleaner and its state', async () => {
+  const { root, app, bridge } = await mountForTest({ ...TEST_STATE, modules: [...TEST_STATE.modules, CLEANER] }, { ...TEST_INFO, fullDiskAccess: false });
+  app.go({ page: 'permissions' });
+  const r = row(root, 'permission.cleaner.full-disk-access')!;
+  expect(r.textContent).toContain('Cleaner · Full Disk Access');
+  expect(r.textContent).toContain('Untuk membaca cache, Tempat Sampah, dan cadangan iPhone');
+  expect(r.textContent).toContain('Belum diizinkan');
+  key(root, 'permissions.openFullDiskAccess')!.click();
+  expect(bridge.openFullDiskAccessSettings).toHaveBeenCalled();
+  bridge.settings.mockResolvedValue({ ...TEST_INFO, fullDiskAccess: true });
+  timers.advance(2000);
+  await settle();
+  expect(row(root, 'permission.cleaner.full-disk-access')!.textContent).toContain('Diizinkan');
+});

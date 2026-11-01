@@ -192,7 +192,11 @@
     "rest": "{n} other items",
     "empty": "Nothing to clean",
     "noApps": "No apps",
-    "adminHint": "Needs admin rights. Remove it in Finder"
+    "adminHint": "Needs admin rights. Remove it in Finder",
+    "exclusions": "Never clean",
+    "exclusionsEmpty": "Nothing is excluded yet.",
+    "unexclude": "Remove from the list",
+    "openLog": "Open log"
   },
   "settingsWindow": {
     "title": "Settings",
@@ -276,7 +280,9 @@
       "screenRecordingHint": "To capture the screen.",
       "granted": "Allowed",
       "missing": "Not allowed yet",
-      "open": "Open System Settings"
+      "open": "Open System Settings",
+      "fullDiskAccess": "Full Disk Access",
+      "fullDiskAccessHint": "To read caches, the Trash and iPhone backups."
     },
     "about": {
       "name": "Notching",

@@ -28,6 +28,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     home: { place: null, prayerMethod: 'kemenag' },
     accessibility: false,
     screenRecording: params.get('access') !== '0',
+    fullDiskAccess: params.get('fda') !== '0',
   };
   let state: ModuleState = {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
@@ -97,6 +98,10 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     openScreenRecordingSettings: async () => console.info('openScreenRecordingSettings'),
     shotKeys: async () => { const k = params.get('keys') === 'mac' ? 'mac' : 'ok'; return { screen: k, pick: k }; }, // ?keys=mac
     openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
+    openFullDiskAccessSettings: async () => console.info('openFullDiskAccessSettings'),
+    cleanerExclusions: async () => ({ home: '/Users/a', paths: ['/Users/a/Library/Caches/com.spotify.client'] }),
+    cleanerUnexclude: async path => console.info('cleanerUnexclude', path),
+    cleanerOpenLog: async () => console.info('cleanerOpenLog'),
     movePage: async (id, to) => {
       const [home, ...custom] = state.pages;
       const moving = custom.find(p => p.id === id)!;

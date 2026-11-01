@@ -213,3 +213,44 @@ test('no status switch for screenshot', async () => {
   expect(root.querySelector('[data-key="module.screenshot.status"]')).toBeNull();
   expect(root.querySelector('[data-key="module.screenshot.on"]')).not.toBeNull();
 });
+
+const CLEANER = moduleInfo('cleaner', { name: 'Cleaner', description: 'Bersihkan cache', entry: null, card: null,
+  action: { capability: 'cleaner', method: 'open' }, permissions: ['full-disk-access'] });
+const WITH_CLEANER: ModuleState = { ...STATE, modules: [...STATE.modules, CLEANER] };
+
+test('cleaner page lists exclusions and removes one', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_CLEANER);
+  bridge.cleanerExclusions.mockResolvedValue({ home: '/Users/a', paths: ['/Users/a/Library/Caches/com.x.y', '/Users/a/Library/Logs/z'] });
+  app.go({ page: 'module', id: 'cleaner' });
+  await settle();
+  const rows = [...root.querySelectorAll('.cl-ex .label')].map(r => r.textContent);
+  expect(rows).toEqual(['~/Library/Caches/com.x.y', '~/Library/Logs/z']);
+  bridge.cleanerExclusions.mockResolvedValue({ home: '/Users/a', paths: ['/Users/a/Library/Logs/z'] });
+  root.querySelector<HTMLElement>('[data-key="module.cleaner.unexclude.0"]')!.click();
+  await settle();
+  expect(bridge.cleanerUnexclude).toHaveBeenCalledWith('/Users/a/Library/Caches/com.x.y');
+  expect([...root.querySelectorAll('.cl-ex .label')].map(r => r.textContent)).toEqual(['~/Library/Logs/z']);
+});
+
+test('cleaner page says when the list is empty', async () => {
+  const { root, app } = await mountForTest(WITH_CLEANER);
+  app.go({ page: 'module', id: 'cleaner' });
+  await settle();
+  expect(root.querySelector('.cl-ex')!.textContent).toContain('Belum ada yang dikecualikan.');
+});
+
+test('cleaner page shows the unreadable-list line', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_CLEANER);
+  bridge.cleanerExclusions.mockRejectedValue('exclusions');
+  app.go({ page: 'module', id: 'cleaner' });
+  await settle();
+  expect(root.querySelector('.cl-ex')!.textContent).toContain('Daftar pengecualian tidak bisa dibaca');
+});
+
+test('open log button', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_CLEANER);
+  app.go({ page: 'module', id: 'cleaner' });
+  await settle();
+  root.querySelector<HTMLElement>('[data-key="module.cleaner.log"]')!.click();
+  expect(bridge.cleanerOpenLog).toHaveBeenCalled();
+});

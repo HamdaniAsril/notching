@@ -38,5 +38,9 @@ export function tauriSettingsBridge(): SettingsBridge {
     openScreenRecordingSettings: () => invoke('open_screen_recording_settings'),
     shotKeys: () => invoke<ShotKeys>('shot_keys'),
     openKeyboardShortcuts: () => invoke('open_keyboard_shortcuts'),
+    openFullDiskAccessSettings: () => invoke('open_full_disk_access_settings'),
+    cleanerExclusions: () => invoke<{ home: string; paths: string[] }>('cleaner_exclusions'),
+    cleanerUnexclude: path => invoke('cleaner_unexclude', { path }),
+    cleanerOpenLog: () => invoke('cleaner_open_log'),
   };
 }

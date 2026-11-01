@@ -25,9 +25,36 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
   return box;
 }
 
+// Cleaner's page (design 1 Nov §9): the never-clean list, each with a way off
+// it, and the log in Finder. A list that can't be read says so; then Cleaner
+// cleans nothing.
+function cleanerSettings(ctx: PageContext): HTMLElement {
+  const box = el('div', 'cl-ex');
+  const s = hostStrings(ctx.lang).cleaner;
+  const list = el('div', 'cl-ex-list');
+  const show = () => {
+    ctx.bridge.cleanerExclusions().then(({ home, paths }) => {
+      if (paths.length === 0) {
+        list.replaceChildren(note(s.exclusionsEmpty));
+        return;
+      }
+      const tilde = (p: string) => (home && p.startsWith(`${home}/`) ? `~${p.slice(home.length)}` : p);
+      list.replaceChildren(group(...paths.map((p, i) => row({
+        key: `module.cleaner.ex.${i}`,
+        label: tilde(p),
+        control: button(`module.cleaner.unexclude.${i}`, s.unexclude, () => void ctx.bridge.cleanerUnexclude(p).then(show, () => {})),
+      }))));
+    }, () => list.replaceChildren(note(s.exclusionsBroken)));
+  };
+  show();
+  box.append(head({ title: s.exclusions }), list, button('module.cleaner.log', s.openLog, () => void ctx.bridge.cleanerOpenLog()));
+  return box;
+}
+
 // Each module's own settings, shown on its page; the rest say they have none.
 export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {
   screenshot: screenshotKeys,
+  cleaner: cleanerSettings,
 };
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never
