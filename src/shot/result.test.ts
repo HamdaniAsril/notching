@@ -135,12 +135,16 @@ test('a click on the picture opens the editor, then closes', () => {
   expect(deps.shotStartDrag).not.toHaveBeenCalled();
 });
 
-test('the editor not opening yet breaks nothing', async () => {
-  deps.openEditor.mockRejectedValue(new Error('unknown command open_editor'));
+test('the editor failing to open is logged and breaks nothing', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const failure = new Error('unknown command open_editor');
+  deps.openEditor.mockRejectedValue(failure);
   mount();
   mouse(picture(), 'click', 10, 10);
   await flush();
   expect(deps.close).toHaveBeenCalledTimes(1);
+  expect(error).toHaveBeenCalledWith('notching: the editor did not open', failure);
+  error.mockRestore();
 });
 
 test('a press on the picture and a move past 4 px drags it', () => {

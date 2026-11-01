@@ -80,8 +80,8 @@ export function saves(shotSave: ShotDeps['shotSave'], redraw: () => void): Saves
   };
 }
 
-// The editor, then the panel closes (§5). Its command may not be there yet.
+// The editor, then the panel closes (§5). A failure is logged; the panel closes anyway.
 export function openEditor(deps: Pick<ShotDeps, 'openEditor' | 'close'>, id: number): void {
-  deps.openEditor(id).catch(() => {});
+  deps.openEditor(id).catch(e => console.error('notching: the editor did not open', e));
   void deps.close();
 }
