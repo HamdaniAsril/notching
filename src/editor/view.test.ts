@@ -705,3 +705,13 @@ test('destroy drops a text box', async () => {
   view.destroy();
   expect(root.querySelector('.ed-text')).toBeNull();
 });
+
+test('a Shift-drawn flat arrow can be tilted by dragging its end grip', async () => {
+  await mount();
+  toolBtn('arrow').click();
+  drag([[100, 300], [500, 330]], { shiftKey: true }); // snapped flat
+  toolBtn('select').click();
+  click(300, 300); // on the shaft
+  drag([[500, 300], [500, 500]]); // the tip's grip, straight down
+  expect(await sent()).toMatchObject([{ type: 'arrow', x1: 100, y1: 300, x2: 500, y2: 500 }]);
+});

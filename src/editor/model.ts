@@ -209,8 +209,9 @@ export type Handle = 'nw' | 'ne' | 'sw' | 'se';
 
 // Where an axis goes when one edge is dragged: the edge `moved` of the old
 // range [o0, o1] goes to `to`, the other stays. Returns the map for a coordinate.
+// A range of no size cannot be stretched, so it slides to `to` instead.
 function stretch(o0: number, o1: number, movesLow: boolean, to: number): (v: number) => number {
-  if (o1 === o0) return v => v;
+  if (o1 === o0) return v => v + (to - o0);
   const n0 = movesLow ? to : o0;
   const n1 = movesLow ? o1 : to;
   return v => n0 + ((v - o0) / (o1 - o0)) * (n1 - n0);
@@ -230,10 +231,27 @@ export function resize(s: Shape, handle: Handle, x: number, y: number): Shape {
     const w = textWidth(s.text, size);
     return { ...s, size, x: west ? anchorX - w : anchorX, y: north ? anchorY - size * LINE_HEIGHT : anchorY };
   }
+  if (s.type === 'line' || s.type === 'arrow') {
+    // The grip is an end: that end goes to the pointer, the other stays. This
+    // is what lets a flat line be tilted, which a box map could not do.
+    const at = handles(s).findIndex(h => h.handle === handle);
+    if (at === 0) return { ...s, x1: x, y1: y };
+    if (at === 1) return { ...s, x2: x, y2: y };
+  }
   const mx = stretch(b.x, b.x + b.w, west, x);
   const my = stretch(b.y, b.y + b.h, north, y);
   if (s.type === 'pen') return { ...s, points: s.points.map(([px, py]) => [mx(px), my(py)] as [number, number]) };
-  return { ...s, x1: mx(s.x1), y1: my(s.y1), x2: mx(s.x2), y2: my(s.y2) };
+  // A frame or sensor with no width or height gets one: its second corner goes
+  // to the pointer on that axis.
+  const flatX = b.w === 0;
+  const flatY = b.h === 0;
+  return {
+    ...s,
+    x1: flatX ? s.x1 : mx(s.x1),
+    y1: flatY ? s.y1 : my(s.y1),
+    x2: flatX ? x : mx(s.x2),
+    y2: flatY ? y : my(s.y2),
+  };
 }
 
 export interface HandlePoint {

@@ -235,3 +235,38 @@ test('isBlank', () => {
   padded.style.padding = 200;
   expect(isBlank(padded)).toBe(true);
 });
+
+test('an end grip re-angles a flat line or arrow, whichever way it lies', () => {
+  for (const type of ['line', 'arrow'] as const) {
+    const flat: Shape = { id: 1, type, color: '#27AE60', width: 8, x1: 100, y1: 100, x2: 300, y2: 100 };
+    // Horizontal: each end can leave the line, and the other end stays.
+    expect(resize(flat, 'ne', 320, 40)).toMatchObject({ type, color: '#27AE60', x1: 100, y1: 100, x2: 320, y2: 40 });
+    expect(resize(flat, 'nw', 80, 160)).toMatchObject({ x1: 80, y1: 160, x2: 300, y2: 100 });
+    // Vertical: the same.
+    const upright: Shape = { id: 2, type, color: '#000', width: 8, x1: 100, y1: 100, x2: 100, y2: 300 };
+    expect(resize(upright, 'sw', 160, 320)).toMatchObject({ x1: 100, y1: 100, x2: 160, y2: 320 });
+    expect(resize(upright, 'nw', 20, 90)).toMatchObject({ x1: 20, y1: 90, x2: 100, y2: 300 });
+    // And back to flat, then tilted again: nothing stays locked.
+    const back = resize(resize(flat, 'ne', 320, 40), 'ne', 300, 100);
+    expect(back).toMatchObject({ x2: 300, y2: 100 });
+    // The grips offered are the ones that work.
+    for (const h of handles(flat)) expect(resize(flat, h.handle, h.x + 5, h.y + 50)).not.toEqual(flat);
+    for (const h of handles(upright)) expect(resize(upright, h.handle, h.x + 50, h.y + 5)).not.toEqual(upright);
+  }
+  // A tilted one still moves just the end under the grip.
+  const tilted: Shape = { id: 3, type: 'arrow', color: '#000', width: 8, x1: 10, y1: 10, x2: 90, y2: 50 };
+  expect(resize(tilted, 'se', 200, 10)).toMatchObject({ x1: 10, y1: 10, x2: 200, y2: 10 });
+});
+
+test('a flat pen, rect or sensor can be dragged out of its flat axis', () => {
+  const flatPen = pen(1, [[0, 50], [20, 50], [40, 50]]);
+  // A pen with no height slides to the pointer's height; its width still scales.
+  expect(resize(flatPen, 'se', 80, 90)).toMatchObject({ points: [[0, 90], [40, 90], [80, 90]] });
+  const dot = pen(2, [[10, 10]]);
+  expect(resize(dot, 'se', 30, 40)).toMatchObject({ points: [[30, 40]] });
+  const vertical = pen(3, [[50, 0], [50, 20]]);
+  expect(resize(vertical, 'ne', 90, -10)).toMatchObject({ points: [[90, -10], [90, 20]] });
+  // A flat frame or sensor gets a height.
+  expect(resize(rect(4, 10, 10, 90, 10), 'se', 90, 60)).toMatchObject({ x1: 10, y1: 10, x2: 90, y2: 60 });
+  expect(resize(sensor(5, 10, 10, 10, 90), 'se', 60, 90)).toMatchObject({ x1: 10, y1: 10, x2: 60, y2: 90 });
+});
