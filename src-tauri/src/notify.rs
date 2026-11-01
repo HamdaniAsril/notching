@@ -51,6 +51,8 @@ pub fn clip(text: &str, max: usize) -> String {
 /// An on-screen window, in CoreGraphics coordinates (origin top-left).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WindowBox {
+    /// kCGWindowNumber, what `screencapture -l` takes.
+    pub number: u32,
     pub pid: i32,
     pub layer: i64,
     pub bounds: Rect,
@@ -221,7 +223,8 @@ pub(crate) fn window_list() -> Vec<WindowBox> {
     // `cf` keeps it alive while `list` is in use.
     let list: &NSArray<NSDictionary> = unsafe { &*(&*cf as *const _ as *const NSArray<NSDictionary>) };
     let key = NSString::from_str;
-    let (pid, layer, bounds) = (key("kCGWindowOwnerPID"), key("kCGWindowLayer"), key("kCGWindowBounds"));
+    let (number, pid, layer, bounds) =
+        (key("kCGWindowNumber"), key("kCGWindowOwnerPID"), key("kCGWindowLayer"), key("kCGWindowBounds"));
     let (x, y, w, h) = (key("X"), key("Y"), key("Width"), key("Height"));
     let num = |d: &NSDictionary, k: &NSString| {
         d.objectForKey(k).and_then(|o| o.downcast::<NSNumber>().ok()).map(|n| n.doubleValue())
@@ -231,6 +234,7 @@ pub(crate) fn window_list() -> Vec<WindowBox> {
             let d = list.objectAtIndex(i);
             let b = d.objectForKey(&bounds)?.downcast::<NSDictionary>().ok()?;
             Some(WindowBox {
+                number: num(&d, &number)? as u32,
                 pid: num(&d, &pid)? as i32,
                 layer: num(&d, &layer)? as i64,
                 bounds: Rect { x: num(&b, &x)?, y: num(&b, &y)?, w: num(&b, &w)?, h: num(&b, &h)? },
@@ -261,7 +265,7 @@ mod tests {
     #[test]
     fn a_full_screen_app_covers_the_screen() {
         let screen = Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 };
-        let win = |pid, layer, bounds| [WindowBox { pid, layer, bounds }];
+        let win = |pid, layer, bounds| [WindowBox { number: 1, pid, layer, bounds }];
         assert!(covers_screen(&win(9, 0, screen), screen, 0.0, 1));
         assert!(!covers_screen(&win(1, 0, screen), screen, 0.0, 1));
         assert!(!covers_screen(&win(9, 25, screen), screen, 0.0, 1));
@@ -276,8 +280,8 @@ mod tests {
     #[test]
     fn a_full_screen_app_under_the_notch_strip_counts() {
         let screen = Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 };
-        let app = WindowBox { pid: 9, layer: 0, bounds: Rect { x: 0.0, y: 33.0, w: 1470.0, h: 923.0 } };
-        let desktop = WindowBox { pid: 7, layer: 20, bounds: screen };
+        let app = WindowBox { number: 1, pid: 9, layer: 0, bounds: Rect { x: 0.0, y: 33.0, w: 1470.0, h: 923.0 } };
+        let desktop = WindowBox { number: 2, pid: 7, layer: 20, bounds: screen };
         assert!(covers_screen(&[app], screen, 32.0, 1));
         assert!(!covers_screen(&[app, desktop], screen, 32.0, 1));
         assert!(!covers_screen(&[app], screen, 0.0, 1));

@@ -10,10 +10,11 @@ export default defineConfig(() => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
-  // Three pages: the notch overlay, the settings window and the dim layer.
+  // Four pages: the notch overlay, the settings window, the dim layer and the
+  // screenshot picker.
   build: {
     rolldownOptions: {
-      input: { main: "index.html", settings: "settings.html", clean: "clean.html" },
+      input: { main: "index.html", settings: "settings.html", clean: "clean.html", pick: "pick.html" },
     },
   },
   // 2. tauri expects a fixed port, fail if that port is not available

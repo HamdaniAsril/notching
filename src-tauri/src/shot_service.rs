@@ -424,10 +424,11 @@ pub fn save(app: &AppHandle, id: u64) -> Result<String, String> {
     Ok(path.to_string_lossy().into_owned())
 }
 
-/// Switched off or uninstalled: the keys go. Task 7 closes the editor here.
-pub fn module_gone(_app: &AppHandle, id: &str) {
+/// Switched off or uninstalled: the keys and the picker go. Task 7 closes the editor here.
+pub fn module_gone(app: &AppHandle, id: &str) {
     if id == MODULE_ID {
         crate::shot_hotkey::unregister();
+        crate::shot_pick::hide(app);
     }
 }
 

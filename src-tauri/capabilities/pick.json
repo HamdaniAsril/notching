@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "pick",
+  "description": "Capability for Screenshot's window-or-area picker, one window per screen",
+  "windows": ["pick-*"],
+  "permissions": ["core:default"]
+}

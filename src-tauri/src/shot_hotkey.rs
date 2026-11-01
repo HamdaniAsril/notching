@@ -234,9 +234,9 @@ fn screen(app: &AppHandle) {
     }
 }
 
-/// ⌘⇧4. Task 5 opens the picker here.
-fn pick(_app: &AppHandle) {
-    eprintln!("notching: ⌘⇧4 pressed (the picker comes with Task 5)");
+/// ⌘⇧4: the picker for a window or an area.
+fn pick(app: &AppHandle) {
+    crate::shot_pick::show(app, crate::shot_pick::PickMode::Both);
 }
 
 /// Registers ⌘⇧3 and ⌘⇧4 for the module, replacing any earlier registration.
@@ -475,10 +475,10 @@ mod tests {
     fn front_window_is_the_first_normal_window_of_the_app() {
         let rect = |x| Rect { x, y: 0.0, w: 100.0, h: 100.0 };
         let windows = [
-            WindowBox { pid: 7, layer: 25, bounds: rect(1.0) },
-            WindowBox { pid: 9, layer: 0, bounds: rect(2.0) },
-            WindowBox { pid: 7, layer: 0, bounds: rect(3.0) },
-            WindowBox { pid: 7, layer: 0, bounds: rect(4.0) },
+            WindowBox { number: 1, pid: 7, layer: 25, bounds: rect(1.0) },
+            WindowBox { number: 2, pid: 9, layer: 0, bounds: rect(2.0) },
+            WindowBox { number: 3, pid: 7, layer: 0, bounds: rect(3.0) },
+            WindowBox { number: 4, pid: 7, layer: 0, bounds: rect(4.0) },
         ];
         assert_eq!(front_window(&windows, 7), Some(rect(3.0)));
         assert_eq!(front_window(&windows, 5), None);

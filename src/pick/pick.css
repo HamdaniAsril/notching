@@ -1,0 +1,60 @@
+/* Cmd+Shift+4's picker (design 1 Nov §3): the screen 15 % darker, the window
+   under the cursor or the dragged area cut out and outlined in white. */
+@import '@fontsource/space-mono/latin-400.css';
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: crosshair;
+}
+
+#pick-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* With a hole the dim comes from its shadow, which spares the hole itself. */
+#pick-root.pk-cut {
+  background: transparent;
+}
+
+.pk-hole {
+  display: none;
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 20000px rgba(0, 0, 0, 0.15);
+}
+
+.pk-cut .pk-hole {
+  display: block;
+}
+
+.pk-drag .pk-hole {
+  border-width: 1px;
+}
+
+.pk-size {
+  display: none;
+  position: absolute;
+  transform: translateX(-100%);
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: #fff;
+  color: #000;
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.pk-drag .pk-size {
+  display: block;
+}
