@@ -1,0 +1,111 @@
+<style>
+  .option .content { min-width: 0; }
+  .cl-steps { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 10px; }
+  .cl-cap { font: 10px/14px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: var(--text-secondary, #888); margin-bottom: 4px; }
+  .cl-scene { position: relative; width: 600px; max-width: 100%; overflow: hidden; border-radius: 10px;
+              background: linear-gradient(160deg, #9aa6b8 0%, #6b7688 60%, #4a5361 100%); font: 12px "Space Grotesk", -apple-system, sans-serif; color: #fff; }
+  .cl-menubar { position: absolute; left: 0; right: 0; top: 0; height: 24px; background: rgba(255,255,255,.32); }
+  .cl-panel { position: relative; margin: 0 auto; width: 520px; background: #000; border-radius: 0 0 22px 22px; padding: 32px 18px 16px; box-sizing: border-box; }
+  .cl-lab { font: 9px/13px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.5); white-space: nowrap; }
+  .cl-big { font: 26px/1 "Space Mono", monospace; letter-spacing: .02em; }
+  .cl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .cl-bar { display: flex; height: 12px; border-radius: 4px; overflow: hidden; gap: 2px; background: #000; }
+  .cl-bar span { display: block; height: 100%; }
+  .cl-s1 { background: #fff; } .cl-s2 { background: #bdbdbd; } .cl-s3 { background: #7a7a7a; }
+  .cl-s4 { background: repeating-linear-gradient(90deg, #fff 0 2px, transparent 2px 4px); }
+  .cl-s5 { background: #3a3a3a; } .cl-free { background: #161616; }
+  .cl-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; }
+  .cl-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+  .cl-legend span { font: 9px "Space Mono", monospace; color: rgba(255,255,255,.75); }
+  .cl-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .cl-tile { border-radius: 14px; background: rgba(255,255,255,.07); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .cl-tile svg { width: 20px; height: 20px; }
+  .cl-tname { font-size: 13px; font-weight: 600; }
+  .cl-tsub { font: 10px "Space Mono", monospace; color: rgba(255,255,255,.6); }
+  .cl-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px dotted rgba(255,255,255,.22); font-size: 11px; }
+  .cl-row .cl-sz { margin-left: auto; font: 10px "Space Mono", monospace; color: rgba(255,255,255,.7); }
+  .cl-chk { width: 11px; height: 11px; border: 1.5px solid #fff; border-radius: 3px; flex: none; }
+  .cl-chk.on { background: #fff; }
+  .cl-btn { display: inline-block; padding: 6px 14px; border-radius: 999px; background: #fff; color: #000; font: 600 11px "Space Grotesk", sans-serif; }
+  .cl-btn.ghost { background: rgba(255,255,255,.1); color: #fff; }
+  .cl-win { position: relative; margin: 14px auto 14px; width: 470px; background: #0b0b0b; border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.45); overflow: hidden; }
+  .cl-wbar { height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 10px; background: #161616; }
+  .cl-wbar b { width: 9px; height: 9px; border-radius: 50%; background: #444; display: inline-block; }
+  .cl-wbody { padding: 12px 16px 14px; }
+  .cl-note { margin-top: 8px; color: var(--text-secondary, #888); font-size: 13px; }
+  .cl-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+</style>
+
+<h2>Di mana isi Cleaner ditampilkan?</h2>
+<p class="subtitle">Bagian atasnya sama untuk kedua pilihan: bar isi disk, lalu dua pilihan. Bedanya ada di tempat <b>daftar yang mau dihapus</b> muncul. Daftar ini bisa panjang, misalnya puluhan app atau ratusan cache. Gambarnya adalah bagian atas layar MacBook yang diperkecil, dan semua angkanya hanya contoh.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Semua di dalam notch</h3>
+      <p>Pilih Deep clean, dan panel notch memanjang ke bawah untuk menampilkan daftar yang bisa digulir. Semuanya ada di satu tempat. Tapi panel hanya selebar sekitar 520 px, dan akan menutup saat Anda klik di luar.</p>
+      <div class="cl-steps" data-opt="a"></div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Notch untuk mulai, jendela sendiri untuk rincian</h3>
+      <p>Tampilan awalnya ada di notch. Pilih Deep clean atau Clean uninstall, lalu terbuka jendela Cleaner biasa yang bisa digeser dan diperbesar, seperti jendela editor Screenshot. Daftar panjang lebih lega di sana, dan jendela tidak hilang saat Anda klik app lain.</p>
+      <div class="cl-steps" data-opt="b"></div>
+    </div>
+  </div>
+</div>
+<p class="cl-note">Klik pilihan yang paling cocok, lalu ceritakan di chat. Warna, kata-kata, dan ukuran masih bisa diubah.</p>
+
+<script>
+(function () {
+  const ic = {
+    broom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l-4 8"/><path d="M6 12h8l2 8H4z"/><path d="M8 16v4M12 16v4"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>',
+  };
+  const head = `
+    <div class="cl-head"><span class="cl-lab">Macintosh HD</span><span class="cl-lab">Sisa 44 GB</span></div>
+    <div class="cl-head" style="margin-bottom:10px"><span class="cl-big">212<span style="font-size:13px"> GB</span></span><span class="cl-lab">terpakai dari 256 GB</span></div>
+    <div class="cl-bar">
+      <span class="cl-s1" style="width:20%"></span><span class="cl-s2" style="width:14%"></span><span class="cl-s3" style="width:10%"></span>
+      <span class="cl-s4" style="width:12%"></span><span class="cl-s5" style="width:27%"></span><span class="cl-free" style="width:17%"></span>
+    </div>
+    <div class="cl-legend">
+      <span><i class="cl-s1"></i>App 51 GB</span><span><i class="cl-s2"></i>Dokumen 36 GB</span><span><i class="cl-s3"></i>Foto 26 GB</span>
+      <span><i class="cl-s4" style="border:1px solid #fff"></i>Bisa dibersihkan 31 GB</span><span><i class="cl-s5"></i>Lainnya 68 GB</span>
+    </div>`;
+  const two = (sel) => `<div class="cl-two">
+      <div class="cl-tile" style="${sel === 1 ? 'outline:1.5px solid #fff' : ''}">${ic.broom}<span class="cl-tname">Deep clean</span><span class="cl-tsub">Cache, log, sisa app · 31 GB</span></div>
+      <div class="cl-tile" style="${sel === 2 ? 'outline:1.5px solid #fff' : ''}">${ic.trash}<span class="cl-tname">Clean uninstall</span><span class="cl-tsub">Hapus app beserta sisanya · 84 app</span></div>
+    </div>`;
+  const rows = [
+    ['on', 'Cache app', '12,4 GB'], ['on', 'Cache browser', '3,1 GB'], ['on', 'Cache Xcode & npm', '9,8 GB'],
+    ['on', 'Log', '640 MB'], ['', 'Sisa app yang sudah dihapus', '2,2 GB'], ['', 'Tempat Sampah', '2,9 GB'],
+  ].map(([c, n, s]) => `<div class="cl-row"><span class="cl-chk ${c}"></span>${n}<span class="cl-sz">${s}</span></div>`).join('');
+  const step = (cap, inner) => `<div><div class="cl-cap">${cap}</div><div class="cl-scene"><div class="cl-menubar"></div>${inner}</div></div>`;
+
+  const S = {
+    a: [
+      step('1 · Buka Cleaner', `<div class="cl-panel">${head}${two(0)}</div>`),
+      step('2 · Klik Deep clean: panel memanjang', `<div class="cl-panel">
+          <div class="cl-head"><span class="cl-lab">‹ Deep clean</span><span class="cl-lab">Dipilih 25,9 GB</span></div>
+          ${rows}
+          <div class="cl-foot"><span class="cl-lab">Dipindah ke Tempat Sampah</span><span class="cl-btn">Bersihkan 25,9 GB</span></div></div>`),
+    ],
+    b: [
+      step('1 · Buka Cleaner', `<div class="cl-panel">${head}${two(0)}</div>`),
+      step('2 · Klik Deep clean: notch menutup, jendela Cleaner terbuka', `<div style="height:14px"></div>
+          <div class="cl-win"><div class="cl-wbar"><b></b><b></b><b></b><span class="cl-lab" style="margin-left:8px">Cleaner · Deep clean</span></div>
+          <div class="cl-wbody">
+            <div class="cl-head"><span class="cl-lab">Ditemukan 31 GB</span><span class="cl-lab">Dipilih 25,9 GB</span></div>
+            ${rows}
+            <div class="cl-foot"><span class="cl-btn ghost">Lihat rincian file</span><span class="cl-btn">Bersihkan 25,9 GB</span></div>
+          </div></div>`),
+    ],
+  };
+  document.querySelectorAll('.cl-steps').forEach(el => { el.innerHTML = S[el.dataset.opt].join(''); });
+})();
+</script>

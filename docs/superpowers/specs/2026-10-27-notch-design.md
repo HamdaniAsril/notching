@@ -52,7 +52,7 @@ Awalnya app ini untuk dipakai sendiri. Setelah itu dirilis gratis ke publik, den
 
 Kalau salah satu hal di bawah ini terjadi, app dianggap gagal walaupun fungsinya jalan:
 - **Tampilan ramai seperti Vorssaint:** banyak menu sekaligus, dan pengguna harus meraba-raba mencari pengaturan.
-- **Desain warna-warni atau sibuk.** Satu-satunya pengecualian adalah cahaya notifikasi (bagian 4.4).
+- **Desain warna-warni atau sibuk.** Pengecualiannya adalah cahaya notifikasi (bagian 4.4) dan bar isi disk di modul Cleaner, yang diminta pemilik pada 1 November 2026 (desain Cleaner bagian 4).
 - **Notch mengganggu kerja:**
   - menghalangi klik ke menu bar atau app di bawahnya,
   - mencuri fokus keyboard,
@@ -275,7 +275,7 @@ Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
 |---|---|
 | 1 (versi pertama) | Beranda, Timer, Keep awake, Freeze keyboard, Kamera cermin, System stat. Modul Catatan dibatalkan pemilik ide pada 31 Oktober 2026. |
 | 2 | Tidak ada modul. Kalender dan Pantau agent dibatalkan pemilik ide pada 1 November 2026. Music juga bukan lagi modul. Pada 1 November 2026 pemilik ide mengubahnya menjadi widget Now playing, tanpa lirik (lihat desain halaman 30 Oktober). |
-| 3 | Uninstall app dibatalkan pemilik ide pada 1 November 2026. Tahap ini kosong. |
+| 3 | Cleaner: deep clean dan clean uninstall (lihat `2026-11-01-cleaner-design.md`). Modul "Uninstall app" sempat dibatalkan pemilik ide pada 1 November 2026, lalu fungsinya kembali di hari yang sama sebagai bagian dari Cleaner. Ini modul paling berisiko karena menghapus file. |
 
 - **Tahap 1** berisi modul harian yang relatif mudah dibuat sama baiknya di Mac dan Windows.
 - **Tahap 2** sekarang berisi widget Now playing dan katalog modul. Now playing butuh izin sistem, karena macOS membatasi app lain membaca lagu yang sedang diputar.
