@@ -12,6 +12,8 @@ const FILE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 export interface ShelfViewDeps {
   strings: HostStrings['shelf'];
+  backLabel: string; // "Modul"
+  back(): void; // "‹ Modul", as on the other module pages
   startDrag(ids: number[]): void;
   remove(ids: number[]): void;
   clear(): void;
@@ -41,7 +43,7 @@ function el<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, cls = 
 }
 
 // The shelf: its drop zone while a file drag is over the notch, else a head line
-// and a grid of kept files. Click selects (Cmd adds, Shift a range, as in
+// ("‹ Modul", the count, the hint and Kosongkan) and a grid of kept files. Click selects (Cmd adds, Shift a range, as in
 // Finder); dragging a tile drags it, or the whole selection when it is in it.
 export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView {
   const doc = box.ownerDocument;
@@ -136,7 +138,10 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
         return;
       }
       const head = el(doc, 'div', 'sh-head');
-      head.append(el(doc, 'span', 'lab sh-title', fill(s.title, { n: items.length })));
+      const back = el(doc, 'button', 'lab sh-back', `‹ ${deps.backLabel}`);
+      back.type = 'button';
+      back.addEventListener('click', () => deps.back());
+      head.append(back, el(doc, 'span', 'lab sh-title', fill(s.title, { n: items.length })));
       if (items.length === 0) {
         box.replaceChildren(head, el(doc, 'div', 'sh-empty lab', s.empty));
         return;

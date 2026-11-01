@@ -433,6 +433,9 @@ test('the Modul tile opens the shelf', async () => {
   expect(onShelf(root)).toBe(true);
   expect(root.querySelector('.sh-empty')).not.toBeNull();
   expect(bridge.moduleCall).not.toHaveBeenCalled();
+  // Its back bar returns to the Modul page.
+  root.querySelector<HTMLElement>('.sh-back')!.click();
+  expect(root.querySelector('.mods-grid')).not.toBeNull();
 });
 
 test('a drop start opens the panel in drop mode', async () => {

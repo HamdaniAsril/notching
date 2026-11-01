@@ -14,7 +14,7 @@ export interface PageViewDeps {
   onOpenModule: (id: string) => void;
   onAction: (m: ModuleInfo) => void; // a tile that runs an action instead of opening a page
   onBack: () => void;
-  shelf: Omit<ShelfViewDeps, 'strings'>; // Titipan's drag out, remove and clear
+  shelf: Omit<ShelfViewDeps, 'strings' | 'backLabel' | 'back'>; // Titipan's drag out, remove and clear
   shot: Omit<ShotListDeps, 'lang'>; // Screenshot's pages: the core's calls, close and back
   cleaner: Omit<CleanerDeps, 'lang'>; // Cleaner's pages: the core's calls and the panel's size
 }
@@ -123,7 +123,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     if (!shelf || shelf.lang !== s.lang || !content.contains(shelf.box)) {
       dropShelf();
       const box = el(doc, 'div', 'sh');
-      shelf = { box, lang: s.lang, view: mountShelfView(box, { ...deps.shelf, strings: strings.shelf }) };
+      shelf = { box, lang: s.lang, view: mountShelfView(box, { ...deps.shelf, strings: strings.shelf, backLabel: strings.modules, back: deps.onBack }) };
       content.replaceChildren(box);
     }
     shelf.view.render(v.shelf, v.dropping);

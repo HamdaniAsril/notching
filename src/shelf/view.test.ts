@@ -10,7 +10,7 @@ const item = (id: number, name: string, over: Partial<ShelfItem> = {}): ShelfIte
 const shelf = (...items: ShelfItem[]): ShelfState => ({ items });
 
 let box: HTMLElement;
-const fakes = () => ({ strings, startDrag: vi.fn((_ids: number[]) => {}), remove: vi.fn((_ids: number[]) => {}), clear: vi.fn(() => {}) });
+const fakes = () => ({ strings, backLabel: 'Modul', back: vi.fn(() => {}), startDrag: vi.fn((_ids: number[]) => {}), remove: vi.fn((_ids: number[]) => {}), clear: vi.fn(() => {}) });
 let deps: ReturnType<typeof fakes>;
 
 beforeEach(() => {
@@ -49,6 +49,23 @@ test('head shows count and hint', () => {
   v.render(shelf(item(1, 'a'), item(2, 'b'), item(3, 'c')), false);
   expect(box.querySelector('.sh-title')!.textContent).toBe('Titipan · 3');
   expect(box.querySelector('.sh-hint')!.textContent).toBe('Seret keluar untuk menyalin');
+});
+
+test('the head starts with ‹ Modul, which goes back', () => {
+  const v = mountShelfView(box, deps);
+  v.render(shelf(item(1, 'a')), false);
+  const back = box.querySelector<HTMLButtonElement>('.sh-head .sh-back')!;
+  expect(back.textContent).toBe('‹ Modul');
+  expect(box.querySelector('.sh-head')!.firstElementChild).toBe(back);
+  back.click();
+  expect(deps.back).toHaveBeenCalledTimes(1);
+});
+
+test('an empty shelf can go back too', () => {
+  const v = mountShelfView(box, deps);
+  v.render(shelf(), false);
+  box.querySelector<HTMLButtonElement>('.sh-back')!.click();
+  expect(deps.back).toHaveBeenCalledTimes(1);
 });
 
 test('empty shelf shows the empty line', () => {
