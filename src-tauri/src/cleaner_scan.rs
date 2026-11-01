@@ -414,11 +414,13 @@ fn sum(paths: &[&str], env: &Env) -> Option<u64> {
 }
 
 pub fn parts(env: &Env) -> Parts {
-    Parts {
-        apps: Some(env.roots.apps.iter().map(|a| du(a, env.cancel)).sum()),
-        documents: sum(&["Desktop", "Documents", "Downloads"], env),
-        photos: sum(&["Pictures"], env),
-    }
+    let (documents, photos) = personal_parts(env);
+    Parts { apps: Some(env.roots.apps.iter().map(|a| du(a, env.cancel)).sum()), documents, photos }
+}
+
+/// Dokumen and Foto alone, for when the apps are sized elsewhere.
+pub fn personal_parts(env: &Env) -> (Option<u64>, Option<u64>) {
+    (sum(&["Desktop", "Documents", "Downloads"], env), sum(&["Pictures"], env))
 }
 
 fn node(path: &Path, name: String, env: &Env, min: u64, dev: u64) -> Node {

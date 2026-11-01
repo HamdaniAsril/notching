@@ -183,6 +183,7 @@ export function browserBridge(root: HTMLElement): Bridge {
       if (capability === 'lamp') return null;
       // Nothing to capture in a browser either.
       if (capability === 'screenshot') return null;
+      if (capability === 'cleaner') return null;
       throw new Error(`unknown method ${method}`);
     },
     // Vite serves the module sources directly.

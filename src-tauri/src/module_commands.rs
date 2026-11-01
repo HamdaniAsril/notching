@@ -45,6 +45,7 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
         crate::lamp_service::module_gone(&app, &id);
         crate::shelf_service::module_gone(&app, &id);
         crate::shot_service::module_gone(&app, &id);
+        crate::cleaner_service::module_gone(&app, &id);
     } else {
         crate::shot_hotkey::module_on(&app, &id);
     }
@@ -61,6 +62,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     crate::lamp_service::module_gone(&app, &id);
     crate::shelf_service::module_gone(&app, &id);
     crate::shot_service::module_gone(&app, &id);
+    crate::cleaner_service::module_gone(&app, &id);
     crate::shot_service::uninstalled(&app, &id);
     crate::status::publish(&app);
     Ok(())
@@ -157,6 +159,8 @@ pub async fn module_call(
         Call::ShelfOpen => Ok(serde_json::Value::Null),
         // The tile's capture is wired in the screenshot service (a later task).
         Call::ScreenshotOpen => Ok(serde_json::Value::Null),
+        // Cleaner's pages are drawn by the notch, which opens them itself.
+        Call::CleanerOpen => Ok(serde_json::Value::Null),
     };
     value.map_err(|e| e.to_string())
 }

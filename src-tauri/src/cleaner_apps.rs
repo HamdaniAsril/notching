@@ -64,6 +64,10 @@ fn is_app(p: &Path) -> bool {
 /// like), biggest first. macOS's own apps live in /System/Applications, which is
 /// never a root.
 pub fn list_apps(roots: &Roots, cancel: &AtomicBool, next_id: &mut u64) -> Vec<AppInfo> {
+    listed(app_paths(roots), cancel, next_id)
+}
+
+fn app_paths(roots: &Roots) -> Vec<PathBuf> {
     let mut paths = Vec::new();
     for root in &roots.apps {
         for p in children(root) {
@@ -74,6 +78,15 @@ pub fn list_apps(roots: &Roots, cancel: &AtomicBool, next_id: &mut u64) -> Vec<A
             }
         }
     }
+    paths
+}
+
+/// The apps' bundle ids alone: cheap, for "is it installed".
+pub fn bundle_ids(roots: &Roots) -> Vec<String> {
+    app_paths(roots).iter().filter_map(|p| read_info(p).map(|(bid, _)| bid)).collect()
+}
+
+fn listed(paths: Vec<PathBuf>, cancel: &AtomicBool, next_id: &mut u64) -> Vec<AppInfo> {
     let mut apps: Vec<AppInfo> = paths
         .into_iter()
         .filter_map(|path| {

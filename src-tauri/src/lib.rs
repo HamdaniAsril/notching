@@ -25,6 +25,8 @@ mod awake_hold;
 #[cfg(target_os = "macos")]
 mod awake_service;
 #[cfg(target_os = "macos")]
+mod cleaner_service;
+#[cfg(target_os = "macos")]
 mod commands;
 #[cfg(target_os = "macos")]
 mod editor_window;
@@ -158,6 +160,24 @@ pub fn run() {
             editor_window::editor_commit,
             editor_window::editor_closing,
             editor_window::editor_close,
+            cleaner_service::cleaner_overview,
+            cleaner_service::cleaner_parts,
+            cleaner_service::cleaner_deep_scan,
+            cleaner_service::cleaner_apps,
+            cleaner_service::cleaner_app_detail,
+            cleaner_service::cleaner_breakdown,
+            cleaner_service::cleaner_run,
+            cleaner_service::cleaner_stop,
+            cleaner_service::cleaner_cancel_scans,
+            cleaner_service::cleaner_running,
+            cleaner_service::cleaner_reveal,
+            cleaner_service::cleaner_reveal_path,
+            cleaner_service::cleaner_exclude,
+            cleaner_service::cleaner_exclusions,
+            cleaner_service::cleaner_unexclude,
+            cleaner_service::cleaner_seen,
+            cleaner_service::cleaner_open_log,
+            cleaner_service::open_full_disk_access_settings,
         ])
         // A file drag can reach an overlay's webview before its sensor (the panel
         // already catches the mouse): that opens the drop zone too (Titipan).
@@ -196,6 +216,7 @@ pub fn run() {
             app.manage(shelf_service::ShelfState(std::sync::Mutex::new(shelf::Shelf::default())));
             shelf_service::start(app.handle());
             shot_service::start(app.handle());
+            cleaner_service::init(app.handle())?;
             overlay::rebuild_overlays(app.handle())?;
             home::schedule::start(app.handle().clone());
             awake_service::start(app.handle().clone());
@@ -217,6 +238,7 @@ pub fn run() {
                 lamp_service::quitting(app);
                 shelf_service::quitting(app);
                 shot_service::quitting(app);
+                cleaner_service::quitting(app);
             }
             _ => {}
         });

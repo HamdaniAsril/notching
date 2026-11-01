@@ -26,6 +26,7 @@ pub enum Call {
     LampOff,
     ShelfOpen,
     ScreenshotOpen,
+    CleanerOpen,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -84,6 +85,7 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Lamp, "off") => Ok(Call::LampOff),
         (Capability::Shelf, "open") => Ok(Call::ShelfOpen),
         (Capability::Screenshot, "open") => Ok(Call::ScreenshotOpen),
+        (Capability::Cleaner, "open") => Ok(Call::CleanerOpen),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -214,6 +216,15 @@ mod tests {
         assert_eq!(authorize(Some(&s), "screenshot", "screenshot", "grab"), Err(CallError::UnknownMethod("grab".into())));
         let t = entry("timer", &[Capability::Timer], true);
         assert!(matches!(authorize(Some(&t), "timer", "screenshot", "open"), Err(CallError::NotDeclared { .. })));
+    }
+
+    #[test]
+    fn cleaner_open_is_allowed_when_declared() {
+        let c = entry("cleaner", &[Capability::Cleaner, Capability::Status], true);
+        assert_eq!(authorize(Some(&c), "cleaner", "cleaner", "open"), Ok(Call::CleanerOpen));
+        assert_eq!(authorize(Some(&c), "cleaner", "cleaner", "run"), Err(CallError::UnknownMethod("run".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        assert!(matches!(authorize(Some(&t), "timer", "cleaner", "open"), Err(CallError::NotDeclared { .. })));
     }
 
     #[test]

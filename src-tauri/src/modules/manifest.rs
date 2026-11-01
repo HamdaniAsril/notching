@@ -39,6 +39,9 @@ pub enum Capability {
     /// Screenshot's tile takes a capture, which the notch itself runs (design 1 Nov).
     #[serde(rename = "screenshot")]
     Screenshot,
+    /// Cleaner's tile opens Deep clean and Clean uninstall, drawn by the notch (design 1 Nov).
+    #[serde(rename = "cleaner")]
+    Cleaner,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).
@@ -50,6 +53,8 @@ pub enum Permission {
     Location,
     #[serde(rename = "screen-recording")]
     ScreenRecording,
+    #[serde(rename = "full-disk-access")]
+    FullDiskAccess,
 }
 
 /// `width` is the panel width; `height` is the module's area inside the panel.
@@ -403,6 +408,13 @@ mod tests {
         let json = GOOD.replace(r#""permissions":[]"#, r#""permissions":["screen-recording"]"#);
         let m = parse_manifest(&json, "system-stat").unwrap();
         assert_eq!(m.permissions, vec![Permission::ScreenRecording]);
+    }
+
+    #[test]
+    fn full_disk_access_permission_parses() {
+        let json = GOOD.replace(r#""permissions":[]"#, r#""permissions":["full-disk-access"]"#);
+        let m = parse_manifest(&json, "system-stat").unwrap();
+        assert_eq!(m.permissions, vec![Permission::FullDiskAccess]);
     }
 
     #[test]

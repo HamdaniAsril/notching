@@ -49,6 +49,8 @@ pub struct SettingsDto {
     pub accessibility: bool,
     /// macOS lets Notching capture the screen (Screenshot).
     pub screen_recording: bool,
+    /// macOS lets Notching read every folder (Cleaner).
+    pub full_disk_access: bool,
 }
 
 // One lock at a time, so this is safe to call from anywhere.
@@ -68,6 +70,7 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         home,
         accessibility: crate::keyclean_tap::trusted(false),
         screen_recording: crate::shot_service::screen_access(),
+        full_disk_access: crate::cleaner_service::full_disk_access(app),
     }
 }
 
@@ -200,6 +203,7 @@ mod tests {
             home: HomeSettings::default(),
             accessibility: true,
             screen_recording: false,
+            full_disk_access: false,
         };
         let json = serde_json::to_value(&dto).unwrap();
         assert_eq!(json["accessibility"], true);
