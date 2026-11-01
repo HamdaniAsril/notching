@@ -10,7 +10,6 @@ test('the icon is a line drawing of a tray', () => {
 test('Titipan comes after Cermin, its tile opens the shelf, and it shows a status', () => {
   const all = catalog('id', []);
   const ids = all.map(m => m.id);
-  expect(ids[ids.length - 1]).toBe('shelf');
   expect(ids.indexOf('shelf')).toBe(ids.indexOf('mirror') + 1);
   const m = all.find(x => x.id === 'shelf')!;
   expect([m.entry, m.card, m.action]).toEqual([null, null, { capability: 'shelf', method: 'open' }]);

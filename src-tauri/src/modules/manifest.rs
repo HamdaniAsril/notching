@@ -36,6 +36,9 @@ pub enum Capability {
     /// Titipan's tile opens the shelf, which the notch itself draws (design 1 Nov).
     #[serde(rename = "shelf")]
     Shelf,
+    /// Screenshot's tile takes a capture, which the notch itself runs (design 1 Nov).
+    #[serde(rename = "screenshot")]
+    Screenshot,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).
@@ -45,6 +48,8 @@ pub enum Permission {
     Accessibility,
     Camera,
     Location,
+    #[serde(rename = "screen-recording")]
+    ScreenRecording,
 }
 
 /// `width` is the panel width; `height` is the module's area inside the panel.
@@ -391,6 +396,13 @@ mod tests {
     fn the_status_capability_parses() {
         let m = parse_manifest(&GOOD.replace("system.stats", "status"), "system-stat").unwrap();
         assert_eq!(m.capabilities, vec![Capability::Status]);
+    }
+
+    #[test]
+    fn screen_recording_permission_parses() {
+        let json = GOOD.replace(r#""permissions":[]"#, r#""permissions":["screen-recording"]"#);
+        let m = parse_manifest(&json, "system-stat").unwrap();
+        assert_eq!(m.permissions, vec![Permission::ScreenRecording]);
     }
 
     #[test]

@@ -148,7 +148,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     if (phase === 'open') {
       // A notice clicked open shows the page holding the widget that sent it.
       const target = showing && noticeTarget(state, showing.moduleId, showing.channel);
-      const to = target ? resolvePage(state, target) : null;
+      // The screenshot list is not a page yet; its notices open the panel as is.
+      const to = typeof target === 'string' ? resolvePage(state, target) : null;
       if (to && to.key !== page.key) {
         usePage(to);
         renderPill();

@@ -149,6 +149,8 @@ pub async fn module_call(
         }
         // The notch opens the shelf itself; the call has nothing to do.
         Call::ShelfOpen => Ok(serde_json::Value::Null),
+        // The tile's capture is wired in the screenshot service (a later task).
+        Call::ScreenshotOpen => Ok(serde_json::Value::Null),
     };
     value.map_err(|e| e.to_string())
 }

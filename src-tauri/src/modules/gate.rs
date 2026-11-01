@@ -25,6 +25,7 @@ pub enum Call {
     LampOn,
     LampOff,
     ShelfOpen,
+    ScreenshotOpen,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -82,6 +83,7 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Lamp, "on") => Ok(Call::LampOn),
         (Capability::Lamp, "off") => Ok(Call::LampOff),
         (Capability::Shelf, "open") => Ok(Call::ShelfOpen),
+        (Capability::Screenshot, "open") => Ok(Call::ScreenshotOpen),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -203,6 +205,15 @@ mod tests {
         assert_eq!(authorize(Some(&k), "keyboard-clean", "keyclean", "start"), Err(CallError::UnknownMethod("start".into())));
         let t = entry("timer", &[Capability::Timer], true);
         assert!(matches!(authorize(Some(&t), "timer", "keyclean", "toggle"), Err(CallError::NotDeclared { .. })));
+    }
+
+    #[test]
+    fn screenshot_open_is_allowed_when_declared() {
+        let s = entry("screenshot", &[Capability::Screenshot, Capability::Notify], true);
+        assert_eq!(authorize(Some(&s), "screenshot", "screenshot", "open"), Ok(Call::ScreenshotOpen));
+        assert_eq!(authorize(Some(&s), "screenshot", "screenshot", "grab"), Err(CallError::UnknownMethod("grab".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        assert!(matches!(authorize(Some(&t), "timer", "screenshot", "open"), Err(CallError::NotDeclared { .. })));
     }
 
     #[test]

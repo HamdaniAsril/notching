@@ -1,0 +1,13 @@
+{
+  "name": "Screenshot",
+  "shortName": "Screenshot",
+  "description": "Layar, window, atau area, langsung ke clipboard",
+  "channels": {
+    "keys": "Tombol screenshot",
+    "access": "Izin"
+  },
+  "notice": {
+    "keys": { "title": "{keys} masih dipakai Mac", "detail": "Buka Screenshot untuk caranya" },
+    "access": { "title": "Screenshot butuh izin Perekaman Layar", "detail": "Buka Screenshot untuk izinnya" }
+  }
+}

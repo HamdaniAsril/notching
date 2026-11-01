@@ -149,6 +149,13 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
         return;
       }
       dropShelf();
+      // Screenshot's views are drawn later; for now the panel shows nothing.
+      if (v.kind === 'shot') {
+        shown = '';
+        reset();
+        content.replaceChildren();
+        return;
+      }
       // The same page with the same widgets keeps its frames (and a full view).
       const sig = JSON.stringify([v, s.lang, v.kind === 'custom' ? slots(v.page, widgetCatalog(s)) : null]);
       if (sig === shown) return;

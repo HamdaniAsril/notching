@@ -1,0 +1,13 @@
+{
+  "name": "Screenshot",
+  "shortName": "Screenshot",
+  "description": "Screen, window or area, straight to the clipboard",
+  "channels": {
+    "keys": "Screenshot keys",
+    "access": "Access"
+  },
+  "notice": {
+    "keys": { "title": "{keys} still taken by the Mac", "detail": "Open Screenshot to see how" },
+    "access": { "title": "Screenshot needs Screen Recording access", "detail": "Open Screenshot to allow it" }
+  }
+}

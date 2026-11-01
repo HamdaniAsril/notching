@@ -91,6 +91,15 @@ test('a notice opens the first page with its widget', () => {
   expect(noticeTarget(s, null, null)).toBeNull();
 });
 
+test('screenshot notices open the screenshot list', () => {
+  const channels = ['keys', 'access'].map(id => ({ id, name: id, on: true, sound: false, widget: null }));
+  const s = state({ pages: [BERANDA], modules: [homeWidgets(), moduleInfo('screenshot', { channels })] });
+  expect(noticeTarget(s, 'screenshot', 'keys')).toEqual({ kind: 'shot', mode: 'list' });
+  expect(noticeTarget(s, 'screenshot', 'access')).toEqual({ kind: 'shot', mode: 'list' });
+  // It has no pill icon to carry a missed dot.
+  expect(missedTargets({ ...s, missed: ['screenshot.keys'] })).toEqual(new Set());
+});
+
 test('missed dots land on page icons', () => {
   const s = state({ pages: [BERANDA, P1], missed: ['home.reminder', 'timer.done', 'home.prayer'],
     modules: [homeWidgets(), moduleInfo('timer')] });

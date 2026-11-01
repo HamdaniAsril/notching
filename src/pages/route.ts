@@ -20,8 +20,12 @@ export const STRIP_HEIGHT = 40;
 // the drop zone, as tall as a custom page.
 export const SHELF = { width: 520, head: 22, tile: 84, gap: 8, columns: 6, maxRows: 3, drop: 104, empty: 84 } as const;
 export const SHELF_KEY = 'shelf';
+export const SHOT_KEY = 'screenshot';
 
 const MODULE_PREFIX = 'module:';
+
+// Screenshot's two notch views: the result of a capture, and the history list.
+export type ShotTarget = { kind: 'shot'; mode: 'result'; id: number } | { kind: 'shot'; mode: 'list' };
 
 // What the panel shows, keyed like lastPage: a page id, 'modules' or 'module:<id>'.
 // `strip`: the page's strip widget when it is there to show.
@@ -31,7 +35,8 @@ export type PageView =
   | { kind: 'module'; key: string; module: ModuleInfo }
   // `height`: while dropping on a panel already taller than the drop zone, it keeps
   // that height, so the drag stays over it.
-  | { kind: 'shelf'; key: typeof SHELF_KEY; shelf: ShelfState; dropping: boolean; height?: number };
+  | { kind: 'shelf'; key: typeof SHELF_KEY; shelf: ShelfState; dropping: boolean; height?: number }
+  | (ShotTarget & { key: typeof SHOT_KEY });
 
 // The Modul page's modules: installed, on, with a page or a tile action; in catalog order.
 export function pageModules(s: ModuleState): ModuleInfo[] {
@@ -77,6 +82,8 @@ export function viewSize(v: PageView, fullHeight?: number): CardSize {
     return { ...CUSTOM_PAGE, height: Math.round(Math.min(FULL_PAGE_MAX, Math.max(height, fullHeight))) };
   }
   if (v.kind === 'module') return { width: v.module.card!.width, height: BACK_BAR + v.module.card!.height };
+  // Placeholder until the screenshot views have their own sizes.
+  if (v.kind === 'shot') return { ...CUSTOM_PAGE };
   if (v.kind === 'shelf') {
     const height = shelfHeight(v.shelf.items.length, v.dropping);
     return { width: SHELF.width, height: v.dropping ? Math.max(height, v.height ?? 0) : height };
@@ -100,9 +107,10 @@ export function pageName(p: Page, strings: HostStrings): string {
 
 // Where a click on a notice leads (design 30 Oct §10): the first page holding
 // the widget that sent it, else the module's own page, else Beranda. The sample
-// notice leads nowhere.
-export function noticeTarget(s: ModuleState, moduleId: string | null, channel: string | null): string | null {
+// notice leads nowhere. Screenshot's notices lead to its own list, not a page.
+export function noticeTarget(s: ModuleState, moduleId: string | null, channel: string | null): string | ShotTarget | null {
   if (moduleId === null) return null;
+  if (moduleId === SHOT_KEY) return { kind: 'shot', mode: 'list' };
   const m = s.modules.find(x => x.id === moduleId);
   const widget = m?.channels.find(c => c.id === channel)?.widget;
   if (widget) {
@@ -119,7 +127,7 @@ export function missedTargets(s: ModuleState): Set<string> {
   for (const entry of s.missed) {
     const dot = entry.indexOf('.');
     const target = noticeTarget(s, entry.slice(0, dot), entry.slice(dot + 1));
-    if (target) out.add(target.startsWith(MODULE_PREFIX) ? 'modules' : target);
+    if (typeof target === 'string') out.add(target.startsWith(MODULE_PREFIX) ? 'modules' : target);
   }
   return out;
 }

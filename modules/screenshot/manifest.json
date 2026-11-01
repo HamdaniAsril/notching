@@ -1,0 +1,12 @@
+{
+  "id": "screenshot",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "permissions": ["screen-recording"],
+  "capabilities": ["screenshot", "notify"],
+  "notifications": [
+    { "id": "keys", "on": true, "sound": false },
+    { "id": "access", "on": true, "sound": false }
+  ],
+  "action": { "capability": "screenshot", "method": "open" }
+}

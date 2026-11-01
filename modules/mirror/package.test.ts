@@ -9,7 +9,8 @@ test('the icon is a line drawing', () => {
 
 test('Cermin comes before Titipan, opens a 600 × 400 page and needs the camera', () => {
   const all = catalog('id', []);
-  expect(all[all.length - 2].id).toBe('mirror');
+  const ids = all.map(x => x.id);
+  expect(ids.indexOf('shelf')).toBe(ids.indexOf('mirror') + 1);
   const m = all.find(x => x.id === 'mirror')!;
   expect([m.entry, m.card, m.action]).toEqual(['index.html', { width: 600, height: 400 }, null]);
   expect(m.permissions).toEqual(['camera']);

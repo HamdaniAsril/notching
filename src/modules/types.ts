@@ -62,7 +62,7 @@ export interface ModuleInfo {
   status: boolean; // declares "status": may show a status beside the notch
   statusShown: boolean; // its status switch in Pengaturan
   action: TileAction | null; // its Modul tile runs this instead of opening a page
-  permissions: string[]; // system permissions it needs: 'accessibility', 'camera', 'location'
+  permissions: string[]; // system permissions it needs: 'accessibility', 'camera', 'location', 'screen-recording'
 }
 
 // A call to one of the module's own capabilities (design 31 Oct, Keyboard Cleaning Mode §7).
