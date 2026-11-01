@@ -31,6 +31,7 @@
     "empty": "Press ⌘⇧3 or ⌘⇧4 for your first screenshot",
     "macKeys": "{keys} still taken by the Mac's own screenshots",
     "otherKeys": "{key} is taken by another app",
+    "otherKeysMany": "{key} are taken by another app",
     "and": " and ",
     "permission": "Screenshot needs Screen Recording access",
     "openSettings": "Open System Settings",
@@ -152,6 +153,8 @@
       "need": "Permissions your modules need.",
       "accessibility": "Accessibility",
       "accessibilityHint": "To lock the keyboard.",
+      "screenRecording": "Screen Recording",
+      "screenRecordingHint": "To capture the screen.",
       "granted": "Allowed",
       "missing": "Not allowed yet",
       "open": "Open System Settings"

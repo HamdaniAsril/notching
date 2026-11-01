@@ -400,7 +400,7 @@ fn take_now(app: &AppHandle, target: Target, kind: Kind, screen: usize) {
     if !enabled(app) {
         return;
     }
-    if !unsafe { CGPreflightScreenCaptureAccess() } {
+    if !screen_access() {
         refused(app);
         return;
     }
@@ -587,9 +587,14 @@ pub fn shot_start_drag(app: AppHandle, window: WebviewWindow, id: u64) -> Result
     crate::shelf_drag::begin_on_main(&app, window.label(), vec![(file, preview)], DragOwner::Shot)
 }
 
+/// macOS lets Notching capture the screen right now. Never prompts.
+pub fn screen_access() -> bool {
+    unsafe { CGPreflightScreenCaptureAccess() }
+}
+
 #[tauri::command]
 pub fn shot_permission() -> bool {
-    unsafe { CGPreflightScreenCaptureAccess() }
+    screen_access()
 }
 
 /// System Settings › Privacy & Security › Screen Recording.

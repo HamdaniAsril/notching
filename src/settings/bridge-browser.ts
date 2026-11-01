@@ -27,6 +27,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     version: '0.1.0',
     home: { place: null, prayerMethod: 'kemenag' },
     accessibility: false,
+    screenRecording: params.get('access') !== '0',
   };
   let state: ModuleState = {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
@@ -93,6 +94,9 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setSampleStatus: async on => setState({ ...state, sampleStatus: on }),
     setStatusShown: async (id, on) => setModule(id, { statusShown: on }),
     openAccessibility: async () => {},
+    openScreenRecordingSettings: async () => console.info('openScreenRecordingSettings'),
+    shotKeys: async () => { const k = params.get('keys') === 'mac' ? 'mac' : 'ok'; return { screen: k, pick: k }; }, // ?keys=mac
+    openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
     movePage: async (id, to) => {
       const [home, ...custom] = state.pages;
       const moving = custom.find(p => p.id === id)!;

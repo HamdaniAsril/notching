@@ -193,6 +193,14 @@ test('no permission shows its line, with a button to the settings', async () => 
   expect(deps.onNotes).toHaveBeenLastCalledWith(2);
 });
 
+test('two keys held by another app read as plural in English', async () => {
+  deps = fakeShotDeps({ lang: 'en' });
+  deps.shotKeys.mockResolvedValue({ screen: 'other', pick: 'other' });
+  mountShotList(box, deps).render([]);
+  await flush();
+  expect(box.querySelector('.shot-note')!.textContent).toBe('⌘⇧3 and ⌘⇧4 are taken by another app');
+});
+
 test('all keys ours and the permission given: no notice', async () => {
   mountShotList(box, deps).render([shot(1)]);
   await flush();

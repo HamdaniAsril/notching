@@ -1,3 +1,4 @@
+import type { ShotKeys } from '../bridge';
 import type { SettingsStrings } from '../i18n';
 import type { Lang } from '../kit/protocol';
 import type { ModuleState, Placement } from '../modules/types';
@@ -34,6 +35,7 @@ export interface SettingsInfo {
   version: string;
   home: HomeSettingsInfo;
   accessibility: boolean; // macOS lets Notching lock the keyboard (Keyboard Cleaning Mode)
+  screenRecording: boolean; // macOS lets Notching capture the screen (Screenshot)
 }
 
 export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'permissions' | 'about';
@@ -69,6 +71,9 @@ export interface SettingsBridge {
   setSampleStatus(on: boolean): Promise<void>; // the status beside the notch, to try its look
   setStatusShown(module: string, on: boolean): Promise<void>;
   openAccessibility(): Promise<void>; // System Settings › Privacy & Security › Accessibility
+  openScreenRecordingSettings(): Promise<void>; // System Settings › Privacy & Security › Screen Recording
+  shotKeys(): Promise<ShotKeys>; // how ⌘⇧3 and ⌘⇧4 stand, for Screenshot's page
+  openKeyboardShortcuts(): Promise<void>; // System Settings › Keyboard › Keyboard Shortcuts › Screenshots
 }
 
 export interface SettingsEnv {

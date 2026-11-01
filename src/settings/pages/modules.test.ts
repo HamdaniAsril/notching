@@ -139,3 +139,77 @@ test('a module with a status gets a status switch', async () => {
   app.go({ page: 'module', id: 'system-stat' });
   expect(root.querySelector('[data-key="module.system-stat.status"]')).toBeNull();
 });
+
+const SHOT = moduleInfo('screenshot', { name: 'Screenshot', description: 'Layar, window, area', entry: null, card: null,
+  action: { capability: 'screenshot', method: 'open' }, permissions: ['screen-recording'] });
+const WITH_SHOT: ModuleState = { ...STATE, modules: [...STATE.modules, SHOT] };
+const notice = (root: HTMLElement) => root.querySelector<HTMLElement>('.shot-keys');
+
+test('screenshot page shows the Mac key notice with the System Settings button', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_SHOT);
+  bridge.shotKeys.mockResolvedValue({ screen: 'mac', pick: 'mac' });
+  app.go({ page: 'module', id: 'screenshot' });
+  await settle();
+  expect(notice(root)!.textContent).toContain('⌘⇧3 dan ⌘⇧4 masih dipakai screenshot bawaan Mac');
+  const open = root.querySelector<HTMLElement>('[data-key="module.screenshot.keys"]')!;
+  expect(open.textContent).toBe('Buka Pengaturan Sistem');
+  open.click();
+  expect(bridge.openKeyboardShortcuts).toHaveBeenCalledTimes(1);
+  expect(root.querySelector('.pane')!.textContent).not.toContain('Modul ini belum punya pengaturan.');
+});
+
+test('a key held by another app has its line and no button', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_SHOT);
+  bridge.shotKeys.mockResolvedValue({ screen: 'ok', pick: 'other' });
+  app.go({ page: 'module', id: 'screenshot' });
+  await settle();
+  expect(notice(root)!.textContent).toBe('⌘⇧4 dipakai app lain');
+  expect(root.querySelector('[data-key="module.screenshot.keys"]')).toBeNull();
+});
+
+test('the Mac line comes first, then the other app line', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_SHOT);
+  bridge.shotKeys.mockResolvedValue({ screen: 'mac', pick: 'other' });
+  app.go({ page: 'module', id: 'screenshot' });
+  await settle();
+  expect([...root.querySelectorAll('.shot-keys .note')].map(p => p.textContent)).toEqual([
+    '⌘⇧3 masih dipakai screenshot bawaan Mac', '⌘⇧4 dipakai app lain',
+  ]);
+});
+
+test('keys that are ours, or a module that is off, show no notice', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_SHOT);
+  app.go({ page: 'module', id: 'screenshot' });
+  await settle();
+  expect(bridge.shotKeys).toHaveBeenCalled();
+  expect(notice(root)!.textContent).toBe('');
+  bridge.shotKeys.mockResolvedValue({ screen: 'off', pick: 'off' });
+  app.go({ page: 'modules' });
+  app.go({ page: 'module', id: 'screenshot' });
+  await settle();
+  expect(notice(root)!.textContent).toBe('');
+});
+
+test('the notice follows the language', async () => {
+  const { root, app, bridge } = await mountForTest({ ...WITH_SHOT, lang: 'en' });
+  bridge.shotKeys.mockResolvedValue({ screen: 'other', pick: 'other' });
+  app.go({ page: 'module', id: 'screenshot' });
+  await settle();
+  expect(notice(root)!.textContent).toBe('⌘⇧3 and ⌘⇧4 are taken by another app');
+});
+
+test('a failed key query shows no notice', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_SHOT);
+  bridge.shotKeys.mockRejectedValue(new Error('no'));
+  app.go({ page: 'module', id: 'screenshot' });
+  await settle();
+  expect(notice(root)!.textContent).toBe('');
+});
+
+test('no status switch for screenshot', async () => {
+  const { root, app } = await mountForTest(WITH_SHOT);
+  app.go({ page: 'module', id: 'screenshot' });
+  await settle();
+  expect(root.querySelector('[data-key="module.screenshot.status"]')).toBeNull();
+  expect(root.querySelector('[data-key="module.screenshot.on"]')).not.toBeNull();
+});

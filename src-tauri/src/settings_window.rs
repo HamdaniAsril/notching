@@ -47,6 +47,8 @@ pub struct SettingsDto {
     pub home: HomeSettings,
     /// macOS lets Notching lock the keyboard (Keyboard Cleaning Mode).
     pub accessibility: bool,
+    /// macOS lets Notching capture the screen (Screenshot).
+    pub screen_recording: bool,
 }
 
 // One lock at a time, so this is safe to call from anywhere.
@@ -65,6 +67,7 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         version: app.package_info().version.to_string(),
         home,
         accessibility: crate::keyclean_tap::trusted(false),
+        screen_recording: crate::shot_service::screen_access(),
     }
 }
 
@@ -179,4 +182,27 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
         .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The settings window reads these names (SettingsInfo in src/settings/types.ts).
+    #[test]
+    fn dto_names_both_permissions_for_the_izin_page() {
+        let dto = SettingsDto {
+            language: LanguageSetting::default(),
+            screen: None,
+            screens: vec![],
+            login: LoginItem::Off,
+            version: "0.1.0".into(),
+            home: HomeSettings::default(),
+            accessibility: true,
+            screen_recording: false,
+        };
+        let json = serde_json::to_value(&dto).unwrap();
+        assert_eq!(json["accessibility"], true);
+        assert_eq!(json["screenRecording"], false);
+    }
 }

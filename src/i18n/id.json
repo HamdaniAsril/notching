@@ -31,6 +31,7 @@
     "empty": "Tekan ⌘⇧3 atau ⌘⇧4 untuk screenshot pertama",
     "macKeys": "{keys} masih dipakai screenshot bawaan Mac",
     "otherKeys": "{key} dipakai app lain",
+    "otherKeysMany": "{key} dipakai app lain",
     "and": " dan ",
     "permission": "Screenshot butuh izin Perekaman Layar",
     "openSettings": "Buka Pengaturan Sistem",
@@ -152,6 +153,8 @@
       "need": "Izin yang dibutuhkan modul.",
       "accessibility": "Aksesibilitas",
       "accessibilityHint": "Untuk mengunci keyboard.",
+      "screenRecording": "Perekaman Layar",
+      "screenRecordingHint": "Untuk mengambil gambar layar.",
       "granted": "Diizinkan",
       "missing": "Belum diizinkan",
       "open": "Buka Pengaturan Sistem"

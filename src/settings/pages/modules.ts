@@ -1,14 +1,34 @@
-import { fill } from '../../i18n';
+import { fill, hostStrings } from '../../i18n';
 import { formatBytes } from '../../kit/format';
 import { isModule, type ModuleInfo } from '../../modules/types';
+import { keyNotices } from '../../shot/keys';
 import { button, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
 import type { PageContext, PageRender } from '../types';
 
 export const UNINSTALL_CONFIRM_MS = 4000;
 
+// Screenshot's page (design 1 Nov §4, §10): when ⌘⇧3 or ⌘⇧4 does not reach
+// Notching, why. The Mac's own screenshots can be turned off in System Settings,
+// so that line gets a button there; another app's key has none. Nothing shows
+// while the keys are ours, or the module is off.
+function screenshotKeys(ctx: PageContext): HTMLElement {
+  const box = el('div', 'shot-keys');
+  const s = hostStrings(ctx.lang).shot;
+  ctx.bridge.shotKeys().then(keys => {
+    const taken = keyNotices(keys, s);
+    if (taken.mac) {
+      box.append(note(taken.mac), button('module.screenshot.keys', s.openSettings, () => void ctx.bridge.openKeyboardShortcuts()));
+    }
+    if (taken.other) box.append(note(taken.other));
+  }, () => {});
+  return box;
+}
+
 // Each module's own settings, shown on its page; the rest say they have none.
-export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {};
+export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {
+  screenshot: screenshotKeys,
+};
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never
 // enters the DOM, so nothing in the file can run.

@@ -1,8 +1,9 @@
-import type { Shot, ShotKeys } from '../bridge';
+import type { Shot } from '../bridge';
 import { fill, hostStrings, type HostStrings } from '../i18n';
 import { SHOT } from '../pages/route';
 import { presses } from '../notch/presses';
 import { button, COPY_ICON, DELETE_ICON, el, image, openEditor, SAVE_ICON, SAVED_ICON, saves, type ShotDeps } from './common';
+import { keyNotices } from './keys';
 
 export interface ShotListDeps extends ShotDeps {
   back(): void; // "‹ Modul"
@@ -14,7 +15,6 @@ export interface ShotList {
   destroy(): void;
 }
 
-const KEYS = { screen: '⌘⇧3', pick: '⌘⇧4' } as const;
 const SCREEN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M9 21h6"/></svg>';
 const WINDOW_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9h16"/></svg>';
 const AREA_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="3 2.5"><rect x="4" y="5" width="16" height="14" rx="1"/></svg>';
@@ -30,11 +30,6 @@ export function timeLabel(takenMs: number, nowMs: number, s: HostStrings['shot']
   if (day(t) === day(now)) return fill(s.time, { h: pad(t.getHours()), m: pad(t.getMinutes()) });
   if (day(t) === yesterday) return s.yesterday;
   return fill(s.date, { d: t.getDate(), month: s.months[t.getMonth()] });
-}
-
-// The keys a state applies to, joined: "⌘⇧3 dan ⌘⇧4".
-function keysIn(keys: ShotKeys, state: ShotKeys['screen'], s: HostStrings['shot']): string {
-  return (['screen', 'pick'] as const).filter(k => keys[k] === state).map(k => KEYS[k]).join(s.and);
 }
 
 // The Screenshot page (design 1 Nov §6, halaman-screenshot.html v2): "‹ Modul"
@@ -92,10 +87,9 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
     if (gone) return;
     const lines: HTMLElement[] = [];
     if (!allowed) lines.push(note(s.permission, deps.openScreenRecordingSettings));
-    const mac = keys ? keysIn(keys, 'mac', s) : '';
-    if (mac) lines.push(note(fill(s.macKeys, { keys: mac }), deps.openKeyboardShortcuts));
-    const other = keys ? keysIn(keys, 'other', s) : '';
-    if (other) lines.push(note(fill(s.otherKeys, { key: other })));
+    const taken = keys ? keyNotices(keys, s) : { mac: null, other: null };
+    if (taken.mac) lines.push(note(taken.mac, deps.openKeyboardShortcuts));
+    if (taken.other) lines.push(note(taken.other));
     notes.replaceChildren(...lines);
     deps.onNotes(lines.length);
   });

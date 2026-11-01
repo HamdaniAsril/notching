@@ -1261,3 +1261,17 @@ body > .ed-ghost {
 .perm-state.on {
   color: var(--fg);
 }
+
+/* One button under each permission's rows, and a gap before the next permission. */
+.perms .grp + .btn {
+  margin-top: 14px;
+}
+
+.perms .btn + .grp {
+  margin-top: 28px;
+}
+
+/* Screenshot's page: which of ⌘⇧3 and ⌘⇧4 do not reach Notching, with a way to fix it. */
+.shot-keys .btn {
+  margin-top: 10px;
+}

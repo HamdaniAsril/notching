@@ -3,6 +3,7 @@ import type { ModuleState, Placement } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
+import type { ShotKeys } from '../bridge';
 import type { LanguageChoice, Place, PrayerMethod, SettingsBridge, SettingsInfo } from './types';
 
 export const TEST_INFO: SettingsInfo = {
@@ -13,6 +14,7 @@ export const TEST_INFO: SettingsInfo = {
   version: '0.1.0',
   home: { place: null, prayerMethod: 'kemenag' },
   accessibility: false,
+  screenRecording: false,
 };
 
 // Settings bridge whose methods are mocks; emit* plays the native side's events.
@@ -49,6 +51,9 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     setSampleStatus: vi.fn(async (_on: boolean) => {}),
     setStatusShown: vi.fn(async (_module: string, _on: boolean) => {}),
     openAccessibility: vi.fn(async () => {}),
+    openScreenRecordingSettings: vi.fn(async () => {}),
+    shotKeys: vi.fn(async (): Promise<ShotKeys> => ({ screen: 'ok', pick: 'ok' })),
+    openKeyboardShortcuts: vi.fn(async () => {}),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
   };

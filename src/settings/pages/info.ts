@@ -1,39 +1,65 @@
 import { button, el, group, head, note, row } from '../controls';
-import type { PageRender } from '../types';
+import type { PageContext, PageRender, SettingsInfo } from '../types';
 
-// Modules that need Accessibility (Keyboard Cleaning Mode), with what macOS says
-// now and a way to System Settings. macOS gives no event when it changes, so the
-// page asks again every 2 s while it is open. Without such modules it says so.
+// Modules that need Accessibility (Keyboard Cleaning Mode) or Screen Recording
+// (Screenshot), with what macOS says now and a way to System Settings. macOS gives
+// no event when it changes, so the page asks again every 2 s while it is open.
+// Without such modules it says so.
 export const ACCESS_POLL_MS = 2000;
+
+type PermissionStrings = PageContext['strings']['permissions'];
+
+// One system permission a manifest can ask for, in the order the page lists them.
+interface Permission {
+  id: 'accessibility' | 'screen-recording';
+  label(s: PermissionStrings): string;
+  hint(s: PermissionStrings): string;
+  granted(info: SettingsInfo): boolean;
+  openKey: string;
+  open(bridge: PageContext['bridge']): Promise<void>;
+}
+
+const PERMISSIONS: Permission[] = [
+  {
+    id: 'accessibility', label: s => s.accessibility, hint: s => s.accessibilityHint, granted: i => i.accessibility,
+    openKey: 'permissions.open', open: b => b.openAccessibility(),
+  },
+  {
+    id: 'screen-recording', label: s => s.screenRecording, hint: s => s.screenRecordingHint, granted: i => i.screenRecording,
+    openKey: 'permissions.openScreenRecording', open: b => b.openScreenRecordingSettings(),
+  },
+];
 
 export const permissionsPage: PageRender = ctx => {
   const s = ctx.strings.permissions;
-  const page = el('div');
-  const needing = ctx.state.modules.filter(m => m.installed && m.permissions.includes('accessibility'));
-  if (needing.length === 0) {
+  const page = el('div', 'perms');
+  const asked = PERMISSIONS
+    .map(p => ({ p, modules: ctx.state.modules.filter(m => m.installed && m.permissions.includes(p.id)) }))
+    .filter(a => a.modules.length > 0);
+  if (asked.length === 0) {
     page.append(head({ title: ctx.strings.sections.permissions, sub: s.sub }), note(s.note));
     return page;
   }
-  const states: HTMLElement[] = [];
-  const show = (on: boolean) => states.forEach(e => {
-    e.textContent = on ? s.granted : s.missing;
-    e.classList.toggle('on', on);
+  const states: { state: HTMLElement; p: Permission }[] = [];
+  const show = (info: SettingsInfo) => states.forEach(({ state, p }) => {
+    const on = p.granted(info);
+    state.textContent = on ? s.granted : s.missing;
+    state.classList.toggle('on', on);
   });
-  const rows = needing.map(m => {
-    const state = el('span', 'perm-state');
-    states.push(state);
-    return row({ key: `permission.${m.id}.accessibility`, label: `${m.name} · ${s.accessibility}`, hint: s.accessibilityHint, control: state });
-  });
-  show(ctx.info.accessibility);
-  page.append(
-    head({ title: ctx.strings.sections.permissions, sub: s.need }),
-    group(...rows),
-    button('permissions.open', s.open, () => void ctx.bridge.openAccessibility()),
-  );
+  page.append(head({ title: ctx.strings.sections.permissions, sub: s.need }));
+  for (const { p, modules } of asked) {
+    const rows = modules.map(m => {
+      const state = el('span', 'perm-state');
+      states.push({ state, p });
+      return row({ key: `permission.${m.id}.${p.id}`, label: `${m.name} · ${p.label(s)}`, hint: p.hint(s), control: state });
+    });
+    page.append(group(...rows), button(p.openKey, s.open, () => void p.open(ctx.bridge)));
+  }
+  show(ctx.info);
   let stop = () => {};
   const poll = () => {
     stop = ctx.env.setTimer(() => {
-      ctx.bridge.settings().then(info => show(info.accessibility), () => {}).finally(poll);
+      ctx.bridge.settings().then(show, () => {}).finally(poll);
     }, ACCESS_POLL_MS);
   };
   poll();

@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { syncUnlisten } from '../bridge';
+import { syncUnlisten, type ShotKeys } from '../bridge';
 import type { ModuleState } from '../modules/types';
 import type { Place, SettingsBridge, SettingsInfo } from './types';
 
@@ -35,5 +35,8 @@ export function tauriSettingsBridge(): SettingsBridge {
     setSampleStatus: on => invoke('set_sample_status', { on }),
     setStatusShown: (module, on) => invoke('set_status_shown', { module, on }),
     openAccessibility: () => invoke('open_accessibility_settings'),
+    openScreenRecordingSettings: () => invoke('open_screen_recording_settings'),
+    shotKeys: () => invoke<ShotKeys>('shot_keys'),
+    openKeyboardShortcuts: () => invoke('open_keyboard_shortcuts'),
   };
 }

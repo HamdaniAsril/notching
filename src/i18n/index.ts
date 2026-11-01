@@ -28,6 +28,7 @@ export interface HostStrings {
     empty: string;
     macKeys: string;
     otherKeys: string;
+    otherKeysMany: string; // two keys at once: "are taken" in English
     and: string; // between two keys
     permission: string;
     openSettings: string;
