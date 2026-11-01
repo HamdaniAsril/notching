@@ -713,6 +713,9 @@ test('the Cleaner tile opens Cleaner without a core call, and it is never the la
   expect(s.bridge.setLastPage).not.toHaveBeenCalledWith('cleaner');
   expect(s.app.controller.card).toEqual({ width: 520, height: 188 });
   expect(s.bridge.cleanerOverview).toHaveBeenCalled();
+  // Its start view goes back to the Modul page.
+  s.root.querySelector<HTMLElement>('.cl-head .cl-back')!.click();
+  expect(s.root.querySelector('.mods-grid')).not.toBeNull();
 });
 
 test('a start view drawn taller than 188 makes the panel taller', async () => {

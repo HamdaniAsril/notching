@@ -18,7 +18,7 @@ async function setup() {
   bridge.cleanerDeepScan.mockResolvedValue({ scanId: 9, items: ITEMS });
   let now = 0;
   const resize = vi.fn();
-  const view = mountCleaner(box, { bridge, lang: 'id', now: () => now, resize });
+  const view = mountCleaner(box, { bridge, lang: 'id', now: () => now, resize, back: vi.fn() });
   view.shown();
   await tick();
   const toList = async () => {

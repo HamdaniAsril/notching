@@ -16,7 +16,7 @@ export interface PageViewDeps {
   onBack: () => void;
   shelf: Omit<ShelfViewDeps, 'strings' | 'backLabel' | 'back'>; // Titipan's drag out, remove and clear
   shot: Omit<ShotListDeps, 'lang'>; // Screenshot's pages: the core's calls, close and back
-  cleaner: Omit<CleanerDeps, 'lang'>; // Cleaner's pages: the core's calls and the panel's size
+  cleaner: Omit<CleanerDeps, 'lang' | 'back'>; // Cleaner's pages: the core's calls and the panel's size
 }
 
 export interface PageViewHost {
@@ -76,7 +76,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     }
     if (!cleaner) {
       const box = el(doc, 'div', 'cl');
-      cleaner = { box, lang: s.lang, view: mountCleaner(box, { ...deps.cleaner, lang: s.lang }) };
+      cleaner = { box, lang: s.lang, view: mountCleaner(box, { ...deps.cleaner, lang: s.lang, back: deps.onBack }) };
     }
     if (content.contains(cleaner.box)) return;
     content.replaceChildren(cleaner.box);

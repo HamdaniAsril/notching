@@ -19,6 +19,7 @@ export interface CleanerDeps {
   bridge: CleanerBridge;
   lang: Lang;
   now(): number;
+  back(): void; // the start view's "‹ Modul"
   // The panel's size follows the screen; `height` is the start view's as drawn.
   resize(screen: 'home' | 'list', note: boolean, height: number): void;
 }
@@ -59,6 +60,7 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
     strings: s,
     onClean: () => showClean(),
     onUninstall: () => showUninstall(),
+    onBack: () => deps.back(),
     onDisk: () => {
       show('disk', diskBox);
       disk.refresh();

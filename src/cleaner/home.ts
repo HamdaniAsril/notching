@@ -1,5 +1,5 @@
 import type { Bridge, CleanerOverview, CleanerParts } from '../bridge';
-import { type CleanerStrings, fill } from '../i18n';
+import { type CleanerStrings, fill, hostStrings } from '../i18n';
 import { dotText } from '../kit/dots';
 import type { Lang } from '../kit/protocol';
 import { BROOM_ICON, button, el, TRASH_ICON } from './dom';
@@ -12,6 +12,7 @@ export interface HomeDeps {
   onClean(): void;
   onUninstall(): void;
   onDisk(): void;
+  onBack(): void; // "‹ Modul", as on the other module pages
   // Whether the Full Disk Access line shows, and the view's height as drawn: a
   // legend or a tile that wraps makes it taller, and the panel must fit it.
   onLayout(note: boolean, height: number): void;
@@ -38,9 +39,11 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
   let seq = 0;
 
   const head = el(doc, 'div', 'cl-head');
+  const back = button(doc, 'lab cl-back', `‹ ${hostStrings(deps.lang).modules}`);
+  back.addEventListener('click', () => deps.onBack());
   const vol = el(doc, 'span', 'lab cl-vol');
   const free = el(doc, 'span', 'lab cl-free');
-  head.append(vol, free);
+  head.append(back, vol, free);
   const usedRow = el(doc, 'div', 'cl-used');
   const big = el(doc, 'span', 'cl-big');
   const of = el(doc, 'span', 'lab cl-of');

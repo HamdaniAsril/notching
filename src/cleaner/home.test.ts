@@ -21,6 +21,7 @@ function setup(over: Partial<CleanerOverview> = {}, parts: Promise<CleanerParts>
     onClean: vi.fn(),
     onUninstall: vi.fn(),
     onDisk: vi.fn(),
+    onBack: vi.fn(),
     onLayout: vi.fn(),
   };
   const home = mountHome(box, deps);
@@ -70,6 +71,16 @@ test('once measured, the start view tells its drawn height, so the panel can fit
   await tick();
   expect(deps.onLayout).toHaveBeenLastCalledWith(false, 199);
   tall.mockRestore();
+});
+
+test('the head starts with ‹ Modul, which goes back', async () => {
+  const { box, deps } = setup();
+  await tick();
+  const back = box.querySelector<HTMLButtonElement>('.cl-head .cl-back')!;
+  expect(back.textContent).toBe('‹ Modul');
+  expect(box.querySelector('.cl-head')!.firstElementChild).toBe(back);
+  back.click();
+  expect(deps.onBack).toHaveBeenCalledTimes(1);
 });
 
 test('the two tiles show their summaries and open their lists', async () => {
