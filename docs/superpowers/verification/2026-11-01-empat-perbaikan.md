@@ -42,3 +42,15 @@ Percobaan pertama (22.06–22.08) belum menguji nomor 6 dan 7, karena alat tetap
 - Log app: `notching: screenshot 15 … 20 taken`, tanpa galat.
 - Penyimpanan editor: `~/Library/WebKit/id.web.notching/WebsiteData/Default/…/LocalStorage/localstorage.sqlite3`, kunci `notching.editor`.
 - Suntingan: `~/Library/Application Support/id.web.notching/screenshots/<nomor>/edits.json`.
+
+## Tambahan: tiga perbaikan Cleaner (2 November 2026)
+
+Ditemukan pemilik setelah versi baru dipasang di `/Applications`. Dikerjakan di cabang `fix/cleaner-fda`.
+
+| # | Masalah | Penyebab | Perbaikan | Hasil |
+|---|---|---|---|---|
+| 1 | Full Disk Access sudah diberi, tapi Cleaner tetap bilang belum | Cleaner mengecek dengan membuka `~/Library/Application Support/com.apple.TCC`. Folder ini tidak ada sama sekali di macOS 27.0.1 (26A434), jadi hasilnya selalu "belum". Tidak ketahuan saat cek Cleaner karena mode coba melewati pengecekan ini. | `b6571fc`: cukup salah satu folder terkunci yang bisa dibuka: `/Library/Application Support/com.apple.TCC` (selalu ada, menolak tanpa izin), folder TCC di home, `~/Library/Safari`, atau `~/Library/Mail`. | Lulus. Daftar izin sistem berubah 22.34.06, Notching dibuka ulang 22.34.11, dan pemilik melaporkan izinnya terbaca. |
+| 2 | Setelah selesai menghitung, tombol Deep clean dan Clean uninstall terpotong di bawah | Tinggi halaman awal dipatok 188 px. Dengan ukuran asli, keterangan warna memanjang jadi 2 baris (+11 px). Ini ditiru di browser: 185 → 196 px. | `3665047`: halaman awal mengukur tingginya sendiri setelah digambar (juga lewat ResizeObserver), dan panel mengambil yang lebih besar antara 188 px dan tinggi itu. | Dilaporkan pemilik ("Semua beres"). |
+| 3 | Cleaner belum punya tombol kembali ke halaman Modul | Belum ada. | `c99e0ae`: "‹ Modul" di kiri atas halaman awal, sama seperti Titipan. | Dilaporkan pemilik. |
+
+Test: `npm test` 735 lulus, `cargo test --lib` 382 lulus, 1 diabaikan. Versi `c99e0ae` terpasang di `/Applications` pukul 06.33. Izin diberikan ulang pukul 06.34.06, dan app dibuka ulang 06.34.11.
