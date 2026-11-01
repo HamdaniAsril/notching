@@ -53,7 +53,21 @@
       "sensor": "Sensor"
     },
     "colors": ["Merah", "Kuning", "Hijau", "Biru", "Hitam", "Putih"],
-    "widths": ["Tipis", "Sedang", "Tebal"]
+    "widths": ["Tipis", "Sedang", "Tebal"],
+    "corner": "Sudut",
+    "background": "Background",
+    "bg": {
+      "solid": "Warna solid",
+      "gradient": "Gradient",
+      "image": "Gambar",
+      "none": "Tanpa background",
+      "customColor": "Warna sendiri",
+      "gradientFrom": "Gradient sendiri: warna awal",
+      "gradientTo": "Gradient sendiri: warna akhir",
+      "wallpaper": "Wallpaper Mac",
+      "file": "Pilih file…",
+      "padding": "Jarak"
+    }
   },
   "clean": {
     "title": "Keyboard sedang dibersihkan",

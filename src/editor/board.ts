@@ -20,13 +20,16 @@ import {
   serialize,
   setTextMeasure,
   textWidth,
+  withStyle,
   LINE_HEIGHT,
   type Doc,
   type Handle,
   type Shape,
+  type Style,
   type Tool,
 } from './model';
-import { FONT_PROBE, drawSelection, drawShapes, measureText } from './render';
+import { loadImage } from './background';
+import { FONT_PROBE, compose, drawSelection, exportPng, measureText, outputSize, type Source } from './render';
 
 // What the board needs of the opened screenshot.
 export interface BoardDoc {
@@ -55,7 +58,13 @@ export interface Board {
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly selected: number | null;
+  // Corners, padding and background, as shown (a drag in progress included).
+  readonly style: Style;
   setTool(tool: Tool): void;
+  // A style change that is still being dragged: shown, not yet in the history.
+  previewStyle(style: Style): void;
+  // The change is done: one step in the history, whatever the previews were.
+  setStyle(style: Style): void;
   setColor(index: number): void;
   setWidth(index: number): void;
   undo(): boolean;
@@ -65,17 +74,24 @@ export interface Board {
   // The JSON for edits.json; '' when nothing is drawn. An open text box is
   // committed first.
   edits(): string;
+  // What Salin, Simpan and keep send: the finished picture, null when blank.
+  png(): Promise<Blob | null>;
   destroy(): void;
 }
 
-// The picture and what is drawn on it, in one canvas the size of the picture
-// and shown shrunk by CSS. `onChange` tells the bars to catch up.
+const sameStyle = (a: Style, b: Style): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+// The result as it will be exported, in one canvas as big as the output (the
+// picture plus its padding) and shown shrunk by CSS. Shapes keep the picture's
+// own coordinates; `off` is where the picture sits in the canvas. `onChange`
+// tells the bars to catch up.
 export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, image: HTMLImageElement, onChange: () => void): Board {
   const history = new History(parse(d.edits));
   const scale = scaleFor(d.width, d.height);
   const canvas = el(doc, 'canvas', 'ed-canvas');
-  canvas.width = d.width;
-  canvas.height = d.height;
+  const initial = outputSize(d.width, d.height, history.doc.style, scale);
+  canvas.width = initial.w;
+  canvas.height = initial.h;
   canvas.dataset.tool = 'select';
   stage.append(canvas);
   const ctx = canvas.getContext('2d');
@@ -88,16 +104,25 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
   let gesture: Gesture = { kind: 'none' };
   let textBox: { input: HTMLInputElement; x: number; y: number; size: number; color: string } | null = null;
   let swallow = false; // the press that committed a text box does nothing else
+  // A slider or colour being dragged: shown, and put in the history at its end.
+  let styleDraft: Style | null = null;
+  let backdrop: Source | null = null; // the loaded picture of an image background
+  let backdropSrc: string | null = null;
 
-  // Image pixels per screen pixel, which is not 1 once the picture is fitted.
+  const curStyle = (): Style => styleDraft ?? history.doc.style;
+  const off = () => outputSize(d.width, d.height, curStyle(), scale);
+
+  // Canvas pixels per screen pixel, which is not 1 once the picture is fitted.
   const units = (): [number, number] => {
     const r = canvas.getBoundingClientRect();
     return [r.width > 0 ? canvas.width / r.width : 1, r.height > 0 ? canvas.height / r.height : 1];
   };
+  // A pointer in the picture's own pixels (negative in the padding).
   const point = (e: MouseEvent): [number, number] => {
     const r = canvas.getBoundingClientRect();
     const [kx, ky] = units();
-    return [(e.clientX - r.left) * kx, (e.clientY - r.top) * ky];
+    const { ox, oy } = off();
+    return [(e.clientX - r.left) * kx - ox, (e.clientY - r.top) * ky - oy];
   };
 
   const shown = (): Shape[] => {
@@ -106,15 +131,41 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     return shapes.some(s => s.id === preview!.id) ? shapes.map(s => (s.id === preview!.id ? preview! : s)) : [...shapes, preview];
   };
 
-  const redraw = () => {
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (image.naturalWidth > 0) ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const list = shown();
-    drawShapes(ctx, list, image);
-    const sel = selected === null ? undefined : list.find(s => s.id === selected);
-    if (tool === 'select' && sel) drawSelection(ctx, sel, units()[0]);
+  // An image background is loaded once per source; the board redraws when it is in.
+  const wantBackdrop = (style: Style) => {
+    const src = style.background.kind === 'image' ? style.background.src : null;
+    if (src === backdropSrc) return;
+    backdropSrc = src;
+    backdrop = null;
+    if (!src) return;
+    loadImage(src).then(
+      img => {
+        if (backdropSrc !== src) return;
+        backdrop = img;
+        redraw();
+      },
+      e => console.error('notching: background picture not loaded', e),
+    );
   };
+
+  function redraw(): void {
+    if (!ctx) return;
+    const style = curStyle();
+    const out = outputSize(d.width, d.height, style, scale);
+    // A new size clears the canvas, which is drawn anew just below.
+    if (canvas.width !== out.w) canvas.width = out.w;
+    if (canvas.height !== out.h) canvas.height = out.h;
+    wantBackdrop(style);
+    const list = shown();
+    compose(ctx, { image, w: d.width, h: d.height, shapes: list, style, scale, backdrop });
+    const sel = selected === null ? undefined : list.find(s => s.id === selected);
+    if (tool === 'select' && sel) {
+      ctx.save();
+      ctx.translate(out.ox, out.oy);
+      drawSelection(ctx, sel, units()[0]);
+      ctx.restore();
+    }
+  }
 
   const changed = () => {
     if (selected !== null && !history.doc.shapes.some(s => s.id === selected)) selected = null;
@@ -125,6 +176,18 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     history.apply(next);
     changed();
   };
+
+  function setStyle(next: Style): void {
+    commitText();
+    styleDraft = null;
+    if (!sameStyle(next, history.doc.style)) history.apply(withStyle(history.doc, next));
+    changed();
+  }
+  // A drag whose end never came (the page's own `change` did not fire) is
+  // still part of the picture.
+  function flushStyle(): void {
+    if (styleDraft) setStyle(styleDraft);
+  }
 
   // ---- text ----------------------------------------------------------------
 
@@ -154,9 +217,10 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     const r = canvas.getBoundingClientRect();
     const s = stage.getBoundingClientRect();
     const [kx, ky] = units();
+    const { ox, oy } = off();
     // The box is the text's own line, so what is typed sits where it will be drawn.
-    input.style.left = `${r.left - s.left + x / kx}px`;
-    input.style.top = `${r.top - s.top + y / ky}px`;
+    input.style.left = `${r.left - s.left + (x + ox) / kx}px`;
+    input.style.top = `${r.top - s.top + (y + oy) / ky}px`;
     input.style.fontSize = `${size / kx}px`;
     input.style.height = `${(size * LINE_HEIGHT) / ky}px`;
     input.style.color = color;
@@ -216,6 +280,8 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     }
     const [x, y] = point(e);
     const [kx] = units();
+    // The padding is not the picture: nothing is drawn there, and it would not show.
+    if (tool !== 'select' && (x < 0 || y < 0 || x > d.width || y > d.height)) return;
     if (tool === 'select') {
       const sel = selected === null ? undefined : history.doc.shapes.find(s => s.id === selected);
       const handle = sel ? handleAt(sel, x, y, GRIP * kx) : null;
@@ -321,6 +387,16 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     get selected() {
       return selected;
     },
+    get style() {
+      return curStyle();
+    },
+    previewStyle(next) {
+      commitText(); // the canvas may change size under an open box
+      styleDraft = next;
+      redraw();
+      onChange();
+    },
+    setStyle,
     setTool(next) {
       commitText();
       tool = next;
@@ -336,12 +412,14 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     },
     undo() {
       commitText();
+      flushStyle();
       const ok = history.undo();
       if (ok) changed();
       return ok;
     },
     redo() {
       commitText();
+      flushStyle();
       const ok = history.redo();
       if (ok) changed();
       return ok;
@@ -359,11 +437,18 @@ export function createBoard(doc: Document, stage: HTMLElement, d: BoardDoc, imag
     },
     edits() {
       commitText();
+      flushStyle();
       return isBlank(history.doc) ? '' : serialize(history.doc);
+    },
+    png() {
+      commitText();
+      flushStyle();
+      return exportPng(image, history.doc, scale);
     },
     destroy() {
       doc.removeEventListener('pointerdown', onPressAnywhere, true);
       cancelText();
+      backdropSrc = null; // a picture still loading is not wanted any more
       setTextMeasure(null);
     },
   };

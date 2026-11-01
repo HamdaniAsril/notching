@@ -1,7 +1,8 @@
-import { LINE_HEIGHT, bounds, handles, scaleFor, type Box, type Shape } from './model';
+import { loadImage } from './background';
+import { LINE_HEIGHT, bounds, handles, isBlank, scaleFor, type Box, type Doc, type Shape, type Style } from './model';
 
 // Drawing of the editor's shapes, in image pixels. The same code serves the
-// screen and (task 9) the exported picture.
+// screen and the exported picture.
 
 export const TEXT_FAMILY = '"Space Grotesk"';
 export const textFont = (size: number): string => `600 ${size}px ${TEXT_FAMILY}, -apple-system, sans-serif`;
@@ -171,4 +172,126 @@ export function drawSelection(ctx: CanvasRenderingContext2D, s: Shape, unit: num
     ctx.stroke();
   }
   ctx.restore();
+}
+
+// ---- output ------------------------------------------------------------------
+// The picture, its corners, its background and shadow: one drawing for the
+// board and for the exported PNG, so what is seen is what is saved.
+
+// The output's size and where the picture sits in it. Only a background adds
+// room around the picture; corners alone keep its size.
+export function outputSize(w: number, h: number, style: Style, scale: number): { w: number; h: number; ox: number; oy: number } {
+  if (style.background.kind === 'none') return { w, h, ox: 0, oy: 0 };
+  const pad = Math.round(style.padding * scale);
+  return { w: w + 2 * pad, h: h + 2 * pad, ox: pad, oy: pad };
+}
+
+// The part of a picture that fills a box without squashing: the long side is
+// cut, evenly from both ends.
+export function coverRect(iw: number, ih: number, w: number, h: number): { sx: number; sy: number; sw: number; sh: number } {
+  const k = Math.max(w / iw, h / ih);
+  const sw = w / k;
+  const sh = h / k;
+  return { sx: (iw - sw) / 2, sy: (ih - sh) / 2, sw, sh };
+}
+
+// A rounded-rectangle path; `arcTo` rather than `roundRect`, which older
+// WebKit lacks. The radius never passes half the short side.
+function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, radius: number): void {
+  const r = Math.min(radius, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// A gradient at 135° (CSS): from the top-left to the bottom-right, as long as
+// the box's two sides along that direction, centred.
+function diagonal(ctx: CanvasRenderingContext2D, from: string, to: string, w: number, h: number): CanvasGradient {
+  const half = (w + h) / 4; // half the length of (w + h) / √2, along each axis
+  const g = ctx.createLinearGradient(w / 2 - half, h / 2 - half, w / 2 + half, h / 2 + half);
+  g.addColorStop(0, from);
+  g.addColorStop(1, to);
+  return g;
+}
+
+// 0 14px 30px rgba(0,0,0,.35), × scale.
+const SHADOW = { color: 'rgba(0,0,0,0.35)', y: 14, blur: 30 };
+
+export interface Composition {
+  image: Source; // the original
+  w: number; // its size, which an <img> that has not loaded cannot say
+  h: number;
+  shapes: Shape[];
+  style: Style;
+  scale: number;
+  backdrop: Source | null; // an image background, once loaded
+  scratch?: Scratch;
+}
+
+// Clears `ctx` (which is `outputSize` big) and draws the whole result on it.
+export function compose(ctx: CanvasRenderingContext2D, c: Composition): void {
+  const { w, h, style, scale } = c;
+  const out = outputSize(w, h, style, scale);
+  const bg = style.background;
+  ctx.clearRect(0, 0, out.w, out.h);
+  const radius = style.corner * scale;
+  if (bg.kind !== 'none') {
+    ctx.save();
+    if (bg.kind === 'solid') {
+      ctx.fillStyle = bg.color;
+      ctx.fillRect(0, 0, out.w, out.h);
+    } else if (bg.kind === 'gradient') {
+      ctx.fillStyle = diagonal(ctx, bg.from, bg.to, out.w, out.h);
+      ctx.fillRect(0, 0, out.w, out.h);
+    } else if (c.backdrop) {
+      const { w: bw, h: bh } = sourceSize(c.backdrop);
+      const crop = coverRect(bw, bh, out.w, out.h);
+      ctx.drawImage(c.backdrop, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, out.w, out.h);
+    }
+    ctx.restore();
+    // Only the shadow is to land in the output: the shape that casts it is
+    // drawn off to the left and its shadow offset back in.
+    ctx.save();
+    const away = out.w + 2 * SHADOW.blur * scale;
+    ctx.shadowColor = SHADOW.color;
+    ctx.shadowBlur = SHADOW.blur * scale;
+    ctx.shadowOffsetX = away;
+    ctx.shadowOffsetY = SHADOW.y * scale;
+    ctx.fillStyle = '#000000';
+    roundedRect(ctx, out.ox - away, out.oy, w, h, radius);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.translate(out.ox, out.oy);
+  if (radius > 0) {
+    roundedRect(ctx, 0, 0, w, h, radius);
+    ctx.clip();
+  }
+  if (sourceSize(c.image).w > 0) ctx.drawImage(c.image, 0, 0, w, h);
+  drawShapes(ctx, c.shapes, c.image, c.scratch);
+  ctx.restore();
+}
+
+// The PNG for Salin, Simpan and keep, at the original's resolution plus the
+// padding. Null when nothing was changed, so the core restores the original.
+export async function exportPng(image: Source, doc: Doc, scale: number): Promise<Blob | null> {
+  if (isBlank(doc)) return null;
+  const { w, h } = sourceSize(image);
+  const out = outputSize(w, h, doc.style, scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = out.w;
+  canvas.height = out.h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('no 2d context for the export');
+  const bg = doc.style.background;
+  const backdrop = bg.kind === 'image' ? await loadImage(bg.src) : null;
+  compose(ctx, { image, w, h, shapes: doc.shapes, style: doc.style, scale, backdrop });
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(b => (b ? resolve(b) : reject(new Error('the canvas gave no PNG'))), 'image/png');
+  });
 }

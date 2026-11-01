@@ -53,7 +53,21 @@
       "sensor": "Censor"
     },
     "colors": ["Red", "Yellow", "Green", "Blue", "Black", "White"],
-    "widths": ["Thin", "Medium", "Thick"]
+    "widths": ["Thin", "Medium", "Thick"],
+    "corner": "Corners",
+    "background": "Background",
+    "bg": {
+      "solid": "Solid color",
+      "gradient": "Gradient",
+      "image": "Image",
+      "none": "No background",
+      "customColor": "Custom color",
+      "gradientFrom": "Custom gradient: start color",
+      "gradientTo": "Custom gradient: end color",
+      "wallpaper": "Mac wallpaper",
+      "file": "Choose file…",
+      "padding": "Spacing"
+    }
   },
   "clean": {
     "title": "Cleaning the keyboard",

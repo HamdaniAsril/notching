@@ -1,6 +1,6 @@
-import { expect, test } from 'vitest';
-import type { Shape } from './model';
-import { arrowHead, drawSelection, drawShapes, measureText, textFont, type Source } from './render';
+import { afterEach, expect, test, vi } from 'vitest';
+import { emptyDoc, type Doc, type Shape, type Style } from './model';
+import { arrowHead, compose, coverRect, drawSelection, drawShapes, exportPng, measureText, outputSize, textFont, type Source } from './render';
 
 type Call = [string, ...unknown[]];
 
@@ -17,7 +17,9 @@ function recorder() {
         if (name in props) return props[name];
         return (...args: unknown[]) => {
           calls.push([name, ...args]);
-          if (name === 'stroke' || name === 'fill' || name === 'fillText') calls.push(['@', { ...props }]);
+          if (name === 'stroke' || name === 'fill' || name === 'fillText' || name === 'fillRect') calls.push(['@', { ...props }]);
+          // The gradient writes down its stops.
+          if (name === 'createLinearGradient') return { addColorStop: (...stop: unknown[]) => calls.push(['stop', ...stop]) };
         };
       },
       set(_t, name: string, value) {
@@ -164,4 +166,182 @@ test('the selection keeps its size on screen: 4 grips for a box, 2 for an arrow'
   drawSelection(arrow.ctx, { id: 2, type: 'arrow', color: '#000', width: 4, x1: 0, y1: 0, x2: 90, y2: 50 }, 1);
   expect(arrow.calls.filter(c => c[0] === 'rect')).toHaveLength(2);
   expect(names(arrow.calls)).not.toContain('strokeRect');
+});
+
+const style = (patch: Partial<Style> = {}): Style => ({ ...emptyDoc().style, ...patch });
+
+test('outputSize adds padding only with a background', () => {
+  expect(outputSize(2940, 1718, style(), 1)).toEqual({ w: 2940, h: 1718, ox: 0, oy: 0 });
+  // Even a wide padding and rounded corners leave the size alone without one.
+  expect(outputSize(2940, 1718, style({ padding: 160, corner: 40 }), 2)).toEqual({ w: 2940, h: 1718, ox: 0, oy: 0 });
+  expect(outputSize(2940, 1718, style({ padding: 64, background: { kind: 'solid', color: '#111111' } }), 1)).toEqual({ w: 3068, h: 1846, ox: 64, oy: 64 });
+});
+
+test('outputSize scales padding', () => {
+  const bg = { kind: 'gradient', from: '#000000', to: '#FFFFFF' } as const;
+  expect(outputSize(3000, 1000, style({ padding: 64, background: bg }), 2)).toEqual({ w: 3256, h: 1256, ox: 128, oy: 128 });
+  expect(outputSize(2940, 1718, style({ padding: 33, background: bg }), 1.96)).toEqual({ w: 3070, h: 1848, ox: 65, oy: 65 }); // whole pixels
+});
+
+test('an image background covers the box without squashing', () => {
+  // Wider than the box: the sides are cut, centred.
+  expect(coverRect(4000, 1000, 1000, 1000)).toEqual({ sx: 1500, sy: 0, sw: 1000, sh: 1000 });
+  // Taller: the top and bottom are cut.
+  expect(coverRect(1000, 3000, 600, 300)).toEqual({ sx: 0, sy: 1250, sw: 1000, sh: 500 });
+  expect(coverRect(500, 500, 1000, 1000)).toEqual({ sx: 0, sy: 0, sw: 500, sh: 500 });
+});
+
+const comp = (st: Style, shapes: Shape[] = [], backdrop: Source | null = null) => ({ image: image(3000, 1000), w: 3000, h: 1000, shapes, style: st, scale: 2, backdrop });
+
+test('without a background the picture keeps its size and a rounded corner leaves the rest transparent', () => {
+  const { ctx, calls, props } = recorder();
+  const img = image(3000, 1000);
+  compose(ctx, { ...comp(style({ corner: 10 })), image: img });
+  expect(calls[0]).toEqual(['clearRect', 0, 0, 3000, 1000]);
+  // A radius of 10 × scale 2, at the picture's own corner.
+  const arcs = calls.filter(c => c[0] === 'arcTo');
+  expect(arcs).toHaveLength(4);
+  expect(arcs.every(a => a[5] === 20)).toBe(true);
+  expect(calls).toContainEqual(['moveTo', 20, 0]);
+  expect(names(calls).indexOf('clip')).toBeGreaterThan(-1);
+  expect(names(calls).indexOf('clip')).toBeLessThan(names(calls).indexOf('drawImage'));
+  expect(calls).toContainEqual(['drawImage', img, 0, 0, 3000, 1000]);
+  expect(props.shadowBlur).toBeUndefined();
+  expect(names(calls)).not.toContain('fillRect');
+});
+
+test('square corners and no background draw the picture as it is', () => {
+  const { ctx, calls } = recorder();
+  compose(ctx, comp(style()));
+  expect(names(calls)).not.toContain('clip');
+  expect(names(calls)).not.toContain('arcTo');
+});
+
+test('a radius never passes half the short side', () => {
+  const { ctx, calls } = recorder();
+  compose(ctx, { ...comp(style({ corner: 40 })), h: 100, image: image(3000, 100) });
+  expect(calls.filter(c => c[0] === 'arcTo').every(a => a[5] === 50)).toBe(true);
+});
+
+test('a solid background is padded, the picture is shadowed, rounded and moved by the padding', () => {
+  const { ctx, calls } = recorder();
+  const img = image(3000, 1000);
+  const sc = scratch();
+  compose(ctx, { ...comp(style({ padding: 64, corner: 12, background: { kind: 'solid', color: '#E8262E' } }), [{ id: 1, type: 'sensor', x1: 0, y1: 0, x2: 10, y2: 10 }]), image: img, scratch: sc.make });
+  // 3000 × 1000 plus 128 on every side.
+  expect(calls[0]).toEqual(['clearRect', 0, 0, 3256, 1256]);
+  const fills = calls.filter(c => c[0] === '@').map(c => c[1] as Record<string, unknown>);
+  expect(calls).toContainEqual(['fillRect', 0, 0, 3256, 1256]);
+  expect(fills[0]).toMatchObject({ fillStyle: '#E8262E' });
+  // 0 14px 30px rgba(0,0,0,.35), times the scale of 2; only the shadow lands in
+  // the picture: the shape itself lies off to the left.
+  const shadow = fills[1];
+  expect(shadow).toMatchObject({ shadowColor: 'rgba(0,0,0,0.35)', shadowBlur: 60, shadowOffsetY: 28 });
+  const off = shadow.shadowOffsetX as number;
+  expect(off).toBeGreaterThanOrEqual(3256);
+  expect(calls).toContainEqual(['moveTo', 128 - off + 24, 128]);
+  expect(calls).toContainEqual(['translate', 128, 128]);
+  expect(calls).toContainEqual(['drawImage', img, 0, 0, 3000, 1000]);
+  // The sensor reads the original, not the padded canvas.
+  expect(sc.drawn[0][1]).toBe(img);
+  expect(sc.drawn[0].slice(2, 6)).toEqual([0, 0, 10, 10]);
+});
+
+test('the shadow is drawn between a save and a restore of its own', () => {
+  const { ctx, calls } = recorder();
+  compose(ctx, comp(style({ background: { kind: 'solid', color: '#111111' } })));
+  const at = calls.findIndex(c => c[0] === '@' && 'shadowBlur' in (c[1] as object));
+  expect(at).toBeGreaterThan(-1);
+  expect(calls.slice(0, at).some(c => c[0] === 'save')).toBe(true);
+  const restore = at + calls.slice(at).findIndex(c => c[0] === 'restore');
+  const picture = calls.findIndex(c => c[0] === 'drawImage');
+  expect(restore).toBeLessThan(picture);
+});
+
+test('a gradient runs corner to corner at 135 degrees', () => {
+  const { ctx, calls } = recorder();
+  compose(ctx, { ...comp(style({ padding: 16, background: { kind: 'gradient', from: '#FF7A18', to: '#7A1FA2' } })), w: 100, h: 100, image: image(100, 100), scale: 1 });
+  // 132 × 132 box; the line is the box's own diagonal for a square.
+  const g = calls.find(c => c[0] === 'createLinearGradient')!;
+  expect(g[1] as number).toBeCloseTo(0);
+  expect(g[2] as number).toBeCloseTo(0);
+  expect(g[3] as number).toBeCloseTo(132);
+  expect(g[4] as number).toBeCloseTo(132);
+  expect(calls.filter(c => c[0] === 'stop')).toEqual([['stop', 0, '#FF7A18'], ['stop', 1, '#7A1FA2']]);
+});
+
+test('a gradient on a wide box is centred and its length is the sum of the sides over root 2', () => {
+  const { ctx, calls } = recorder();
+  compose(ctx, { ...comp(style({ padding: 16, background: { kind: 'gradient', from: '#000000', to: '#FFFFFF' } })), w: 400, h: 100, image: image(400, 100), scale: 1 });
+  const g = calls.find(c => c[0] === 'createLinearGradient')!;
+  const [, x0, y0, x1, y1] = g as number[];
+  expect((x0 + x1) / 2).toBeCloseTo(216);
+  expect((y0 + y1) / 2).toBeCloseTo(66);
+  expect(x1 - x0).toBeCloseTo(y1 - y0); // 45° down and to the right
+  expect(Math.hypot(x1 - x0, y1 - y0)).toBeCloseTo((432 + 132) / Math.SQRT2);
+});
+
+test('an image background is drawn to cover the whole output', () => {
+  const { ctx, calls } = recorder();
+  const wall = image(4000, 1000);
+  compose(ctx, comp(style({ padding: 64, background: { kind: 'image', src: 'data:image/jpeg;base64,AA', from: 'wallpaper' } }), [], wall));
+  const d = calls.find(c => c[0] === 'drawImage' && c[1] === wall)!;
+  const crop = coverRect(4000, 1000, 3256, 1256);
+  expect(d.slice(2)).toEqual([crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, 3256, 1256]);
+  expect(crop.sw / crop.sh).toBeCloseTo(3256 / 1256);
+});
+
+test('an image background that has not loaded yet leaves the plain backdrop out', () => {
+  const { ctx, calls } = recorder();
+  compose(ctx, comp(style({ background: { kind: 'image', src: 'data:image/jpeg;base64,AA', from: 'file' } })));
+  expect(names(calls)).not.toContain('fillRect');
+  expect(calls.some(c => c[0] === 'drawImage')).toBe(true); // the picture itself
+});
+
+const bgDoc = (patch: Partial<Style>): Doc => ({ ...emptyDoc(), style: style(patch) });
+
+afterEach(() => vi.unstubAllGlobals());
+
+test('exportPng returns null for a blank doc, and never makes a canvas', async () => {
+  const create = vi.fn();
+  vi.stubGlobal('document', { createElement: create });
+  expect(await exportPng(image(), emptyDoc(), 1)).toBeNull();
+  // Padding alone changes nothing without a background.
+  expect(await exportPng(image(), bgDoc({ padding: 120 }), 1)).toBeNull();
+  expect(create).not.toHaveBeenCalled();
+});
+
+test('exportPng renders at full resolution plus padding and hands back a PNG', async () => {
+  const canvas = recorder();
+  const blob = new Blob(['png'], { type: 'image/png' });
+  const made = {
+    width: 0,
+    height: 0,
+    getContext: () => canvas.ctx,
+    toBlob: vi.fn((cb: (b: Blob | null) => void, type?: string) => {
+      expect(type).toBe('image/png');
+      cb(blob);
+    }),
+  };
+  vi.stubGlobal('document', { createElement: vi.fn(() => made) });
+  const out = await exportPng(image(3000, 1000), bgDoc({ padding: 64, background: { kind: 'solid', color: '#111111' } }), 2);
+  expect(out).toBe(blob);
+  expect([made.width, made.height]).toEqual([3256, 1256]);
+  expect(canvas.calls).toContainEqual(['drawImage', expect.anything(), 0, 0, 3000, 1000]);
+});
+
+test('rounded corners alone are exported at the picture size, with the corners cleared', async () => {
+  const canvas = recorder();
+  const made = { width: 0, height: 0, getContext: () => canvas.ctx, toBlob: (cb: (b: Blob | null) => void) => cb(new Blob(['x'])) };
+  vi.stubGlobal('document', { createElement: () => made });
+  expect(await exportPng(image(3000, 1000), bgDoc({ corner: 12 }), 2)).toBeInstanceOf(Blob);
+  expect([made.width, made.height]).toEqual([3000, 1000]);
+  expect(canvas.calls[0]).toEqual(['clearRect', 0, 0, 3000, 1000]);
+});
+
+test('exportPng rejects when the canvas gives no PNG, so the editor can say so', async () => {
+  const canvas = recorder();
+  const made = { width: 0, height: 0, getContext: () => canvas.ctx, toBlob: (cb: (b: Blob | null) => void) => cb(null) };
+  vi.stubGlobal('document', { createElement: () => made });
+  await expect(exportPng(image(), bgDoc({ corner: 5 }), 1)).rejects.toThrow();
 });

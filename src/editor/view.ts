@@ -2,8 +2,11 @@ import type { Shot } from '../bridge';
 import { fill, hostStrings } from '../i18n';
 import type { Lang } from '../kit/protocol';
 import { SAVE_FAILED_MS, button, el } from '../shot/common';
+import { fileJpeg, wallpaperJpeg } from './background';
 import { createBoard, type Board } from './board';
-import { COLORS, TOOLS, TOOL_KEYS, WIDTHS, type Tool } from './model';
+import { COLORS, CORNER_RANGE, TOOLS, TOOL_KEYS, WIDTHS, scaleFor, type Tool } from './model';
+import { createPopover, type Popover } from './popover';
+import { outputSize } from './render';
 
 // Same shape as EditorDoc in src-tauri/src/editor_window.rs. `width` × `height`
 // is the original's size; `original` and `wallpaper` are notchshot: URLs.
@@ -42,6 +45,8 @@ export interface EditorView {
 }
 
 const UNDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>';
+const CORNER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10a6 6 0 0 1 6-6h10"/></svg>';
+const BG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/></svg>';
 const REDO_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>';
 
 // Drawn in currentColor, as in editor.html.
@@ -69,7 +74,8 @@ function typing(doc: Document): boolean {
 
 // The editor window (design 1 Nov §7, editor.html v2): the size label, undo and
 // redo, Simpan and Salin over the screenshot, the tools on the left and the
-// colours and widths below. Salin and Cmd+C copy, then close; Simpan saves to
+// colours, widths, Sudut and Background below. Salin and Cmd+C copy, then
+// close; Simpan saves to
 // the Desktop and stays; a close from outside commits `keep` first. The
 // drawing itself is the board's. Classes start with ed-.
 export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<EditorView> {
@@ -87,18 +93,34 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   const toolButtons = new Map<Tool, HTMLButtonElement>();
   const colorButtons: HTMLButtonElement[] = [];
   const widthButtons: HTMLButtonElement[] = [];
+  let popover: Popover | null = null;
+  const cornerRange = el(doc, 'input', 'ed-range ed-corner-range');
+  const cornerValue = el(doc, 'span', 'ed-cval');
+  const bgBtn = button(doc, 'ed-bgbtn');
+  const bgWrap = el(doc, 'div', 'ed-bgwrap');
   const undoBtn = button(doc, 'ed-ib');
   const redoBtn = button(doc, 'ed-ib');
 
-  // What goes back: the edits to continue from later; the picture (task 9)
-  // stays with the original until the export exists.
-  const result = (): { edits: string; png: Blob | null } => ({ edits: board ? board.edits() : '', png: null });
+  // What goes back: the edits to continue from later, and the finished picture
+  // (null when nothing was changed). Should the picture fail, a close still keeps
+  // the edits, and the screenshot stays as it was; Salin and Simpan say it failed.
+  const result = async (action: EditorAction): Promise<{ edits: string; png: Blob | null }> => {
+    if (!board) return { edits: '', png: null };
+    const edits = board.edits();
+    try {
+      return { edits, png: await board.png() };
+    } catch (e) {
+      console.error('notching: the picture was not exported', e);
+      if (action === 'keep') return { edits, png: null };
+      throw e;
+    }
+  };
 
   // One commit at a time, so a close waits for a Simpan under way.
   const commit = (action: EditorAction): Promise<string | null> => {
     const id = shown!.id;
-    const run = queue.then(() => {
-      const r = result();
+    const run = queue.then(async () => {
+      const r = await result(action);
       return bridge.commit(id, r.edits, r.png, action);
     });
     queue = run.catch(() => {});
@@ -157,6 +179,31 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
         b.setAttribute('aria-pressed', String(i === at));
       });
     }
+    const { corner } = board.style;
+    if (Number(cornerRange.value) !== corner) cornerRange.value = String(corner);
+    cornerValue.textContent = String(corner);
+    popover?.sync();
+  };
+  const popOpen = () => popover !== null && !popover.el.hidden;
+  const showPop = (open: boolean) => {
+    if (!popover) return;
+    popover.el.hidden = !open;
+    bgBtn.classList.toggle('ed-on', open);
+    bgBtn.setAttribute('aria-expanded', String(open));
+  };
+  // A picture for the background, shrunk to at most twice the output's longest
+  // side; it is kept in the doc, so a re-open needs no wallpaper.
+  const useImage = async (from: 'wallpaper' | 'file', make: (max: number) => Promise<string>) => {
+    if (!board || !shown) return;
+    const probe = { ...board.style, background: { kind: 'image', src: '', from } as const };
+    const out = outputSize(shown.width, shown.height, probe, scaleFor(shown.width, shown.height));
+    try {
+      const src = await make(2 * Math.max(out.w, out.h));
+      if (ended || !board) return;
+      board.setStyle({ ...board.style, background: { kind: 'image', src, from } });
+    } catch (e) {
+      console.error('notching: background picture not used', e);
+    }
   };
   const pick = (tool: Tool) => {
     board?.setTool(tool);
@@ -183,6 +230,11 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
       return;
     }
     if (!board || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'Escape' && popOpen()) {
+      e.preventDefault(); // the box first, then the selection
+      showPop(false);
+      return;
+    }
     const tool = TOOL_KEYS[e.key.toLowerCase()];
     if (tool) {
       pick(tool);
@@ -200,8 +252,13 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
     e.preventDefault();
     copy();
   };
+  // A press outside the Background box puts it away.
+  const onPress = (e: Event) => {
+    if (popOpen() && !bgWrap.contains(e.target as Node)) showPop(false);
+  };
   doc.addEventListener('keydown', onKey);
   doc.addEventListener('copy', onCopy);
+  doc.addEventListener('pointerdown', onPress);
   const unlisten = [
     bridge.onClose(() => {
       bridge.closing().catch(e => console.error('notching: editor close not acknowledged', e));
@@ -296,7 +353,41 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
       widthButtons.push(b);
       widths.append(b);
     });
-    bar.append(colors, el(doc, 'span', 'ed-sep'), widths);
+
+    // Sudut: a slider with its number, one history step per drag.
+    const corner = el(doc, 'div', 'ed-group ed-corner');
+    cornerRange.type = 'range';
+    cornerRange.min = String(CORNER_RANGE.min);
+    cornerRange.max = String(CORNER_RANGE.max);
+    cornerRange.step = '1';
+    cornerRange.value = '0';
+    cornerRange.setAttribute('aria-label', s.editor.corner);
+    const withCorner = () => ({ ...board!.style, corner: Number(cornerRange.value) });
+    cornerRange.addEventListener('input', () => board?.previewStyle(withCorner()));
+    cornerRange.addEventListener('change', () => board?.setStyle(withCorner()));
+    const cornerIcon = el(doc, 'span', 'ed-cicon');
+    cornerIcon.innerHTML = CORNER_ICON;
+    corner.append(cornerIcon, el(doc, 'span', 'ed-clab', s.editor.corner), cornerRange, cornerValue);
+
+    // Background: the button and its box, which opens upward.
+    bgBtn.innerHTML = BG_ICON;
+    bgBtn.append(s.editor.background);
+    bgBtn.setAttribute('aria-haspopup', 'dialog');
+    bgBtn.addEventListener('click', () => showPop(!popOpen()));
+    popover = createPopover({
+      doc,
+      s: s.editor,
+      wallpaper: d.wallpaper !== null,
+      style: () => board!.style,
+      preview: next => board?.previewStyle(next),
+      commit: next => board?.setStyle(next),
+      pickWallpaper: () => void useImage('wallpaper', max => wallpaperJpeg(d.wallpaper!, max)),
+      pickFile: file => void useImage('file', max => fileJpeg(file, max)),
+    });
+    bgWrap.replaceChildren(popover.el, bgBtn);
+    showPop(false);
+
+    bar.append(colors, el(doc, 'span', 'ed-sep'), widths, el(doc, 'span', 'ed-sep'), corner, el(doc, 'span', 'ed-sep'), bgWrap);
 
     root.replaceChildren(head, tools, stage, bar);
     sync();
@@ -316,6 +407,7 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
     destroy() {
       doc.removeEventListener('keydown', onKey);
       doc.removeEventListener('copy', onCopy);
+      doc.removeEventListener('pointerdown', onPress);
       for (const off of unlisten) off();
       if (failTimer) clearTimeout(failTimer);
       board?.destroy();

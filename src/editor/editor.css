@@ -311,3 +311,237 @@ body {
 .ed-wd.ed-sel .ed-w {
   background: #fff;
 }
+
+/* Sudut: an icon, the word, a slider and its number. */
+.ed-corner {
+  gap: 6px;
+  font: 10px 'Space Mono', ui-monospace, monospace;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ed-cicon svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.ed-cval {
+  min-width: 2ch;
+  text-align: right;
+}
+
+/* A slider as in the mockup: a 3 px track, a white thumb. Used by Sudut and Jarak. */
+.ed-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 70px;
+  height: 14px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.ed-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.ed-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.ed-range:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+  border-radius: 7px;
+}
+
+/* The Background button opens its box upward. */
+.ed-bgwrap {
+  position: relative;
+}
+
+.ed-bgbtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--fg);
+  font: 11px 'Space Mono', ui-monospace, monospace;
+  cursor: default;
+}
+
+.ed-bgbtn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ed-bgbtn.ed-on {
+  background: #fff;
+  color: #000;
+}
+
+.ed-bgbtn:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+.ed-pop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 18px);
+  width: 256px;
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 14px;
+  background: #1a1a1c;
+  outline: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+  white-space: normal;
+}
+
+.ed-pop[hidden] {
+  display: none;
+}
+
+.ed-plab {
+  font: 9px/13px 'Space Mono', ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.ed-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.ed-chip {
+  box-sizing: border-box;
+  width: 28px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  outline: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: default;
+}
+
+.ed-chip.ed-sel {
+  outline: 2px solid #fff;
+}
+
+.ed-chip:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* Tanpa background: a checkerboard. */
+.ed-none { background: repeating-conic-gradient(#333 0 25%, #222 0 50%) 0 / 8px 8px; }
+
+/* In the order of SOLIDS and GRADIENTS in model.ts. */
+.ed-s0 { background: #ffffff; }
+.ed-s1 { background: #111111; }
+.ed-s2 { background: #e8262e; }
+.ed-s3 { background: #f5b700; }
+.ed-s4 { background: #2f80ed; }
+.ed-g0 { background: linear-gradient(135deg, #ff7a18, #7a1fa2); }
+.ed-g1 { background: linear-gradient(135deg, #43cea2, #185a9d); }
+.ed-g2 { background: linear-gradient(135deg, #f7971e, #ffd200); }
+.ed-g3 { background: linear-gradient(135deg, #8e9eab, #eef2f3); }
+.ed-g4 { background: linear-gradient(135deg, #232526, #414345); }
+
+/* A colour wheel: a rainbow ring around the colour it holds. */
+.ed-rainbow {
+  display: block;
+  width: 22px;
+  padding: 2px;
+  border-radius: 50%;
+  background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red);
+}
+
+.ed-rainbow input[type='color'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: default;
+}
+
+.ed-rainbow input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.ed-rainbow input[type='color']::-webkit-color-swatch {
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 50%;
+}
+
+.ed-pick {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.ed-pickb {
+  flex: 1;
+  margin: 0;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--fg);
+  font: 10px 'Space Mono', ui-monospace, monospace;
+  cursor: default;
+}
+
+.ed-pickb:hover {
+  background: var(--soft-hover);
+}
+
+.ed-pickb.ed-sel {
+  background: #fff;
+  color: #000;
+}
+
+.ed-pickb:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* The file input is opened by Pilih file…; it is not shown. */
+.ed-file {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ed-pop .ed-range {
+  display: block;
+  width: 100%;
+  margin: 8px 0 2px;
+}

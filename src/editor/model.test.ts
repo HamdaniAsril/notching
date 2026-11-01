@@ -15,9 +15,12 @@ import {
   removeShape,
   replaceShape,
   resize,
+  GRADIENTS,
+  SOLIDS,
   scaleFor,
   serialize,
   setTextMeasure,
+  withStyle,
   type Doc,
   type Shape,
 } from './model';
@@ -269,4 +272,39 @@ test('a flat pen, rect or sensor can be dragged out of its flat axis', () => {
   // A flat frame or sensor gets a height.
   expect(resize(rect(4, 10, 10, 90, 10), 'se', 90, 60)).toMatchObject({ x1: 10, y1: 10, x2: 90, y2: 60 });
   expect(resize(sensor(5, 10, 10, 10, 90), 'se', 60, 90)).toMatchObject({ x1: 10, y1: 10, x2: 60, y2: 90 });
+});
+
+test('the preset colours and gradients', () => {
+  expect(SOLIDS).toEqual(['#FFFFFF', '#111111', '#E8262E', '#F5B700', '#2F80ED']);
+  expect(GRADIENTS).toHaveLength(5);
+  expect(GRADIENTS[0]).toEqual(['#FF7A18', '#7A1FA2']);
+});
+
+test('parse keeps every kind of background, and the style it was saved with', () => {
+  const backgrounds = [
+    { kind: 'solid', color: '#E8262E' },
+    { kind: 'gradient', from: '#FF7A18', to: '#7A1FA2' },
+    { kind: 'image', src: 'data:image/jpeg;base64,/9j/AA==', from: 'wallpaper' },
+    { kind: 'image', src: 'data:image/jpeg;base64,/9j/BB==', from: 'file' },
+  ] as const;
+  for (const background of backgrounds) {
+    const doc = withStyle(emptyDoc(), { corner: 12, padding: 90, background });
+    expect(parse(serialize(doc))).toEqual(doc);
+  }
+});
+
+test('an old doc without a style, or with a background that is not whole, gets the defaults', () => {
+  expect(parse('{"v":1,"shapes":[]}').style).toEqual({ corner: 0, padding: 64, background: { kind: 'none' } });
+  for (const background of [null, 'red', {}, { kind: 'solid' }, { kind: 'solid', color: 'url(x)' }, { kind: 'gradient', from: '#000000' }, { kind: 'image', src: 'http://x/y.jpg', from: 'file' }, { kind: 'image', src: 'data:image/jpeg;base64,AA', from: 'web' }]) {
+    expect(parse(JSON.stringify({ v: 1, shapes: [], style: { corner: 4, padding: 80, background } })).style).toEqual({ corner: 4, padding: 80, background: { kind: 'none' } });
+  }
+});
+
+test('corner and padding are held to their ranges', () => {
+  expect(parse('{"v":1,"shapes":[],"style":{"corner":900,"padding":5000}}').style).toMatchObject({ corner: 40, padding: 160 });
+  expect(parse('{"v":1,"shapes":[],"style":{"corner":3,"padding":2}}').style).toMatchObject({ corner: 3, padding: 16 });
+});
+
+test('a background makes a doc worth exporting', () => {
+  expect(isBlank(withStyle(emptyDoc(), { background: { kind: 'solid', color: '#FFFFFF' } }))).toBe(false);
 });

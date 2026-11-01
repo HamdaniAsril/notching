@@ -2,8 +2,16 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import type { Shot } from '../bridge';
 import type { Lang } from '../kit/protocol';
-import { COLORS, WIDTHS, parse, scaleFor, serialize, type Shape } from './model';
+import { fileJpeg, wallpaperJpeg } from './background';
+import { COLORS, GRADIENTS, SOLIDS, WIDTHS, parse, scaleFor, serialize, type Shape } from './model';
 import { mountEditor, type EditorAction, type EditorBridge, type EditorDoc } from './view';
+
+// A picture from a file or the wallpaper cannot load or be read back in jsdom.
+vi.mock('./background', () => ({
+  loadImage: vi.fn(async () => ({ width: 800, height: 600, naturalWidth: 800, naturalHeight: 600 })),
+  wallpaperJpeg: vi.fn(async () => 'data:image/jpeg;base64,WALL'),
+  fileJpeg: vi.fn(async () => 'data:image/jpeg;base64,FILE'),
+}));
 
 const DOC: EditorDoc = {
   id: 7,
@@ -59,8 +67,19 @@ let fake: ReturnType<typeof fakeBridge>;
 const SHOWN = { left: 100, top: 50, width: DOC.width / 2, height: DOC.height / 2 };
 
 beforeEach(() => {
-  const ctx = new Proxy({}, { get: (_t, name) => (name === 'measureText' ? (t: string) => ({ width: t.length * 10 }) : () => {}), set: () => true });
+  const ctx = new Proxy(
+    {},
+    {
+      get: (_t, name) => {
+        if (name === 'measureText') return (t: string) => ({ width: t.length * 10 });
+        if (name === 'createLinearGradient') return () => ({ addColorStop() {} });
+        return () => {};
+      },
+      set: () => true,
+    },
+  );
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(cb => cb(new Blob(['png'], { type: 'image/png' })));
   vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue({ ...SHOWN, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) });
   document.body.replaceChildren();
   document.title = '';
@@ -693,7 +712,8 @@ test('the edits are committed with a close from outside as well', async () => {
   fake.emitClose();
   await flush();
   const [id, edits, png, action] = fake.bridge.commit.mock.calls[0];
-  expect([id, png, action]).toEqual([7, null, 'keep']);
+  expect([id, action]).toEqual([7, 'keep']);
+  expect(png).toBeInstanceOf(Blob); // the marks are in the picture too
   expect(parse(edits).shapes).toHaveLength(1);
 });
 
@@ -714,4 +734,378 @@ test('a Shift-drawn flat arrow can be tilted by dragging its end grip', async ()
   click(300, 300); // on the shaft
   drag([[500, 300], [500, 500]]); // the tip's grip, straight down
   expect(await sent()).toMatchObject([{ type: 'arrow', x1: 100, y1: 300, x2: 500, y2: 500 }]);
+});
+
+// ---- corners, background and export ------------------------------------------
+
+const undoBtn = () => root.querySelector<HTMLButtonElement>('[aria-label="Urungkan"]')!;
+const redoBtn = () => root.querySelector<HTMLButtonElement>('[aria-label="Ulangi"]')!;
+const pop = () => root.querySelector<HTMLElement>('.ed-pop')!;
+const openPop = () => button('Background')!.click();
+const cornerRange = () => root.querySelector<HTMLInputElement>('.ed-bar .ed-corner-range')!;
+const paddingRange = () => pop().querySelector<HTMLInputElement>('input[data-padding]')!;
+const solid = (color: string) => pop().querySelector<HTMLButtonElement>(`[data-solid="${color}"]`)!;
+const grad = (i: number) => pop().querySelector<HTMLButtonElement>(`[data-gradient="${i}"]`)!;
+const custom = (which: string) => pop().querySelector<HTMLInputElement>(`input[data-custom="${which}"]`)!;
+const fire = (node: Element, type: string) => node.dispatchEvent(new Event(type, { bubbles: true }));
+const setRange = (input: HTMLInputElement, value: number, live = true) => {
+  input.value = String(value);
+  if (live) fire(input, 'input');
+};
+// What Salin hands to the core.
+async function salin() {
+  button('Salin')!.click();
+  await flush();
+  const calls = fake.bridge.commit.mock.calls;
+  const [, edits, png] = calls[calls.length - 1];
+  return { edits: edits as string, png: png as Blob | null, doc: parse(edits as string) };
+}
+
+test('the Sudut slider is in the bottom bar, from 0 to 40, with its number', async () => {
+  await mount();
+  const bar = root.querySelector('.ed-bar')!;
+  expect(bar.querySelector('.ed-corner')!.textContent).toContain('Sudut');
+  expect(cornerRange()).toBeTruthy();
+  expect([cornerRange().min, cornerRange().max, cornerRange().value]).toEqual(['0', '40', '0']);
+  expect(bar.querySelector('.ed-cval')!.textContent).toBe('0');
+  expect(button('Background')).toBeTruthy();
+  expect(bar.contains(button('Background')!)).toBe(true);
+  // The bar still has no style attribute.
+  expect(root.querySelector('[style]')).toBeNull();
+});
+
+test('the Background popover lists 5 solids and a wheel, 5 gradients and a pair, Pilih file… and Jarak', async () => {
+  await mount();
+  expect(pop().hidden).toBe(true);
+  openPop();
+  expect(pop().hidden).toBe(false);
+  expect(button('Background')!.getAttribute('aria-expanded')).toBe('true');
+  expect([...pop().querySelectorAll<HTMLElement>('[data-solid]')].map(b => b.dataset.solid)).toEqual(SOLIDS);
+  expect(pop().querySelectorAll('[data-none]')).toHaveLength(1);
+  expect(pop().querySelectorAll('[data-gradient]')).toHaveLength(5);
+  expect(custom('solid').type).toBe('color');
+  expect(custom('from').type).toBe('color');
+  expect(custom('to').type).toBe('color');
+  expect(pop().querySelectorAll('input[type="color"]')).toHaveLength(3);
+  const file = pop().querySelector<HTMLInputElement>('input[type="file"]')!;
+  expect(file.accept).toBe('image/*');
+  expect(button('Pilih file…')).toBeTruthy();
+  const heads = [...pop().querySelectorAll('.ed-plab')].map(h => h.textContent);
+  expect(heads).toEqual(['Warna solid', 'Gradient', 'Gambar', 'Jarak']);
+  expect([paddingRange().min, paddingRange().max, paddingRange().value]).toEqual(['16', '160', '64']);
+  // Everything it draws comes from the stylesheet.
+  expect(root.querySelector('[style]')).toBeNull();
+  // The button closes it again.
+  openPop();
+  expect(pop().hidden).toBe(true);
+});
+
+test('English names in the popover', async () => {
+  await mount('en');
+  expect([...pop().querySelectorAll('.ed-plab')].map(h => h.textContent)).toEqual(['Solid color', 'Gradient', 'Image', 'Spacing']);
+  expect(button('Choose file…')).toBeTruthy();
+  expect(root.querySelector('.ed-corner')!.textContent).toContain('Corners');
+});
+
+test('Wallpaper Mac is hidden without a wallpaper and shown with one', async () => {
+  await mount();
+  expect(button('Wallpaper Mac')).toBeUndefined();
+  root.replaceChildren();
+  fake = fakeBridge({ ...DOC, wallpaper: 'notchshot://localhost/wallpaper' });
+  await mount();
+  expect(button('Wallpaper Mac')).toBeTruthy();
+});
+
+test('choosing a solid goes through the history: undo takes it back, redo brings it again', async () => {
+  await mount();
+  openPop();
+  expect(undoBtn().disabled).toBe(true);
+  solid('#E8262E').click();
+  expect(undoBtn().disabled).toBe(false);
+  expect(solid('#E8262E').classList.contains('ed-sel')).toBe(true);
+  // The canvas is the output: the picture plus 64 × the scale on every side.
+  const pad = Math.round(64 * scaleFor(DOC.width, DOC.height));
+  expect([canvas().width, canvas().height]).toEqual([DOC.width + 2 * pad, DOC.height + 2 * pad]);
+
+  undoBtn().click();
+  expect(solid('#E8262E').classList.contains('ed-sel')).toBe(false);
+  expect(pop().querySelector('[data-none]')!.classList.contains('ed-sel')).toBe(true);
+  expect([canvas().width, canvas().height]).toEqual([DOC.width, DOC.height]);
+  expect(redoBtn().disabled).toBe(false);
+  redoBtn().click();
+  expect(solid('#E8262E').classList.contains('ed-sel')).toBe(true);
+
+  const out = await salin();
+  expect(out.doc.style.background).toEqual({ kind: 'solid', color: '#E8262E' });
+  expect(out.png).toBeInstanceOf(Blob);
+});
+
+test('with the background undone the doc is blank again: no picture, empty edits', async () => {
+  await mount();
+  solid('#111111').click();
+  undoBtn().click();
+  const out = await salin();
+  expect(out.png).toBeNull();
+  expect(out.edits).toBe('');
+});
+
+test('Tanpa background takes a background away, one step', async () => {
+  await mount();
+  solid('#FFFFFF').click();
+  pop().querySelector<HTMLElement>('[data-none]')!.click();
+  expect([canvas().width, canvas().height]).toEqual([DOC.width, DOC.height]);
+  undoBtn().click();
+  expect(solid('#FFFFFF').classList.contains('ed-sel')).toBe(true);
+});
+
+test('a gradient preset and the custom pair', async () => {
+  await mount();
+  grad(1).click();
+  expect(grad(1).classList.contains('ed-sel')).toBe(true);
+  // The pair starts from the gradient that is on.
+  expect([custom('from').value, custom('to').value]).toEqual(GRADIENTS[1].map(c => c.toLowerCase()));
+  custom('from').value = '#ff0000';
+  fire(custom('from'), 'input');
+  fire(custom('from'), 'change');
+  custom('to').value = '#0000ff';
+  fire(custom('to'), 'change');
+  expect(grad(1).classList.contains('ed-sel')).toBe(false);
+  const out = await salin();
+  expect(out.doc.style.background).toEqual({ kind: 'gradient', from: '#ff0000', to: '#0000ff' });
+});
+
+test('the custom colour wheel gives a solid; its live moves are one history step', async () => {
+  await mount();
+  const wheel = custom('solid');
+  for (const c of ['#112233', '#223344', '#334455']) {
+    wheel.value = c;
+    fire(wheel, 'input');
+  }
+  // Shown at once, in the history only at the end.
+  expect(undoBtn().disabled).toBe(true);
+  fire(wheel, 'change');
+  expect(undoBtn().disabled).toBe(false);
+  undoBtn().click();
+  expect(undoBtn().disabled).toBe(true);
+  expect((await salin()).edits).toBe('');
+});
+
+test('a Sudut drag is one history step, on change and not on every input', async () => {
+  await mount();
+  for (const v of [3, 8, 12, 20]) setRange(cornerRange(), v);
+  expect(root.querySelector('.ed-cval')!.textContent).toBe('20');
+  expect(undoBtn().disabled).toBe(true);
+  fire(cornerRange(), 'change');
+  expect(undoBtn().disabled).toBe(false);
+  undoBtn().click();
+  expect(undoBtn().disabled).toBe(true);
+  expect(cornerRange().value).toBe('0');
+  expect(root.querySelector('.ed-cval')!.textContent).toBe('0');
+  redoBtn().click();
+  expect(cornerRange().value).toBe('20');
+});
+
+test('a Sudut drag back to where it began leaves no step', async () => {
+  await mount();
+  setRange(cornerRange(), 15);
+  setRange(cornerRange(), 0);
+  fire(cornerRange(), 'change');
+  expect(undoBtn().disabled).toBe(true);
+});
+
+test('Sudut alone exports at the picture size, and Salin sends the PNG with the corner in the edits', async () => {
+  await mount();
+  setRange(cornerRange(), 12, false);
+  fire(cornerRange(), 'change');
+  expect([canvas().width, canvas().height]).toEqual([DOC.width, DOC.height]);
+  const out = await salin();
+  expect(out.doc.style).toMatchObject({ corner: 12, background: { kind: 'none' } });
+  expect(out.png).toBeInstanceOf(Blob);
+});
+
+test('Jarak goes through the history too, and shows in the canvas', async () => {
+  await mount();
+  solid('#FFFFFF').click();
+  const k = scaleFor(DOC.width, DOC.height);
+  setRange(paddingRange(), 100);
+  expect(canvas().width).toBe(DOC.width + 2 * Math.round(100 * k)); // live
+  fire(paddingRange(), 'change');
+  undoBtn().click(); // the padding
+  expect(paddingRange().value).toBe('64');
+  expect(canvas().width).toBe(DOC.width + 2 * Math.round(64 * k));
+  undoBtn().click(); // the background
+  expect(canvas().width).toBe(DOC.width);
+});
+
+test('a drag whose change never comes is still kept by Salin', async () => {
+  await mount();
+  setRange(cornerRange(), 18);
+  const out = await salin();
+  expect(out.doc.style.corner).toBe(18);
+  expect(out.png).toBeInstanceOf(Blob);
+});
+
+test('Cmd+Z while a drag is on takes the drag back, not an older step', async () => {
+  await mount();
+  solid('#FFFFFF').click();
+  setRange(cornerRange(), 9);
+  key('z', { metaKey: true });
+  expect(cornerRange().value).toBe('0');
+  expect(solid('#FFFFFF').classList.contains('ed-sel')).toBe(true);
+});
+
+test('Pilih file… reads the file, shrinks it to twice the output, and sets it as the background', async () => {
+  await mount();
+  const input = pop().querySelector<HTMLInputElement>('input[type="file"]')!;
+  const click = vi.spyOn(input, 'click').mockImplementation(() => {});
+  button('Pilih file…')!.click();
+  expect(click).toHaveBeenCalled();
+  const file = new File(['x'], 'pic.png', { type: 'image/png' });
+  Object.defineProperty(input, 'files', { value: [file], configurable: true });
+  fire(input, 'change');
+  await flush();
+  // 64 px padding × 1.96 is 125 on each side: 3190 wide, so at most 6380.
+  expect(fileJpeg).toHaveBeenCalledWith(file, 6380);
+  expect(button('Pilih file…')!.classList.contains('ed-sel')).toBe(true);
+  undoBtn().click();
+  expect(button('Pilih file…')!.classList.contains('ed-sel')).toBe(false);
+  redoBtn().click();
+  const out = await salin();
+  expect(out.doc.style.background).toEqual({ kind: 'image', src: 'data:image/jpeg;base64,FILE', from: 'file' });
+});
+
+test('Wallpaper Mac loads the wallpaper into the doc, so a re-open does not need it', async () => {
+  fake = fakeBridge({ ...DOC, wallpaper: 'notchshot://localhost/wallpaper' });
+  await mount();
+  button('Wallpaper Mac')!.click();
+  await flush();
+  expect(wallpaperJpeg).toHaveBeenCalledWith('notchshot://localhost/wallpaper', 6380);
+  const out = await salin();
+  expect(out.doc.style.background).toEqual({ kind: 'image', src: 'data:image/jpeg;base64,WALL', from: 'wallpaper' });
+  // The doc alone opens again, with no wallpaper to ask for.
+  fake = fakeBridge({ ...DOC, wallpaper: null, edits: out.edits });
+  root.replaceChildren();
+  await mount();
+  expect(button('Wallpaper Mac')).toBeUndefined();
+  expect(button('Pilih file…')).toBeTruthy();
+  expect((await salin()).png).toBeInstanceOf(Blob);
+});
+
+test('a picture that cannot be read changes nothing', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(fileJpeg).mockRejectedValueOnce(new Error('not a picture'));
+  await mount();
+  const input = pop().querySelector<HTMLInputElement>('input[type="file"]')!;
+  Object.defineProperty(input, 'files', { value: [new File(['x'], 'a.txt')], configurable: true });
+  fire(input, 'change');
+  await flush();
+  expect(undoBtn().disabled).toBe(true);
+  expect(error).toHaveBeenCalledWith('notching: background picture not used', expect.any(Error));
+  error.mockRestore();
+});
+
+test('a press in the padding draws nothing', async () => {
+  await mount();
+  solid('#FFFFFF').click();
+  // The canvas is wider than the picture now; the mock rect still shows it
+  // 1470 wide, so one screen pixel is more than 2 canvas pixels.
+  mouse('pointerdown', [101, 51]);
+  mouse('pointerup', [101, 51]);
+  expect(parse((await salin()).edits).shapes).toHaveLength(0);
+});
+
+test('a press on the picture draws at the picture\'s own pixels, not the canvas\'s', async () => {
+  await mount();
+  solid('#FFFFFF').click();
+  const pad = Math.round(64 * scaleFor(DOC.width, DOC.height));
+  const kx = (DOC.width + 2 * pad) / SHOWN.width;
+  const ky = (DOC.height + 2 * pad) / SHOWN.height;
+  toolBtn('rect').click();
+  // From canvas pixel (pad + 100, pad + 100) to (pad + 300, pad + 300).
+  const at = (c: number): [number, number] => [SHOWN.left + (pad + c) / kx, SHOWN.top + (pad + c) / ky];
+  mouse('pointerdown', at(100));
+  mouse('pointermove', at(300));
+  mouse('pointerup', at(300));
+  const shape = parse((await salin()).edits).shapes[0] as Shape & { x1: number; y2: number };
+  expect(shape.x1).toBeCloseTo(100);
+  expect(shape.y2).toBeCloseTo(300);
+});
+
+test('Escape puts the Background box away before it takes a selection away', async () => {
+  await mount();
+  openPop();
+  const e = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+  document.dispatchEvent(e);
+  expect(e.defaultPrevented).toBe(true);
+  expect(pop().hidden).toBe(true);
+  expect(fake.bridge.close).not.toHaveBeenCalled();
+});
+
+test('a press outside the box puts it away, a press inside does not', async () => {
+  await mount();
+  openPop();
+  solid('#F5B700').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+  expect(pop().hidden).toBe(false);
+  mouse('pointerdown', [200, 200]);
+  expect(pop().hidden).toBe(true);
+});
+
+test('Cmd+Z works with a slider focused', async () => {
+  await mount();
+  setRange(cornerRange(), 10, false);
+  fire(cornerRange(), 'change');
+  cornerRange().focus();
+  key('z', { metaKey: true }, cornerRange());
+  expect(cornerRange().value).toBe('0');
+});
+
+test('when the picture cannot be made, Salin does not claim a copy, and a close still keeps the edits', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(HTMLCanvasElement.prototype.toBlob as ReturnType<typeof vi.fn>).mockImplementation(cb => cb(null));
+  await mount();
+  solid('#FFFFFF').click();
+  button('Salin')!.click();
+  await flush();
+  expect(fake.bridge.commit).not.toHaveBeenCalled();
+  expect(fake.bridge.close).toHaveBeenCalledTimes(1);
+  expect(error).toHaveBeenCalledWith('notching: the picture was not exported', expect.any(Error));
+  error.mockRestore();
+});
+
+test('a close request with no picture to give still keeps the edits', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(HTMLCanvasElement.prototype.toBlob as ReturnType<typeof vi.fn>).mockImplementation(cb => cb(null));
+  await mount();
+  solid('#FFFFFF').click();
+  fake.emitClose();
+  await flush();
+  const [id, edits, png, action] = fake.bridge.commit.mock.calls[0];
+  expect([id, png, action]).toEqual([7, null, 'keep']);
+  expect(parse(edits).style.background).toEqual({ kind: 'solid', color: '#FFFFFF' });
+  error.mockRestore();
+});
+
+test('a failed Simpan with no picture says so', async () => {
+  vi.useFakeTimers();
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(HTMLCanvasElement.prototype.toBlob as ReturnType<typeof vi.fn>).mockImplementation(cb => cb(null));
+  await mount();
+  solid('#FFFFFF').click();
+  button('Simpan')!.click();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(button('Gagal menyimpan')).toBeTruthy();
+  expect(fake.bridge.commit).not.toHaveBeenCalled();
+  error.mockRestore();
+});
+
+test('a doc saved with a background opens with it, and its controls show it', async () => {
+  const saved = serialize({ v: 1, shapes: [], style: { corner: 20, padding: 120, background: { kind: 'solid', color: '#2F80ED' } } });
+  fake = fakeBridge({ ...DOC, edits: saved });
+  await mount();
+  expect(cornerRange().value).toBe('20');
+  expect(paddingRange().value).toBe('120');
+  expect(solid('#2F80ED').classList.contains('ed-sel')).toBe(true);
+  const k = scaleFor(DOC.width, DOC.height);
+  expect(canvas().width).toBe(DOC.width + 2 * Math.round(120 * k));
+  expect(undoBtn().disabled).toBe(true);
 });

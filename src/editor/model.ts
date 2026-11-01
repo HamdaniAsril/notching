@@ -23,12 +23,26 @@ export type Shape =
   | { id: number; type: 'text'; color: string; size: number; x: number; y: number; text: string }
   | { id: number; type: 'sensor'; x1: number; y1: number; x2: number; y2: number };
 
-// Task 9 adds the background kinds and the controls.
+// What lies behind the screenshot. An image is a JPEG data URL, kept in the
+// doc so a re-open does not depend on today's wallpaper; its longest side is at
+// most twice the output's.
+export type Background =
+  | { kind: 'none' }
+  | { kind: 'solid'; color: string }
+  | { kind: 'gradient'; from: string; to: string } // 135°
+  | { kind: 'image'; src: string; from: 'wallpaper' | 'file' };
+
+// `corner` and `padding` are in 1500 px units, × scaleFor in the picture.
 export interface Style {
   corner: number;
   padding: number;
-  background: { kind: 'none' };
+  background: Background;
 }
+
+export const CORNER_RANGE = { min: 0, max: 40 };
+export const PADDING_RANGE = { min: 16, max: 160 };
+export const SOLIDS = ['#FFFFFF', '#111111', '#E8262E', '#F5B700', '#2F80ED'];
+export const GRADIENTS: [string, string][] = [['#FF7A18', '#7A1FA2'], ['#43CEA2', '#185A9D'], ['#F7971E', '#FFD200'], ['#8E9EAB', '#EEF2F3'], ['#232526', '#414345']];
 
 export interface Doc {
   v: 1;
@@ -39,6 +53,8 @@ export interface Doc {
 export function emptyDoc(): Doc {
   return { v: 1, shapes: [], style: { corner: 0, padding: 64, background: { kind: 'none' } } };
 }
+
+export const withStyle = (doc: Doc, patch: Partial<Style>): Doc => ({ ...doc, style: { ...doc.style, ...patch } });
 
 export const nextId = (shapes: Shape[]): number => shapes.reduce((m, s) => Math.max(m, s.id), 0) + 1;
 
@@ -337,6 +353,22 @@ function shapeOf(raw: unknown): Shape | null {
   }
 }
 
+const HEX = /^#[0-9a-f]{3,8}$/i;
+
+// A background that is not whole is no background.
+function backgroundOf(raw: unknown): Background {
+  const none: Background = { kind: 'none' };
+  if (typeof raw !== 'object' || raw === null) return none;
+  const b = raw as Record<string, unknown>;
+  const hex = (v: unknown): v is string => typeof v === 'string' && HEX.test(v);
+  if (b.kind === 'solid' && hex(b.color)) return { kind: 'solid', color: b.color };
+  if (b.kind === 'gradient' && hex(b.from) && hex(b.to)) return { kind: 'gradient', from: b.from, to: b.to };
+  if (b.kind === 'image' && typeof b.src === 'string' && b.src.startsWith('data:image/') && (b.from === 'wallpaper' || b.from === 'file')) {
+    return { kind: 'image', src: b.src, from: b.from };
+  }
+  return none;
+}
+
 // Anything that is not our JSON is an empty doc, and a shape that is not whole
 // is left out, so an old or damaged edits.json can still be opened.
 export function parse(s: string | null): Doc {
@@ -356,8 +388,9 @@ export function parse(s: string | null): Doc {
   }
   const st = r.style as Record<string, unknown> | undefined;
   if (st && typeof st === 'object') {
-    if (num(st.corner) && st.corner >= 0) doc.style.corner = st.corner;
-    if (num(st.padding) && st.padding >= 0) doc.style.padding = st.padding;
+    if (num(st.corner) && st.corner >= 0) doc.style.corner = Math.min(st.corner, CORNER_RANGE.max);
+    if (num(st.padding) && st.padding >= 0) doc.style.padding = Math.min(Math.max(st.padding, PADDING_RANGE.min), PADDING_RANGE.max);
+    doc.style.background = backgroundOf(st.background);
   }
   return doc;
 }

@@ -38,7 +38,17 @@ export interface HostStrings {
   // Screenshot's editor window (§7); Salin and Simpan come from `shot`.
   // `tools` is keyed by the editor's Tool; `colors` and `widths` follow its
   // COLORS and WIDTHS.
-  editor: { title: string; undo: string; redo: string; tools: Record<string, string>; colors: string[]; widths: string[] };
+  editor: {
+    title: string;
+    undo: string;
+    redo: string;
+    tools: Record<string, string>;
+    colors: string[];
+    widths: string[];
+    corner: string;
+    background: string;
+    bg: { solid: string; gradient: string; image: string; none: string; customColor: string; gradientFrom: string; gradientTo: string; wallpaper: string; file: string; padding: string };
+  };
 }
 
 type ShotKind = 'screen' | 'window' | 'area';
