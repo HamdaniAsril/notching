@@ -1,0 +1,54 @@
+<style>
+  .ss-scene { position: relative; width: 600px; max-width: 100%; height: 230px; overflow: hidden; border-radius: 10px;
+              background: linear-gradient(160deg, #9aa6b8 0%, #6b7688 60%, #4a5361 100%); font: 12px "Space Grotesk", -apple-system, sans-serif; color: #fff; }
+  .ss-menubar { position: absolute; left: 0; right: 0; top: 0; height: 24px; background: rgba(255,255,255,.32); }
+  .ss-panel { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 420px; background: #000; border-radius: 0 0 22px 22px; padding: 32px 18px 16px; box-sizing: border-box; }
+  .ss-lab { font: 9px/13px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.45); }
+  .ss-row { display: flex; gap: 14px; align-items: stretch; margin-top: 8px; }
+  .ss-shot { position: relative; width: 210px; height: 128px; border-radius: 10px; overflow: hidden; background: #2a2f38; outline: 1px solid rgba(255,255,255,.15); cursor: pointer; }
+  .ss-shot:hover { outline: 1.5px solid #fff; }
+  .ss-win { position: absolute; inset: 10px; border-radius: 6px; background: #eef0f3; }
+  .ss-win i { position: absolute; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: #c9ccd2; }
+  .ss-win b { position: absolute; left: 10px; right: 10px; height: 6px; border-radius: 3px; background: #d7dae0; }
+  .ss-hint { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 8px; font: 9px "Space Mono", monospace; background: linear-gradient(transparent, rgba(0,0,0,.7)); color: rgba(255,255,255,.85); }
+  .ss-side { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .ss-done { font: 13px "Space Grotesk", sans-serif; color: #fff; }
+  .ss-sub { font: 10px "Space Mono", monospace; color: rgba(255,255,255,.5); margin-top: 4px; }
+  .ss-btns { display: flex; flex-direction: column; gap: 6px; }
+  .ss-btn { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 12px; background: rgba(255,255,255,.08); font: 11px "Space Mono", monospace; color: #fff; }
+  .ss-btn svg { width: 14px; height: 14px; }
+  .ss-note { margin-top: 10px; color: var(--text-secondary, #888); font-size: 13px; line-height: 1.5; max-width: 600px; }
+  .ss-note em { font-style: normal; background: rgba(232,38,46,.12); padding: 0 4px; border-radius: 4px; }
+</style>
+
+<h2>Dengan tombol Simpan</h2>
+<p class="subtitle">Momen setelah screenshot diambil. Gambarnya adalah bagian atas layar MacBook, sudah diperkecil.</p>
+
+<div class="ss-scene">
+  <div class="ss-menubar"></div>
+  <div class="ss-panel">
+    <div class="ss-lab">Screenshot · Window</div>
+    <div class="ss-row">
+      <div class="ss-shot">
+        <div class="ss-win">
+          <i style="left:8px;background:#ff5f57"></i><i style="left:18px;background:#febc2e"></i><i style="left:28px;background:#28c840"></i>
+          <b style="top:22px;width:60%"></b><b style="top:34px"></b><b style="top:46px;width:80%"></b><b style="top:58px;width:45%"></b><b style="top:74px"></b>
+        </div>
+        <div class="ss-hint">Klik untuk edit</div>
+      </div>
+      <div class="ss-side">
+        <div>
+          <div class="ss-done">Tersalin ke clipboard</div>
+          <div class="ss-sub">1440 × 900</div>
+        </div>
+        <div class="ss-btns">
+          <div class="ss-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>Salin</div>
+          <div class="ss-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Simpan</div>
+          <div class="ss-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Hapus</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="ss-note" hidden>Yang bertanda <em>tebakan</em> belum kamu sebut: ukuran gambar di bawah tulisan, dan letak tombol di kanan. Belum digambar: cara memilih seluruh layar / window / pilih manual, dan menu edit. Itu kita bahas satu per satu di chat.</p>

@@ -1,0 +1,111 @@
+<style>
+  .ed-win { position: relative; width: 860px; max-width: 100%; height: 500px; border-radius: 14px; background: #0b0b0c; overflow: hidden; font: 12px "Space Grotesk", -apple-system, sans-serif; color: #fff; outline: 1px solid rgba(255,255,255,.12); }
+  .ed-title { height: 44px; display: flex; align-items: center; padding: 0 14px; gap: 10px; }
+  .ed-dots i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: #3a3a3d; margin-right: 6px; }
+  .ed-lab { font: 9px/13px "Space Mono", ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.45); }
+  .ed-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .ed-ib { width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.6); }
+  .ed-ib svg { width: 15px; height: 15px; }
+  .ed-btn { padding: 7px 14px; border-radius: 10px; background: rgba(255,255,255,.08); font: 11px "Space Mono", monospace; }
+  .ed-btn.ed-pri { background: #fff; color: #000; }
+  .ed-tools { position: absolute; left: 14px; top: 64px; width: 40px; padding: 6px 0; border-radius: 14px; background: rgba(255,255,255,.06); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .ed-tool { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.7); }
+  .ed-tool svg { width: 16px; height: 16px; }
+  .ed-tool.ed-on { background: #fff; color: #000; }
+  .ed-canvas { position: absolute; left: 70px; right: 16px; top: 52px; bottom: 64px; display: flex; align-items: center; justify-content: center; }
+  .ed-bg { position: relative; width: 470px; height: 300px; border-radius: 6px; background: linear-gradient(135deg, #ff7a18, #e8262e 55%, #7a1fa2); display: flex; align-items: center; justify-content: center; }
+  .ed-shot { width: 400px; height: 238px; border-radius: 10px; background: #eef0f3; box-shadow: 0 14px 30px rgba(0,0,0,.35); position: relative; overflow: hidden; }
+  .ed-shot i { position: absolute; top: 9px; width: 8px; height: 8px; border-radius: 50%; }
+  .ed-shot b { position: absolute; left: 16px; height: 8px; border-radius: 4px; background: #d7dae0; }
+  .ed-ann { position: absolute; inset: 0; pointer-events: none; }
+  .ed-bar { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 14px; border-radius: 14px; background: rgba(255,255,255,.06); white-space: nowrap; }
+  .ed-sw { width: 16px; height: 16px; border-radius: 50%; display: inline-block; margin-right: 3px; vertical-align: middle; }
+  .ed-sw.ed-sel { outline: 2px solid #fff; outline-offset: 2px; }
+  .ed-sep { width: 1px; height: 18px; background: rgba(255,255,255,.15); }
+  .ed-w { display: inline-block; width: 18px; border-radius: 2px; background: rgba(255,255,255,.7); vertical-align: middle; margin-right: 6px; }
+  .ed-bgbtn { display: flex; align-items: center; gap: 6px; font: 11px "Space Mono", monospace; padding: 4px 8px; border-radius: 8px; background: #fff; color: #000; }
+  .ed-bgbtn svg { width: 13px; height: 13px; }
+  .ed-pop { position: absolute; right: 12px; bottom: 60px; width: 250px; padding: 12px; border-radius: 14px; background: #1a1a1c; outline: 1px solid rgba(255,255,255,.12); box-shadow: 0 18px 40px rgba(0,0,0,.5); }
+  .ed-row { display: flex; gap: 6px; margin: 6px 0 10px; flex-wrap: wrap; }
+  .ed-chip { width: 30px; height: 22px; border-radius: 6px; outline: 1px solid rgba(255,255,255,.15); }
+  .ed-chip.ed-sel { outline: 2px solid #fff; }
+  .ed-pick { display: flex; gap: 6px; margin: 6px 0 10px; }
+  .ed-pick span { flex: 1; text-align: center; padding: 6px 4px; border-radius: 8px; background: rgba(255,255,255,.08); font: 10px "Space Mono", monospace; }
+  .ed-slide { height: 3px; border-radius: 2px; background: rgba(255,255,255,.15); position: relative; margin: 10px 0 4px; }
+  .ed-slide::before { content: ""; position: absolute; left: 0; width: 45%; height: 3px; background: #fff; border-radius: 2px; }
+  .ed-slide::after { content: ""; position: absolute; left: 45%; top: -5px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transform: translateX(-50%); }
+  .ed-note { margin-top: 10px; color: var(--text-secondary, #888); font-size: 13px; line-height: 1.5; max-width: 860px; }
+  .ed-note em { font-style: normal; background: rgba(232,38,46,.12); padding: 0 4px; border-radius: 4px; }
+</style>
+
+<h2>Jendela editor · versi 2</h2>
+<p class="subtitle">Terbuka saat screenshot di notch (atau di halaman Screenshot) diklik. Kotak "Background" sedang dibuka.</p>
+
+<div class="ed-win">
+  <div class="ed-title">
+    <span class="ed-dots"><i></i><i></i><i></i></span>
+    <span class="ed-lab">Screenshot · 2940 × 1718</span>
+    <div class="ed-right">
+      <span class="ed-ib" title="Undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></span>
+      <span class="ed-ib" title="Redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></span>
+      <span class="ed-btn">Simpan</span>
+      <span class="ed-btn ed-pri">Salin</span>
+    </div>
+  </div>
+
+  <div class="ed-tools">
+    <span class="ed-tool" title="Pilih / geser"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 8-6 2-3 6z"/></svg></span>
+    <span class="ed-tool ed-on" title="Coretan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 17c3-6 6 2 9-4s5-4 9-7"/></svg></span>
+    <span class="ed-tool" title="Panah"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 19L19 5M10 5h9v9"/></svg></span>
+    <span class="ed-tool" title="Kotak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="12" rx="2"/></svg></span>
+    <span class="ed-tool" title="Lingkaran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="12" rx="8" ry="6.5"/></svg></span>
+    <span class="ed-tool" title="Garis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 19L19 5"/></svg></span>
+    <span class="ed-tool" title="Teks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6h14M12 6v13"/></svg></span>
+    <span class="ed-tool" title="Sensor"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="5" height="5"/><rect x="14" y="4" width="5" height="5" opacity=".5"/><rect x="9" y="9" width="5" height="5" opacity=".7"/><rect x="4" y="14" width="5" height="5" opacity=".4"/><rect x="14" y="14" width="5" height="5"/></svg></span>
+  </div>
+
+  <div class="ed-canvas">
+    <div class="ed-bg">
+      <div class="ed-shot">
+        <i style="left:12px;background:#ff5f57"></i><i style="left:25px;background:#febc2e"></i><i style="left:38px;background:#28c840"></i>
+        <b style="top:34px;width:55%"></b><b style="top:52px;width:85%"></b><b style="top:70px;width:70%"></b><b style="top:88px;width:40%"></b><b style="top:112px;width:85%"></b><b style="top:130px;width:60%"></b>
+        <div style="position:absolute;left:250px;top:44px;width:120px;height:44px;background:repeating-conic-gradient(#c3c7ce 0 25%,#e3e6ea 0 50%) 0/12px 12px"></div>
+        <svg class="ed-ann" viewBox="0 0 400 238">
+          <ellipse cx="120" cy="92" rx="70" ry="22" fill="none" stroke="#e8262e" stroke-width="3"/>
+          <path d="M300 190 L215 120" stroke="#e8262e" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M215 120 l18 2 M215 120 l4 17" stroke="#e8262e" stroke-width="3.5" stroke-linecap="round"/>
+          <text x="248" y="212" fill="#e8262e" font-family="Space Grotesk, sans-serif" font-size="17" font-weight="600">klik di sini</text>
+          <path d="M40 170 c20 -12 40 12 60 0 s40 -10 60 4" fill="none" stroke="#e8262e" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="ed-pop">
+    <div class="ed-lab">Warna solid</div>
+    <div class="ed-row">
+      <span class="ed-chip" style="background:repeating-conic-gradient(#333 0 25%,#222 0 50%) 0/8px 8px" title="Tanpa background"></span>
+      <span class="ed-chip" style="background:#fff"></span><span class="ed-chip" style="background:#111"></span><span class="ed-chip" style="background:#e8262e"></span><span class="ed-chip" style="background:#f5b700"></span><span class="ed-chip" style="background:#2f80ed"></span><span class="ed-chip" title="Warna sendiri" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);border-radius:50%;width:22px"></span>
+    </div>
+    <div class="ed-lab">Gradient</div>
+    <div class="ed-row">
+      <span class="ed-chip ed-sel" style="background:linear-gradient(135deg,#ff7a18,#e8262e 55%,#7a1fa2)"></span><span class="ed-chip" style="background:linear-gradient(135deg,#43cea2,#185a9d)"></span><span class="ed-chip" style="background:linear-gradient(135deg,#f7971e,#ffd200)"></span><span class="ed-chip" style="background:linear-gradient(135deg,#8e9eab,#eef2f3)"></span><span class="ed-chip" style="background:linear-gradient(135deg,#232526,#414345)"></span><span class="ed-chip" title="Warna sendiri" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);border-radius:50%;width:22px"></span>
+    </div>
+    <div class="ed-lab">Gambar</div>
+    <div class="ed-pick"><span>Wallpaper Mac</span><span>Pilih file…</span></div>
+    <div class="ed-lab">Jarak</div>
+    <div class="ed-slide"></div>
+  </div>
+
+  <div class="ed-bar">
+    <span><span class="ed-sw ed-sel" style="background:#e8262e"></span><span class="ed-sw" style="background:#f5b700"></span><span class="ed-sw" style="background:#27ae60"></span><span class="ed-sw" style="background:#2f80ed"></span><span class="ed-sw" style="background:#111;outline:1px solid #444"></span><span class="ed-sw" style="background:#fff"></span></span>
+    <span class="ed-sep"></span>
+    <span><span class="ed-w" style="height:2px"></span><span class="ed-w" style="height:4px;background:#fff"></span><span class="ed-w" style="height:7px"></span></span>
+    <span class="ed-sep"></span>
+    <span style="display:flex;align-items:center;gap:6px;font:10px 'Space Mono',monospace;color:rgba(255,255,255,.7)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10a6 6 0 0 1 6-6h10"/></svg>Sudut <span style="display:inline-block;width:50px;height:3px;border-radius:2px;background:linear-gradient(90deg,#fff 60%,rgba(255,255,255,.2) 60%)"></span> 12</span>
+    <span class="ed-sep"></span>
+    <span class="ed-bgbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/></svg>Background</span>
+  </div>
+</div>
+
+<p class="ed-note">Baru: alat <b>Sensor</b> (kotak kotak-kotak di kiri) untuk menutupi bagian rahasia; <b>Sudut</b> di bar bawah untuk membulatkan sudut screenshot; lingkaran pelangi di Warna solid dan Gradient untuk memilih warna sendiri. <em>Tebakan</em> saya: garis lurus ikut sebagai "bentuk"; ada undo/redo; sudut screenshot membulat dan ada bayangan saat background dipasang; "Jarak" mengatur lebar background di sekeliling screenshot.</p>
