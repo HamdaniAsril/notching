@@ -42,7 +42,8 @@ const INDEX: &str = "index.json";
 // Under the app's cache folder: the copies drags out carry, one folder per drag.
 const DRAG_DIR: &str = "shot-drag";
 // A capture is written here first, and moved into its folder once it is accepted.
-const TMP_PREFIX: &str = ".take-";
+// No leading dot: screencapture refuses such a name, yet still exits 0.
+const TMP_PREFIX: &str = "take-";
 const SCREENCAPTURE: &str = "/usr/sbin/screencapture";
 const SCREEN_RECORDING_PANE: &str = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
 
@@ -247,6 +248,10 @@ fn store(dir: &Path, history: &mut History, tmp: &Path, taken_ms: i64, kind: Kin
 
 /// The history at start: the folder is made, items whose `original.png` is gone
 /// are dropped, and captures a run left half done are removed.
+fn tmp_path(dir: &Path, n: u64) -> PathBuf {
+    dir.join(format!("{TMP_PREFIX}{n}.png"))
+}
+
 fn load(dir: &Path) -> History {
     if let Err(e) = fs::create_dir_all(dir) {
         eprintln!("notching: screenshots folder: {e}");
@@ -425,7 +430,7 @@ fn take_now(app: &AppHandle, target: Target, kind: Kind, screen: usize) {
         refused(app);
         return;
     }
-    let tmp = dir.join(format!("{TMP_PREFIX}{}.png", NEXT_TMP.fetch_add(1, Ordering::Relaxed)));
+    let tmp = tmp_path(dir, NEXT_TMP.fetch_add(1, Ordering::Relaxed));
     let exit_ok = match Command::new(SCREENCAPTURE).args(capture_args(&target, &tmp)).status() {
         Ok(status) => status.success(),
         Err(e) => {
@@ -660,9 +665,27 @@ mod tests {
     }
 
     fn capture(dir: &Path, n: u32) -> PathBuf {
-        let tmp = dir.join(format!("{TMP_PREFIX}{n}.png"));
+        let tmp = tmp_path(dir, n.into());
         std::fs::write(&tmp, wide(n, 10)).unwrap();
         tmp
+    }
+
+    #[test]
+    fn capture_file_name_has_no_leading_dot() {
+        // screencapture refuses a name that starts with a dot and still exits 0.
+        let name = tmp_path(Path::new("/x"), 3).file_name().unwrap().to_string_lossy().into_owned();
+        assert!(!name.starts_with('.'), "{name}");
+        assert!(name.ends_with(".png"));
+    }
+
+    #[test]
+    fn load_clears_leftover_capture_files_only() {
+        let d = tempfile::tempdir().unwrap();
+        let left = capture(d.path(), 7);
+        std::fs::write(d.path().join("keep.txt"), b"x").unwrap();
+        load(d.path());
+        assert!(!left.exists());
+        assert!(d.path().join("keep.txt").exists());
     }
 
     #[test]
