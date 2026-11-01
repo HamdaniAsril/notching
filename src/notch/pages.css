@@ -960,3 +960,51 @@
   margin-top: auto;
   align-self: flex-end;
 }
+
+/* Clean uninstall: the search, app rows, and an app's folders. */
+.cl-searchbar {
+  flex: none;
+  padding: 6px 0;
+}
+
+.cl-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: 12px "Space Grotesk", -apple-system, sans-serif;
+  outline: none;
+}
+
+.cl-search::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.cl-app {
+  width: 100%;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: none;
+  text-align: left;
+}
+
+.cl-app:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cl-group {
+  padding: 8px 0 2px;
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--g2);
+}
+
+.cl-lfoot .cl-note-text {
+  margin-right: auto;
+}

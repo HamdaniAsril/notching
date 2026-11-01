@@ -6,6 +6,7 @@ import { el } from './dom';
 import { SCAN_TTL_MS } from './format';
 import { mountHome } from './home';
 import { mountRun, type Skipped } from './run';
+import { mountUninstall } from './uninstall';
 
 // What Cleaner's pages ask of the core, as the bridge has it.
 export type CleanerBridge = Pick<Bridge,
@@ -26,7 +27,7 @@ export interface CleanerView {
   destroy(): void;
 }
 
-type Screen = 'home' | 'clean' | 'run';
+type Screen = 'home' | 'clean' | 'uninstall' | 'run';
 
 // Cleaner in the notch (design 1 Nov §4–§6): one screen at a time, kept while
 // the panel is away for less than 10 minutes (§4); past that, the start view
@@ -46,13 +47,14 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
   const homeBox = el(doc, 'div', 'cl-screen');
   const cleanBox = el(doc, 'div', 'cl-screen');
   const runBox = el(doc, 'div', 'cl-screen');
+  const uninstallBox = el(doc, 'div', 'cl-screen');
 
   const home = mountHome(homeBox, {
     bridge: deps.bridge,
     lang: deps.lang,
     strings: s,
     onClean: () => showClean(),
-    onUninstall: () => {},
+    onUninstall: () => showUninstall(),
     onDisk: () => {},
     onNote: n => {
       note = n;
@@ -67,6 +69,14 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
     get fda() { return !note; },
     back: () => showHome(),
     clean: (scanId, ids, plan) => void ask(scanId, ids, plan, null, 'clean'),
+  });
+
+  const uninstall = mountUninstall(uninstallBox, {
+    bridge: deps.bridge,
+    lang: deps.lang,
+    strings: s,
+    back: () => showHome(),
+    remove: (scanId, ids, plan, appId, name) => void ask(scanId, ids, plan, appId, 'uninstall', name),
   });
 
   const run = mountRun(runBox, {
@@ -94,19 +104,25 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
     if (refresh) clean.refresh();
   }
 
+  function showUninstall(): void {
+    back = () => show('uninstall', uninstallBox);
+    show('uninstall', uninstallBox);
+    uninstall.refresh();
+  }
+
   // The last question, then the run; a scan past its time is scanned again (§5.3).
-  async function ask(scanId: number, ids: number[], plan: Plan, uninstall: number | null, kind: 'clean' | 'uninstall', name?: string): Promise<void> {
+  async function ask(scanId: number, ids: number[], plan: Plan, appId: number | null, kind: 'clean' | 'uninstall', name?: string): Promise<void> {
     const backTo = back;
     show('run', runBox);
     if (!(await run.confirm(plan, kind, name))) {
       if (screen === 'run' && !running) backTo();
       return;
     }
-    labels = id => clean.label(id);
+    labels = kind === 'clean' ? id => clean.label(id) : id => uninstall.label(id);
     try {
       running = true;
       run.progress(0, ids.length);
-      await deps.bridge.cleanerRun(scanId, ids, uninstall);
+      await deps.bridge.cleanerRun(scanId, ids, appId);
     } catch (e) {
       running = false;
       if (e === 'stale') {
@@ -146,6 +162,7 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
       if (screen === 'clean') {
         deps.bridge.cleanerRunning(clean.scan()).then(ids => clean.inUse(ids), () => {});
       }
+      if (screen === 'uninstall') uninstall.revisit();
     },
     hidden() {
       hiddenAt = deps.now();
@@ -156,6 +173,7 @@ export function mountCleaner(box: HTMLElement, deps: CleanerDeps): CleanerView {
       off();
       home.destroy();
       clean.destroy();
+      uninstall.destroy();
     },
   };
 }

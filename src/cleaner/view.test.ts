@@ -113,3 +113,24 @@ test('closing the panel at the question is a no', async () => {
   await tick();
   expect(s.bridge.cleanerRun).not.toHaveBeenCalled();
 });
+
+test('Clean uninstall: an app removed goes through the question with its app id', async () => {
+  const s = await setup();
+  s.bridge.cleanerApps.mockResolvedValue({ scanId: 3, items: [{ id: 50, name: 'Coba', bundleId: 'id.coba', bytes: 1e6, refused: false, running: false }] });
+  s.bridge.cleanerAppDetail.mockResolvedValue({ scanId: 4, items: [
+    { id: 60, category: 'app', label: 'Coba', detail: null, bytes: 1e6, method: 'trash', ticked: true, inUse: false, confidence: 'sure' },
+  ] });
+  s.box.querySelector<HTMLElement>('[data-tile="uninstall"]')!.click();
+  await tick();
+  s.box.querySelector<HTMLElement>('.cl-app')!.click();
+  await tick();
+  s.box.querySelector<HTMLElement>('.cl-go')!.click();
+  expect(s.box.querySelector('.cl-yes')!.textContent).toBe('Ya, hapus');
+  s.box.querySelector<HTMLElement>('.cl-yes')!.click();
+  await tick();
+  expect(s.bridge.cleanerRun).toHaveBeenCalledWith(4, [60], 50);
+  s.bridge.emitCleaner({ phase: 'done', freed: 0, outcomes: [{ id: 60, freed: 0, skip: 'failed', detail: 'admin' }] });
+  expect(s.box.textContent).toContain('Coba · gagal');
+  s.box.querySelector<HTMLElement>('.cl-skip .cl-note-btn')!.click();
+  expect(s.bridge.cleanerReveal).toHaveBeenCalledWith(60);
+});
