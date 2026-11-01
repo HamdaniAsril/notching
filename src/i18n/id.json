@@ -226,7 +226,8 @@
       "loginHint": "Notching siap begitu kamu masuk.",
       "loginUnavailable": "Hanya bisa diatur dari Notching.app yang terpasang.",
       "loginNeedsApproval": "macOS menunggu persetujuanmu di Login Items.",
-      "loginOpen": "Buka Login Items"
+      "loginOpen": "Buka Login Items",
+      "cityPrayer": "Kota & waktu sholat"
     },
     "look": {
       "preview": "Pratinjau",
@@ -292,7 +293,6 @@
     },
     "pages": {
       "sub": "Susun isi notch-mu dari widget.",
-      "data": "Data widget",
       "order": "Urutan di pil",
       "widgets": "{n} widget",
       "modulesRow": "6 per baris",

@@ -37,11 +37,11 @@ test('follows the language', () => expect(search(idx(mods, 'en'), 'language')[0]
 
 test('a blank query finds nothing', () => expect(search(idx(), '   ')).toEqual([]));
 
-test('the city is found under Halaman', () => {
+test('the city is found under Umum', () => {
   const e = search(idx([homeWidgets(), mods[1]]), 'kota')[0];
   expect(e.key).toBe('home.place');
-  expect(e.where).toBe('Halaman');
-  expect(e.route).toEqual({ page: 'pages' });
+  expect(e.where).toBe('Umum');
+  expect(e.route).toEqual({ page: 'general' });
   expect(search(idx([homeWidgets(), mods[1]]), 'tampilkan jam')).toEqual([]);
 });
 

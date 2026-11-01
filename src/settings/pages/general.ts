@@ -1,6 +1,7 @@
 import { fill } from '../../i18n';
 import { button, el, choice, group, head, row, select, toggle } from '../controls';
 import type { LanguageChoice, PageRender } from '../types';
+import { sharedData } from './home';
 
 export const generalPage: PageRender = ctx => {
   const s = ctx.strings.general;
@@ -42,6 +43,11 @@ export const generalPage: PageRender = ctx => {
   const login = row({ key: 'general.login', label: s.login, hint: loginHint[info.login], control: loginControl });
 
   const page = el('div');
-  page.append(head({ title: ctx.strings.sections.general }), group(language, screen, login));
+  page.append(
+    head({ title: ctx.strings.sections.general }),
+    group(language, screen, login),
+    el('div', 'grp-label', s.cityPrayer),
+    sharedData(ctx),
+  );
   return page;
 };

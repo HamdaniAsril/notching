@@ -25,6 +25,9 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
       ['general.language', s.general.language, k.language],
       ['general.screen', s.general.screen, k.screen],
       ['general.login', s.general.login, k.login],
+      ['home.place', s.home.place, k.place],
+      ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
+      ['home.prayerNotice', s.home.prayerNotice, k.channels],
     ],
     look: [
       ['look.bounce', s.look.bounce, k.bounce],
@@ -36,11 +39,7 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
       ['notifications.glow', s.notifications.glow, k.glow],
       ['notifications.seconds', s.notifications.seconds, k.seconds],
     ],
-    pages: [
-      ['home.place', s.home.place, k.place],
-      ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
-      ['home.prayerNotice', s.home.prayerNotice, k.channels],
-    ],
+    pages: [],
     modules: [],
     permissions: [],
     about: [['about.version', s.about.version, k.version]],

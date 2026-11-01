@@ -196,7 +196,7 @@ Saat panel tertutup, modul yang sedang berjalan bisa menampilkan status singkat 
   - **Mengurutkan:** seret widget di pratinjau.
   - **Menghapus widget:** dari pratinjau.
   - Widget yang tidak muat karena kolomnya sudah penuh ditampilkan redup di daftar.
-- **Pengaturan data bersama** seperti kota dan metode hitung sholat pindah ke bagian Halaman, karena dipakai beberapa widget **(keputusan penulis)**.
+- **Pengaturan data bersama** seperti kota, metode hitung sholat, dan notifikasi waktu sholat ada di bagian Umum, di kelompok "Kota & waktu sholat" (diputuskan pemilik ide pada 1 November 2026; sebelumnya di bagian Halaman).
 - **Bagian Modul tetap ada** untuk menyalakan, mematikan, mencopot, dan masuk ke pengaturan tiap modul. Beranda tidak lagi muncul di daftar modul.
 
 ## 10. Yang berubah dari desain 27 Oktober

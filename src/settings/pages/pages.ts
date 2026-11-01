@@ -4,7 +4,6 @@ import { MODULES_ICON, pageIconSvg } from '../../pages/icons';
 import { dragWith, dropIndex, liftGhost } from '../drag';
 import { button, el, group, head, note } from '../controls';
 import type { PageContext, PageRender } from '../types';
-import { sharedData } from './home';
 
 // A page just added whose state has not come back yet: its editor waits for it
 // instead of going back to the list.
@@ -138,8 +137,6 @@ export const pagesPage: PageRender = ctx => {
 
   page.append(
     head({ title: ctx.strings.sections.pages, sub: s.sub, side: add }),
-    el('div', 'grp-label', s.data),
-    sharedData(ctx),
     el('div', 'grp-label', s.order),
     group(...rows, modules),
     note(s.fixedHint),

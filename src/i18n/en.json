@@ -226,7 +226,8 @@
       "loginHint": "Notching is ready as soon as you log in.",
       "loginUnavailable": "Only available in the installed Notching.app.",
       "loginNeedsApproval": "macOS is waiting for your OK in Login Items.",
-      "loginOpen": "Open Login Items"
+      "loginOpen": "Open Login Items",
+      "cityPrayer": "City & prayer times"
     },
     "look": {
       "preview": "Preview",
@@ -292,7 +293,6 @@
     },
     "pages": {
       "sub": "Build your notch from widgets.",
-      "data": "Widget data",
       "order": "Order in the pill",
       "widgets": "{n} widgets",
       "modulesRow": "6 per row",

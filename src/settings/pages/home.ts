@@ -25,7 +25,8 @@ function closeDraft(): void {
   Object.assign(draft, { open: false, query: '', status: 'idle', results: [], seq: draft.seq + 1 });
 }
 
-const HOME_ROUTE = { page: 'pages' } as const;
+// The page the city and prayer rows sit on (Umum, owner 1 Nov).
+const HOME_ROUTE = { page: 'general' } as const;
 
 function placeRow(ctx: PageContext): HTMLElement {
   const s = ctx.strings.home;
@@ -114,6 +115,7 @@ function finder(ctx: PageContext): HTMLElement {
 
 // Data the built-in widgets share (design 30 Oct §9): the city, the prayer
 // method and the prayer notice, which runs whether or not a widget shows it.
+// Shown on Umum.
 export function sharedData(ctx: PageContext): HTMLElement {
   const s = ctx.strings.home;
   const home = ctx.info.home;
