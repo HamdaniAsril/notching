@@ -100,7 +100,7 @@ struct Shown {
 static SHOWN: Mutex<Option<HashMap<String, Shown>>> = Mutex::new(None);
 
 thread_local! {
-    // Mouse monitors that move key status to the cursor's panel, while the picker is up.
+    // Esc and mouse-move monitors, while the picker is up (`watch_events`).
     static MONITORS: RefCell<Vec<Retained<AnyObject>>> = const { RefCell::new(Vec::new()) };
     static KEY_SCREEN: Cell<Option<usize>> = const { Cell::new(None) };
 }
@@ -180,10 +180,10 @@ pub fn show(app: &AppHandle, mode: PickMode) {
         panel.show_and_make_key();
         KEY_SCREEN.set(Some(cursor_screen));
     }
-    follow_mouse(app, true);
+    watch_events(app, true);
 }
 
-/// Orders every pick panel out and stops following the mouse. Any thread.
+/// Orders every pick panel out and removes the event monitors. Any thread.
 pub fn hide(app: &AppHandle) {
     if MainThreadMarker::new().is_none() {
         let handle = app.clone();
@@ -191,7 +191,7 @@ pub fn hide(app: &AppHandle) {
         return;
     }
     SHOWN.lock().unwrap().take();
-    follow_mouse(app, false);
+    watch_events(app, false);
     for index in 0..16 {
         if let Ok(panel) = app.get_webview_panel(&label(index)) {
             panel.hide();
@@ -199,9 +199,20 @@ pub fn hide(app: &AppHandle) {
     }
 }
 
-// WebKit tracks hover and the cursor shape only in the key window, so key status
-// follows the cursor from screen to screen. Moves only: a drag stays with its panel.
-fn follow_mouse(app: &AppHandle, on: bool) {
+/// Esc's key code (kVK_Escape), as keyclean_tap.rs has it.
+const KEY_ESCAPE: u16 = 53;
+
+/// The native way out, so a page that never loaded or lost its WebContent process
+/// cannot leave the panels over every screen.
+fn is_cancel_key(key_code: u16) -> bool {
+    key_code == KEY_ESCAPE
+}
+
+// While the picker is up: Esc ends it natively, and key status follows the cursor
+// from screen to screen, because WebKit tracks hover and the cursor shape only in
+// the key window (moves only: a drag stays with its panel). `hide` removes every
+// monitor, and it is the only way the picker ends.
+fn watch_events(app: &AppHandle, on: bool) {
     MONITORS.with(|m| {
         let mut m = m.borrow_mut();
         for token in m.drain(..) {
@@ -211,6 +222,19 @@ fn follow_mouse(app: &AppHandle, on: bool) {
             KEY_SCREEN.set(None);
             return;
         }
+        // Keys reach us while a pick panel is key. The event goes on to the page too,
+        // whose own Esc lands on an already hidden picker. `hide` is queued rather
+        // than run here, since it removes this very monitor.
+        let handle = app.clone();
+        let keys = RcBlock::new(move |event: NonNull<NSEvent>| -> *mut NSEvent {
+            if is_cancel_key(unsafe { event.as_ref() }.keyCode()) {
+                let app = handle.clone();
+                let _ = handle.run_on_main_thread(move || hide(&app));
+            }
+            event.as_ptr()
+        });
+        let keys = unsafe { NSEvent::addLocalMonitorForEventsMatchingMask_handler(NSEventMask::KeyDown, &keys) };
+        m.extend(keys);
         // Moves over our panels while the app is active, and the rest while it is not.
         let handle = app.clone();
         let local = RcBlock::new(move |event: NonNull<NSEvent>| -> *mut NSEvent {
@@ -342,6 +366,13 @@ mod tests {
         let (t, kind) = target(PickChoice::Window { number: 42 }, SIDE);
         assert_eq!(kind, Kind::Window);
         assert!(matches!(t, Target::Window { number: 42 }));
+    }
+
+    #[test]
+    fn only_esc_cancels_natively() {
+        assert!(is_cancel_key(53));
+        assert!(!is_cancel_key(36)); // Return
+        assert!(!is_cancel_key(21)); // 4, held with ⌘⇧ to open the picker
     }
 
     #[test]
