@@ -23,6 +23,9 @@ export interface EditorBridge {
   // original. Resolves to the Desktop path for `save`.
   commit(id: number, edits: string, png: Blob | null, action: EditorAction): Promise<string | null>;
   close(): Promise<void>; // after the last commit: the window goes
+  // The close request arrived and the page is committing: the core then waits
+  // up to 60 s for `close` instead of 5 s.
+  closing(): Promise<void>;
   onClose(cb: () => void): Unlisten; // the red button, the module switched off, the app quitting
   onShots(cb: (list: Shot[]) => void): Unlisten;
 }
@@ -132,7 +135,10 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   doc.addEventListener('keydown', onKey);
   doc.addEventListener('copy', onCopy);
   const unlisten = [
-    bridge.onClose(() => void end('keep')),
+    bridge.onClose(() => {
+      bridge.closing().catch(e => console.error('notching: editor close not acknowledged', e));
+      void end('keep');
+    }),
     bridge.onShots(list => {
       if (shown && !list.some(x => x.id === shown!.id)) void end(null);
     }),

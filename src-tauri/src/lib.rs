@@ -147,6 +147,7 @@ pub fn run() {
             editor_window::open_editor,
             editor_window::editor_doc,
             editor_window::editor_commit,
+            editor_window::editor_closing,
             editor_window::editor_close,
         ])
         // A file drag can reach an overlay's webview before its sensor (the panel

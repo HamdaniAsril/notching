@@ -227,7 +227,8 @@ fn on_key(key: Key) {
                 Press::Ignored => {}
             }
         }
-        Key::Quit => app.exit(0),
+        // Through the editor, so its edits are committed first.
+        Key::Quit => crate::editor_window::quit(app),
         Key::Other => {}
     }
 }

@@ -27,6 +27,7 @@ export function tauriEditorBridge(): EditorBridge {
       });
     },
     close: () => invoke('editor_close'),
+    closing: () => invoke('editor_closing'),
     onClose: cb => syncUnlisten(win.listen('notching://editor-close', () => cb())),
     onShots: cb => syncUnlisten(listen<Shot[]>('notching://shots', e => cb(e.payload))),
   };
@@ -46,6 +47,7 @@ export function browserEditorBridge(): EditorBridge {
       return action === 'save' ? '~/Desktop/Screenshot.png' : null;
     },
     close: async () => console.info('editor close'),
+    closing: async () => {},
     onClose: () => () => {},
     onShots: () => () => {},
   };

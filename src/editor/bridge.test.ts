@@ -34,9 +34,10 @@ test('commit sends raw bytes with the id, action and edits length in headers', a
   expect(invoke.mock.calls[1][2].headers['Notching-Edits-Length']).toBe('0');
 });
 
-test('doc and close call their commands', async () => {
+test('doc, closing and close call their commands', async () => {
   const b = tauriEditorBridge();
   await b.doc();
+  await b.closing();
   await b.close();
-  expect(invoke.mock.calls.map(c => c[0])).toEqual(['editor_doc', 'editor_close']);
+  expect(invoke.mock.calls.map(c => c[0])).toEqual(['editor_doc', 'editor_closing', 'editor_close']);
 });

@@ -5,8 +5,9 @@
 use std::fs;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use objc2::MainThreadMarker;
 use objc2_app_kit::{NSEvent, NSScreen, NSWindow, NSWorkspace};
@@ -39,8 +40,11 @@ const CHROME_BOTTOM: f64 = 56.0;
 const CHROME_LEFT: f64 = 64.0;
 /// Of the screen's visible frame, at most.
 const MAX_SHARE: f64 = 0.8;
-/// A page that has not committed and closed by then is closed without its edits.
+/// A page that has not said it is closing by then is closed without its edits.
 const CLOSE_WAIT: Duration = Duration::from_secs(5);
+/// One that has said so has this long (from the request) to commit, a Simpan or
+/// a full-size export under way included.
+const ACKED_WAIT: Duration = Duration::from_secs(60);
 /// `editor_commit` takes the edits (UTF-8) and then the PNG as its raw body; these say the rest.
 const ID_HEADER: &str = "notching-id";
 const ACTION_HEADER: &str = "notching-action";
@@ -54,6 +58,9 @@ const WALLPAPER_KINDS: [&str; 4] = ["png", "jpg", "jpeg", "heic"];
 // Two clicks close together must not both build the window. The main thread never takes it.
 static OPENING: Mutex<()> = Mutex::new(());
 static EDITOR: Mutex<Editor> = Mutex::new(Editor::new());
+// Close requests are numbered for the life of the app, so a timer left by one
+// window never matches a request to the next.
+static NEXT_ASK: AtomicU64 = AtomicU64::new(1);
 // The picture `notchshot://localhost/wallpaper` serves, set by `editor_doc`.
 static WALLPAPER: Mutex<Option<PathBuf>> = Mutex::new(None);
 
@@ -72,17 +79,52 @@ struct Editor {
     screen: usize,
     /// Opened while another was shown: it replaces that one once its edits are committed.
     next: Option<Open>,
-    /// A close was asked under this number and the page has not answered yet.
-    waiting: Option<u64>,
-    asked: u64,
+    /// A close was asked and the page has not called `editor_close` yet.
+    waiting: Option<Waiting>,
     /// The app quits once the window is gone.
     quitting: bool,
 }
 
 impl Editor {
     const fn new() -> Editor {
-        Editor { id: None, screen: 0, next: None, waiting: None, asked: 0, quitting: false }
+        Editor { id: None, screen: 0, next: None, waiting: None, quitting: false }
     }
+}
+
+/// A close request (`ask`, its number) and whether the page said it is closing.
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Waiting {
+    ask: u64,
+    acked: bool,
+}
+
+/// What a request's timer does after `elapsed` since the request.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Step {
+    /// Answered, or replaced by a newer request or window: this timer is done.
+    Stale,
+    Wait(Duration),
+    /// Out of time: close without the page's edits.
+    Finish,
+}
+
+/// CLOSE_WAIT until the page acknowledges the request, ACKED_WAIT after.
+fn timer_step(waiting: Option<Waiting>, ask: u64, elapsed: Duration) -> Step {
+    match waiting {
+        Some(w) if w.ask == ask => {
+            let limit = if w.acked { ACKED_WAIT } else { CLOSE_WAIT };
+            match limit.checked_sub(elapsed) {
+                Some(left) if !left.is_zero() => Step::Wait(left),
+                _ => Step::Finish,
+            }
+        }
+        _ => Step::Stale,
+    }
+}
+
+/// The page got the request and is committing.
+fn acknowledge(waiting: Option<Waiting>) -> Option<Waiting> {
+    waiting.map(|w| Waiting { acked: true, ..w })
 }
 
 fn editor() -> std::sync::MutexGuard<'static, Editor> {
@@ -343,39 +385,54 @@ pub fn wallpaper_file() -> Option<PathBuf> {
 }
 
 /// Asks the page to commit its edits (`keep`) and close: the red button, the
-/// module switched off, another screenshot opened, the app quitting. A page that
-/// has not answered after CLOSE_WAIT is closed without them.
+/// module switched off, another screenshot opened, the app quitting. A close
+/// already under way carries on (its `finish` also takes a screenshot opened
+/// meanwhile). A page that has not acknowledged (`editor_closing`) after
+/// CLOSE_WAIT, or not closed after ACKED_WAIT, is closed without its edits.
 pub fn request_close(app: &AppHandle) {
     if app.get_webview_window(EDITOR_LABEL).is_none() {
         return;
     }
-    let asked = {
+    let ask = {
         let mut e = editor();
-        e.asked += 1;
-        e.waiting = Some(e.asked);
-        e.asked
+        if e.waiting.is_some() {
+            return;
+        }
+        let ask = NEXT_ASK.fetch_add(1, Ordering::Relaxed);
+        e.waiting = Some(Waiting { ask, acked: false });
+        ask
     };
     let _ = app.emit_to(EventTarget::webview_window(EDITOR_LABEL), CLOSE_EVENT, ());
     let app = app.clone();
+    let start = Instant::now();
     std::thread::spawn(move || {
-        std::thread::sleep(CLOSE_WAIT);
-        if editor().waiting == Some(asked) {
-            eprintln!("notching: the editor did not answer its close in time; closed without its edits");
-            let handle = app.clone();
-            let _ = app.run_on_main_thread(move || finish(&handle));
+        let mut wait = CLOSE_WAIT;
+        loop {
+            std::thread::sleep(wait);
+            match timer_step(editor().waiting, ask, start.elapsed()) {
+                Step::Stale => return,
+                Step::Wait(left) => wait = left,
+                Step::Finish => {
+                    eprintln!("notching: the editor did not close in time; closed without its edits");
+                    let handle = app.clone();
+                    let _ = app.run_on_main_thread(move || finish(&handle));
+                    return;
+                }
+            }
         }
     });
 }
 
-/// The app quits once the editor has committed and gone. False when there is no
-/// editor, so the caller quits right away.
-pub fn quit(app: &AppHandle) -> bool {
+/// Every way of quitting the app (the pill's Keluar, Cmd+Q in Keyboard Cleaning
+/// Mode): an open editor commits its edits first, and the app ends when its
+/// window has gone.
+pub fn quit(app: &AppHandle) {
     if app.get_webview_window(EDITOR_LABEL).is_none() {
-        return false;
+        app.exit(0);
+        return;
     }
     editor().quitting = true;
     request_close(app);
-    true
 }
 
 // The page committed (or never will): the screenshot opened meanwhile takes its
@@ -545,6 +602,13 @@ pub async fn editor_commit(app: AppHandle, request: Request<'_>) -> Result<Optio
         }
         Action::Save => shot_service::save(&app, id).map(Some),
     }
+}
+
+/// The page got `notching://editor-close` and is committing: it has ACKED_WAIT now.
+#[tauri::command]
+pub fn editor_closing() {
+    let mut e = editor();
+    e.waiting = acknowledge(e.waiting);
 }
 
 /// The page has committed: the window goes, or shows the screenshot opened meanwhile.
@@ -734,6 +798,40 @@ mod tests {
         for name in ["e.madesktop", "f", "g.png", "missing.png"] {
             assert!(!is_wallpaper_file(&d.path().join(name)), "{name}");
         }
+    }
+
+    #[test]
+    fn an_old_close_timer_never_matches_a_newer_request() {
+        let w = |ask, acked| Some(Waiting { ask, acked });
+        let s = Duration::from_secs;
+        // Window A asked under 1 and was answered or destroyed; window B now waits on 2.
+        assert_eq!(timer_step(w(2, false), 1, s(5)), Step::Stale);
+        assert_eq!(timer_step(w(2, true), 1, s(60)), Step::Stale);
+        assert_eq!(timer_step(None, 1, s(5)), Step::Stale);
+        // Its own request still counts.
+        assert_eq!(timer_step(w(2, false), 2, s(5)), Step::Finish);
+        // Numbers only grow, for the whole run, across windows.
+        let a = NEXT_ASK.fetch_add(1, Ordering::Relaxed);
+        let b = NEXT_ASK.fetch_add(1, Ordering::Relaxed);
+        assert!(b > a);
+    }
+
+    #[test]
+    fn close_waits_5_s_for_the_ack_then_60_s() {
+        let s = Duration::from_secs;
+        let asked = Some(Waiting { ask: 7, acked: false });
+        // Not acknowledged: closed at 5 s.
+        assert_eq!(timer_step(asked, 7, s(5)), Step::Finish);
+        assert_eq!(timer_step(asked, 7, Duration::from_millis(4500)), Step::Wait(Duration::from_millis(500)));
+        // Acknowledged: the page has until 60 s after the request.
+        let acked = acknowledge(asked);
+        assert_eq!(acked, Some(Waiting { ask: 7, acked: true }));
+        assert_eq!(timer_step(acked, 7, s(5)), Step::Wait(s(55)));
+        assert_eq!(timer_step(acked, 7, s(59)), Step::Wait(s(1)));
+        assert_eq!(timer_step(acked, 7, s(60)), Step::Finish);
+        assert_eq!(timer_step(acked, 7, s(90)), Step::Finish);
+        // An ack with no request waiting changes nothing.
+        assert_eq!(acknowledge(None), None);
     }
 
     #[test]

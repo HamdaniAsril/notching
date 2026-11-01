@@ -28,6 +28,9 @@ function fakeBridge(doc: EditorDoc | null = DOC) {
     close: vi.fn(async () => {
       order.push('close');
     }),
+    closing: vi.fn(async () => {
+      order.push('closing');
+    }),
     onClose: vi.fn((cb: () => void) => {
       onClose = cb;
       return () => (onClose = null);
@@ -98,11 +101,12 @@ test('Salin commits copy, then closes', async () => {
   await flush();
   expect(fake.bridge.commit).toHaveBeenCalledWith(7, '', null, 'copy');
   expect(fake.order).toEqual(['commit copy', 'close']);
-  // Once only: a second click or a close request after it does nothing more.
+  // Once only: a second click or a close request after it commits nothing more
+  // (the request is still acknowledged, the page is closing anyway).
   button('Salin')!.click();
   fake.emitClose();
   await flush();
-  expect(fake.order).toEqual(['commit copy', 'close']);
+  expect(fake.order).toEqual(['commit copy', 'close', 'closing']);
 });
 
 test('Cmd+C does the same, but not while a text box is focused', async () => {
@@ -183,11 +187,41 @@ test('close_request_commits_keep', async () => {
   fake.emitClose();
   await flush();
   expect(fake.bridge.commit).toHaveBeenCalledWith(7, '', null, 'keep');
-  expect(fake.order).toEqual(['commit keep', 'close']);
-  // A second red-button click while closing changes nothing.
+  // Acknowledged first, so the core waits for the commit rather than 5 s.
+  expect(fake.order).toEqual(['closing', 'commit keep', 'close']);
+  // A second request while closing commits nothing more.
+  fake.emitClose();
+  await flush();
+  expect(fake.order).toEqual(['closing', 'commit keep', 'close', 'closing']);
+});
+
+test('the close request is acknowledged before a Simpan under way ends', async () => {
+  let saved!: () => void;
+  fake.bridge.commit.mockImplementationOnce(async () => {
+    await new Promise<void>(r => (saved = r));
+    return DESKTOP;
+  });
+  await mount();
+  button('Simpan')!.click();
+  fake.emitClose();
+  // At once, not after the Simpan.
+  expect(fake.bridge.closing).toHaveBeenCalledTimes(1);
+  await flush();
+  expect(fake.bridge.close).not.toHaveBeenCalled();
+  saved();
+  await flush();
+  expect(fake.bridge.close).toHaveBeenCalledTimes(1);
+});
+
+test('a failed acknowledgement still commits and closes', async () => {
+  const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+  fake.bridge.closing.mockRejectedValueOnce('ipc');
+  await mount();
   fake.emitClose();
   await flush();
   expect(fake.order).toEqual(['commit keep', 'close']);
+  expect(error).toHaveBeenCalledWith('notching: editor close not acknowledged', 'ipc');
+  error.mockRestore();
 });
 
 test('a close request during a Simpan commits keep after it', async () => {
@@ -201,10 +235,10 @@ test('a close request during a Simpan commits keep after it', async () => {
   button('Simpan')!.click();
   fake.emitClose();
   await flush();
-  expect(fake.order).toEqual([]);
+  expect(fake.order).toEqual(['closing']);
   saved();
   await flush();
-  expect(fake.order).toEqual(['commit save', 'commit keep', 'close']);
+  expect(fake.order).toEqual(['closing', 'commit save', 'commit keep', 'close']);
 });
 
 test('a commit that fails still closes, so the window never stays stuck', async () => {
