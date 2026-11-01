@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' notchmod: data:; font-src 'self'; frame-src notchmod:; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' notchmod: notchshot: data:; font-src 'self'; frame-src notchmod:; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {

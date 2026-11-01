@@ -51,6 +51,8 @@ mod shelf_drop;
 #[cfg(target_os = "macos")]
 mod shelf_service;
 #[cfg(target_os = "macos")]
+mod shot_service;
+#[cfg(target_os = "macos")]
 mod timer_service;
 
 #[cfg(target_os = "macos")]
@@ -67,6 +69,10 @@ pub fn run() {
             };
             let core = core.0.lock().unwrap();
             modules::protocol::respond(core.active_dir(), |id| core.servable(id), req.uri().path())
+        })
+        .register_uri_scheme_protocol(shot_service::SCHEME, |_ctx, req| match shot_service::dir() {
+            Some(dir) => shot_service::respond(dir, req.uri().path()),
+            None => tauri::http::Response::builder().status(404).body(Vec::new()).unwrap(),
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_screen_info,
@@ -108,6 +114,13 @@ pub fn run() {
             shelf_service::shelf_clear,
             shelf_drop::shelf_drop_ready,
             shelf_drag::shelf_start_drag,
+            shot_service::shot_list,
+            shot_service::shot_take_screen,
+            shot_service::shot_copy,
+            shot_service::shot_save,
+            shot_service::shot_delete,
+            shot_service::shot_permission,
+            shot_service::open_screen_recording_settings,
         ])
         // A file drag can reach an overlay's webview before its sensor (the panel
         // already catches the mouse): that opens the drop zone too (Titipan).
@@ -145,6 +158,7 @@ pub fn run() {
             app.manage(home::HomeState(std::sync::Mutex::new(home)));
             app.manage(shelf_service::ShelfState(std::sync::Mutex::new(shelf::Shelf::default())));
             shelf_service::start(app.handle());
+            shot_service::start(app.handle());
             overlay::rebuild_overlays(app.handle())?;
             home::schedule::start(app.handle().clone());
             awake_service::start(app.handle().clone());
