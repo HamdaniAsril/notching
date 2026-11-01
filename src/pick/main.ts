@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { dragBox, finish, isDrag, windowAt, type Box, type PickMode, type PickWindow, type Point } from './geometry';
 
 // Same shape as PickState in src-tauri/src/shot_pick.rs. `cursor` is set only on
@@ -101,10 +101,12 @@ export function mountPicker(root: HTMLElement, deps: PickDeps): { show(state: Pi
   };
 }
 
-// A freshly made panel's page can miss the first event, so it also asks.
-async function start(): Promise<void> {
+// A freshly made panel's page can miss the first event, so it also asks. Each
+// panel gets its own screen's state (`emit_to`), so it listens on its window only:
+// a global listener would hear every panel's (see the rule in src/bridge.ts).
+export async function start(): Promise<void> {
   const picker = mountPicker(document.getElementById('pick-root')!, { invoke });
-  await listen<PickState>('notching://pick', e => picker.show(e.payload));
+  await getCurrentWebviewWindow().listen<PickState>('notching://pick', e => picker.show(e.payload));
   const now = await invoke<PickState | null>('shot_pick_state');
   if (now) picker.show(now);
 }

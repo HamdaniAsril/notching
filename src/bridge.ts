@@ -138,6 +138,11 @@ export function syncUnlisten(pending: Promise<UnlistenFn>): () => void {
 }
 
 // The native side: commands in src-tauri/src/commands.rs, events emitted to this window.
+// The rule for events: one Rust sends with `emit_to` (to one window) is heard with
+// `win.listen`; only one it broadcasts with `app.emit` uses the global `listen`.
+// A global listener is registered for any target, and Tauri hands it every
+// `emit_to` too, whichever window that names: each overlay, parked ones included,
+// would act on an event meant for another. A `win.listen` still hears broadcasts.
 export function tauriBridge(): Bridge {
   const win = getCurrentWebviewWindow();
   return {
@@ -186,9 +191,10 @@ export function tauriBridge(): Bridge {
     // The editor window's command comes with the editor (plan 11, task 7).
     openEditor: id => invoke('open_editor', { id }),
     // `taken` to this overlay only, `gone` to every window: each checks the id.
-    onShot: cb => syncUnlisten(listen<ShotEvent>('notching://shot', e => cb(e.payload))),
+    onShot: cb => syncUnlisten(win.listen<ShotEvent>('notching://shot', e => cb(e.payload))),
     // Broadcast to every window: one history for every screen.
     onShots: cb => syncUnlisten(listen<Shot[]>('notching://shots', e => cb(e.payload))),
+    // Sent to this overlay only.
     onShotDrag: cb => syncUnlisten(win.listen<ShotDrag>('notching://shot-drag', e => cb(e.payload))),
   };
 }
