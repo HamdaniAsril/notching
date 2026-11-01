@@ -1924,6 +1924,7 @@ dependencies = [
  "objc2-foundation",
  "objc2-quick-look-thumbnailing",
  "objc2-service-management",
+ "plist",
  "serde",
  "serde_json",
  "sys-locale",

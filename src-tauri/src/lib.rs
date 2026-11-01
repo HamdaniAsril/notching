@@ -1,6 +1,7 @@
 mod app_core;
 mod awake;
 mod cleaner_rules;
+mod cleaner_scan;
 mod geometry;
 mod home;
 mod locale;
