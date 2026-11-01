@@ -442,6 +442,7 @@ fn take_now(app: &AppHandle, target: Target, kind: Kind, screen: usize) {
     let Some(size) = accept_capture(exit_ok, bytes.as_deref()) else {
         let _ = fs::remove_file(&tmp);
         eprintln!("notching: screenshot not taken (screencapture ok: {exit_ok})");
+        notice(app, "failed");
         return;
     };
     let (id, evicted) = {
@@ -474,14 +475,20 @@ pub fn refused(app: &AppHandle) {
     let _ = app.run_on_main_thread(|| {
         unsafe { CGRequestScreenCaptureAccess() };
     });
+    notice(app, "access");
+}
+
+/// Posts `notice.<which>.title` / `.detail` on the `access` channel: no access, or a capture
+/// that failed, so a key press never ends in silence.
+fn notice(app: &AppHandle, which: &str) {
     let (title, detail) = {
         let core = app.state::<CoreState>();
         let core = core.0.lock().unwrap();
-        (core.module_text(MODULE_ID, "notice.access.title"), core.module_text(MODULE_ID, "notice.access.detail"))
+        (core.module_text(MODULE_ID, &format!("notice.{which}.title")), core.module_text(MODULE_ID, &format!("notice.{which}.detail")))
     };
     let title = title.unwrap_or_else(|| "Screenshot".into());
     if let Err(e) = crate::notify::post(app, MODULE_ID, "access", &title, &detail.unwrap_or_default()) {
-        eprintln!("notching: the screen recording notice was not sent: {e}");
+        eprintln!("notching: the screenshot {which} notice was not sent: {e}");
     }
 }
 
@@ -668,6 +675,18 @@ mod tests {
         let tmp = tmp_path(dir, n.into());
         std::fs::write(&tmp, wide(n, 10)).unwrap();
         tmp
+    }
+
+    #[test]
+    fn notices_are_in_the_module_locales() {
+        for lang in ["id", "en"] {
+            let path = format!("{}/../modules/screenshot/locales/{lang}.json", env!("CARGO_MANIFEST_DIR"));
+            let json: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+            for which in ["access", "failed"] {
+                assert!(json["notice"][which]["title"].is_string(), "{lang} notice.{which}.title");
+                assert!(json["notice"][which]["detail"].is_string(), "{lang} notice.{which}.detail");
+            }
+        }
     }
 
     #[test]

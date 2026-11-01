@@ -10,6 +10,7 @@
     "keys": { "title": "{keys} masih dipakai Mac", "detail": "Buka Screenshot untuk caranya" },
     "other": { "title": "{keys} dipakai app lain" },
     "otherMany": { "title": "{keys} dipakai app lain" },
-    "access": { "title": "Screenshot butuh izin Perekaman Layar", "detail": "Buka Screenshot untuk izinnya" }
+    "access": { "title": "Screenshot butuh izin Perekaman Layar", "detail": "Buka Screenshot untuk izinnya" },
+    "failed": { "title": "Screenshot gagal diambil", "detail": "Coba sekali lagi" }
   }
 }

@@ -10,6 +10,7 @@
     "keys": { "title": "{keys} still taken by the Mac", "detail": "Open Screenshot to see how" },
     "other": { "title": "{keys} is taken by another app" },
     "otherMany": { "title": "{keys} are taken by another app" },
-    "access": { "title": "Screenshot needs Screen Recording access", "detail": "Open Screenshot to allow it" }
+    "access": { "title": "Screenshot needs Screen Recording access", "detail": "Open Screenshot to allow it" },
+    "failed": { "title": "The screenshot wasn't taken", "detail": "Try once more" }
   }
 }
