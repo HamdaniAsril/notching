@@ -149,8 +149,15 @@ Acuan: `editor.html`, versi 2.
 - **Sudut:** penggeser untuk membulatkan sudut screenshot. Permintaan pemilik. Tanpa background, sudut yang dibulatkan menjadi transparan **(keputusan penulis)**.
 - **Background:** membuka kotak pilihan background, seperti di mockup.
 
+**Setelan terakhir** (diminta pemilik pada 1 November 2026)
+- Editor dibuka dengan alat, warna, dan tebal garis yang terakhir dipakai.
+- Screenshot yang belum pernah diedit dibuka dengan Sudut, Jarak, dan Background yang terakhir dipakai. Setelan ini sudah terpasang sejak editor dibuka, jadi bukan langkah yang bisa diurungkan.
+- Screenshot yang sudah pernah diedit tetap dibuka dengan setelannya sendiri, dan membukanya tidak mengubah setelan terakhir.
+- Background berupa gambar (Wallpaper Mac atau Pilih file…) tidak diingat karena ukurannya besar. Screenshot berikutnya dibuka tanpa background, tapi Sudut dan Jarak tetap diingat **(keputusan penulis)**.
+- Setelan disimpan di penyimpanan lokal jendela editor, dengan kunci `notching.editor`.
+
 **Kotak Background**
-- **Tanpa background** adalah pilihan bawaan **(keputusan penulis)**.
+- **Tanpa background** adalah pilihan bawaan, sampai ada setelan terakhir **(keputusan penulis)**.
 - **Warna solid:** beberapa warna siap pakai, ditambah **lingkaran warna untuk memilih warna sendiri**.
 - **Gradient:** beberapa gradient siap pakai, ditambah **gradient sendiri dari dua warna** yang dipilih dengan lingkaran warna.
 - **Wallpaper Mac:** wallpaper desktop yang sedang dipakai di layar itu. Kalau wallpaper-nya bukan gambar biasa, misalnya wallpaper bergerak bawaan macOS, pilihan ini disembunyikan **(keputusan penulis)**.

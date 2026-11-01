@@ -4,7 +4,7 @@ import type { Lang } from '../kit/protocol';
 import { SAVE_FAILED_MS, button, el } from '../shot/common';
 import { fileJpeg, wallpaperJpeg } from './background';
 import { createBoard, type Board } from './board';
-import { COLORS, CORNER_RANGE, TOOLS, TOOL_KEYS, WIDTHS, scaleFor, type Tool } from './model';
+import { COLORS, CORNER_RANGE, TOOLS, TOOL_KEYS, WIDTHS, emptyDoc, scaleFor, serialize, type Tool } from './model';
 import { createPopover, type Popover } from './popover';
 import { readPrefs, writePrefs, type PrefsStorage } from './prefs';
 import { outputSize } from './render';
@@ -101,12 +101,13 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   let closeAsked = false; // the close request came while a Salin was under way
 
   let board: Board | null = null;
-  // The tool, colour and width used last; each choice is kept at once.
+  // The settings used last; each choice is kept at once.
   const storage = deps.storage !== undefined ? deps.storage : localStore(doc);
   const prefs = readPrefs(storage);
   let colorIndex = prefs.color;
   let widthIndex = prefs.width;
-  const keep = () => writePrefs(storage, { tool: board?.tool ?? prefs.tool, color: colorIndex, width: widthIndex });
+  let styleSeen = ''; // the frame the board last showed, so only a change is kept
+  const keep = () => writePrefs(storage, { ...prefs, tool: board?.tool ?? prefs.tool, color: colorIndex, width: widthIndex });
   const toolButtons = new Map<Tool, HTMLButtonElement>();
   const colorButtons: HTMLButtonElement[] = [];
   const widthButtons: HTMLButtonElement[] = [];
@@ -204,6 +205,12 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   // The bars show the board's state.
   const sync = () => {
     if (!board) return;
+    const frame = JSON.stringify(board.style);
+    if (frame !== styleSeen) {
+      styleSeen = frame;
+      prefs.style = board.style;
+      keep();
+    }
     undoBtn.disabled = !board.canUndo;
     redoBtn.disabled = !board.canRedo;
     for (const [tool, b] of toolButtons) {
@@ -346,7 +353,11 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
     img.src = d.original;
     stage.append(img);
     board?.destroy();
-    board = createBoard(doc, stage, d, img, () => sync());
+    // A screenshot never edited starts with the frame used last; one edited
+    // before keeps its own.
+    const start = d.edits ? d : { ...d, edits: serialize({ ...emptyDoc(), style: prefs.style }) };
+    board = createBoard(doc, stage, start, img, () => sync());
+    styleSeen = JSON.stringify(board.style);
     board.setTool(prefs.tool);
     board.setColor(colorIndex);
     board.setWidth(widthIndex);

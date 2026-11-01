@@ -1244,6 +1244,64 @@ test('a doc saved with a background opens with it, and its controls show it', as
   expect(undoBtn().disabled).toBe(true);
 });
 
+// ---- the frame used last (owner, 1 Nov) ---------------------------------------
+
+// Sudut, Jarak and a blue background, then the editor goes.
+async function frameOnce() {
+  const first = await mount();
+  setRange(cornerRange(), 12);
+  fire(cornerRange(), 'change');
+  openPop();
+  solid('#2F80ED').click();
+  setRange(paddingRange(), 100);
+  fire(paddingRange(), 'change');
+  first.destroy();
+  root.replaceChildren();
+}
+
+test('a new screenshot opens with the Sudut, Jarak and Background used last', async () => {
+  await frameOnce();
+  fake = fakeBridge();
+  await mount();
+  expect(cornerRange().value).toBe('12');
+  openPop();
+  expect(paddingRange().value).toBe('100');
+  expect(solid('#2F80ED').classList.contains('ed-sel')).toBe(true);
+  // It is where the editor starts, not a step to undo.
+  expect(undoBtn().disabled).toBe(true);
+  const out = await salin();
+  expect(out.doc.style).toEqual({ corner: 12, padding: 100, background: { kind: 'solid', color: '#2F80ED' } });
+  expect(out.png).toBeInstanceOf(Blob);
+});
+
+test('a screenshot edited before keeps its own frame, and opening it changes nothing kept', async () => {
+  await frameOnce();
+  const own = serialize({ v: 1, shapes: [], style: { corner: 30, padding: 64, background: { kind: 'none' } } });
+  fake = fakeBridge({ ...DOC, edits: own });
+  const second = await mount();
+  expect(cornerRange().value).toBe('30');
+  second.destroy();
+  root.replaceChildren();
+  fake = fakeBridge();
+  await mount();
+  expect(cornerRange().value).toBe('12');
+});
+
+test('a picture background is not kept for the next screenshot; Sudut and Jarak are', async () => {
+  fake = fakeBridge({ ...DOC, wallpaper: 'notchshot://localhost/wallpaper' });
+  const first = await mount();
+  setRange(cornerRange(), 8);
+  fire(cornerRange(), 'change');
+  button('Wallpaper Mac')!.click();
+  await flush();
+  first.destroy();
+  root.replaceChildren();
+  fake = fakeBridge();
+  await mount();
+  expect(cornerRange().value).toBe('8');
+  expect((await salin()).doc.style.background).toEqual({ kind: 'none' });
+});
+
 // ---- redraws: one per frame, and the base only when it changes ----------------
 
 const board = () => canvas();
