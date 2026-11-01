@@ -6,6 +6,7 @@ import { fileJpeg, wallpaperJpeg } from './background';
 import { createBoard, type Board } from './board';
 import { COLORS, CORNER_RANGE, TOOLS, TOOL_KEYS, WIDTHS, scaleFor, type Tool } from './model';
 import { createPopover, type Popover } from './popover';
+import { readPrefs, writePrefs, type PrefsStorage } from './prefs';
 import { outputSize } from './render';
 
 // Same shape as EditorDoc in src-tauri/src/editor_window.rs. `width` × `height`
@@ -38,6 +39,7 @@ export interface EditorBridge {
 export interface EditorDeps {
   bridge: EditorBridge;
   lang: Lang;
+  storage?: PrefsStorage | null; // the window's localStorage when left out
 }
 
 export interface EditorView {
@@ -60,6 +62,15 @@ const TOOL_ICONS: Record<Tool, string> = {
   text: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 6h14M12 6v13"/></svg>',
   sensor: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="5" height="5"/><rect x="14" y="4" width="5" height="5" opacity=".5"/><rect x="9" y="9" width="5" height="5" opacity=".7"/><rect x="4" y="14" width="5" height="5" opacity=".4"/><rect x="14" y="14" width="5" height="5"/></svg>',
 };
+
+// Reaching localStorage can itself throw where storage is blocked.
+function localStore(doc: Document): PrefsStorage | null {
+  try {
+    return doc.defaultView?.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const NOT_TEXT = new Set(['button', 'checkbox', 'radio', 'range', 'color', 'submit', 'reset', 'file', 'image']);
 
@@ -90,8 +101,12 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   let closeAsked = false; // the close request came while a Salin was under way
 
   let board: Board | null = null;
-  let colorIndex = 0;
-  let widthIndex = 1;
+  // The tool, colour and width used last; each choice is kept at once.
+  const storage = deps.storage !== undefined ? deps.storage : localStore(doc);
+  const prefs = readPrefs(storage);
+  let colorIndex = prefs.color;
+  let widthIndex = prefs.width;
+  const keep = () => writePrefs(storage, { tool: board?.tool ?? prefs.tool, color: colorIndex, width: widthIndex });
   const toolButtons = new Map<Tool, HTMLButtonElement>();
   const colorButtons: HTMLButtonElement[] = [];
   const widthButtons: HTMLButtonElement[] = [];
@@ -229,6 +244,7 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   };
   const pick = (tool: Tool) => {
     board?.setTool(tool);
+    keep();
     sync();
   };
 
@@ -331,7 +347,9 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
     stage.append(img);
     board?.destroy();
     board = createBoard(doc, stage, d, img, () => sync());
-    board.setTool('pen');
+    board.setTool(prefs.tool);
+    board.setColor(colorIndex);
+    board.setWidth(widthIndex);
 
     const tools = el(doc, 'nav', 'ed-tools');
     for (const tool of TOOLS) {
@@ -357,6 +375,7 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
       b.addEventListener('click', () => {
         colorIndex = i;
         board?.setColor(i);
+        keep();
         sync();
       });
       colorButtons.push(b);
@@ -371,6 +390,7 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
       b.addEventListener('click', () => {
         widthIndex = i;
         board?.setWidth(i);
+        keep();
         sync();
       });
       widthButtons.push(b);

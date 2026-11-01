@@ -4,7 +4,7 @@ import type { Shot } from '../bridge';
 import type { Lang } from '../kit/protocol';
 import { fileJpeg, wallpaperJpeg } from './background';
 import { COLORS, GRADIENTS, SOLIDS, WIDTHS, parse, scaleFor, serialize, type Shape } from './model';
-import { mountEditor, type EditorAction, type EditorBridge, type EditorDoc } from './view';
+import { mountEditor, type EditorAction, type EditorBridge, type EditorDeps, type EditorDoc } from './view';
 
 // A picture from a file or the wallpaper cannot load or be read back in jsdom.
 vi.mock('./background', () => ({
@@ -60,6 +60,10 @@ function fakeBridge(doc: EditorDoc | null = DOC) {
 
 let root: HTMLElement;
 let fake: ReturnType<typeof fakeBridge>;
+// The editor's own settings, as the window's localStorage keeps them.
+const kept = new Map<string, string>();
+let storage: EditorDeps['storage'] = { getItem: k => kept.get(k) ?? null, setItem: (k, v) => void kept.set(k, v) };
+const memory = storage;
 
 // jsdom has no canvas: the context is a stand-in that takes every call, and the
 // picture is shown at half its size, from (100, 50): a screen pixel is 2 image
@@ -103,6 +107,7 @@ function stubContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
 beforeEach(() => {
   frames = [];
   calls.clear();
+  storage = memory;
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
   vi.stubGlobal('cancelAnimationFrame', (id: number) => {
     frames[id - 1] = null;
@@ -112,6 +117,7 @@ beforeEach(() => {
   });
   vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(cb => cb(new Blob(['png'], { type: 'image/png' })));
   vi.spyOn(HTMLCanvasElement.prototype, 'getBoundingClientRect').mockReturnValue({ ...SHOWN, right: 0, bottom: 0, x: 0, y: 0, toJSON: () => ({}) });
+  kept.clear();
   document.body.replaceChildren();
   document.title = '';
   root = document.createElement('div');
@@ -126,7 +132,7 @@ afterEach(() => {
 });
 
 const flush = () => new Promise(r => setTimeout(r, 0));
-const mount = (lang: Lang = 'id') => mountEditor(root, { bridge: fake.bridge, lang });
+const mount = (lang: Lang = 'id') => mountEditor(root, { bridge: fake.bridge, lang, storage });
 const button = (text: string) => [...root.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent === text);
 const cmdC = (target: EventTarget = document, init: KeyboardEventInit = {}) =>
   target.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', metaKey: true, bubbles: true, cancelable: true, ...init }));
@@ -601,6 +607,43 @@ test('the colour and width are the ones chosen, for each stroke after', async ()
   const [a, b] = (await sent()) as Extract<Shape, { color: string; width: number }>[];
   expect([a.color, a.width]).toEqual([COLORS[0], 8 * SCALE]);
   expect([b.color, b.width]).toEqual(['#FFFFFF', 4 * SCALE]);
+});
+
+test('the tool, colour and width chosen last are there when the editor opens again', async () => {
+  const first = await mount();
+  toolBtn('rect').click();
+  swatch(3).click(); // blue
+  thick(2).click(); // thick
+  first.destroy();
+  root.replaceChildren();
+  fake = fakeBridge();
+  await mount();
+  expect(toolBtn('rect').classList.contains('ed-on')).toBe(true);
+  expect(swatch(3).classList.contains('ed-sel')).toBe(true);
+  expect(thick(2).classList.contains('ed-sel')).toBe(true);
+  drag([[0, 0], [100, 100]]);
+  const [shape] = (await sent()) as Extract<Shape, { color: string; width: number }>[];
+  expect([shape.type, shape.color, shape.width]).toEqual(['rect', COLORS[3], 14 * SCALE]);
+});
+
+test('a key that picks a tool is remembered too', async () => {
+  const first = await mount();
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
+  first.destroy();
+  root.replaceChildren();
+  await mount();
+  expect(toolBtn('arrow').classList.contains('ed-on')).toBe(true);
+});
+
+test('the editor still opens when the settings cannot be read or kept', async () => {
+  const blocked = () => {
+    throw new Error('blocked');
+  };
+  storage = { getItem: blocked, setItem: blocked };
+  await mount();
+  expect(toolBtn('pen').classList.contains('ed-on')).toBe(true);
+  swatch(2).click();
+  expect(swatch(2).classList.contains('ed-sel')).toBe(true);
 });
 
 test('the text tool places a text box, and Enter commits it', async () => {
