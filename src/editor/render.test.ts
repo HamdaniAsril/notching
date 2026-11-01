@@ -1,0 +1,167 @@
+import { expect, test } from 'vitest';
+import type { Shape } from './model';
+import { arrowHead, drawSelection, drawShapes, measureText, textFont, type Source } from './render';
+
+type Call = [string, ...unknown[]];
+
+// A 2D context that writes down what it is asked to do, with the properties it
+// had at the time of each stroke or fill.
+function recorder() {
+  const calls: Call[] = [];
+  const props: Record<string, unknown> = {};
+  const ctx = new Proxy(
+    {},
+    {
+      get(_t, name: string) {
+        if (name === 'measureText') return (text: string) => ({ width: text.length * 10 });
+        if (name in props) return props[name];
+        return (...args: unknown[]) => {
+          calls.push([name, ...args]);
+          if (name === 'stroke' || name === 'fill' || name === 'fillText') calls.push(['@', { ...props }]);
+        };
+      },
+      set(_t, name: string, value) {
+        props[name] = value;
+        return true;
+      },
+    },
+  ) as unknown as CanvasRenderingContext2D;
+  return { ctx, calls, props };
+}
+
+const names = (calls: Call[]) => calls.filter(c => c[0] !== '@').map(c => c[0]);
+const image = (w = 3000, h = 1000): Source => ({ width: w, height: h }) as unknown as Source;
+
+test('a pen is a round-capped polyline', () => {
+  const { ctx, calls } = recorder();
+  drawShapes(ctx, [{ id: 1, type: 'pen', color: '#2F80ED', width: 8, points: [[1, 2], [3, 4], [5, 6]] }], image());
+  expect(calls.filter(c => c[0] === 'moveTo' || c[0] === 'lineTo')).toEqual([['moveTo', 1, 2], ['lineTo', 3, 4], ['lineTo', 5, 6]]);
+  const props = calls.find(c => c[0] === '@')![1] as Record<string, unknown>;
+  expect(props).toMatchObject({ strokeStyle: '#2F80ED', lineWidth: 8, lineCap: 'round', lineJoin: 'round' });
+});
+
+test('a single point is a dot, a zero-length segment', () => {
+  const { ctx, calls } = recorder();
+  drawShapes(ctx, [{ id: 1, type: 'pen', color: '#000', width: 8, points: [[9, 9]] }], image());
+  expect(calls.filter(c => c[0] === 'moveTo' || c[0] === 'lineTo')).toEqual([['moveTo', 9, 9], ['lineTo', 9, 9]]);
+});
+
+test('an arrow has a head of max(16, width x 4) at 28 degrees on the end point', () => {
+  expect(arrowHead(4)).toBe(16);
+  expect(arrowHead(14)).toBe(56);
+  const { ctx, calls } = recorder();
+  // Pointing right: the head's barbs lie back to the left of the tip.
+  drawShapes(ctx, [{ id: 1, type: 'arrow', color: '#E8262E', width: 14, x1: 0, y1: 0, x2: 200, y2: 0 }], image());
+  const lines = calls.filter(c => c[0] === 'moveTo' || c[0] === 'lineTo');
+  expect(lines.slice(0, 2)).toEqual([['moveTo', 0, 0], ['lineTo', 200, 0]]);
+  const [, , tipA, barbA, tipB, barbB] = lines as [string, number, number][];
+  expect(tipA.slice(1)).toEqual([200, 0]);
+  expect(tipB.slice(1)).toEqual([200, 0]);
+  const rad = (28 * Math.PI) / 180;
+  expect(barbA[1]).toBeCloseTo(200 - 56 * Math.cos(rad));
+  expect(Math.abs(barbA[2])).toBeCloseTo(56 * Math.sin(rad));
+  expect(barbA[2]).toBeCloseTo(-barbB[2]);
+  expect(barbA[1]).toBeCloseTo(barbB[1]);
+});
+
+test('an arrow with no length draws nothing', () => {
+  const { ctx, calls } = recorder();
+  drawShapes(ctx, [{ id: 1, type: 'arrow', color: '#000', width: 4, x1: 5, y1: 5, x2: 5, y2: 5 }], image());
+  expect(names(calls)).not.toContain('stroke');
+});
+
+test('a rectangle and an ellipse use the box whichever corner was dragged first', () => {
+  const { ctx, calls } = recorder();
+  drawShapes(ctx, [
+    { id: 1, type: 'rect', color: '#000', width: 4, x1: 50, y1: 40, x2: 10, y2: 10 },
+    { id: 2, type: 'ellipse', color: '#000', width: 4, x1: 100, y1: 60, x2: 20, y2: 20 },
+  ], image());
+  expect(calls).toContainEqual(['strokeRect', 10, 10, 40, 30]);
+  expect(calls).toContainEqual(['ellipse', 60, 40, 40, 20, 0, 0, Math.PI * 2]);
+});
+
+test('text is Space Grotesk 600, in its colour, from its corner', () => {
+  const { ctx, calls } = recorder();
+  drawShapes(ctx, [{ id: 1, type: 'text', color: '#F5B700', size: 40, x: 100, y: 200, text: 'halo' }], image());
+  expect(textFont(40)).toContain('600 40px "Space Grotesk"');
+  const fill = calls.find(c => c[0] === 'fillText')!;
+  expect(fill.slice(0, 2)).toEqual(['fillText', 'halo']);
+  expect(fill[2]).toBe(100);
+  expect(fill[3] as number).toBeCloseTo(204); // half the leading of a 1.2 line
+  const props = calls.find(c => c[0] === '@')![1] as Record<string, unknown>;
+  expect(props).toMatchObject({ fillStyle: '#F5B700', font: textFont(40), textBaseline: 'top' });
+});
+
+test('measureText measures in the same font and leaves the context as it was', () => {
+  const { ctx, calls } = recorder();
+  expect(measureText(ctx, 'abc', 40)).toBe(30);
+  expect(names(calls)).toEqual(['save', 'restore']);
+});
+
+// The scratch canvas stands in for the small canvas a sensor shrinks into.
+function scratch() {
+  const drawn: Call[] = [];
+  const small = {
+    width: 0,
+    height: 0,
+    getContext: () => ({
+      imageSmoothingEnabled: false,
+      drawImage: (...a: unknown[]) => drawn.push(['drawImage', ...a]),
+    }),
+  };
+  return { drawn, small, make: () => small as unknown as HTMLCanvasElement };
+}
+
+test('a sensor shrinks the region of the original to blocks and draws it back unsmoothed', () => {
+  const { ctx, calls, props } = recorder();
+  const sc = scratch();
+  const img = image(3000, 1000); // scale 2: blocks of 24
+  const shape: Shape = { id: 1, type: 'sensor', x1: 480, y1: 240, x2: 100, y2: 100 };
+  drawShapes(ctx, [shape], img, sc.make);
+  // The region is x 100-480, y 100-240: 380 × 140, so 16 × 6 blocks of 24.
+  expect([sc.small.width, sc.small.height]).toEqual([16, 6]);
+  expect(sc.drawn).toEqual([['drawImage', img, 100, 100, 380, 140, 0, 0, 16, 6]]);
+  expect(calls).toContainEqual(['rect', 100, 100, 380, 140]);
+  expect(calls).toContainEqual(['clip']);
+  expect(calls).toContainEqual(['drawImage', sc.small, 0, 0, 16, 6, 100, 100, 16 * 24, 6 * 24]);
+  expect(props.imageSmoothingEnabled).toBe(false);
+});
+
+test('a sensor block is at least 8 px, and the region stays inside the picture', () => {
+  const { ctx } = recorder();
+  const sc = scratch();
+  const img = image(600, 400); // scale 1: blocks of 12
+  drawShapes(ctx, [{ id: 1, type: 'sensor', x1: -50, y1: -50, x2: 700, y2: 120 }], img, sc.make);
+  expect(sc.drawn).toEqual([['drawImage', img, 0, 0, 600, 120, 0, 0, 50, 10]]);
+});
+
+test('a sensor wholly outside the picture draws nothing', () => {
+  const { ctx, calls } = recorder();
+  const sc = scratch();
+  drawShapes(ctx, [{ id: 1, type: 'sensor', x1: 700, y1: 10, x2: 800, y2: 50 }], image(600, 400), sc.make);
+  expect(sc.drawn).toEqual([]);
+  expect(names(calls)).not.toContain('clip');
+});
+
+test('each shape is drawn between a save and a restore, in order', () => {
+  const { ctx, calls } = recorder();
+  drawShapes(ctx, [
+    { id: 1, type: 'line', color: '#111111', width: 4, x1: 0, y1: 0, x2: 9, y2: 9 },
+    { id: 2, type: 'line', color: '#FFFFFF', width: 4, x1: 1, y1: 1, x2: 5, y2: 5 },
+  ], image());
+  expect(names(calls)).toEqual(['save', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'restore', 'save', 'beginPath', 'moveTo', 'lineTo', 'stroke', 'restore']);
+  const strokes = calls.filter(c => c[0] === '@').map(c => (c[1] as { strokeStyle: string }).strokeStyle);
+  expect(strokes).toEqual(['#111111', '#FFFFFF']);
+});
+
+test('the selection keeps its size on screen: 4 grips for a box, 2 for an arrow', () => {
+  const box = recorder();
+  drawSelection(box.ctx, { id: 1, type: 'rect', color: '#000', width: 4, x1: 10, y1: 10, x2: 60, y2: 40 }, 2);
+  expect(box.calls.filter(c => c[0] === 'strokeRect')).toEqual([['strokeRect', 10, 10, 50, 30], ['strokeRect', 10, 10, 50, 30]]); // black dashes, then white
+  expect(box.calls.filter(c => c[0] === 'rect')).toHaveLength(4);
+  expect(box.calls).toContainEqual(['rect', 1, 1, 18, 18]); // a 9 px grip at unit 2, centred on the corner
+  const arrow = recorder();
+  drawSelection(arrow.ctx, { id: 2, type: 'arrow', color: '#000', width: 4, x1: 0, y1: 0, x2: 90, y2: 50 }, 1);
+  expect(arrow.calls.filter(c => c[0] === 'rect')).toHaveLength(2);
+  expect(names(arrow.calls)).not.toContain('strokeRect');
+});

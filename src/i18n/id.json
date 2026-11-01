@@ -41,7 +41,19 @@
   "editor": {
     "title": "Screenshot · {w} × {h}",
     "undo": "Urungkan",
-    "redo": "Ulangi"
+    "redo": "Ulangi",
+    "tools": {
+      "select": "Pilih / geser",
+      "pen": "Coretan",
+      "arrow": "Panah",
+      "rect": "Kotak",
+      "ellipse": "Lingkaran",
+      "line": "Garis",
+      "text": "Teks",
+      "sensor": "Sensor"
+    },
+    "colors": ["Merah", "Kuning", "Hijau", "Biru", "Hitam", "Putih"],
+    "widths": ["Tipis", "Sedang", "Tebal"]
   },
   "clean": {
     "title": "Keyboard sedang dibersihkan",

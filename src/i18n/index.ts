@@ -36,7 +36,9 @@ export interface HostStrings {
     months: string[];
   };
   // Screenshot's editor window (§7); Salin and Simpan come from `shot`.
-  editor: { title: string; undo: string; redo: string };
+  // `tools` is keyed by the editor's Tool; `colors` and `widths` follow its
+  // COLORS and WIDTHS.
+  editor: { title: string; undo: string; redo: string; tools: Record<string, string>; colors: string[]; widths: string[] };
 }
 
 type ShotKind = 'screen' | 'window' | 'area';

@@ -4,6 +4,7 @@
    stage's insets are the chrome fit_size counts: 64 top, 56 bottom, 64 left. */
 @import '@fontsource/space-grotesk/latin-400.css';
 @import '@fontsource/space-grotesk/latin-500.css';
+@import '@fontsource/space-grotesk/latin-600.css'; /* the text tool */
 @import '@fontsource/space-mono/latin-400.css';
 
 :root {
@@ -139,9 +140,174 @@ body {
   justify-content: center;
 }
 
-.ed-img {
+/* The original, loaded for the canvas to draw; never shown itself. */
+.ed-src {
+  display: none;
+}
+
+.ed-canvas {
   display: block;
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.ed-canvas[data-tool='select'] {
+  cursor: default;
+}
+
+.ed-canvas[data-tool='text'] {
+  cursor: text;
+}
+
+/* The text being typed sits where it will be drawn; the page sets its place,
+   size and colour. */
+.ed-text {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 1px dashed var(--dim);
+  outline-offset: 2px;
+  background: transparent;
+  font: 600 16px/1.2 'Space Grotesk', -apple-system, sans-serif;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.ed-tools {
+  position: absolute;
+  left: 14px;
+  top: 64px;
+  width: 40px;
+  padding: 6px 0;
+  border-radius: 14px;
+  background: var(--soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.ed-tool {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: default;
+}
+
+.ed-tool svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ed-tool:hover {
+  background: var(--soft);
+  color: var(--fg);
+}
+
+.ed-tool.ed-on {
+  background: #fff;
+  color: #000;
+}
+
+.ed-tool:focus-visible,
+.ed-sw:focus-visible,
+.ed-wd:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+.ed-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--soft);
+  white-space: nowrap;
+}
+
+.ed-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ed-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ed-sw {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: default;
+}
+
+/* In the order of COLORS in model.ts. */
+.ed-c0 { background: #e8262e; }
+.ed-c1 { background: #f5b700; }
+.ed-c2 { background: #27ae60; }
+.ed-c3 { background: #2f80ed; }
+.ed-c4 { background: #111; outline: 1px solid #444; }
+.ed-c5 { background: #fff; }
+
+.ed-sw.ed-sel {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.ed-wd {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  cursor: default;
+}
+
+.ed-wd:hover {
+  background: var(--soft);
+}
+
+.ed-w {
+  display: block;
+  width: 18px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* In the order of WIDTHS (4, 8, 14). */
+.ed-w0 { height: 2px; }
+.ed-w1 { height: 4px; }
+.ed-w2 { height: 7px; }
+
+.ed-wd.ed-sel {
+  background: var(--soft-hover);
+}
+
+.ed-wd.ed-sel .ed-w {
+  background: #fff;
 }

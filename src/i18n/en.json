@@ -41,7 +41,19 @@
   "editor": {
     "title": "Screenshot · {w} × {h}",
     "undo": "Undo",
-    "redo": "Redo"
+    "redo": "Redo",
+    "tools": {
+      "select": "Select / move",
+      "pen": "Pen",
+      "arrow": "Arrow",
+      "rect": "Rectangle",
+      "ellipse": "Ellipse",
+      "line": "Line",
+      "text": "Text",
+      "sensor": "Censor"
+    },
+    "colors": ["Red", "Yellow", "Green", "Blue", "Black", "White"],
+    "widths": ["Thin", "Medium", "Thick"]
   },
   "clean": {
     "title": "Cleaning the keyboard",
