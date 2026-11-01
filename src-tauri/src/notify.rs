@@ -214,7 +214,7 @@ fn idle_seconds() -> f64 {
 
 // The on-screen windows of every app: owner, layer and bounds only, which need no
 // Screen Recording permission.
-fn window_list() -> Vec<WindowBox> {
+pub(crate) fn window_list() -> Vec<WindowBox> {
     let options = CGWindowListOption::OptionOnScreenOnly | CGWindowListOption::ExcludeDesktopElements;
     let Some(cf) = CGWindowListCopyWindowInfo(options, kCGNullWindowID) else { return Vec::new() };
     // A CFArray of CFDictionary is toll-free bridged to NSArray of NSDictionary;

@@ -424,8 +424,12 @@ pub fn save(app: &AppHandle, id: u64) -> Result<String, String> {
     Ok(path.to_string_lossy().into_owned())
 }
 
-/// Task 4 unregisters the keys here, and Task 7 closes the editor.
-pub fn module_gone(_app: &AppHandle, _id: &str) {}
+/// Switched off or uninstalled: the keys go. Task 7 closes the editor here.
+pub fn module_gone(_app: &AppHandle, id: &str) {
+    if id == MODULE_ID {
+        crate::shot_hotkey::unregister();
+    }
+}
 
 /// Uninstalling the module takes the history and its folder with it.
 pub fn uninstalled(app: &AppHandle, id: &str) {
@@ -443,7 +447,8 @@ pub fn uninstalled(app: &AppHandle, id: &str) {
     announce(app, &ids, None);
 }
 
-/// Loads the history and makes it the app's state.
+/// Loads the history and makes it the app's state, then takes the keys when the
+/// module is on.
 pub fn start(app: &AppHandle) {
     let history = match app.path().app_data_dir() {
         Ok(data) => {
@@ -458,6 +463,7 @@ pub fn start(app: &AppHandle) {
         }
     };
     app.manage(ShotState(Mutex::new(history)));
+    crate::shot_hotkey::start(app);
 }
 
 #[tauri::command]

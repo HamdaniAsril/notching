@@ -51,6 +51,8 @@ mod shelf_drop;
 #[cfg(target_os = "macos")]
 mod shelf_service;
 #[cfg(target_os = "macos")]
+mod shot_hotkey;
+#[cfg(target_os = "macos")]
 mod shot_service;
 #[cfg(target_os = "macos")]
 mod timer_service;
@@ -121,6 +123,8 @@ pub fn run() {
             shot_service::shot_delete,
             shot_service::shot_permission,
             shot_service::open_screen_recording_settings,
+            shot_hotkey::shot_keys,
+            shot_hotkey::open_keyboard_shortcuts,
         ])
         // A file drag can reach an overlay's webview before its sensor (the panel
         // already catches the mouse): that opens the drop zone too (Titipan).

@@ -45,6 +45,8 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
         crate::lamp_service::module_gone(&app, &id);
         crate::shelf_service::module_gone(&app, &id);
         crate::shot_service::module_gone(&app, &id);
+    } else {
+        crate::shot_hotkey::module_on(&app, &id);
     }
     crate::status::publish(&app);
     Ok(())
@@ -67,6 +69,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
 #[tauri::command]
 pub fn reinstall_module(app: AppHandle, core: State<CoreState>, id: String) -> Result<(), String> {
     change(&app, &core, |c| c.reinstall(&id))?;
+    crate::shot_hotkey::module_on(&app, &id);
     crate::status::publish(&app);
     Ok(())
 }
