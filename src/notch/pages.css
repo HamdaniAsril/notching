@@ -68,11 +68,17 @@
   white-space: normal;
 }
 
-/* The Modul page: Control Centre-like tiles, 6 to a row. */
+/* The Modul page: Control Centre-like tiles, 4 to a row (MODULES_GRID in
+   route.ts); every row is centred, the last one too. */
 .mods-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  grid-auto-rows: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mods-row {
+  display: flex;
+  justify-content: center;
   gap: 6px;
 }
 
@@ -83,7 +89,10 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-width: 0;
+  flex: none;
+  width: 76px;
+  height: 64px;
+  box-sizing: border-box;
   padding: 10px 4px 8px;
   border: 0;
   border-radius: 14px;

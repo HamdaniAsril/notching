@@ -37,9 +37,13 @@ test('resolvePage knows pages, the Modul page and module pages', () => {
 test('sizes follow the kind of page', () => {
   expect(viewSize(pickPage(state(), null, false))).toEqual({ width: 520, height: 104 });
   const mods = (n: number) => viewSize({ kind: 'modules', key: 'modules', modules: Array.from({ length: n }, (_, i) => moduleInfo(`m${i}`)) });
-  expect(mods(1)).toEqual({ width: 520, height: 64 });
-  expect(mods(7)).toEqual({ width: 520, height: 134 });
-  expect(mods(0)).toEqual({ width: 520, height: 56 });
+  // The Modul page: 4 tiles of 76 a row, 6 apart, inside 18 on each side.
+  expect(mods(1)).toEqual({ width: 358, height: 64 });
+  expect(mods(4)).toEqual({ width: 358, height: 64 });
+  expect(mods(7)).toEqual({ width: 358, height: 134 });
+  expect(mods(8)).toEqual({ width: 358, height: 134 });
+  expect(mods(9)).toEqual({ width: 358, height: 204 });
+  expect(mods(0)).toEqual({ width: 358, height: 56 });
   expect(viewSize(resolvePage(state(), 'module:system-stat')!)).toEqual({ width: 400, height: 104 });
 });
 
@@ -55,7 +59,7 @@ test('the Modul page holds modules with an action, which have no page of their o
   const clean = moduleInfo('keyboard-clean', { entry: null, card: null, action: { capability: 'keyclean', method: 'toggle' } });
   const s = state({ modules: [homeWidgets(), moduleInfo('system-stat'), clean] });
   expect(pageModules(s).map(m => m.id)).toEqual(['system-stat', 'keyboard-clean']);
-  expect(viewSize(resolvePage(s, 'modules')!)).toEqual({ width: 520, height: 64 });
+  expect(viewSize(resolvePage(s, 'modules')!)).toEqual({ width: 358, height: 64 });
   expect(resolvePage(s, 'module:keyboard-clean')).toBeNull();
 });
 

@@ -45,7 +45,7 @@ test('the page list shows Beranda, the custom pages, then Modul', async () => {
   expect(rows[1].querySelector('.label')!.textContent).toBe('<b>Kerja</b>');
   expect(rows[1].querySelector('b')).toBeNull();
   expect(rows[2].textContent).toContain('Modul');
-  expect(rows[2].textContent).toContain('6 per baris');
+  expect(rows[2].textContent).toContain('4 per baris');
   expect(rows[0].querySelector('svg')).not.toBeNull();
 });
 

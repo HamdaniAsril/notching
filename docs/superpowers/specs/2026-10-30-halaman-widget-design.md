@@ -149,7 +149,10 @@ Pada 1 November 2026 pemilik ide memutuskan bahwa Music bukan modul. Music menja
 Acuan: `modules-page.html`, pilihan A.
 
 - **Kotak ikon seperti Pusat Kontrol:** ikon garis besar dengan nama kecil di bawahnya.
-- **Satu baris berisi 6 kotak.** Modul berikutnya turun ke baris baru, dan panel memanjang ke bawah.
+- **Satu baris berisi 4 kotak** (diputuskan pemilik ide pada 1 November 2026; sebelumnya 6). Dengan 8 modul hasilnya 2 baris. Kalau nanti ada modul baru, susunannya disesuaikan lagi.
+  - Setiap baris selalu rata tengah, termasuk baris terakhir yang tidak penuh.
+  - Ukuran panel menyesuaikan jumlah kotak. Lebarnya selalu selebar 4 kotak, dan tingginya mengikuti jumlah baris.
+  - Ukuran kotak tetap seperti sebelumnya, sekitar 76 × 64 px.
 - **Modul yang sedang menyala tampil putih,** misalnya Keep awake.
 - **Modul yang sedang berjalan diberi titik merah kecil,** misalnya Timer.
 - **Klik kotak, panel berganti ke halaman modul itu.**

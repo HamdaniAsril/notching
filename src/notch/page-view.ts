@@ -2,7 +2,7 @@ import type { HostStrings } from '../i18n';
 import type { ModuleInfo, ModuleState } from '../modules/types';
 import type { FrameHost, FrameSpec } from '../pages/frames';
 import { slots, widgetCatalog } from '../pages/layout';
-import { CUSTOM_PAGE, type PageView, STRIP_HEIGHT } from '../pages/route';
+import { CUSTOM_PAGE, MODULES_GRID, type PageView, STRIP_HEIGHT } from '../pages/route';
 import { type CleanerDeps, type CleanerView, mountCleaner } from '../cleaner/view';
 import { mountShelfView, type ShelfView, type ShelfViewDeps } from '../shelf/view';
 import { mountShotList, type ShotList, type ShotListDeps } from '../shot/list';
@@ -174,7 +174,12 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     deps.frames.keep([]);
     if (v.modules.length === 0) return el(doc, 'div', 'pg-empty lab', strings.noModules);
     const grid = el(doc, 'div', 'mods-grid');
-    for (const m of v.modules) {
+    let line: HTMLElement | null = null;
+    v.modules.forEach((m, i) => {
+      if (i % MODULES_GRID.columns === 0) {
+        line = el(doc, 'div', 'mods-row');
+        grid.append(line);
+      }
       const tile = el(doc, 'button', m.activity === 'on' ? 'mods-tile on' : 'mods-tile');
       tile.type = 'button';
       tile.setAttribute('aria-label', m.name);
@@ -183,8 +188,8 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
       tile.append(glyph, el(doc, 'span', 'mods-name', m.shortName));
       if (m.activity === 'running') tile.append(el(doc, 'i', 'mods-run'));
       tile.addEventListener('click', () => (m.action ? deps.onAction(m) : deps.onOpenModule(m.id)));
-      grid.append(tile);
-    }
+      line!.append(tile);
+    });
     return grid;
   }
 

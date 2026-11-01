@@ -147,6 +147,16 @@ test('the Modul page shows a tile per module, white when on and a red dot when r
   expect(deps.onOpenModule).toHaveBeenCalledWith('system-stat');
 });
 
+test('the Modul page lays its tiles in rows of 4, the last row centred', () => {
+  const { content, show } = mount();
+  const extra = Array.from({ length: 6 }, (_, i) => moduleInfo(`m${i}`));
+  show({ ...TEST_STATE, modules: [...TEST_STATE.modules, ...extra] }, 'modules');
+  const rows = [...content.querySelectorAll<HTMLElement>('.mods-grid > .mods-row')];
+  expect(rows.map(r => r.querySelectorAll('.mods-tile').length)).toEqual([4, 3]);
+  expect([...content.querySelectorAll('.mods-tile')].map(t => t.querySelector('.mods-name')!.textContent))
+    .toEqual(['system-stat', 'm0', 'm1', 'm2', 'm3', 'm4', 'm5']);
+});
+
 test('an action tile runs its action and opens no page', () => {
   const { content, deps, show } = mount();
   const clean = moduleInfo('keyboard-clean', { shortName: 'Keyboard', entry: null, card: null,

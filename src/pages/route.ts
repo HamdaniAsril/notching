@@ -10,7 +10,10 @@ export const CUSTOM_PAGE: CardSize = { width: 520, height: 104 };
 export const BACK_BAR = 24;
 // The tallest a full view may make a page.
 export const FULL_PAGE_MAX = 240;
-export const MODULES_GRID = { columns: 6, gap: 6, tile: 64, width: 520, empty: 56 } as const;
+// The Modul page (owner, 1 Nov): rows of 4 tiles, each row centred, so the last
+// one too; the panel is as tall as the rows. `width`: 4 tiles, their gaps and
+// the panel's 18 px sides.
+export const MODULES_GRID = { columns: 4, gap: 6, tile: 64, tileWidth: 76, width: 358, empty: 56 } as const;
 // A page's strip (design 31 Oct, Timer §3): a dotted line, then the strip.
 export const STRIP_GAP = 20;
 export const STRIP_HEIGHT = 40;
