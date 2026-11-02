@@ -3,9 +3,7 @@ import type { Lang } from '../kit/protocol';
 
 // The bar's parts, in order. Their colours are in pages.css (`.cl-seg[data-key]`),
 // from the accent and the greys.
-export const PART_KEYS = ['apps', 'documents', 'photos', 'cleanable', 'other', 'free'] as const;
-
-export type PartKey = (typeof PART_KEYS)[number];
+export type PartKey = 'apps' | 'documents' | 'photos' | 'cleanable' | 'other' | 'free';
 
 // `known` false: macOS kept it from us (no Full Disk Access); its bytes are in Lainnya.
 export interface BarPart { key: PartKey; bytes: number; known: boolean }

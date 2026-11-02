@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { at, NOW, rem, SNAP } from '../home/widgets/fixtures';
-import { daysWithOpen, nextThisWeek, nextTimed, openReminders, untilText } from './plan';
+import { nextThisWeek, nextTimed, openReminders, untilText } from './plan';
 
 test('open reminders go by day, then time with untimed last, then id', () => {
   const rs = [
@@ -44,20 +44,6 @@ test('next this week skips what is past and what is in a later week', () => {
     rem(4, 'Kamis', '2026-10-29', null),
   ];
   expect(nextThisWeek(rs, NOW)?.title).toBe('Kamis');
-});
-
-test('days with an open reminder are the ones of this week only', () => {
-  const rs = [
-    ...SNAP.reminders,
-    rem(4, 'Selesai saja', '2026-10-29', null, true),
-    rem(5, 'Pekan depan', '2026-11-02', null),
-    rem(6, 'Minggu', '2026-11-01', null),
-  ];
-  const days = daysWithOpen(rs, NOW);
-  expect(days.has('2026-10-27')).toBe(true);
-  expect(days.has('2026-11-01')).toBe(true);
-  expect(days.has('2026-10-29')).toBe(false);
-  expect(days.has('2026-11-02')).toBe(false);
 });
 
 test('until text is minutes under an hour, hours under a day, then days, as a phrase', () => {

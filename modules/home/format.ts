@@ -17,12 +17,6 @@ export function remaining(ms: number, lang: Lang): string {
   return h > 0 ? `${h} ${lang === 'id' ? 'j' : 'h'} ${m} m` : `${m} m`;
 }
 
-// Lit dots in a row of `count`: how far now is from the last prayer to the next.
-export function progress(prev: number, next: number, now: number, count: number): number {
-  const lit = Math.round((count * (now - prev)) / (next - prev));
-  return Math.min(count, Math.max(0, lit));
-}
-
 export type WeatherKey = 'clear' | 'mostlyClear' | 'cloudy' | 'fog' | 'drizzle' | 'rain' | 'showers' | 'snow' | 'storm';
 
 // WMO weather codes, as Open-Meteo sends them.

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import {
-  clock, dayKey, degrees, dueAt, nearest, parseTime, progress, reminderLabel, remaining, weatherKey,
+  clock, dayKey, degrees, dueAt, nearest, parseTime, reminderLabel, remaining, weatherKey,
 } from './format';
 import type { Reminder } from './types';
 
@@ -21,12 +21,6 @@ test('time left reads in hours and minutes', () => {
   expect(remaining(82 * 60000, 'en')).toBe('1 h 22 m');
   expect(remaining(22 * 60000, 'id')).toBe('22 m');
   expect(remaining(-5, 'id')).toBe('0 m');
-});
-
-test('progress dots', () => {
-  expect(progress(0, 100, 75, 18)).toBe(14);
-  expect(progress(0, 100, -5, 18)).toBe(0);
-  expect(progress(0, 100, 200, 18)).toBe(18);
 });
 
 test('weather codes', () => {

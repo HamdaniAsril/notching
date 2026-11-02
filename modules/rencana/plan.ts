@@ -23,12 +23,6 @@ export function nextThisWeek(rs: Reminder[], now: Date): Reminder | null {
   return openReminders(rs).find(r => days.has(r.day) && !isPast(r, now)) ?? null;
 }
 
-// The days of this week that have an open reminder.
-export function daysWithOpen(rs: Reminder[], now: Date): Set<string> {
-  const days = new Set(weekOf(now).map(dayKey));
-  return new Set(openReminders(rs).map(r => r.day).filter(d => days.has(d)));
-}
-
 // "18 menit lagi", "in 2 h", "3 hari lagi": the largest unit that fits, rounded down.
 export function untilText(ms: number, lang: Lang): string {
   const id = lang === 'id';

@@ -1,17 +1,13 @@
-/* Shared look for module cards and the notch (spec 5, beranda-nothing.html).
+/* Shared base for module cards and the notch: the Volt fonts and the page defaults.
    No color-scheme here or in the notch page: a mismatch between a page and its
    iframe makes WebKit paint the frame opaque. */
 @import './volt-tokens.css';
-@import '@fontsource/space-grotesk/latin-400.css';
-@import '@fontsource/space-grotesk/latin-500.css';
-@import '@fontsource/space-mono/latin-400.css';
 
 :root {
   --w: #fff;
   --g1: rgba(255, 255, 255, 0.68);
   --g2: rgba(255, 255, 255, 0.42);
   --g3: rgba(255, 255, 255, 0.16);
-  --red: #e8262e;
 }
 
 html,
@@ -25,45 +21,6 @@ body {
   -webkit-font-smoothing: antialiased;
   user-select: none;
   -webkit-user-select: none;
-}
-
-.lab {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--g2);
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  line-height: 14px;
-}
-
-.rd {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--red);
-  display: inline-block;
-  flex: none;
-}
-
-.dm {
-  display: block;
-}
-
-.vdots {
-  width: 3px;
-  flex: none;
-  align-self: stretch;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) center top / 3px 5px repeat-y;
-}
-
-.hdots {
-  height: 3px;
-  margin: 16px 0 10px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left center / 5px 3px repeat-x;
 }
 
 /* An icon (src/kit/icons.ts). */

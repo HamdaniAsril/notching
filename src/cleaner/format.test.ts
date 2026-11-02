@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { PART_KEYS, barParts, sizeText } from './format';
+import { barParts, sizeText } from './format';
 
 test('sizeText follows Finder units and the language', () => {
   expect(sizeText(25_900_000_000, 'id')).toBe('25,9 GB');
@@ -18,7 +18,6 @@ test('barParts: known parts, the rest as Lainnya, then free', () => {
   expect(parts.map(p => p.key)).toEqual(['apps', 'documents', 'photos', 'cleanable', 'other', 'free']);
   expect(parts.find(p => p.key === 'other')!.bytes).toBe(212e9 - 144e9);
   expect(parts.find(p => p.key === 'free')!.bytes).toBe(44e9);
-  expect([...PART_KEYS]).toEqual(['apps', 'documents', 'photos', 'cleanable', 'other', 'free']);
 });
 
 test('barParts never makes Lainnya negative, and folds unknown parts in', () => {
