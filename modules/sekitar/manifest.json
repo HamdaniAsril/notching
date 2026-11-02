@@ -6,6 +6,7 @@
   "capabilities": ["home.data"],
   "widgets": [
     { "id": "bigweather", "entry": "index.html", "width": 2, "kind": "weather" },
-    { "id": "moon", "entry": "index.html", "width": 1, "kind": "weather" }
+    { "id": "moon", "entry": "index.html", "width": 1, "kind": "weather" },
+    { "id": "sun", "entry": "index.html", "width": 2, "kind": "weather" }
   ]
 }

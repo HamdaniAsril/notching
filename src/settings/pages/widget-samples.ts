@@ -12,6 +12,7 @@ import enSekitar from '../../../modules/sekitar/locales/en.json';
 import idSekitar from '../../../modules/sekitar/locales/id.json';
 import { bigWeatherView } from '../../../modules/sekitar/widgets/bigweather';
 import { moonView } from '../../../modules/sekitar/widgets/moon';
+import { sunView } from '../../../modules/sekitar/widgets/sun';
 import enRencana from '../../../modules/rencana/locales/en.json';
 import idRencana from '../../../modules/rencana/locales/id.json';
 import { nextView } from '../../../modules/rencana/widgets/next';
@@ -29,11 +30,12 @@ import { svgBox } from '../../kit/widget';
 // same moment as the home samples (30 Oct 2026, 09:32), not live.
 const AT = new Date(2026, 9, 30, 9, 32, 15);
 
-// The weather the samples show: a cloudy morning in Jakarta.
+// The weather the samples show: a cloudy morning in Jakarta, with the sun times of that day.
 const WEATHER: HomeSnapshot = {
   place: { name: 'Jakarta', region: 'Jakarta', country: 'Indonesia', latitude: -6.21, longitude: 106.85 },
   weather: { temp: 31.4, code: 3, min: 24.7, max: 33.2, fetchedAt: AT.getTime(), latitude: -6.21, longitude: 106.85 },
   prayer: null,
+  sun: { rise: new Date(2026, 9, 30, 5, 28).getTime(), set: new Date(2026, 9, 30, 17, 45).getTime(), nextRise: new Date(2026, 9, 31, 5, 28).getTime() },
   reminders: [],
 };
 
@@ -65,6 +67,8 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
       return [bigWeatherView(document.body, lang === 'en' ? enSekitar : idSekitar, WEATHER, AT)];
     case 'sekitar/moon':
       return [moonView(document.body, lang === 'en' ? enSekitar : idSekitar, AT)];
+    case 'sekitar/sun':
+      return [sunView(lang === 'en' ? enSekitar : idSekitar, lang, WEATHER, AT)];
     case 'rencana/week':
       return [weekView(lang === 'en' ? enRencana : idRencana, lang, REMINDERS, AT)];
     case 'rencana/next':

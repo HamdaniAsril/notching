@@ -15,7 +15,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::app_core::CoreState;
 use crate::settings::{HomeSettings, Place};
-use prayer::{prayer_day, PrayerDay};
+use prayer::{prayer_day, sun_day, PrayerDay, SunDay};
 use reminders::{Reminder, Reminders, REMINDERS_FILE};
 use weather::{same_place, Weather, WEATHER_FILE};
 
@@ -49,6 +49,7 @@ pub struct HomeSnapshot {
     pub place: Option<Place>,
     pub weather: Option<Weather>,
     pub prayer: Option<PrayerDay>,
+    pub sun: Option<SunDay>,
     pub reminders: Vec<Reminder>,
 }
 
@@ -61,6 +62,7 @@ pub fn snapshot(settings: &HomeSettings, home: &mut Home, now: chrono::DateTime<
     HomeSnapshot {
         weather: place.as_ref().and_then(|p| home.weather.clone().filter(|w| same_place(w, p))),
         prayer: place.as_ref().and_then(|p| prayer_day(now.timestamp_millis(), today, p, settings.prayer_method)),
+        sun: place.as_ref().and_then(|p| sun_day(today, p)),
         reminders: home.reminders.items().to_vec(),
         place,
     }
@@ -148,8 +150,8 @@ mod tests {
     fn a_snapshot_without_a_city_has_no_weather_or_prayer() {
         let d = tempfile::tempdir().unwrap();
         let s = snapshot(&HomeSettings::default(), &mut home(&d), now());
-        assert_eq!(serde_json::to_value(&s).unwrap().as_object().unwrap().len(), 4);
-        assert_eq!((s.place, s.weather, s.prayer), (None, None, None));
+        assert_eq!(serde_json::to_value(&s).unwrap().as_object().unwrap().len(), 5);
+        assert_eq!((s.place, s.weather, s.prayer, s.sun), (None, None, None, None));
     }
 
     #[test]
@@ -176,6 +178,8 @@ mod tests {
         let s = snapshot(&settings, &mut h, now());
         let prayer = s.prayer.unwrap();
         assert_eq!(prayer.today.len(), 5);
+        let sun = s.sun.unwrap();
+        assert!(sun.rise < sun.set && sun.set < sun.next_rise);
         let t = now().timestamp_millis();
         assert!(prayer.prev.at <= t && t < prayer.next.at);
         assert_eq!(s.reminders.iter().map(|r| r.title.as_str()).collect::<Vec<_>>(), ["Hari ini"]);

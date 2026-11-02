@@ -1,6 +1,6 @@
 {
   "name": "Around",
-  "description": "Weather and moon",
+  "description": "Weather, moon and sun",
   "noPlace": "Set a city in Settings",
   "weatherKinds": {
     "clear": "Clear",
@@ -28,8 +28,14 @@
   "today": "Today",
   "high": "H",
   "low": "L",
+  "sun": "SUN",
+  "toSet": "LEFT",
+  "toRise": "TO SUNRISE",
+  "rise": "rise",
+  "set": "set",
   "widgets": {
     "bigweather": "Weather, large",
-    "moon": "MOON"
+    "moon": "MOON",
+    "sun": "Sun"
   }
 }

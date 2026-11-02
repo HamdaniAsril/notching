@@ -29,8 +29,8 @@ test('English names the range H and L', () => {
   expect(root.textContent).toContain('L 25°');
 });
 
-test('the icon is a moon at night and a sun by day', () => {
-  const clear = { ...SNAP, weather: { ...SNAP.weather!, code: 0 } };
+test('without sun times the icon is a moon from 18.00 to 06.00 and a sun by day', () => {
+  const clear = { ...SNAP, weather: { ...SNAP.weather!, code: 0 }, sun: null };
   const day = host();
   renderBigWeather(day, id, 'id').update(clear, new Date(2026, 9, 27, 17, 59));
   const night = host();
@@ -41,6 +41,20 @@ test('the icon is a moon at night and a sun by day', () => {
   expect(day.querySelector('.ic svg')!.innerHTML).toContain('M12 2v2');
   expect(night.querySelector('.ic svg')!.innerHTML).not.toContain('M12 2v2');
   expect(dawn.querySelector('.ic svg')!.innerHTML).toBe(night.querySelector('.ic svg')!.innerHTML);
+});
+
+test('with sun times the icon follows them, not the clock', () => {
+  const sun = { rise: new Date(2026, 9, 27, 5, 31).getTime(), set: new Date(2026, 9, 27, 17, 48).getTime(), nextRise: new Date(2026, 9, 28, 5, 31).getTime() };
+  const clear = { ...SNAP, weather: { ...SNAP.weather!, code: 0 }, sun };
+  const isSun = (now: Date) => {
+    const root = host();
+    renderBigWeather(root, id, 'id').update(clear, now);
+    return root.querySelector('.ic svg')!.innerHTML.includes('M12 2v2');
+  };
+  expect(isSun(new Date(2026, 9, 27, 17, 47))).toBe(true);
+  expect(isSun(new Date(2026, 9, 27, 17, 48))).toBe(false);
+  expect(isSun(new Date(2026, 9, 27, 5, 30))).toBe(false);
+  expect(isSun(new Date(2026, 9, 27, 5, 31))).toBe(true);
 });
 
 test('without a city it asks for one', () => {

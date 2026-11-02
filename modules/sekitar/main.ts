@@ -6,6 +6,7 @@ import en from './locales/en.json';
 import id from './locales/id.json';
 import { renderBigWeather } from './widgets/bigweather';
 import { renderMoon } from './widgets/moon';
+import { renderSun } from './widgets/sun';
 
 // One page for every widget of the pack: the notch says which one this frame shows.
 async function start(): Promise<void> {
@@ -25,6 +26,11 @@ async function start(): Promise<void> {
       const w = renderMoon(root, strings, kit.lang);
       w.update(now());
       everyMinute(setTimer, now, () => w.update(now()));
+      break;
+    }
+    case 'sun': {
+      const w = renderSun(root, strings, kit.lang);
+      startTicks(kit, s => w.update(s, now()), setTimer, now, { weather: false });
       break;
     }
     default:

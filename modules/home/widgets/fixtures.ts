@@ -14,6 +14,7 @@ export const SNAP: HomeSnapshot = {
     prev: { name: 'fajr', at: at(27, 4, 10) },
     next: { name: 'dhuhr', at: at(27, 11, 40) },
   },
+  sun: { rise: at(27, 5, 31), set: at(27, 17, 48), nextRise: at(28, 5, 31) },
   reminders: [
     rem(3, 'Beli kopi', '2026-10-27', null, true),
     rem(2, 'Bayar listrik', '2026-10-27', null),

@@ -118,3 +118,55 @@ body {
   white-space: normal;
   line-height: 12px;
 }
+
+/* Matahari: the label and the time left on top, the arc of the day, the two times below. */
+.wd-sun {
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.wd-sun-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wd-sun-eta {
+  display: block;
+  min-width: 0;
+}
+
+.wd-sun-n {
+  color: var(--w);
+}
+
+.wd-sun-box {
+  align-self: center;
+  flex: none;
+  height: 40px;
+}
+
+.wd-sun-box svg {
+  display: block;
+}
+
+.wd-sun-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.wd-sun-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wd-sun-side:last-child {
+  align-items: flex-end;
+}
+
+.wd-sun-side .lab {
+  line-height: 12px;
+}

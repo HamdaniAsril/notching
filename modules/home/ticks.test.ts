@@ -2,7 +2,7 @@ import { expect, test, vi } from 'vitest';
 import { everyMinute, startTicks, WEATHER_EVERY_MS } from './ticks';
 import type { HomeSnapshot } from './types';
 
-const SNAP: HomeSnapshot = { place: null, weather: null, prayer: null, reminders: [] };
+const SNAP: HomeSnapshot = { place: null, weather: null, prayer: null, sun: null, reminders: [] };
 const flush = () => new Promise(r => setTimeout(r, 0));
 
 function setup(start = new Date(2026, 9, 27, 10, 18, 30), weather = true) {

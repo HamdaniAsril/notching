@@ -45,6 +45,16 @@ test('Cuaca besar and Bulan have samples', () => {
   expect(moon[0].querySelector('.wd-big svg.dm')).not.toBeNull();
 });
 
+test('Matahari has a sample', () => {
+  const sun = packSample(widget('sekitar/sun', 2), 'id')!;
+  expect(sun).toHaveLength(1);
+  expect(sun[0].querySelector('.lab')!.textContent).toBe('MATAHARI');
+  expect(sun[0].textContent).toContain('8J 13M');
+  expect(sun[0].textContent).toContain('LAGI');
+  expect(sun[0].querySelector('svg.wd-sun-arc')).not.toBeNull();
+  expect(sun[0].querySelectorAll('.wd-sun-foot svg.dm')).toHaveLength(2);
+});
+
 test('Pekan ini and Berikutnya have samples', () => {
   const week = packSample(widget('rencana/week', 2), 'id')!;
   expect(week).toHaveLength(1);

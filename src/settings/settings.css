@@ -1231,6 +1231,72 @@ body > .ed-ghost {
   line-height: 12px;
 }
 
+/* Matahari: the same rules as modules/sekitar/style.css, scoped to the slot and the picker card. */
+.ed-slot .wd-sun,
+.ed-shot .wd-sun {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.ed-slot .wd-sun-top,
+.ed-shot .wd-sun-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ed-slot .wd-sun-eta,
+.ed-shot .wd-sun-eta {
+  display: block;
+  min-width: 0;
+}
+
+.ed-slot .wd-sun-n,
+.ed-shot .wd-sun-n {
+  color: var(--w);
+}
+
+.ed-slot .wd-sun-box,
+.ed-shot .wd-sun-box {
+  align-self: center;
+  flex: none;
+  height: 40px;
+}
+
+.ed-slot .wd-sun-box svg,
+.ed-shot .wd-sun-box svg {
+  display: block;
+}
+
+.ed-slot .wd-sun-foot,
+.ed-shot .wd-sun-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ed-slot .wd-sun-side,
+.ed-shot .wd-sun-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ed-slot .wd-sun-side:last-child,
+.ed-shot .wd-sun-side:last-child {
+  align-items: flex-end;
+}
+
+.ed-slot .wd-sun-side .lab,
+.ed-shot .wd-sun-side .lab {
+  line-height: 12px;
+}
+
 /* Pekan ini and Berikutnya: the same rules as modules/rencana/style.css, scoped to the slot
    and the picker card. */
 .ed-slot .wd-week,

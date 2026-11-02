@@ -35,6 +35,15 @@ pub struct PrayerDay {
     pub next: PrayerTime,
 }
 
+/// Sunrise and sunset of a local date and the next sunrise, as milliseconds since the epoch.
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SunDay {
+    pub rise: i64,
+    pub set: i64,
+    pub next_rise: i64,
+}
+
 /// A method's angles, Isha interval (minutes after Maghrib, 0 for none),
 /// adjustments in minutes (Fajr, Dhuhr, Asr, Maghrib, Isha) and rounding.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -108,6 +117,20 @@ pub fn day_times(date: NaiveDate, place: &Place, method: PrayerMethod) -> Vec<Pr
         .zip(params.adjustments)
         .map(|((&name, t), minutes)| PrayerTime { name, at: rounded_minute(t + minutes * 60_000.0, params.round_up) as i64 })
         .collect()
+}
+
+/// Today's sunrise and sunset and tomorrow's sunrise. None where the sun does not rise or set.
+pub fn sun_day(today: NaiveDate, place: &Place) -> Option<SunDay> {
+    let (lat, lon) = (place.latitude, place.longitude);
+    let tomorrow = today.checked_add_days(Days::new(1))?;
+    let solar = SolarTime::new(today, lat, lon);
+    let rise = utc_time(today, solar.sunrise);
+    let set = utc_time(today, solar.sunset);
+    let next_rise = utc_time(tomorrow, SolarTime::new(tomorrow, lat, lon).sunrise);
+    [rise, set, next_rise]
+        .iter()
+        .all(|t| t.is_finite())
+        .then(|| SunDay { rise: rise as i64, set: set as i64, next_rise: next_rise as i64 })
 }
 
 /// `today` is the Mac's local date. Yesterday and tomorrow are included, so the
@@ -349,6 +372,23 @@ mod tests {
         let noon = prayer_day(today[1].at, day(29), &place, m).unwrap();
         assert_eq!((noon.prev, noon.next), (today[1], today[2]));
         assert_eq!(noon.today, today);
+    }
+
+    #[test]
+    fn sun_day_for_jakarta() {
+        // The horizon with refraction (-50 arcminutes). The sunset is a few minutes before the
+        // Kemenag Maghrib of 29 October, which adds ihtiyat and rounds up.
+        let s = sun_day(day(27), &jakarta()).unwrap();
+        let two_minutes = 2 * 60_000;
+        assert!((s.rise - wib_ms(27, 5, 27)).abs() <= two_minutes, "rise {}", wib(s.rise));
+        assert!((s.set - wib_ms(27, 17, 45)).abs() <= two_minutes, "set {}", wib(s.set));
+        assert!((s.next_rise - s.rise - 24 * 3_600_000).abs() <= two_minutes, "next rise {}", wib(s.next_rise));
+    }
+
+    #[test]
+    fn no_sun_day_where_the_sun_does_not_set() {
+        let tromso = Place { name: "Tromsø".into(), latitude: 69.65, longitude: 18.96, ..jakarta() };
+        assert_eq!(sun_day(NaiveDate::from_ymd_opt(2026, 6, 21).unwrap(), &tromso), None);
     }
 
     #[test]

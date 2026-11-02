@@ -33,6 +33,7 @@ export function fakeHome(params: URLSearchParams): (capability: string, method: 
         ? { temp: 31.4, code: 3, min: 24.7, max: 33.2, fetchedAt: Date.now(), latitude: -6.21, longitude: 106.85 }
         : null,
       prayer: hasCity ? prayer() : null,
+      sun: hasCity ? { rise: at(0, 6, 30), set: at(0, 17, 48), nextRise: at(1, 5, 31) } : null,
       reminders: reminders.map(r => ({ ...r })),
     };
   }

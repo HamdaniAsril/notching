@@ -42,9 +42,17 @@ export interface Reminder {
   notified: boolean;
 }
 
+// Sunrise and sunset of today and the next sunrise, ms since the epoch.
+export interface SunDay {
+  rise: number;
+  set: number;
+  nextRise: number;
+}
+
 export interface HomeSnapshot {
   place: Place | null;
   weather: Weather | null;
   prayer: PrayerDay | null;
+  sun: SunDay | null;
   reminders: Reminder[];
 }
