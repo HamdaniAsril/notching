@@ -2024,6 +2024,14 @@ body > .ed-ghost.page-row {
   gap: 6px;
 }
 
+/* The picker's strip card is narrower than the 484 px strip: the cells give way
+   (the last hours are cut) so the rain on the right stays whole. */
+.ed-shot .wd-hr-cells {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-cell {
   width: 30px;
   display: flex;
