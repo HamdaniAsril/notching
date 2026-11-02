@@ -1,0 +1,105 @@
+/* Volt look for page widgets. Imported by widget packages after kit.css, so the
+   html/body font rule below wins inside widget iframes only. */
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/barlow-condensed/latin-500.css';
+@import '@fontsource/barlow-condensed/latin-600.css';
+@import '@fontsource/barlow-condensed/latin-700.css';
+
+:root {
+  --v-ink: #f3f5f0;
+  --v-ink2: #c4c8bf;
+  --v-muted: #8c9187;
+  --v-dim: #80857b;
+  --v-faint: #454941;
+  --v-track: #23251f;
+  --v-acc: #c8f04a;
+  --v-acc-soft: #1d260b;
+  --v-on-acc: #0f1404;
+}
+
+html,
+body {
+  font-family: "Inter", -apple-system, sans-serif;
+  color: var(--v-ink);
+}
+
+.v-card {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: 100vh;
+  padding: 12px;
+}
+
+.v-card.flush {
+  padding: 0;
+}
+
+.v-lab {
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--v-muted);
+  white-space: nowrap;
+}
+
+.v-lab.ink {
+  color: var(--v-ink);
+}
+
+.v-num {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--v-ink);
+}
+
+.v-acc {
+  color: var(--v-acc);
+}
+
+.v-bar {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--v-track);
+}
+
+.v-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--v-acc);
+}
+
+.v-segs {
+  display: flex;
+  gap: 3px;
+}
+
+.v-seg {
+  flex: 1;
+  height: 2px;
+  background: var(--v-track);
+}
+
+.v-seg.on {
+  background: var(--v-acc);
+}
+
+.v-pill {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--v-acc);
+  color: var(--v-on-acc);
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.v-pill.soft {
+  background: var(--v-acc-soft);
+  color: var(--v-acc);
+}
