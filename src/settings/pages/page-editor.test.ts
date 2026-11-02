@@ -46,7 +46,7 @@ test('each widget shows a preview with its name below, in a grid', async () => {
   const { root } = await edit('p1');
   const jam = widgetButton(root, 'Jam');
   expect([...jam.children].map(c => c.className)).toEqual(['ed-shot', 'ed-name', 'ed-why']);
-  expect(jam.querySelector('.ed-shot svg.dm')).not.toBeNull();
+  expect(jam.querySelector('.ed-shot .hm-clock .v-num')).not.toBeNull();
   expect(jam.title).toBe('Waktu · 1 kolom');
   expect(jam.dataset.width).toBe('1');
   const tanggal = widgetButton(root, 'Tanggal');
@@ -54,7 +54,7 @@ test('each widget shows a preview with its name below, in a grid', async () => {
   const reminder = widgetButton(root, 'Reminder');
   expect(reminder.dataset.width).toBe('2');
   expect(reminder.querySelectorAll('.ed-shot .rm')).toHaveLength(3);
-  expect(widgetButton(root, 'Cuaca').querySelector('.ed-shot svg.dm')).not.toBeNull();
+  expect(widgetButton(root, 'Cuaca').querySelector('.ed-shot .hm-weather .v-num')).not.toBeNull();
 });
 
 test('a widget from another package gets a plain preview', async () => {
@@ -85,8 +85,8 @@ test('the preview is shaped like the notch and shows each widget', async () => {
   const notch = root.querySelector<HTMLElement>('.ed-notch')!;
   expect(notch.querySelector('.ed-row')).not.toBeNull();
   const [date, weather, reminders] = [...notch.querySelectorAll<HTMLElement>('.ed-slot')];
-  expect(date.querySelector('svg.dm')).not.toBeNull();
-  expect(weather.querySelector('svg.dm')).not.toBeNull();
+  expect(date.querySelector('.hm-date .v-num')).not.toBeNull();
+  expect(weather.querySelector('.hm-weather .v-num')).not.toBeNull();
   expect(reminders.querySelectorAll('.rm')).toHaveLength(3);
 });
 
@@ -241,11 +241,11 @@ test('the ghost goes once the drag ends', async () => {
 
 test('a card draws the widget at its notch size, the same as in the preview', async () => {
   const { root } = await edit('p1');
-  const card = widgetButton(root, 'Cuaca').querySelector<HTMLElement>('.ed-shot')!;
+  const card = widgetButton(root, 'Jam').querySelector<HTMLElement>('.ed-shot')!;
   const slot = root.querySelector<HTMLElement>('.ed-slot[aria-label="Jam"]')!;
-  const height = (e: HTMLElement) => e.querySelector('svg.dm')!.getAttribute('height');
-  expect(height(card)).toBe('42');
-  expect(height(slot)).toBe('42');
+  const size = (e: HTMLElement) => e.querySelector<HTMLElement>('.hm-clock .v-num')!.style.fontSize;
+  expect(size(card)).toBe('42px');
+  expect(size(slot)).toBe('42px');
   expect(card.dataset.width).toBe('1');
   expect(widgetButton(root, 'Reminder').querySelector<HTMLElement>('.ed-shot')!.dataset.width).toBe('2');
 });

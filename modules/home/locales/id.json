@@ -3,6 +3,15 @@
   "description": "Tanggal, cuaca, sholat, reminder, jam",
   "weather": "Cuaca",
   "prayer": "Sholat",
+  "nextPrayer": "Sholat berikutnya",
+  "left": "{t} lagi",
+  "doneOf": "{done} dari {total} selesai",
+  "dayparts": {
+    "morning": "pagi",
+    "noon": "siang",
+    "afternoon": "sore",
+    "night": "malam"
+  },
   "noPlace": "Atur kota di Pengaturan",
   "today": "Hari ini",
   "tomorrow": "Besok",

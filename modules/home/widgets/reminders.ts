@@ -1,4 +1,5 @@
 import type { Lang } from '../../../src/kit/protocol';
+import { lab } from '../../../src/kit/volt';
 import { dayKey, dueAt, nearest, parseTime, reminderLabel } from '../format';
 import type { HomeSnapshot, Reminder } from '../types';
 import { el, type HomeStrings } from './shared';
@@ -16,9 +17,41 @@ export interface RemindersWidget {
   update(s: HomeSnapshot, now: Date): void;
 }
 
-// The full view's height: heading and field (53 px) plus six rows 20 px tall
-// with 4 px between them; more rows scroll.
-const FULL_HEIGHT = 53 + 6 * 20 + 5 * 4;
+// The full view's height: the card's 12 px above and below, the heading and the field (46 px)
+// and six rows 18 px tall with 3 px between them; more rows scroll.
+const FULL_HEIGHT = 24 + 46 + 6 * 18 + 5 * 3;
+
+// One reminder row; the next one to come is in the accent. `onDone`: the circle is a button
+// that marks it done (the full view); without it the circle is only a mark.
+function rowOf(r: Reminder, now: Date, lang: Lang, strings: HomeStrings, next: boolean,
+  onDone: ((r: Reminder) => void) | null): HTMLElement {
+  const row = el('div', `rm${r.done ? ' done' : ''}${next ? ' next' : ''}`);
+  const ck = onDone ? el('button', 'ck') : el('span', 'ck');
+  if (ck instanceof HTMLButtonElement && onDone) {
+    ck.type = 'button';
+    ck.setAttribute('aria-pressed', String(r.done));
+    ck.setAttribute('aria-label', r.done ? strings.markOpen : strings.markDone);
+    ck.addEventListener('click', () => onDone(r));
+  }
+  row.append(ck, el('span', 't', r.title), el('span', next ? 'm v-acc' : 'm', reminderLabel(r, now, lang, strings)));
+  return row;
+}
+
+// The widget's content: "Hari ini" with how many of today's reminders are done, and the nearest
+// open ones, the first in the accent. Also what the editor's sample draws.
+export function remindersView(strings: HomeStrings, lang: Lang, reminders: Reminder[], now: Date): HTMLElement {
+  const w = el('div', 'v-card wd-reminders');
+  const head = el('div', 'hm-rem-head');
+  const today = reminders.filter(r => r.day === dayKey(now));
+  head.append(lab(strings.today, 'ink'), el('span', 'hm-rem-done',
+    today.length === 0 ? '' : strings.doneOf.replace('{done}', String(today.filter(r => r.done).length)).replace('{total}', String(today.length))));
+  const rms = el('div', 'rms');
+  const near = nearest(reminders, 3);
+  if (near.length === 0) rms.append(el('div', 'rm empty', strings.noReminders));
+  else rms.append(...near.map((r, i) => rowOf(r, now, lang, strings, i === 0, null)));
+  w.append(head, rms);
+  return w;
+}
 
 // Reminder (2 columns): the three nearest reminders. A click asks for the full
 // view, which lists them all with a field to add one and circles to mark them done.
@@ -32,46 +65,30 @@ export function renderReminders(root: HTMLElement, strings: HomeStrings, lang: L
 
   const count = () => `${strings.reminders} · ${snap ? nearest(snap.reminders, Infinity).length : 0}`;
 
-  function reminderRow(r: Reminder, withButton: boolean): HTMLElement {
-    const row = el('div', r.done ? 'rm done' : 'rm');
-    const ck = withButton ? el('button', 'ck') : el('span', 'ck');
-    if (ck instanceof HTMLButtonElement) {
-      ck.type = 'button';
-      ck.setAttribute('aria-pressed', String(r.done));
-      ck.setAttribute('aria-label', r.done ? strings.markOpen : strings.markDone);
-      ck.addEventListener('click', () => void actions.setDone(r.id, !r.done).catch(() => {}));
-    }
-    row.append(ck, el('span', 't', r.title), el('span', 'm', reminderLabel(r, now, lang, strings)));
-    return row;
-  }
-
   function renderSmall(): void {
     if (!snap) return;
-    const w = el('div', 'wd wd-reminders');
+    const w = remindersView(strings, lang, snap.reminders, now);
     w.setAttribute('role', 'button');
     w.tabIndex = 0;
-    const rms = el('div', 'rms');
-    const near = nearest(snap.reminders, 3);
-    if (near.length === 0) rms.append(el('div', 'rm empty', strings.noReminders));
-    else rms.append(...near.map(r => reminderRow(r, false)));
-    w.append(el('div', 'lab', count()), rms);
     w.addEventListener('click', () => actions.expand(FULL_HEIGHT));
     w.addEventListener('keydown', e => { if (e.key === 'Enter') actions.expand(FULL_HEIGHT); });
     root.replaceChildren(w);
   }
+
+  const markDone = (r: Reminder): void => void actions.setDone(r.id, !r.done).catch(() => {});
 
   function fillList(): void {
     if (!snap || !list) return;
     const open = nearest(snap.reminders, Infinity);
     const done = snap.reminders.filter(r => r.done).sort((a, b) => a.day.localeCompare(b.day) || a.id - b.id);
     list.head.textContent = count();
-    list.items.replaceChildren(...[...open, ...done].map(r => reminderRow(r, true)));
+    list.items.replaceChildren(...[...open, ...done].map(r => rowOf(r, now, lang, strings, false, markDone)));
   }
 
   function renderFull(): void {
-    const wrap = el('div', 'list');
+    const wrap = el('div', 'v-card list');
     const head = el('div', 'head');
-    const heading = el('span', 'lab');
+    const heading = lab('', 'ink');
     const back = el('button', 'back', `‹ ${strings.back}`);
     back.type = 'button';
     back.addEventListener('click', () => actions.collapse());
@@ -85,7 +102,7 @@ export function renderReminders(root: HTMLElement, strings: HomeStrings, lang: L
     const time = el('input', 'time');
     time.placeholder = strings.time;
     time.maxLength = 5;
-    const err = el('span', 'lab err');
+    const err = lab('', 'err');
     const submit = (): void => {
       const text = title.value.trim();
       if (!text) return;

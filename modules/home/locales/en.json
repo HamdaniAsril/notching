@@ -3,6 +3,15 @@
   "description": "Date, weather, prayer, reminders, clock",
   "weather": "Weather",
   "prayer": "Prayer",
+  "nextPrayer": "Next prayer",
+  "left": "{t} left",
+  "doneOf": "{done} of {total} done",
+  "dayparts": {
+    "morning": "morning",
+    "noon": "midday",
+    "afternoon": "afternoon",
+    "night": "night"
+  },
   "noPlace": "Set your city in Settings",
   "today": "Today",
   "tomorrow": "Tomorrow",

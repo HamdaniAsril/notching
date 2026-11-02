@@ -923,16 +923,11 @@ body > .ed-ghost {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
 
-/* Sizes as in modules/home/style.css. */
+/* The label of the Timer strip's sample. */
 .ed-slot .lab {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.ed-slot .ed-line {
-  font-size: 15px;
-  line-height: 19px;
 }
 
 /* The Volt look of the widget packs, for the editor's samples (src/kit/volt.css, scoped:
@@ -1009,6 +1004,326 @@ body > .ed-ghost {
   height: 100%;
   border-radius: 2px;
   background: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-segs {
+  display: flex;
+  gap: 3px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-seg {
+  flex: 1;
+  height: 2px;
+  background: var(--v-track);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-seg.on {
+  background: var(--v-acc);
+}
+
+/* The built-in widgets (Tanggal, Jam tumpuk, Waktu sholat, Cuaca, Reminder): the same rules as
+   modules/home/style.css, scoped to the slot, the picture and the strip. Only the row view is
+   drawn here, so the full reminder list has no rules. */
+
+/* Tanggal: the day name and an accent dot, the date at 57 px, the month and year in Barlow. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-date {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-date-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-date-day {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-dot {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-date-no {
+  line-height: 0.9;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-date-month {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink2);
+}
+
+/* Jam tumpuk: the hour over the minutes at 42 px (two lines of 38.6 px), the part of the day
+   top right and the zone bottom right. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-clock {
+  flex-direction: row;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-stack {
+  flex: none;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-no {
+  line-height: 0.92;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  min-width: 0;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-part {
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-zone {
+  color: var(--v-ink2);
+}
+
+/* Waktu sholat: the label, the prayer's name and time (14 and 30 px), five segments and what is
+   left. A passed prayer's segment is dimmer than a coming one's but not the accent. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-prayer {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-next {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-name {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-segs .v-seg {
+  border-radius: 2px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-segs .v-seg.past {
+  background: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-left,
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-empty {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-empty {
+  white-space: normal;
+}
+
+/* Cuaca: the city and the sky's icon in the accent, the temperature at 40 px, the sky in Barlow
+   over the range. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-weather {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  min-height: 16px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-city {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-icon {
+  display: flex;
+  flex: none;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-icon .ic {
+  display: inline-flex;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-icon .ic svg {
+  display: block;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-temp {
+  line-height: 0.9;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-sky {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-wx-range {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+/* Reminder: "Hari ini" and how many are done over up to three rows. A row is a circle, the
+   title and the time; the next one has an accent circle with a dot, a bold title and its time
+   in the accent. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-rem-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-rem-done {
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 15px;
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm .ck {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: 11px;
+  height: 11px;
+  padding: 0;
+  border: 1.2px solid var(--v-dim);
+  border-radius: 50%;
+  background: transparent;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm.next .ck {
+  border-color: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm.next .ck::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm .t {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm .m {
+  flex: none;
+  padding-left: 6px;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm.next .t {
+  color: var(--v-ink);
+  font-weight: 600;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm.next .m {
+  font-weight: 600;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm .m.v-acc {
+  color: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-reminders .rm.empty {
+  color: var(--v-muted);
 }
 
 /* Waktu: the same rules as modules/waktu/style.css, scoped to the slot, the picture and the
@@ -1875,29 +2190,6 @@ body > .ed-ghost {
   visibility: hidden;
 }
 
-.ed-slot .rm {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 13px;
-  line-height: 18px;
-  white-space: nowrap;
-}
-
-.ed-slot .rm + .rm {
-  margin-top: -2px;
-}
-
-.ed-slot .rm .ck {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  border-width: 1.2px;
-  box-sizing: border-box;
-  border: 1px solid var(--g2);
-  border-radius: 50%;
-}
-
 .ed-slot small {
   color: var(--g2);
   font-size: 10.5px;
@@ -2049,39 +2341,6 @@ body > .ed-ghost {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.ed-dots svg {
-  display: block;
-}
-
-.ed-line {
-  font-size: 15px;
-  line-height: 19px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.ed-shot .rm {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 13px;
-  line-height: 18px;
-  white-space: nowrap;
-}
-
-.ed-shot .rm + .rm {
-  margin-top: -2px;
-}
-
-.ed-shot .rm .ck {
-  flex: none;
-  width: 8px;
-  height: 8px;
-  box-sizing: border-box;
-  border: 1.2px solid var(--g2);
-  border-radius: 50%;
 }
 
 .ed-plain {

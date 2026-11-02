@@ -30,13 +30,29 @@ function typeIn(input: HTMLInputElement, value: string): void {
 
 const enter = (el: Element) => el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 
-test('the widget shows the nearest reminders', () => {
-  const { root, text } = mount();
-  expect(text('.wd-reminders .lab')).toBe('Reminder · 2');
+test('the widget shows the nearest open reminders, the next one in the accent', () => {
+  const { root } = mount();
+  expect(root.querySelector('.wd-reminders')!.classList.contains('v-card')).toBe(true);
   const rows = [...root.querySelectorAll('.wd-reminders .rm')];
   expect(rows.map(r => r.querySelector('.t')!.textContent)).toEqual(['Kirim invoice', 'Bayar listrik']);
   expect(rows.map(r => r.querySelector('.m')!.textContent)).toEqual(['14.00', 'Hari ini']);
+  expect(rows.map(r => r.classList.contains('next'))).toEqual([true, false]);
+  expect(rows.map(r => r.querySelector('.m')!.classList.contains('v-acc'))).toEqual([true, false]);
   expect(root.querySelector('.wd-reminders button')).toBeNull();
+  expect(root.querySelectorAll('svg, .lab')).toHaveLength(0);
+});
+
+test('the head says Hari ini and how many of today\'s reminders are done', () => {
+  const { text } = mount();
+  // Three today (Beli kopi is done), one of three.
+  expect(text('.hm-rem-head .v-lab')).toBe('Hari ini');
+  expect(text('.hm-rem-head .hm-rem-done')).toBe('1 dari 3 selesai');
+});
+
+test('only today\'s reminders count towards done', () => {
+  const later = { ...SNAP, reminders: [...SNAP.reminders, rem(4, 'Telepon ibu', '2026-10-28', null), rem(5, 'Servis', '2026-10-26', null, true)] };
+  const { text } = mount(later);
+  expect(text('.hm-rem-done')).toBe('1 dari 3 selesai');
 });
 
 test('the widget shows at most the three nearest reminders', () => {
@@ -48,13 +64,21 @@ test('the widget shows at most the three nearest reminders', () => {
 
 test('English labels', () => {
   const { text } = mount(SNAP, 'en');
-  expect(text('.wd-reminders .lab')).toBe('Reminders · 2');
+  expect(text('.hm-rem-head .v-lab')).toBe('Today');
+  expect(text('.hm-rem-done')).toBe('1 of 3 done');
   expect(text('.wd-reminders')).toContain('Today');
 });
 
 test('no reminders says so', () => {
   const { text } = mount({ ...SNAP, reminders: [] });
   expect(text('.wd-reminders')).toContain('Belum ada reminder.');
+  expect(text('.hm-rem-done')).toBe('');
+});
+
+test('reminders on other days only: no count for today', () => {
+  const { root, text } = mount({ ...SNAP, reminders: [rem(7, 'Telepon ibu', '2026-10-28', null)] });
+  expect(text('.hm-rem-done')).toBe('');
+  expect(root.querySelector('.wd-reminders .rm .t')!.textContent).toBe('Telepon ibu');
 });
 
 test('clicking the widget asks to expand', () => {
@@ -92,7 +116,7 @@ test('the full view lists every reminder; Kembali asks to collapse', () => {
   expect(actions.collapse).toHaveBeenCalled();
   widget.setFull(false);
   expect(root.querySelector('.list')).toBeNull();
-  expect(text('.wd-reminders .lab')).toBe('Reminder · 2');
+  expect(text('.hm-rem-head .v-lab')).toBe('Hari ini');
 });
 
 test('adding a reminder with a time', async () => {

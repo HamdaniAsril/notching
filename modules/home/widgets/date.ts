@@ -1,16 +1,23 @@
 import type { Lang } from '../../../src/kit/protocol';
-import { big, el } from './shared';
+import { lab, num } from '../../../src/kit/volt';
+import { el } from './shared';
 
-// Tanggal: the red dot and the weekday, the date in dots, the month and year.
+// The widget's content for `now`: the weekday with the accent dot over the date in big
+// numbers and the month and year. Also what the editor's sample draws.
+export function dateView(lang: Lang, now: Date): HTMLElement {
+  const w = el('div', 'v-card hm-date');
+  const top = el('div', 'hm-date-top');
+  top.append(lab(new Intl.DateTimeFormat(lang, { weekday: 'long' }).format(now), 'ink hm-date-day'), el('i', 'hm-dot'));
+  w.append(top, num(String(now.getDate()), 57, 'hm-date-no'),
+    el('div', 'hm-date-month', new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' }).format(now)));
+  return w;
+}
+
+// Tanggal.
 export function renderDate(root: HTMLElement, lang: Lang): { update(now: Date): void } {
   return {
     update(now) {
-      const w = el('div', 'wd');
-      const top = el('div', 'lab');
-      top.append(el('i', 'rd'), new Intl.DateTimeFormat(lang, { weekday: 'long' }).format(now));
-      w.append(top, big(root, String(now.getDate())),
-        el('div', 'lab', new Intl.DateTimeFormat(lang, { month: 'long', year: 'numeric' }).format(now)));
-      root.replaceChildren(w);
+      root.replaceChildren(dateView(lang, now));
     },
   };
 }

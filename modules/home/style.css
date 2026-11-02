@@ -1,6 +1,6 @@
-/* The built-in widgets (design 30 Oct §4–5): greys, label and reminder rows from
-   beranda-nothing.html; big numbers 42 px in every widget. Each widget fills its
-   frame, which the notch sizes to its columns and the page's height (104 px). */
+/* The built-in widgets in the Volt look (src/kit/volt.css): each is a .v-card that fills its
+   frame, which the notch sizes to its columns and 104 px. A frame is 109 px wide for one
+   column and 234 px for two; the card's 12 px padding leaves 85 and 210 by 80. */
 #card {
   height: 100%;
 }
@@ -11,147 +11,349 @@ body {
   overflow: hidden;
 }
 
-.wd,
-.list {
+/* Tanggal: the day name and an accent dot, the date at 57 px, the month and year in Barlow. */
+.hm-date {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.hm-date-top {
   display: flex;
-  flex-direction: column;
-  height: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
-.wd {
-  gap: 6px;
-}
-
-.wd-big {
-  min-height: 42px;
-}
-
-/* Long city names and the like end in "…" rather than run under the next widget. */
-.wd-weather .lab,
-.wd-prayer .lab {
+.hm-date-day {
   display: block;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.wd-weather {
-  gap: 4px;
+.hm-dot {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--v-acc);
 }
 
-/* Same size as the date, but dimmer: the date is read first. */
-.wd-weather .wd-big {
-  color: var(--g2);
+.hm-date-no {
+  line-height: 0.9;
 }
 
+.hm-date-month {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink2);
+}
+
+/* Jam tumpuk: the hour over the minutes at 42 px (two lines of 38.6 px), the part of the day
+   top right and the zone bottom right. */
+.hm-clock {
+  flex-direction: row;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.hm-clock-stack {
+  flex: none;
+}
+
+.hm-clock-no {
+  line-height: 0.92;
+}
+
+.hm-clock-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  min-width: 0;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  white-space: nowrap;
+}
+
+.hm-clock-part {
+  color: var(--v-muted);
+}
+
+.hm-clock-zone {
+  color: var(--v-ink2);
+}
+
+/* Waktu sholat: the label, the prayer's name and time (14 and 30 px), five segments and what is
+   left. A passed prayer's segment is dimmer than a coming one's but not the accent. */
+.hm-prayer {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.hm-pr-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.hm-pr-next {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hm-pr-name {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.hm-pr-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hm-pr-segs .v-seg {
+  border-radius: 2px;
+}
+
+.hm-pr-segs .v-seg.past {
+  background: var(--v-ink2);
+}
+
+.hm-pr-left,
+.hm-pr-empty {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+.hm-pr-empty {
+  white-space: normal;
+}
+
+/* Cuaca: the city and the sky's icon in the accent, the temperature at 40 px, the sky in Barlow
+   over the range. */
+.hm-weather {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.hm-wx-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  min-height: 16px;
+}
+
+.hm-wx-city {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hm-wx-icon {
+  display: flex;
+  flex: none;
+}
+
+.hm-wx-temp {
+  line-height: 0.9;
+}
+
+.hm-wx-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.hm-wx-sky {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink2);
+}
+
+.hm-wx-range {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+/* Reminder: "Hari ini" and how many are done over up to three rows. A row is a circle, the
+   title and the time; the next one has an accent circle with a dot, a bold title and its time
+   in the accent. */
 .wd-reminders {
+  justify-content: space-between;
   cursor: pointer;
   outline: none;
   min-width: 0;
 }
 
-.wd-next {
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 19px;
-  letter-spacing: -0.1px;
-  white-space: nowrap;
+.hm-rem-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
-.wd-bar .dbar {
-  display: block;
+.hm-rem-done {
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--v-muted);
 }
 
 .rms {
-  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .rm {
   display: flex;
   align-items: center;
-  gap: 9px;
-  line-height: 18px;
+  gap: 7px;
+  height: 15px;
+  font-size: 9px;
+  font-weight: 500;
   white-space: nowrap;
-}
-
-.rm + .rm {
-  margin-top: 4px;
+  color: var(--v-ink2);
 }
 
 .rm .ck {
+  position: relative;
   flex: none;
   box-sizing: border-box;
-  width: 8px;
-  height: 8px;
+  width: 11px;
+  height: 11px;
   padding: 0;
-  border: 1.2px solid var(--g2);
+  border: 1.2px solid var(--v-dim);
   border-radius: 50%;
   background: transparent;
 }
 
+.rm.next .ck {
+  border-color: var(--v-acc);
+}
+
+.rm.next .ck::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--v-acc);
+}
+
 .rm .t {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .rm .m {
-  margin-left: auto;
-  padding-left: 14px;
-  color: var(--g2);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  flex: none;
+  padding-left: 6px;
+  color: var(--v-muted);
+}
+
+.rm.next .t {
+  color: var(--v-ink);
+  font-weight: 600;
+}
+
+.rm.next .m {
+  font-weight: 600;
+}
+
+.rm .m.v-acc {
+  color: var(--v-acc);
 }
 
 .rm.empty {
-  color: var(--g2);
+  color: var(--v-muted);
 }
 
-/* The full reminder list. */
+/* The full reminder list: back and the count on top, the field, then the rows, which scroll. */
+.list {
+  min-width: 0;
+}
+
 .list .head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 12px;
 }
 
 .list .back {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--g1);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--v-muted);
+  font-family: "Inter", -apple-system, sans-serif;
   font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .add {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 10px;
+  height: 22px;
+  margin-top: 6px;
 }
 
 .add input {
-  padding: 4px 0;
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0;
   border: 0;
+  border-bottom: 1px solid var(--v-track);
+  border-radius: 0;
   outline: none;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left bottom / 5px 3px repeat-x;
-  color: var(--w);
-  font: 13px "Space Grotesk", -apple-system, sans-serif;
+  background: transparent;
+  color: var(--v-ink);
+  font: 500 11px "Inter", -apple-system, sans-serif;
   /* kit.css turns selection off for the whole card. */
   user-select: text;
   -webkit-user-select: text;
 }
 
 .add input:focus {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0.9px, transparent 1.3px);
+  border-bottom-color: var(--v-acc);
 }
 
 .add input::placeholder {
-  color: var(--g2);
+  color: var(--v-muted);
 }
 
 .add input.title {
@@ -161,17 +363,16 @@ body {
 
 .add input.time {
   width: 44px;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 .add .err {
-  color: var(--g1);
+  color: var(--v-ink2);
 }
 
 .items {
   flex: 1;
   min-height: 0;
-  margin-top: 8px;
+  margin-top: 6px;
   overflow-y: auto;
 }
 
@@ -180,20 +381,30 @@ body {
 }
 
 .items .rm {
-  padding: 1px 0;
+  height: 18px;
+}
+
+.items .rm + .rm {
+  margin-top: 3px;
 }
 
 .items .rm .ck {
-  width: 10px;
-  height: 10px;
   cursor: pointer;
 }
 
 .items .rm.done .ck {
-  background: var(--g2);
+  border-color: var(--v-muted);
+  background: var(--v-muted);
 }
 
 .items .rm.done .t {
-  color: var(--g2);
+  color: var(--v-muted);
   text-decoration: line-through;
+}
+
+.wd-reminders:focus-visible,
+.list .back:focus-visible,
+.items .rm .ck:focus-visible {
+  outline: 1px solid var(--v-acc);
+  outline-offset: 2px;
 }

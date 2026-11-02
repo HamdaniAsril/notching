@@ -104,7 +104,7 @@ test('Timer kecil has its idle state as a sample', () => {
 });
 
 test('other widgets are not a pack sample', () => {
-  expect(packSample(widget('home/date'), 'id')).toBeNull();
+  expect(packSample(widget('timer/strip', 4), 'id')).toBeNull();
 });
 
 test('Jam kerja has a sample: working on the default hours at 09:32', () => {
@@ -128,4 +128,45 @@ test('Zona waktu has a sample: home, Tokyo and London at 09:32', () => {
   expect(cols[0].getAttribute('data-time')).toBe('09.32');
   expect(z[0].querySelectorAll('.v-num')).toHaveLength(3);
   expect(packSample(widget('waktu/zones', 2), 'en')![0].querySelector('.wd-zone-head .v-lab')!.textContent).toBe('World clock');
+});
+
+test('Tanggal and Jam tumpuk have samples', () => {
+  const date = packSample(widget('home/date'), 'id')!;
+  expect(date).toHaveLength(1);
+  expect(date[0].classList.contains('v-card')).toBe(true);
+  expect(date[0].querySelector('.hm-date-top .v-lab')!.textContent).toBe('Jumat');
+  expect(date[0].querySelector('.v-num')!.textContent).toBe('30');
+  expect(date[0].querySelector('.hm-date-month')!.textContent).toBe('Oktober 2026');
+  const clock = packSample(widget('home/clock'), 'en')!;
+  expect([...clock[0].querySelectorAll('.hm-clock-stack .v-num')].map(n => n.textContent)).toEqual(['09', '32']);
+  expect(clock[0].querySelector('.hm-clock-part')!.textContent).toBe('morning');
+});
+
+test('Waktu sholat and Cuaca have samples', () => {
+  const prayer = packSample(widget('home/prayer'), 'id')!;
+  expect(prayer).toHaveLength(1);
+  expect(prayer[0].querySelector('.hm-pr-name')!.textContent).toBe('Ashar');
+  expect(prayer[0].querySelector('.hm-pr-next .v-num')!.textContent).toBe('15.12');
+  expect(prayer[0].querySelector('.hm-pr-left')!.textContent).toBe('5 j 40 m lagi');
+  expect([...prayer[0].querySelectorAll('.v-seg')].map(s => s.classList.contains('on'))).toEqual([false, false, true, false, false]);
+  const wx = packSample(widget('home/weather'), 'en')!;
+  expect(wx).toHaveLength(1);
+  expect(wx[0].querySelector('.hm-wx-city')!.textContent).toBe('Jakarta');
+  expect(wx[0].querySelector('.v-num')!.textContent).toBe('31°');
+  expect(wx[0].querySelector('.hm-wx-sky')!.textContent).toBe('Cloudy');
+  expect(wx[0].querySelector('.hm-wx-icon svg')).not.toBeNull();
+});
+
+test('Reminder has a sample with one of four done and three rows', () => {
+  const id = packSample(widget('home/reminders', 2), 'id')!;
+  expect(id).toHaveLength(1);
+  expect(id[0].querySelector('.hm-rem-head .v-lab')!.textContent).toBe('Hari ini');
+  expect(id[0].querySelector('.hm-rem-done')!.textContent).toBe('1 dari 4 selesai');
+  const rows = [...id[0].querySelectorAll('.rm')];
+  expect(rows.map(r => r.querySelector('.t')!.textContent)).toEqual(['Kirim invoice', 'Telepon ibu', 'Servis motor']);
+  expect(rows[0].classList.contains('next')).toBe(true);
+  expect(rows[0].querySelector('.m')!.textContent).toBe('14.00');
+  const en = packSample(widget('home/reminders', 2), 'en')!;
+  expect(en[0].querySelector('.hm-rem-done')!.textContent).toBe('1 of 4 done');
+  expect(en[0].querySelector('.rm .t')!.textContent).toBe('Send invoice');
 });

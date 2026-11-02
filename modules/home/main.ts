@@ -1,4 +1,5 @@
 import '../../src/kit/kit.css';
+import '../../src/kit/volt.css';
 import './style.css';
 import { connectKit } from '../../src/kit/client';
 import en from './locales/en.json';
@@ -21,14 +22,14 @@ async function start(): Promise<void> {
   switch (kit.widget) {
     case 'date':
     case 'clock': {
-      const w = kit.widget === 'date' ? renderDate(root, kit.lang) : renderClock(root);
+      const w = kit.widget === 'date' ? renderDate(root, kit.lang) : renderClock(root, strings, kit.lang);
       w.update(now());
       everyMinute(setTimer, now, () => w.update(now()));
       break;
     }
     case 'weather': {
       const w = renderWeather(root, strings, kit.lang);
-      startTicks(kit, s => w.update(s), setTimer, now, { weather: true });
+      startTicks(kit, s => w.update(s, now()), setTimer, now, { weather: true });
       break;
     }
     case 'prayer': {

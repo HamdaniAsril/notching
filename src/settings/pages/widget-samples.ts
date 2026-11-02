@@ -9,6 +9,13 @@ import { weekStripView } from '../../../modules/waktu/widgets/weekstrip';
 import { yearDayView } from '../../../modules/waktu/widgets/yearday';
 import { zonesView } from '../../../modules/waktu/widgets/zones';
 import { DEFAULT_ZONES } from '../../../modules/waktu/zones';
+import enHome from '../../../modules/home/locales/en.json';
+import idHome from '../../../modules/home/locales/id.json';
+import { clockView } from '../../../modules/home/widgets/clock';
+import { dateView } from '../../../modules/home/widgets/date';
+import { prayerView } from '../../../modules/home/widgets/prayer';
+import { remindersView } from '../../../modules/home/widgets/reminders';
+import { weatherView } from '../../../modules/home/widgets/weather';
 import type { HomeSnapshot } from '../../../modules/home/types';
 import enSekitar from '../../../modules/sekitar/locales/en.json';
 import idSekitar from '../../../modules/sekitar/locales/id.json';
@@ -32,7 +39,7 @@ import { tileView } from '../../../modules/timer/tile';
 import type { Reminder } from '../../../modules/home/types';
 import { svgBox } from '../../kit/widget';
 
-// Editor samples for the widget packs, drawn with the helpers the widgets use. Static, at the
+// Editor samples for the built-in and pack widgets, drawn with the helpers the widgets use. Static, at the
 // same moment as the home samples (30 Oct 2026, 09:32), not live.
 const AT = new Date(2026, 9, 30, 9, 32, 15);
 
@@ -42,6 +49,8 @@ const HOURLY = Array.from({ length: 48 }, (_, i) => {
   const rainy = h >= 15 && h <= 18;
   return { at: new Date(2026, 9, 30, i).getTime(), temp: 26 + Math.min(h, 24 - h) / 3, code: rainy ? 61 : h >= 6 && h <= 17 ? 3 : 1, rain: rainy ? 70 : 10 };
 });
+
+const at = (d: number, h: number, m: number) => new Date(2026, 9, d, h, m).getTime();
 
 // The weather the samples show: a cloudy morning in Jakarta, with the sun times of that day.
 const WEATHER: HomeSnapshot = {
@@ -53,17 +62,47 @@ const WEATHER: HomeSnapshot = {
   reminders: [],
 };
 
+// What the home samples show: the weather above, Asar (15.12) as the next prayer after Zuhur,
+// and four reminders for today, one done, each in the sample's language.
+const HOME_TITLES = {
+  id: ['Bayar listrik', 'Kirim invoice', 'Telepon ibu', 'Servis motor'],
+  en: ['Pay the bill', 'Send invoice', 'Call mum', 'Service the bike'],
+};
+function homeSample(lang: Lang): HomeSnapshot {
+  const [paid, invoice, call, service] = HOME_TITLES[lang];
+  const day = '2026-10-30';
+  return {
+    ...WEATHER,
+    prayer: { today: [], prev: { name: 'dhuhr', at: at(30, 11, 41) }, next: { name: 'asr', at: at(30, 15, 12) } },
+    reminders: [
+      { id: 1, title: paid, day, at: at(30, 8, 0), done: true, notified: true },
+      { id: 2, title: invoice, day, at: at(30, 14, 0), done: false, notified: false },
+      { id: 3, title: call, day, at: at(30, 16, 30), done: false, notified: false },
+      { id: 4, title: service, day, at: null, done: false, notified: false },
+    ],
+  };
+}
+
 // The reminders the Rencana samples show: two today (Friday), one on Saturday.
-const at = (d: number, h: number, m: number) => new Date(2026, 9, d, h, m).getTime();
 const REMINDERS: Reminder[] = [
   { id: 1, title: 'Kirim invoice', day: '2026-10-30', at: at(30, 14, 0), done: false, notified: false },
   { id: 2, title: 'Bayar listrik', day: '2026-10-30', at: null, done: false, notified: false },
   { id: 3, title: 'Rapat tim', day: '2026-10-31', at: at(31, 9, 0), done: false, notified: false },
 ];
 
-// The sample for a pack widget, or null for one that is not a pack's.
+// The sample for a widget of the home and the packs, or null for one that is not.
 export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
   switch (w.ref) {
+    case 'home/date':
+      return [dateView(lang, AT)];
+    case 'home/clock':
+      return [clockView(lang === 'en' ? enHome : idHome, lang, AT)];
+    case 'home/weather':
+      return [weatherView(lang === 'en' ? enHome : idHome, homeSample(lang), AT)];
+    case 'home/prayer':
+      return [prayerView(lang === 'en' ? enHome : idHome, lang, homeSample(lang), AT)];
+    case 'home/reminders':
+      return [remindersView(lang === 'en' ? enHome : idHome, lang, homeSample(lang).reminders, AT)];
     case 'waktu/clockdate':
       return [clockDateView(document.body, lang, AT, 'Jakarta')];
     case 'waktu/analog':
