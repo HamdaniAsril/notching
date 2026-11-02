@@ -185,6 +185,11 @@ body:has(.tm-page) {
   gap: 6px;
 }
 
+/* No chips while idle: no empty item, so no extra gap. */
+#tm.tm-strip .tm-buttons:empty {
+  display: none;
+}
+
 #tm.tm-strip .tm-chip {
   padding: 3px 8px;
   background: var(--v-track);
