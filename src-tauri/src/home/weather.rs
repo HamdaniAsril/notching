@@ -1,9 +1,12 @@
-//! Weather and city search through Open-Meteo: no account and no key. These two
-//! fixed addresses are the only places the app sends anything (spec 3).
+//! Weather, air quality and city search through Open-Meteo: no account and no key. These three
+//! fixed addresses, all on open-meteo.com, are the only places the app sends anything (spec 3).
+//! The forecast and the air quality get the place rounded to two decimals; the search gets the
+//! typed name.
 
 use std::path::Path;
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::locale::Lang;
@@ -13,6 +16,7 @@ use crate::settings::Place;
 pub enum Endpoint {
     Geocode,
     Forecast,
+    Air,
 }
 
 impl Endpoint {
@@ -20,12 +24,13 @@ impl Endpoint {
         match self {
             Endpoint::Geocode => "https://geocoding-api.open-meteo.com/v1/search",
             Endpoint::Forecast => "https://api.open-meteo.com/v1/forecast",
+            Endpoint::Air => "https://air-quality-api.open-meteo.com/v1/air-quality",
         }
     }
 }
 
 /// One forecast hour: `at` in ms since the epoch, `rain` the chance of rain in percent.
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Hour {
     pub at: i64,
@@ -36,7 +41,7 @@ pub struct Hour {
 
 /// `latitude`/`longitude` are the rounded coordinates that were sent. `hourly` is empty in a
 /// cache written before the hours existed.
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Weather {
     pub temp: f64,
@@ -50,11 +55,29 @@ pub struct Weather {
     pub hourly: Vec<Hour>,
 }
 
+/// The US air quality index now, 0 to 500. `latitude`/`longitude` are the rounded coordinates that
+/// were sent, as in Weather.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Air {
+    pub aqi: u32,
+    pub fetched_at: i64,
+    pub latitude: f64,
+    pub longitude: f64,
+}
+
+impl Air {
+    pub fn is_for(&self, place: &Place) -> bool {
+        same_coords(self.latitude, self.longitude, place)
+    }
+}
+
 const MAX_HOURS: usize = 48;
 
 pub const FRESH_MS: i64 = 30 * 60_000;
 pub const RETRY_MS: i64 = 5 * 60_000;
 pub const WEATHER_FILE: &str = "weather.json";
+pub const AIR_FILE: &str = "air.json";
 const TIMEOUT: Duration = Duration::from_secs(8);
 const BODY_LIMIT: u64 = 64 * 1024;
 
@@ -92,6 +115,14 @@ pub fn forecast_query(place: &Place) -> Vec<(&'static str, String)> {
         ("timeformat", "unixtime".into()),
         ("timezone", "auto".into()),
         ("forecast_days", "2".into()),
+    ]
+}
+
+pub fn air_query(place: &Place) -> Vec<(&'static str, String)> {
+    vec![
+        ("latitude", format!("{:.2}", place.latitude)),
+        ("longitude", format!("{:.2}", place.longitude)),
+        ("current", "us_aqi".into()),
     ]
 }
 
@@ -161,14 +192,24 @@ pub fn parse_forecast(json: &str, place: &Place, now_ms: i64) -> Result<Weather,
     })
 }
 
-pub fn same_place(w: &Weather, place: &Place) -> bool {
-    w.latitude == rounded(place.latitude) && w.longitude == rounded(place.longitude)
+pub fn parse_air(json: &str, place: &Place, now_ms: i64) -> Result<Air, String> {
+    let v = parse(json)?;
+    let aqi = v["current"]["us_aqi"].as_f64().ok_or_else(|| "incomplete air quality".to_string())?;
+    Ok(Air { aqi: aqi.round().max(0.0) as u32, fetched_at: now_ms, latitude: rounded(place.latitude), longitude: rounded(place.longitude) })
 }
 
-/// Fetch when there is nothing for this place or it is 30 minutes old, but never
-/// sooner than 5 minutes after the last try.
+fn same_coords(latitude: f64, longitude: f64, place: &Place) -> bool {
+    latitude == rounded(place.latitude) && longitude == rounded(place.longitude)
+}
+
+pub fn same_place(w: &Weather, place: &Place) -> bool {
+    same_coords(w.latitude, w.longitude, place)
+}
+
+/// Fetch when there is nothing for this place, it is 30 minutes old or it has no hours (a cache
+/// from before the hourly strip), but never sooner than 5 minutes after the last try.
 pub fn should_fetch(cached: Option<&Weather>, place: &Place, last_try: Option<i64>, now_ms: i64) -> bool {
-    let wanted = cached.is_none_or(|w| !same_place(w, place) || now_ms - w.fetched_at >= FRESH_MS);
+    let wanted = cached.is_none_or(|w| !same_place(w, place) || now_ms - w.fetched_at >= FRESH_MS || w.hourly.is_empty());
     wanted && last_try.is_none_or(|t| now_ms - t >= RETRY_MS)
 }
 
@@ -197,6 +238,14 @@ pub fn load_cache(path: &Path) -> Option<Weather> {
 
 pub fn save_cache(path: &Path, w: &Weather) -> std::io::Result<()> {
     super::write_atomic(path, &serde_json::to_string(w).map_err(std::io::Error::other)?)
+}
+
+pub fn load_air(path: &Path) -> Option<Air> {
+    serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
+}
+
+pub fn save_air(path: &Path, a: &Air) -> std::io::Result<()> {
+    super::write_atomic(path, &serde_json::to_string(a).map_err(std::io::Error::other)?)
 }
 
 #[cfg(test)]
@@ -233,9 +282,64 @@ mod tests {
     }
 
     #[test]
-    fn only_the_two_open_meteo_urls() {
+    fn only_open_meteo_urls() {
         assert_eq!(Endpoint::Geocode.url(), "https://geocoding-api.open-meteo.com/v1/search");
         assert_eq!(Endpoint::Forecast.url(), "https://api.open-meteo.com/v1/forecast");
+        assert_eq!(Endpoint::Air.url(), "https://air-quality-api.open-meteo.com/v1/air-quality");
+        for e in [Endpoint::Geocode, Endpoint::Forecast, Endpoint::Air] {
+            assert!(e.url().starts_with("https://") && e.url().contains("open-meteo.com/"), "{}", e.url());
+        }
+    }
+
+    #[test]
+    fn the_air_gets_rounded_coordinates_and_nothing_else() {
+        assert_eq!(
+            air_query(&jakarta()),
+            pairs(&[("latitude", "-6.21"), ("longitude", "106.85"), ("current", "us_aqi")])
+        );
+    }
+
+    #[test]
+    fn air_quality_from_open_meteo() {
+        let json = r#"{"latitude":-6.25,"longitude":106.875,"generationtime_ms":0.05,"utc_offset_seconds":0,
+            "current_units":{"time":"iso8601","interval":"seconds","us_aqi":"USAQI"},
+            "current":{"time":"2026-10-29T00:00","interval":3600,"us_aqi":42}}"#;
+        assert_eq!(
+            parse_air(json, &jakarta(), 1000),
+            Ok(Air { aqi: 42, fetched_at: 1000, latitude: -6.21, longitude: 106.85 })
+        );
+        // A fractional index rounds to the nearest whole one.
+        assert_eq!(parse_air(r#"{"current":{"us_aqi":57.6}}"#, &jakarta(), 0).unwrap().aqi, 58);
+    }
+
+    #[test]
+    fn an_air_error_is_an_error() {
+        let e = parse_air(r#"{"error":true,"reason":"x"}"#, &jakarta(), 0);
+        assert_eq!(e, Err("x".to_string()));
+        assert!(parse_air(r#"{"current":{"us_aqi":null}}"#, &jakarta(), 0).is_err());
+        assert!(parse_air(r#"{"current":{}}"#, &jakarta(), 0).is_err());
+        assert!(parse_air("not json", &jakarta(), 0).is_err());
+    }
+
+    #[test]
+    fn air_belongs_to_the_place_it_was_fetched_for() {
+        let a = parse_air(r#"{"current":{"us_aqi":42}}"#, &jakarta(), 0).unwrap();
+        let bandung = Place { name: "Bandung".into(), latitude: -6.9175, longitude: 107.6191, ..jakarta() };
+        assert!(a.is_for(&jakarta()));
+        assert!(!a.is_for(&bandung));
+    }
+
+    #[test]
+    fn the_air_cache_survives_a_save_and_load() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(AIR_FILE);
+        assert_eq!(load_air(&p), None);
+        let a = Air { aqi: 42, fetched_at: 1000, latitude: -6.21, longitude: 106.85 };
+        save_air(&p, &a).unwrap();
+        assert_eq!(load_air(&p), Some(a));
+        assert!(std::fs::read_to_string(&p).unwrap().contains("fetchedAt"));
+        std::fs::write(&p, "{oops").unwrap();
+        assert_eq!(load_air(&p), None);
     }
 
     #[test]
@@ -372,7 +476,8 @@ mod tests {
     #[test]
     fn fetches_when_stale_moved_or_missing_but_not_too_often() {
         let now = 10_000_000_000;
-        let fresh = parse_forecast(FORECAST_JSON, &jakarta(), now - 60_000).unwrap();
+        let hour = Hour { at: now, temp: 26.0, code: 3, rain: 0 };
+        let fresh = Weather { hourly: vec![hour], ..parse_forecast(FORECAST_JSON, &jakarta(), now - 60_000).unwrap() };
         let bandung = Place { name: "Bandung".into(), latitude: -6.9175, longitude: 107.6191, ..jakarta() };
         assert!(should_fetch(None, &jakarta(), None, now));
         assert!(!should_fetch(Some(&fresh), &jakarta(), None, now));
@@ -381,6 +486,17 @@ mod tests {
         assert!(should_fetch(Some(&fresh), &bandung, None, now));
         assert!(!should_fetch(Some(&old), &jakarta(), Some(now - 60_000), now));
         assert!(should_fetch(Some(&old), &jakarta(), Some(now - RETRY_MS), now));
+    }
+
+    #[test]
+    fn a_cache_without_hours_is_due_so_the_strip_fills_after_an_upgrade() {
+        let now = 10_000_000_000;
+        let no_hours = parse_forecast(FORECAST_JSON, &jakarta(), now - 60_000).unwrap();
+        assert!(no_hours.hourly.is_empty());
+        assert!(should_fetch(Some(&no_hours), &jakarta(), None, now));
+        // Still no sooner than 5 minutes after the last try.
+        assert!(!should_fetch(Some(&no_hours), &jakarta(), Some(now - 60_000), now));
+        assert!(should_fetch(Some(&no_hours), &jakarta(), Some(now - RETRY_MS), now));
     }
 
     #[test]
@@ -398,10 +514,12 @@ mod tests {
     // Reaches the network, so only on request: cargo test -- --ignored live_
     #[test]
     #[ignore]
-    fn live_search_and_forecast_through_macos_tls() {
+    fn live_search_forecast_and_air_through_macos_tls() {
         let places = parse_places(&fetch(Endpoint::Geocode, &geocode_query("Jakarta", Lang::Id).unwrap()).unwrap()).unwrap();
         assert_eq!(places[0].name, "Jakarta");
         let w = parse_forecast(&fetch(Endpoint::Forecast, &forecast_query(&places[0])).unwrap(), &places[0], 0).unwrap();
         assert!((-60.0..60.0).contains(&w.temp));
+        let a = parse_air(&fetch(Endpoint::Air, &air_query(&places[0])).unwrap(), &places[0], 0).unwrap();
+        assert!(a.aqi <= 600);
     }
 }

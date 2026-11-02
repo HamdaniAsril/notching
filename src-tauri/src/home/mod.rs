@@ -17,25 +17,30 @@ use crate::app_core::CoreState;
 use crate::settings::{HomeSettings, Place};
 use prayer::{prayer_day, sun_day, PrayerDay, SunDay};
 use reminders::{Reminder, Reminders, REMINDERS_FILE};
-use weather::{same_place, Weather, WEATHER_FILE};
+use weather::{same_place, Air, Weather, AIR_FILE, WEATHER_FILE};
 
 pub struct Home {
     pub reminders: Reminders,
     pub weather: Option<Weather>,
+    pub air: Option<Air>,
     /// When the weather was last asked for, so a failing network is retried
     /// only every few minutes.
     pub last_try: Option<i64>,
     weather_path: PathBuf,
+    air_path: PathBuf,
 }
 
 impl Home {
     pub fn open(data_dir: &Path, cache_dir: &Path) -> Home {
         let weather_path = cache_dir.join(WEATHER_FILE);
+        let air_path = cache_dir.join(AIR_FILE);
         Home {
             reminders: Reminders::open(data_dir.join(REMINDERS_FILE)),
             weather: weather::load_cache(&weather_path),
+            air: weather::load_air(&air_path),
             last_try: None,
             weather_path,
+            air_path,
         }
     }
 }
@@ -48,6 +53,7 @@ pub struct HomeState(pub Mutex<Home>);
 pub struct HomeSnapshot {
     pub place: Option<Place>,
     pub weather: Option<Weather>,
+    pub air: Option<Air>,
     pub prayer: Option<PrayerDay>,
     pub sun: Option<SunDay>,
     pub reminders: Vec<Reminder>,
@@ -61,6 +67,7 @@ pub fn snapshot(settings: &HomeSettings, home: &mut Home, now: chrono::DateTime<
     let place = settings.place.clone();
     HomeSnapshot {
         weather: place.as_ref().and_then(|p| home.weather.clone().filter(|w| same_place(w, p))),
+        air: place.as_ref().and_then(|p| home.air.clone().filter(|a| a.is_for(p))),
         prayer: place.as_ref().and_then(|p| prayer_day(now.timestamp_millis(), today, p, settings.prayer_method)),
         sun: place.as_ref().and_then(|p| sun_day(today, p)),
         reminders: home.reminders.items().to_vec(),
@@ -97,7 +104,29 @@ pub fn refresh_weather(app: &AppHandle) -> Result<(), String> {
         eprintln!("notching: saving the weather failed: {e}");
     }
     home.weather = Some(fresh);
+    drop(home);
+    refresh_air(app, &place);
     Ok(())
+}
+
+// The air for the same city, fetched right after a forecast. It never fails the refresh: a
+// failure is logged and the old air stays, and is shown only while it is for the same place.
+fn refresh_air(app: &AppHandle, place: &Place) {
+    let fetched = weather::fetch(weather::Endpoint::Air, &weather::air_query(place))
+        .and_then(|json| weather::parse_air(&json, place, chrono::Utc::now().timestamp_millis()));
+    let fresh = match fetched {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("notching: fetching the air quality failed: {e}");
+            return;
+        }
+    };
+    let home = app.state::<HomeState>();
+    let mut home = home.0.lock().unwrap();
+    if let Err(e) = weather::save_air(&home.air_path, &fresh) {
+        eprintln!("notching: saving the air quality failed: {e}");
+    }
+    home.air = Some(fresh);
 }
 
 /// Writes a temporary file and renames it over the old one, so a crash mid-write
@@ -147,12 +176,21 @@ mod tests {
         }
     }
 
+    fn air_for(place: &Place) -> Air {
+        Air {
+            aqi: 42,
+            fetched_at: now().timestamp_millis(),
+            latitude: (place.latitude * 100.0).round() / 100.0,
+            longitude: (place.longitude * 100.0).round() / 100.0,
+        }
+    }
+
     #[test]
     fn a_snapshot_without_a_city_has_no_weather_or_prayer() {
         let d = tempfile::tempdir().unwrap();
         let s = snapshot(&HomeSettings::default(), &mut home(&d), now());
-        assert_eq!(serde_json::to_value(&s).unwrap().as_object().unwrap().len(), 5);
-        assert_eq!((s.place, s.weather, s.prayer, s.sun), (None, None, None, None));
+        assert_eq!(serde_json::to_value(&s).unwrap().as_object().unwrap().len(), 6);
+        assert_eq!((s.place, s.weather, s.prayer, s.sun, s.air), (None, None, None, None, None));
     }
 
     #[test]
@@ -165,6 +203,26 @@ mod tests {
         assert_eq!(snapshot(&settings, &mut h, now()).weather, None);
         settings.place = Some(jakarta());
         assert_eq!(snapshot(&settings, &mut h, now()).weather, Some(weather_for(&jakarta())));
+    }
+
+    #[test]
+    fn a_snapshot_shows_air_only_for_the_current_city() {
+        let d = tempfile::tempdir().unwrap();
+        let mut h = home(&d);
+        h.air = Some(air_for(&jakarta()));
+        let bandung = Place { name: "Bandung".into(), latitude: -6.9175, longitude: 107.6191, ..jakarta() };
+        let mut settings = HomeSettings { place: Some(bandung), ..Default::default() };
+        assert_eq!(snapshot(&settings, &mut h, now()).air, None);
+        settings.place = Some(jakarta());
+        assert_eq!(snapshot(&settings, &mut h, now()).air, Some(air_for(&jakarta())));
+        assert_eq!(serde_json::to_value(snapshot(&settings, &mut h, now())).unwrap()["air"]["fetchedAt"], now().timestamp_millis());
+    }
+
+    #[test]
+    fn the_cached_air_is_read_at_open() {
+        let d = tempfile::tempdir().unwrap();
+        weather::save_air(&d.path().join("cache").join(weather::AIR_FILE), &air_for(&jakarta())).unwrap();
+        assert_eq!(home(&d).air, Some(air_for(&jakarta())));
     }
 
     #[test]

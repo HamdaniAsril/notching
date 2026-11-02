@@ -8,6 +8,7 @@
     { "id": "bigweather", "entry": "index.html", "width": 2, "kind": "weather" },
     { "id": "moon", "entry": "index.html", "width": 1, "kind": "weather" },
     { "id": "sun", "entry": "index.html", "width": 2, "kind": "weather" },
-    { "id": "hourly", "entry": "index.html", "width": 4, "kind": "weather" }
+    { "id": "hourly", "entry": "index.html", "width": 4, "kind": "weather" },
+    { "id": "air", "entry": "index.html", "width": 1, "kind": "weather" }
   ]
 }

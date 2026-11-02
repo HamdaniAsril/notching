@@ -10,6 +10,7 @@ import { yearDayView } from '../../../modules/waktu/widgets/yearday';
 import type { HomeSnapshot } from '../../../modules/home/types';
 import enSekitar from '../../../modules/sekitar/locales/en.json';
 import idSekitar from '../../../modules/sekitar/locales/id.json';
+import { airView } from '../../../modules/sekitar/widgets/air';
 import { bigWeatherView } from '../../../modules/sekitar/widgets/bigweather';
 import { hourlyView } from '../../../modules/sekitar/widgets/hourly';
 import { moonView } from '../../../modules/sekitar/widgets/moon';
@@ -42,6 +43,7 @@ const HOURLY = Array.from({ length: 48 }, (_, i) => {
 const WEATHER: HomeSnapshot = {
   place: { name: 'Jakarta', region: 'Jakarta', country: 'Indonesia', latitude: -6.21, longitude: 106.85 },
   weather: { temp: 31.4, code: 3, min: 24.7, max: 33.2, fetchedAt: AT.getTime(), latitude: -6.21, longitude: 106.85, hourly: HOURLY },
+  air: { aqi: 42, fetchedAt: AT.getTime() },
   prayer: null,
   sun: { rise: new Date(2026, 9, 30, 5, 28).getTime(), set: new Date(2026, 9, 30, 17, 45).getTime(), nextRise: new Date(2026, 9, 31, 5, 28).getTime() },
   reminders: [],
@@ -75,6 +77,8 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
       return [bigWeatherView(document.body, lang === 'en' ? enSekitar : idSekitar, WEATHER, AT)];
     case 'sekitar/moon':
       return [moonView(document.body, lang === 'en' ? enSekitar : idSekitar, AT)];
+    case 'sekitar/air':
+      return [airView(document.body, lang === 'en' ? enSekitar : idSekitar, WEATHER)];
     case 'sekitar/sun':
       return [sunView(lang === 'en' ? enSekitar : idSekitar, lang, WEATHER, AT)];
     case 'sekitar/hourly':

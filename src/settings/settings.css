@@ -1297,6 +1297,39 @@ body > .ed-ghost {
   line-height: 12px;
 }
 
+/* Udara: the same rules as modules/sekitar/style.css, scoped to the slot and the picker card. */
+.ed-slot .wd-air,
+.ed-shot .wd-air {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.ed-slot .wd-air-top,
+.ed-shot .wd-air-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.ed-slot .wd-air-top .ic,
+.ed-shot .wd-air-top .ic {
+  color: var(--g2);
+}
+
+/* The band wraps rather than ending in an ellipsis. */
+.ed-slot .wd-air-band,
+.ed-shot .wd-air-band {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 12px;
+}
+
 /* Cuaca per jam: the same rules as modules/sekitar/style.css, scoped to the slot and the picker card. */
 .ed-strip .wd-hourly,
 .ed-shot .wd-hourly {

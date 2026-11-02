@@ -9,6 +9,7 @@ export const rem = (rid: number, title: string, day: string, when: number | null
 export const SNAP: HomeSnapshot = {
   place: { name: 'Jakarta', region: 'Jakarta', country: 'Indonesia', latitude: -6.21462, longitude: 106.84513 },
   weather: { temp: 31.4, code: 3, min: 24.7, max: 33.2, fetchedAt: at(27, 10, 0), latitude: -6.21, longitude: 106.85 },
+  air: { aqi: 42, fetchedAt: at(27, 10, 0) },
   prayer: {
     today: [],
     prev: { name: 'fajr', at: at(27, 4, 10) },

@@ -36,10 +36,13 @@
   "perHour": "HOURLY",
   "rainAt": "RAIN {t}",
   "dry": "DRY",
+  "air": "AIR · AQI",
+  "airBands": ["Good", "Moderate", "Unhealthy for some", "Unhealthy", "Very unhealthy", "Hazardous"],
   "widgets": {
     "bigweather": "Weather, large",
     "moon": "MOON",
     "sun": "Sun",
-    "hourly": "Hourly weather"
+    "hourly": "Hourly weather",
+    "air": "Air"
   }
 }

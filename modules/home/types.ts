@@ -29,6 +29,12 @@ export interface Weather {
   hourly?: Hour[];
 }
 
+// The US air quality index now, 0 to 500; only for the chosen city.
+export interface Air {
+  aqi: number;
+  fetchedAt: number;
+}
+
 export type PrayerName = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 
 export interface PrayerTime {
@@ -62,6 +68,7 @@ export interface SunDay {
 export interface HomeSnapshot {
   place: Place | null;
   weather: Weather | null;
+  air: Air | null;
   prayer: PrayerDay | null;
   sun: SunDay | null;
   reminders: Reminder[];

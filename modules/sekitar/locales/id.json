@@ -36,10 +36,13 @@
   "perHour": "PER JAM",
   "rainAt": "HUJAN {t}",
   "dry": "CERAH",
+  "air": "UDARA · AQI",
+  "airBands": ["Baik", "Sedang", "Tidak sehat bagi sebagian", "Tidak sehat", "Sangat tidak sehat", "Berbahaya"],
   "widgets": {
     "bigweather": "Cuaca besar",
     "moon": "BULAN",
     "sun": "Matahari",
-    "hourly": "Cuaca per jam"
+    "hourly": "Cuaca per jam",
+    "air": "Udara"
   }
 }

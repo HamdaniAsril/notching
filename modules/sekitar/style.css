@@ -236,3 +236,32 @@ body {
   min-width: 80px;
   justify-content: flex-end;
 }
+
+/* Udara: the label and the wind on top, the number in dots, the band (two lines at most) and the
+   six band dots. Stack: label 14, number 42, band 24, dots 7 and three gaps of 4 make 99 px of the 104. */
+.wd-air {
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.wd-air-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.wd-air-top .ic {
+  color: var(--g2);
+}
+
+.wd-air .wd-big {
+  min-height: 0;
+}
+
+.wd-air-band {
+  display: block;
+  min-width: 0;
+  white-space: normal;
+  line-height: 12px;
+}
