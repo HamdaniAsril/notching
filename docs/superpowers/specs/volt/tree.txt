@@ -1,0 +1,495 @@
+# Notching Volt — pohon desain dari desain widget/widget-volt.pego
+# Nilai $lu-… ada di bagian Token di bawah.
+
+frame Widget/Jam LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
+    text City | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Jakarta"
+    text Date | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Sab, 31 Okt"
+  frame Time | layout="horizontal" gap=8 alignItems="end"
+    text Clock | fontFamily="Barlow Condensed" fontSize=84 fontWeight=600 lineHeight=0.9 fill="$lu-ink" "09.41"
+    text Sec | fontFamily="Barlow Condensed" fontSize=28 fontWeight=600 lineHeight=1.1 fill="$lu-accent" "12"
+  frame Day bar | width="fill_container" layout="horizontal" gap=12 alignItems="center"
+    frame Track | width="fill_container" height=2 fill="$lu-track" cornerRadius=1 layout="horizontal"
+      rectangle Done | width=104 height=2 fill="$lu-accent" cornerRadius=1
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "40% hari"
+
+frame Widget/Tanggal LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Sabtu"
+    ellipse  | width=6 height=6 fill="$lu-accent"
+  text Day | fontFamily="Barlow Condensed" fontSize=92 fontWeight=600 lineHeight=0.9 fill="$lu-ink" "31"
+  text Month | fontFamily="Barlow Condensed" fontSize=18 fontWeight=500 fill="$lu-ink-2" "Oktober 2026"
+
+frame Widget/Zona Waktu LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Zona waktu"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "3 kota"
+  frame Cities | width="fill_container" layout="horizontal" justifyContent="space_between"
+    frame Jakarta | layout="vertical" gap=6
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-accent" "Jakarta"
+      text  | fontFamily="Barlow Condensed" fontSize=40 fontWeight=600 lineHeight=1 fill="$lu-ink" "09.41"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Di sini"
+    rectangle Divider | width=1 height=72 fill="$lu-track"
+    frame Tokyo | layout="vertical" gap=6
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-ink-2" "Tokyo"
+      text  | fontFamily="Barlow Condensed" fontSize=40 fontWeight=600 lineHeight=1 fill="$lu-ink" "11.41"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "+2 jam"
+    rectangle Divider | width=1 height=72 fill="$lu-track"
+    frame London | layout="vertical" gap=6
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-ink-2" "London"
+      text  | fontFamily="Barlow Condensed" fontSize=40 fontWeight=600 lineHeight=1 fill="$lu-muted" "02.41"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "−7 jam · malam"
+
+frame Widget/Waktu Shalat LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Shalat berikutnya"
+  frame Next | layout="vertical" gap=2
+    text Name | fontFamily="Barlow Condensed" fontSize=22 fontWeight=500 fill="$lu-accent" "Dzuhur"
+    text Time | fontFamily="Barlow Condensed" fontSize=48 fontWeight=600 lineHeight=1 fill="$lu-ink" "11.38"
+  frame Footer | width="fill_container" layout="vertical" gap=8
+    frame Prayers | width="fill_container" layout="horizontal" gap=4
+      rectangle  | width="fill_container" height=3 fill="$lu-ink-2" cornerRadius=2
+      rectangle  | width="fill_container" height=3 fill="$lu-accent" cornerRadius=2
+      rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
+      rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
+      rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "1 j 57 m lagi"
+
+frame Widget/Jam Analog LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" clip=true layout="none"
+  path Ticks | width=176 height=176 stroke={"color":"$lu-faint","width":1.5} viewBox=[0,0,176,176] strokeCap="round" d="M88.0 12.0L88.0 24.0M126.0 22.2L123.5 26.5M153.8 50.0L149.5 …"
+  text Brand | width=48 fontFamily="Barlow Condensed" fontSize=14 fontWeight=500 textAlign="center" fill="$lu-muted" "Jakarta"
+  path Hour | width=176 height=176 stroke={"color":"$lu-ink","width":4} viewBox=[0,0,176,176] strokeCap="round" d="M95.5 90.8L52.4 74.7…"
+  path Minute | width=176 height=176 stroke={"color":"$lu-ink","width":2.5} viewBox=[0,0,176,176] strokeCap="round" d="M97.1 83.9L35.0 111.6…"
+  path Second | width=176 height=176 stroke={"color":"$lu-accent","width":1.2} viewBox=[0,0,176,176] strokeCap="round" d="M72.8 92.9L150.8 67.6…"
+  ellipse Pin | width=8 height=8 fill="$lu-accent"
+
+frame Widget/Jam Tumpuk LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" padding="$lu-pad" justifyContent="space_between"
+  frame Stack | layout="vertical" gap=0
+    text Hour | fontFamily="Barlow Condensed" fontSize=72 fontWeight=600 lineHeight=0.92 fill="$lu-ink" "09"
+    text Minute | fontFamily="Barlow Condensed" fontSize=72 fontWeight=600 lineHeight=0.92 fill="$lu-accent" "41"
+  frame Meta | height="fill_container" layout="vertical" justifyContent="space_between" alignItems="end"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "pagi"
+    text  | fontFamily="Inter" fontSize=12 fontWeight=500 fill="$lu-ink-2" "WIB"
+
+frame Widget/Kalender LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" padding="$lu-pad" justifyContent="space_between"
+  frame Month | height="fill_container" layout="vertical" justifyContent="space_between"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Kalender"
+    frame  | layout="vertical" gap=2
+      text  | fontFamily="Barlow Condensed" fontSize=34 fontWeight=600 lineHeight=1 fill="$lu-ink" "Oktober"
+      text  | fontFamily="Barlow Condensed" fontSize=18 fontWeight=500 fill="$lu-muted" "2026"
+  frame Grid | layout="vertical" gap=4
+    frame Head | layout="horizontal" gap=2
+      text  | width=24 fontFamily="Inter" fontSize=11 fontWeight=500 textAlign="center" fill="$lu-muted" "S"
+      text  | width=24 fontFamily="Inter" fontSize=11 fontWeight=500 textAlign="center" fill="$lu-muted" "S"
+      text  | width=24 fontFamily="Inter" fontSize=11 fontWeight=500 textAlign="center" fill="$lu-muted" "R"
+      text  | width=24 fontFamily="Inter" fontSize=11 fontWeight=500 textAlign="center" fill="$lu-muted" "K"
+      text  | width=24 fontFamily="Inter" fontSize=11 fontWeight=500 textAlign="center" fill="$lu-muted" "J"
+      text  | width=24 fontFamily="Inter" fontSize=11 fontWeight=500 textAlign="center" fill="$lu-muted" "S"
+      text  | width=24 fontFamily="Inter" fontSize=11 fontWeight=500 textAlign="center" fill="$lu-muted" "M"
+    frame Week | height=18 layout="horizontal" gap=2 alignItems="center"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-dim" "28"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-dim" "29"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-dim" "30"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "1"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "2"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "3"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-dim" "4"
+    frame Week | height=18 layout="horizontal" gap=2 alignItems="center"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "5"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "6"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "7"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "8"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "9"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "10"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-dim" "11"
+    frame Week | height=18 layout="horizontal" gap=2 alignItems="center"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "12"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "13"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "14"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "15"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "16"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "17"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-dim" "18"
+    frame Week | height=18 layout="horizontal" gap=2 alignItems="center"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "19"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "20"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "21"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "22"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "23"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "24"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-dim" "25"
+    frame Week | height=18 layout="horizontal" gap=2 alignItems="center"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "26"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "27"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "28"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "29"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-ink-2" "30"
+      frame  | width=24 height=18 fill="$lu-accent" cornerRadius=9 layout="horizontal" justifyContent="center" alignItems="center"
+        text  | fontFamily="Inter" fontSize=11 fontWeight=600 fill="$lu-on-accent" "31"
+      text  | width=24 fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-dim" "1"
+
+frame Widget/Hari Ke LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  frame Top | width="fill_container" layout="horizontal" justifyContent="space_between"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Hari ke"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-ink-2" "2026"
+  text Number | fontFamily="Barlow Condensed" fontSize=80 fontWeight=600 lineHeight=0.95 fill="$lu-accent" "304"
+  frame Footer | width="fill_container" layout="vertical" gap=8
+    frame Track | width="fill_container" height=2 fill="#FFFFFF1F" layout="horizontal"
+      rectangle  | width=113 height=2 fill="$lu-accent"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-ink-2" "61 hari lagi"
+
+frame Widget/Tanggal Strip LU | width=776 height=88 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" padding=[0,28,0,28] justifyContent="space_between" alignItems="center"
+  frame Today | width=140 layout="vertical" gap=2
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Sabtu"
+    text  | fontFamily="Barlow Condensed" fontSize=26 fontWeight=600 lineHeight=1 fill="$lu-ink" "31 Oktober"
+  frame Days | layout="horizontal" gap=6 alignItems="center"
+    frame  | width=44 height=56 layout="vertical" gap=2 justifyContent="center" alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Sen"
+      text  | fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1 fill="$lu-ink-2" "26"
+    frame  | width=44 height=56 layout="vertical" gap=2 justifyContent="center" alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Sel"
+      text  | fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1 fill="$lu-ink-2" "27"
+    frame  | width=44 height=56 layout="vertical" gap=2 justifyContent="center" alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Rab"
+      text  | fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1 fill="$lu-ink-2" "28"
+    frame  | width=44 height=56 layout="vertical" gap=2 justifyContent="center" alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Kam"
+      text  | fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1 fill="$lu-ink-2" "29"
+    frame  | width=44 height=56 layout="vertical" gap=2 justifyContent="center" alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Jum"
+      text  | fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1 fill="$lu-ink-2" "30"
+    frame Today pill | width=44 height=56 fill="$lu-accent" cornerRadius="$lu-radius-sm" layout="vertical" gap=2 justifyContent="center" alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fontWeight=500 fill="$lu-on-accent" "Sab"
+      text  | fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1 fill="$lu-on-accent" "31"
+    frame  | width=44 height=56 layout="vertical" gap=2 justifyContent="center" alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Min"
+      text  | fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1 fill="$lu-muted" "01"
+  frame Week | width=140 layout="vertical" gap=2 alignItems="end"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Minggu ke"
+    text  | fontFamily="Barlow Condensed" fontSize=26 fontWeight=600 lineHeight=1 fill="$lu-ink" "44"
+
+frame Widget/Timer LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" clip=true layout="none"
+  ellipse Track | width=144 height=144 stroke={"color":"$lu-track","width":3}
+  path Elapsed | width=176 height=176 stroke={"color":"$lu-accent","width":3} viewBox=[0,0,176,176] strokeCap="round" d="M88 16A72 72 0 1 1 79.2 159.5…"
+  frame Readout | width=100 layout="vertical" gap=2 alignItems="center"
+    text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Fokus"
+    text Minutes | fontFamily="Barlow Condensed" fontSize=52 fontWeight=600 lineHeight=1 fill="$lu-ink" "12"
+    text  | fontFamily="Barlow Condensed" fontSize=15 fontWeight=500 fill="$lu-ink-2" "menit lagi"
+
+frame Widget/Napas LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" clip=true layout="none"
+  ellipse Breath outer | width=96 height=96 fill="$lu-accent-haze"
+  ellipse Breath mid | width=64 height=64 fill="$lu-accent-glow"
+  ellipse Breath core | width=32 height=32 fill="$lu-accent"
+  frame Caption | width=176 layout="vertical" gap=2 alignItems="center"
+    text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=500 fill="$lu-ink" "Tarik napas"
+    text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "4 detik · 3 dari 5"
+
+frame Widget/Musik LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" gap=16 padding="$lu-pad"
+  frame Cover | width=136 height=136 fill={"type":"linear","angle":160,"stops":[{"color":"$lu-accent","position":0},{"color":"$lu-accent-deep","position":1}]} cornerRadius="$lu-radius-xs" clip=true layout="vertical" padding=12 justifyContent="end"
+    text  | fontFamily="Barlow Condensed" fontSize=30 fontWeight=600 lineHeight=1 fill="$lu-on-accent" "Braga"
+  frame Info | width="fill_container" height="fill_container" layout="vertical" justifyContent="space_between"
+    frame  | width="fill_container" layout="vertical" gap=4
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-accent" "Sedang diputar"
+      text  | fontFamily="Barlow Condensed" fontSize=24 fontWeight=600 lineHeight=1.1 fill="$lu-ink" "Jalan Braga"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Kolektif Senja"
+    frame Progress | width="fill_container" layout="vertical" gap=6
+      frame  | width="fill_container" height=2 fill="$lu-track" layout="horizontal"
+        rectangle  | width=92 height=2 fill="$lu-ink"
+      frame  | width="fill_container" layout="horizontal" justifyContent="space_between"
+        text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "2.14"
+        text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "3.48"
+    frame Controls | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
+      icon  | width=18 height=18 iconSet="lucide" iconName="skip-back" fill="$lu-ink-2"
+      frame Play | width=36 height=36 fill="$lu-ink" cornerRadius=18 layout="horizontal" justifyContent="center" alignItems="center"
+        icon  | width=16 height=16 iconSet="lucide" iconName="pause" fill="$lu-on-accent"
+      icon  | width=18 height=18 iconSet="lucide" iconName="skip-forward" fill="$lu-ink-2"
+
+frame Widget/Timer Strip LU | width=776 height=88 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" gap=32 padding=[0,28,0,28] alignItems="center"
+  frame Left | width=120 layout="vertical" gap=2
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Fokus"
+    text  | fontFamily="Barlow Condensed" fontSize=30 fontWeight=600 lineHeight=1 fill="$lu-ink" "17.30"
+  frame Minute ruler | width="fill_container" height=40 layout="horizontal" justifyContent="space_between"
+    frame M00 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=20 fill="$lu-ink" cornerRadius=1
+      text Label | fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-muted" "0"
+    frame M01 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 fill="$lu-ink" cornerRadius=1
+    frame M02 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 fill="$lu-ink" cornerRadius=1
+    frame M03 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 fill="$lu-ink" cornerRadius=1
+    frame M04 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 fill="$lu-ink" cornerRadius=1
+    frame M05 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 fill="$lu-ink" cornerRadius=1
+    frame M06 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=20 fill="$lu-ink" cornerRadius=1
+      text Label | fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-muted" "15"
+    frame Remaining needle | width=16 height="fill_container" layout="vertical" gap=3 alignItems="center"
+      rectangle Needle | width=3 height=30 fill="$lu-accent" cornerRadius=1.5
+      ellipse Knob | width=7 height=7 fill="$lu-accent"
+    frame M08 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M09 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M10 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M11 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M12 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=20 fill="$lu-muted" cornerRadius=1
+      text Label | fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-muted" "30"
+    frame M13 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M14 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M15 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M16 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M17 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M18 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=20 fill="$lu-muted" cornerRadius=1
+      text Label | fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-muted" "45"
+    frame M19 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M20 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M21 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M22 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M23 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=10 opacity=0.5 fill="$lu-muted" cornerRadius=1
+    frame M24 | width=16 height="fill_container" layout="vertical" gap=4 alignItems="center"
+      rectangle Tick | width=2 height=20 fill="$lu-muted" cornerRadius=1
+      text Label | fontFamily="Inter" fontSize=11 textAlign="center" fill="$lu-muted" "60"
+  frame Right | width=120 layout="vertical" gap=2 alignItems="end"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Sesi 2 dari 4"
+    text  | fontFamily="Barlow Condensed" fontSize=24 fontWeight=500 lineHeight=1.1 fill="$lu-accent" "25 menit"
+
+frame Widget/Musik Strip LU | width=776 height=88 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" gap=24 padding=[16,28,16,16] alignItems="center"
+  frame Track info | width=220 layout="horizontal" gap=14 alignItems="center"
+    frame Cover | width=56 height=56 fill={"type":"linear","angle":160,"stops":[{"color":"$lu-accent","position":0},{"color":"$lu-accent-deep","position":1}]} cornerRadius="$lu-radius-md" layout="none"
+    frame  | layout="vertical" gap=2
+      text  | fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1.1 fill="$lu-ink" "Jalan Braga"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Kolektif Senja"
+  frame Progress | width="fill_container" layout="horizontal" gap=12 alignItems="center"
+    text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "2.14"
+    frame Line | width="fill_container" height=2 fill="$lu-track" layout="horizontal" alignItems="center"
+      rectangle  | width=184 height=2 fill="$lu-ink"
+    text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "3.48"
+  frame Controls | layout="horizontal" gap=16 alignItems="center"
+    icon  | width=18 height=18 iconSet="lucide" iconName="skip-back" fill="$lu-ink-2"
+    frame Play | width=40 height=40 fill="$lu-accent" cornerRadius=20 layout="horizontal" justifyContent="center" alignItems="center"
+      icon  | width=18 height=18 iconSet="lucide" iconName="pause" fill="$lu-on-accent"
+    icon  | width=18 height=18 iconSet="lucide" iconName="skip-forward" fill="$lu-ink-2"
+
+frame Widget/Minggu Ini LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Minggu ini"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Minggu 44"
+  frame Days | width="fill_container" layout="horizontal" justifyContent="space_between"
+    frame  | width=36 layout="vertical" gap=6 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "S"
+      frame  | width=36 height=36 layout="horizontal" justifyContent="center" alignItems="center"
+        text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=600 fill="$lu-dim" "26"
+    frame  | width=36 layout="vertical" gap=6 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "S"
+      frame  | width=36 height=36 layout="horizontal" justifyContent="center" alignItems="center"
+        text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=600 fill="$lu-dim" "27"
+    frame  | width=36 layout="vertical" gap=6 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "R"
+      frame  | width=36 height=36 layout="vertical" justifyContent="center" alignItems="center"
+        text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=600 fill="$lu-dim" "28"
+    frame  | width=36 layout="vertical" gap=6 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "K"
+      frame  | width=36 height=36 layout="horizontal" justifyContent="center" alignItems="center"
+        text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=600 fill="$lu-dim" "29"
+    frame  | width=36 layout="vertical" gap=6 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "J"
+      frame  | width=36 height=36 layout="horizontal" justifyContent="center" alignItems="center"
+        text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=600 fill="$lu-dim" "30"
+    frame  | width=36 layout="vertical" gap=6 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fontWeight=600 fill="$lu-ink" "S"
+      frame Today | width=36 height=36 fill="$lu-accent" cornerRadius=18 layout="horizontal" justifyContent="center" alignItems="center"
+        text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=600 fill="$lu-on-accent" "31"
+    frame  | width=36 layout="vertical" gap=6 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "M"
+      frame  | width=36 height=36 layout="horizontal" justifyContent="center" alignItems="center"
+        text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=600 fill="$lu-ink" "1"
+  frame Event | width="fill_container" layout="horizontal" gap=8 alignItems="center"
+    ellipse  | width=6 height=6 fill="$lu-accent"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "19.00"
+    text  | fontFamily="Inter" fontSize=12 fontWeight=500 fill="$lu-ink" "Makan malam keluarga"
+
+frame Widget/Agenda LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Berikutnya"
+    frame Countdown | fill="$lu-accent-soft" cornerRadius=10 layout="horizontal" padding=[3,10,3,10]
+      text  | fontFamily="Inter" fontSize=11 fontWeight=500 fill="$lu-accent" "18 menit lagi"
+  text Title | width="fill_container" fontFamily="Barlow Condensed" fontSize=28 fontWeight=600 lineHeight=1.05 fill="$lu-ink" "Rapat mingguan tim desain"
+  frame Footer | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="end"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Ruang Kenari, lt. 3"
+    text  | fontFamily="Barlow Condensed" fontSize=28 fontWeight=600 lineHeight=1 fill="$lu-accent" "10.00"
+
+frame Widget/Tugas LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Hari ini"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "1 dari 3 selesai"
+  frame List | width="fill_container" layout="vertical" gap=12
+    frame Task done | width="fill_container" layout="horizontal" gap=10 alignItems="center"
+      icon  | width=18 height=18 iconSet="lucide" iconName="circle-check" fill="$lu-muted"
+      text  | width="fill_container" fontFamily="Inter" fontSize=13 fill="$lu-muted" "Bayar listrik"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "08.00"
+    frame Task now | width="fill_container" layout="horizontal" gap=10 alignItems="center"
+      icon  | width=18 height=18 iconSet="lucide" iconName="circle-dot" fill="$lu-accent"
+      text  | width="fill_container" fontFamily="Inter" fontSize=13 fontWeight=600 fill="$lu-ink" "Kirim revisi desain"
+      text  | fontFamily="Inter" fontSize=12 fontWeight=600 fill="$lu-accent" "13.00"
+    frame Task later | width="fill_container" layout="horizontal" gap=10 alignItems="center"
+      icon  | width=18 height=18 iconSet="lucide" iconName="circle" fill="$lu-dim"
+      text  | width="fill_container" fontFamily="Inter" fontSize=13 fill="$lu-ink-2" "Jemput Naya les piano"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "16.30"
+
+frame Widget/Matahari LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Matahari"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Terbenam 8 j 7 m lagi"
+  frame Sky | width=312 height=56 layout="none"
+    rectangle Horizon | width=312 height=1 fill="$lu-track"
+    path Arc | width=312 height=56 stroke={"color":"$lu-faint","width":1.5} viewBox=[0,0,312,56] strokeCap="round" d="M4 55Q156 -45 308 55…"
+    path Arc done | width=312 height=56 stroke={"color":"$lu-accent","width":1.5} viewBox=[0,0,312,56] strokeCap="round" d="M4 55Q72.4 10 140.8 10.5…"
+    ellipse Sun glow | width=20 height=20 fill="$lu-accent-glow"
+    ellipse Sun | width=12 height=12 fill="$lu-accent"
+  frame Times | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="end"
+    frame  | layout="horizontal" gap=6 alignItems="end"
+      text  | fontFamily="Barlow Condensed" fontSize=26 fontWeight=600 lineHeight=1 fill="$lu-ink" "05.32"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "terbit"
+    frame  | layout="horizontal" gap=6 alignItems="end"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "terbenam"
+      text  | fontFamily="Barlow Condensed" fontSize=26 fontWeight=600 lineHeight=1 fill="$lu-ink" "17.48"
+
+frame Widget/Cuaca LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" padding="$lu-pad" justifyContent="space_between"
+  frame Main | height="fill_container" layout="vertical" justifyContent="space_between"
+    text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Bandung"
+    text Temp | fontFamily="Barlow Condensed" fontSize=88 fontWeight=600 lineHeight=0.9 fill="$lu-ink" "24°"
+    text  | fontFamily="Barlow Condensed" fontSize=18 fontWeight=500 fill="$lu-ink-2" "Cerah berawan"
+  frame Side | height="fill_container" layout="vertical" justifyContent="space_between" alignItems="end"
+    icon  | width=32 height=32 iconSet="lucide" iconName="cloud-sun" fill="$lu-accent"
+    frame  | layout="vertical" gap=4 alignItems="end"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-ink-2" "Tertinggi 27°"
+      text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Terendah 18°"
+
+frame Widget/Bulan LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" clip=true layout="none"
+  ellipse Moon halo | width=84 height=84 fill="#F4EFE60D"
+  ellipse Moon | width=64 height=64 fill="$lu-ink"
+  ellipse Shadow | width=64 height=72 fill="$lu-card-black"
+  frame Caption | width=176 layout="vertical" gap=2 alignItems="center"
+    text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=500 fill="$lu-ink" "Cembung 68%"
+    text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Purnama 3 hari lagi"
+
+frame Widget/Udara LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+  text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Kualitas udara"
+  frame Value | layout="horizontal" gap=6 alignItems="end"
+    text  | fontFamily="Barlow Condensed" fontSize=72 fontWeight=600 lineHeight=0.9 fill="$lu-ink" "42"
+    text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "AQI"
+  frame Footer | width="fill_container" layout="vertical" gap=8
+    frame Scale | width="fill_container" layout="horizontal" gap=4
+      rectangle  | width="fill_container" height=3 fill="$lu-accent" cornerRadius=2
+      rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
+      rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
+      rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
+      rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
+    text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=500 fill="$lu-ink" "Baik untuk lari"
+
+frame Widget/Cuaca Per Jam LU | width=776 height=88 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" padding=[0,28,0,28] justifyContent="space_between" alignItems="center"
+  frame Now | width=88 layout="vertical" gap=2
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Per jam"
+    text  | fontFamily="Barlow Condensed" fontSize=30 fontWeight=600 lineHeight=1 fill="$lu-ink" "24°"
+  frame Hours | layout="horizontal" gap=4 alignItems="center"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fontWeight=600 fill="$lu-ink" "Kini"
+      icon  | width=18 height=18 iconSet="lucide" iconName="sun" fill="$lu-accent"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "24°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "11"
+      icon  | width=18 height=18 iconSet="lucide" iconName="sun" fill="$lu-ink-2"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "25°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "12"
+      icon  | width=18 height=18 iconSet="lucide" iconName="cloud-sun" fill="$lu-ink-2"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "26°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "13"
+      icon  | width=18 height=18 iconSet="lucide" iconName="cloud-sun" fill="$lu-ink-2"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "27°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "14"
+      icon  | width=18 height=18 iconSet="lucide" iconName="cloud" fill="$lu-ink-2"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "26°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "15"
+      icon  | width=18 height=18 iconSet="lucide" iconName="cloud" fill="$lu-ink-2"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "24°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "16"
+      icon  | width=18 height=18 iconSet="lucide" iconName="cloud-rain" fill="$lu-accent"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "21°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "17"
+      icon  | width=18 height=18 iconSet="lucide" iconName="cloud-rain" fill="$lu-accent"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "20°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "18"
+      icon  | width=18 height=18 iconSet="lucide" iconName="cloud-drizzle" fill="$lu-ink-2"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "20°"
+    frame  | width=40 layout="vertical" gap=4 alignItems="center"
+      text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "19"
+      icon  | width=18 height=18 iconSet="lucide" iconName="cloud-moon" fill="$lu-ink-2"
+      text  | fontFamily="Barlow Condensed" fontSize=17 fontWeight=600 lineHeight=1 fill="$lu-ink" "19°"
+  frame Rain | width=108 layout="vertical" gap=2 alignItems="end"
+    text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=500 fill="$lu-accent" "Hujan 16.00"
+    text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Selama 2 jam"
+
+# Panel notch, contoh 1 (widget di dalamnya adalah ref ke komponen di atas)
+frame Notch | width="fit_content" height="fit_content" fill={"type":"linear","angle":180,"stops":[{"color":"$notch-solid","position":0},{"color":"$notch-solid","position":0.45},{"color":"$notch-fade","position":1}]} effects=[{"type":"shadow","color":"#0000002E","x":0,"y":16,"blur":40,"spread":0}] cornerRadius=52 layout="vertical" gap=20 padding=[64,24,24,24]
+  frame Notch header | width="fill_container" height=24 layout="horizontal" padding=[0,8,0,8] justifyContent="space_between" alignItems="center"
+    text Label | fontFamily="Inter" fontSize=13 fontWeight=600 letterSpacing=0 fill="$lu-ink" "Pagi ini"
+    ellipse Kamera | width=10 height=10 fill="$lu-cell-2"
+    frame Status | layout="horizontal" gap=8 alignItems="center"
+      ellipse  | width=6 height=6 fill="$lu-accent"
+      text  | fontFamily="Inter" fontSize=13 letterSpacing=0 fill="$lu-muted" "1 / 3"
+  frame Grid | layout="vertical" gap="$space-grid"
+    frame Widgets | layout="horizontal" gap="$space-grid"
+      ref -> 38gg4i0l {}
+      ref -> edc1uvx6 {}
+      ref -> r0wj2nub {}
+      ref -> rvr729v7 {}
+    ref -> fu1fwq2h {"name": "Baris 0.5"}
+
+# Token
+notch-solid = #000000
+notch-fade = #000000A6
+lu-canvas = #070707
+lu-cell = #0F100E
+lu-cell-2 = #171915
+lu-ring = #FFFFFF14
+lu-ink = #F3F5F0
+lu-ink-2 = #C4C8BF
+lu-muted = #8C9187
+lu-faint = #454941
+lu-track = #23251F
+lu-accent = #C8F04A
+lu-accent-soft = #1D260B
+lu-on-accent = #0F1404
+lu-radius = 28
+lu-radius-sm = 14
+lu-pad = 20
+lu-dim = #80857B
+lu-radius-xs = 8
+lu-radius-md = 12
+lu-outline = #FFFFFF24
+lu-card-black = #000000
+lu-accent-glow = #C8F04A33
+lu-accent-haze = #C8F04A1A
+lu-accent-deep = #4C6B12
