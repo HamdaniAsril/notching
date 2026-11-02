@@ -11,7 +11,7 @@
   "done": "Done",
   "workTitle": "Work",
   "startsAt": "Starts {t}",
-  "left": "{t} left",
+  "worked": "{t} done",
   "off": "Day off",
   "startField": "Start",
   "endField": "End",

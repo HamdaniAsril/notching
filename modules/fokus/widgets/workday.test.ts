@@ -25,12 +25,12 @@ const type = (inp: HTMLInputElement, value: string) => {
 };
 const save = (root: HTMLElement) => root.querySelector<HTMLButtonElement>('.wd-work-save')!;
 
-test('working: the name and hours, the time worked, ten dots and what is left', () => {
+test('working: the name and hours, what is left big, ten dots and the time worked', () => {
   const { root, w } = setup();
   w.update(DEFAULT_WORK, TUE);
   const labs = [...root.querySelectorAll('.lab')].map(e => e.textContent);
-  expect(labs).toEqual(['JAM KERJA', '09–17', 'SISA 6 J 42 M']);
-  expect(root.querySelector('.wd-work-time')!.textContent).toBe('1 J 18 M');
+  expect(labs).toEqual(['JAM KERJA', '09–17', 'SUDAH 1 J 18 M']);
+  expect(root.querySelector('.wd-work-time')!.textContent).toBe('6 J 42 M');
   const dots = [...root.querySelectorAll('.wd-row .d')];
   expect(dots).toHaveLength(10);
   // 78 of 480 minutes is 16 %: one dot lit, then the red one, then the rest dim.
@@ -41,8 +41,8 @@ test('working in English', () => {
   const { root, w } = setup('en');
   w.update(DEFAULT_WORK, at(27, 14, 0));
   expect(root.textContent).toContain('WORK');
-  expect(root.querySelector('.wd-work-time')!.textContent).toBe('5 H 0 M');
-  expect([...root.querySelectorAll('.lab')].pop()!.textContent).toBe('3 H 0 M LEFT');
+  expect(root.querySelector('.wd-work-time')!.textContent).toBe('3 H 0 M');
+  expect([...root.querySelectorAll('.lab')].pop()!.textContent).toBe('5 H 0 M DONE');
   const dots = [...root.querySelectorAll('.wd-row .d')];
   expect(dots.filter(d => d.className === 'd lit')).toHaveLength(6); // 62 % lights six, the next is red
   expect(dots[6].className).toBe('d now');
@@ -166,7 +166,7 @@ test('an update while the form is open keeps what was typed; closing shows the r
   w.update(DEFAULT_WORK, at(27, 10, 19));
   expect(input(root, 'start').value).toBe('07:30');
   w.setFull(false);
-  expect(root.querySelector('.wd-work-time')!.textContent).toBe('1 J 19 M');
+  expect(root.querySelector('.wd-work-time')!.textContent).toBe('6 J 41 M');
   w.setFull(true);
   expect(input(root, 'start').value).toBe('09:00'); // reopened from the saved hours
 });

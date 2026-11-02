@@ -122,7 +122,7 @@ Yang ditulis di sini adalah isinya. Susunan dan ukurannya mengikuti §3.
 - Tidak ada data yang disimpan.
 
 **Jam kerja (1 kolom).** Aturannya mengikuti desain halaman, subbagian "Jam kerja":
-- Di jam kerja: lama bekerja, misalnya "2 J 30 M", sisa waktu, dan baris titik kemajuan.
+- Di jam kerja: sisa waktu dengan angka besar, misalnya "6 J 42 M", baris titik kemajuan, lalu lama bekerja, misalnya "SUDAH 1 J 18 M". Sisa waktu dibuat besar atas permintaan pemilik (2 November).
 - Di luar jam kerja: "Selesai". Di hari libur: "Libur".
 - Bawaannya 09.00–17.00, Senin sampai Jumat.
 - Pengaturannya lewat tampilan penuh (§6).

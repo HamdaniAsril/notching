@@ -5,7 +5,7 @@ import { checkWork, hm, timeText, validWork, workState, type WorkPrefs } from '.
 export interface WorkdayStrings {
   workTitle: string; // "Jam kerja" / "Work"
   startsAt: string; // "Mulai {t}"
-  left: string; // "SISA {t}"
+  worked: string; // "Sudah {t}"
   done: string;
   off: string;
   startField: string;
@@ -49,9 +49,9 @@ export function workdayView(s: WorkdayStrings, lang: Lang, p: WorkPrefs, now: Da
     const lit = Math.floor(st.progress * 10);
     w.append(
       head,
-      el('div', 'wd-work-time', hm(st.workedMs, lang)),
+      el('div', 'wd-work-time', hm(st.leftMs, lang)),
       dotRow(10, lit, lit),
-      el('div', 'lab', s.left.replace('{t}', hm(st.leftMs, lang)).toUpperCase()),
+      el('div', 'lab', s.worked.replace('{t}', hm(st.workedMs, lang)).toUpperCase()),
     );
     return w;
   }
@@ -60,7 +60,7 @@ export function workdayView(s: WorkdayStrings, lang: Lang, p: WorkPrefs, now: Da
   return w;
 }
 
-// Jam kerja (1 column): how long today's work has gone and what is left. A click asks for
+// Jam kerja (1 column): what is left of today's work, big (owner, 2 Nov), and how long it has gone. A click asks for
 // the full view, where the hours and days are set.
 export function renderWorkday(root: HTMLElement, s: WorkdayStrings, lang: Lang, act: WorkdayActions): WorkdayWidget {
   let full = false;

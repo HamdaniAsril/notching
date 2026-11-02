@@ -106,11 +106,11 @@ test('other widgets are not a pack sample', () => {
 test('Jam kerja has a sample: working on the default hours at 09:32', () => {
   const wd = packSample(widget('fokus/workday'), 'id')!;
   expect(wd).toHaveLength(1);
-  expect([...wd[0].querySelectorAll('.lab')].map(e => e.textContent)).toEqual(['JAM KERJA', '09–17', 'SISA 7 J 28 M']);
-  expect(wd[0].querySelector('.wd-work-time')!.textContent).toBe('32 M');
+  expect([...wd[0].querySelectorAll('.lab')].map(e => e.textContent)).toEqual(['JAM KERJA', '09–17', 'SUDAH 32 M']);
+  expect(wd[0].querySelector('.wd-work-time')!.textContent).toBe('7 J 28 M');
   expect(wd[0].querySelectorAll('.wd-row .d')).toHaveLength(10);
   const en = packSample(widget('fokus/workday'), 'en')!;
-  expect([...en[0].querySelectorAll('.lab')].pop()!.textContent).toBe('7 H 28 M LEFT');
+  expect([...en[0].querySelectorAll('.lab')].pop()!.textContent).toBe('32 M DONE');
 });
 
 test('Zona waktu has a sample: local time and Tokyo and London at 09:32', () => {

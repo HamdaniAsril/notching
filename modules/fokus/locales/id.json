@@ -11,7 +11,7 @@
   "done": "Selesai",
   "workTitle": "Jam kerja",
   "startsAt": "Mulai {t}",
-  "left": "Sisa {t}",
+  "worked": "Sudah {t}",
   "off": "Libur",
   "startField": "Mulai",
   "endField": "Selesai",
