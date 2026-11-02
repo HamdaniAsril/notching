@@ -27,6 +27,8 @@ pub enum Call {
     ShelfOpen,
     ScreenshotOpen,
     CleanerOpen,
+    PrefsRead,
+    PrefsWrite,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -86,6 +88,8 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Shelf, "open") => Ok(Call::ShelfOpen),
         (Capability::Screenshot, "open") => Ok(Call::ScreenshotOpen),
         (Capability::Cleaner, "open") => Ok(Call::CleanerOpen),
+        (Capability::Prefs, "read") => Ok(Call::PrefsRead),
+        (Capability::Prefs, "write") => Ok(Call::PrefsWrite),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -255,5 +259,22 @@ mod tests {
             authorize(Some(&quiet), "timer", "notify", "post"),
             Err(CallError::NotDeclared { module: "timer".into(), capability: "notify".into() })
         );
+    }
+
+    #[test]
+    fn prefs_needs_the_capability() {
+        let quiet = entry("paket", &[], true);
+        assert_eq!(
+            authorize(Some(&quiet), "paket", "prefs", "read"),
+            Err(CallError::NotDeclared { module: "paket".into(), capability: "prefs".into() })
+        );
+    }
+
+    #[test]
+    fn prefs_read_and_write_map() {
+        let m = entry("paket", &[Capability::Prefs], true);
+        assert_eq!(authorize(Some(&m), "paket", "prefs", "read"), Ok(Call::PrefsRead));
+        assert_eq!(authorize(Some(&m), "paket", "prefs", "write"), Ok(Call::PrefsWrite));
+        assert_eq!(authorize(Some(&m), "paket", "prefs", "clear"), Err(CallError::UnknownMethod("clear".into())));
     }
 }

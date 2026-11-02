@@ -6,6 +6,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::app_core::{AppCore, CoreError, CoreState, ModuleStateDto, StatsState};
 use crate::home::{current_snapshot, refresh_weather, HomeState};
 use crate::modules::gate::{authorize, Call, CallError};
+use crate::prefs::PrefsState;
 
 /// Broadcast to every window whenever module state changes.
 pub const MODULE_STATE_EVENT: &str = "notching://module-state";
@@ -161,6 +162,13 @@ pub async fn module_call(
         Call::ScreenshotOpen => Ok(serde_json::Value::Null),
         // Cleaner's pages are drawn by the notch, which opens them itself.
         Call::CleanerOpen => Ok(serde_json::Value::Null),
+        // Always the calling module's own file: the id never comes from args.
+        Call::PrefsRead => Ok(app.state::<PrefsState>().0.read(&module_id)),
+        Call::PrefsWrite => {
+            let a: PrefsWriteArgs = parse_args(args, "prefs.write")?;
+            app.state::<PrefsState>().0.write(&module_id, &a.value)?;
+            Ok(serde_json::Value::Null)
+        }
     };
     value.map_err(|e| e.to_string())
 }
@@ -189,6 +197,11 @@ struct StartArgs {
 #[derive(serde::Deserialize)]
 struct ExtendArgs {
     minutes: u32,
+}
+
+#[derive(serde::Deserialize)]
+struct PrefsWriteArgs {
+    value: serde_json::Value,
 }
 
 #[derive(serde::Deserialize)]

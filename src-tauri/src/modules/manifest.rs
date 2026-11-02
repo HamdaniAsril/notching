@@ -42,6 +42,9 @@ pub enum Capability {
     /// Cleaner's tile opens Deep clean and Clean uninstall, drawn by the notch (design 1 Nov).
     #[serde(rename = "cleaner")]
     Cleaner,
+    /// The package's own small settings, one JSON object kept by the notch.
+    #[serde(rename = "prefs")]
+    Prefs,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).

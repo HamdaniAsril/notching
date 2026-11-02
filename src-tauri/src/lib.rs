@@ -13,6 +13,7 @@ mod module_commands;
 mod modules;
 mod page_commands;
 mod pages;
+mod prefs;
 mod settings;
 mod shelf;
 mod shot;
@@ -215,6 +216,7 @@ pub fn run() {
             app.manage(app_core::StatsState(std::sync::Mutex::new(system_stats::SystemStats::new())));
             let home = home::Home::open(&paths.app_data_dir()?, &paths.app_cache_dir()?);
             app.manage(home::HomeState(std::sync::Mutex::new(home)));
+            app.manage(prefs::PrefsState(prefs::Prefs::new(paths.app_data_dir()?.join("widget-prefs"))));
             app.manage(shelf_service::ShelfState(std::sync::Mutex::new(shelf::Shelf::default())));
             shelf_service::start(app.handle());
             shot_service::start(app.handle());

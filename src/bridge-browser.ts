@@ -2,6 +2,7 @@ import type { Bridge, LiveStatus, Notice, Shot, ShotEvent } from './bridge';
 import { fakeAwake } from './bridge-browser-awake';
 import { fakeCleaner } from './bridge-browser-cleaner';
 import { fakeHome } from './bridge-browser-home';
+import { fakePrefs } from './bridge-browser-prefs';
 import { fakeTimer } from './bridge-browser-timer';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
@@ -126,6 +127,7 @@ export function browserBridge(root: HTMLElement): Bridge {
   const homeCall = fakeHome(params);
   const awakeCall = fakeAwake();
   const timerCall = fakeTimer();
+  const prefsCall = fakePrefs();
   const stateSubs = new Set<(s: ModuleState) => void>();
   const HOUR = 3600_000;
   let shots = Array.from({ length: Number(params.get('shots') ?? 0) }, (_, i) => fakeShot(i + 1, Date.now() - i * 5 * HOUR));
@@ -185,6 +187,7 @@ export function browserBridge(root: HTMLElement): Bridge {
       // Nothing to capture in a browser either.
       if (capability === 'screenshot') return null;
       if (capability === 'cleaner') return null;
+      if (capability === 'prefs') return prefsCall(moduleId, method, args);
       throw new Error(`unknown method ${method}`);
     },
     // Vite serves the module sources directly.
