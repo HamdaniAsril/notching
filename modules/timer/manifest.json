@@ -7,5 +7,8 @@
   "permissions": [],
   "capabilities": ["timer", "status", "notify"],
   "notifications": [{ "id": "done", "on": true, "sound": true }],
-  "widgets": [{ "id": "strip", "entry": "index.html", "width": 4, "kind": "work" }]
+  "widgets": [
+    { "id": "strip", "entry": "index.html", "width": 4, "kind": "work" },
+    { "id": "tile", "entry": "index.html", "width": 1, "kind": "work" }
+  ]
 }

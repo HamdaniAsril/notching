@@ -15,6 +15,90 @@
   gap: 8px;
 }
 
+/* The tile: one column, 104 px high; the whole frame is a button (see src/settings/settings.css
+   for the same rules on the editor's sample). */
+#tm.tm-tile {
+  display: block;
+  height: 104px;
+}
+
+.wd-tl-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.wd-tl-btn.idle {
+  cursor: ew-resize;
+}
+
+.wd-tl-btn:focus {
+  outline: none;
+}
+
+.wd-tl-btn:focus-visible {
+  outline: 1px solid var(--g2);
+  outline-offset: -1px;
+  border-radius: 8px;
+}
+
+.wd-tl {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 3px;
+}
+
+.wd-tl-head,
+.wd-tl-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.wd-tl-foot {
+  margin-top: auto;
+}
+
+/* Five ticks, 2 px wide and 4 px apart, which is one minute of a drag; the middle one is white and taller. */
+.wd-tl-ruler {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 14px;
+}
+
+.wd-tl-ruler i {
+  width: 2px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--g3);
+}
+
+.wd-tl-ruler i.mid {
+  height: 14px;
+  background: var(--w);
+}
+
+.wd-tl-ruler i.off {
+  visibility: hidden;
+}
+
+/* Paused: the same as running, a step dimmer. */
+.wd-tl.paused {
+  color: var(--g1);
+}
+
 /* The page: a bigger ruler and time on top (owner, 31 Oct), buttons below. */
 #tm.tm-page .tm-top {
   height: 56px;

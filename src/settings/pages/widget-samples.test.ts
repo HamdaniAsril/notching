@@ -68,6 +68,17 @@ test('Napas has its idle state as a sample', () => {
   expect(packSample(widget('fokus/breath'), 'en')![0].textContent).toContain('BREATHE');
 });
 
+test('Timer kecil has its idle state as a sample', () => {
+  const id = packSample(widget('timer/tile'), 'id')!;
+  expect(id).toHaveLength(1);
+  expect(id[0].textContent).toContain('TIMER');
+  expect(id[0].textContent).toContain('MENIT');
+  expect(id[0].querySelector('.wd-big svg.dm')!.getAttribute('width')).toBe('66');
+  expect(id[0].querySelectorAll('.wd-tl-ruler i')).toHaveLength(5);
+  expect(id[0].querySelector('.wd-tl-head .ic svg')).not.toBeNull();
+  expect(packSample(widget('timer/tile'), 'en')![0].textContent).toContain('MINUTES');
+});
+
 test('other widgets are not a pack sample', () => {
   expect(packSample(widget('home/date'), 'id')).toBeNull();
 });

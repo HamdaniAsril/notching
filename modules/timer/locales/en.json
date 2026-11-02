@@ -7,8 +7,11 @@
   "resume": "Resume",
   "stop": "Stop",
   "ruler": "Minutes",
+  "start": "Click to start",
+  "paused": "Paused",
   "widgets": {
-    "strip": "Timer"
+    "strip": "Timer",
+    "tile": "Timer, small"
   },
   "channels": {
     "done": "Timer done"

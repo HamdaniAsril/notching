@@ -19,6 +19,9 @@ import { weekView } from '../../../modules/rencana/widgets/week';
 import enFokus from '../../../modules/fokus/locales/en.json';
 import idFokus from '../../../modules/fokus/locales/id.json';
 import { breathView } from '../../../modules/fokus/widgets/breath';
+import enTimer from '../../../modules/timer/locales/en.json';
+import idTimer from '../../../modules/timer/locales/id.json';
+import { tileView } from '../../../modules/timer/tile';
 import type { Reminder } from '../../../modules/home/types';
 import { svgBox } from '../../kit/widget';
 
@@ -71,6 +74,9 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
       const strings = lang === 'en' ? enFokus : idFokus;
       return [breathView(strings, strings.tap)];
     }
+    case 'timer/tile':
+      // Idle with the 25 minutes of the last preset: a sample is static.
+      return [tileView(document.body, lang === 'en' ? enTimer : idTimer, { kind: 'idle', minutes: 25 })];
     default:
       return null;
   }

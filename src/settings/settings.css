@@ -1431,6 +1431,59 @@ body > .ed-ghost {
   line-height: 11px;
 }
 
+/* Timer kecil: the same rules as modules/timer/style.css, scoped to the slot and the picker
+   card. The sample is the idle state: the name and icon, the minutes, the ruler. */
+.ed-slot .wd-tl,
+.ed-shot .wd-tl {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ed-slot .wd-tl-head,
+.ed-slot .wd-tl-foot,
+.ed-shot .wd-tl-head,
+.ed-shot .wd-tl-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.ed-slot .wd-tl-foot,
+.ed-shot .wd-tl-foot {
+  margin-top: auto;
+}
+
+.ed-slot .wd-tl-ruler,
+.ed-shot .wd-tl-ruler {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 14px;
+}
+
+.ed-slot .wd-tl-ruler i,
+.ed-shot .wd-tl-ruler i {
+  width: 2px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--g3);
+}
+
+.ed-slot .wd-tl-ruler i.mid,
+.ed-shot .wd-tl-ruler i.mid {
+  height: 14px;
+  background: var(--w);
+}
+
+.ed-slot .wd-tl-ruler i.off,
+.ed-shot .wd-tl-ruler i.off {
+  visibility: hidden;
+}
+
 .ed-slot .rm {
   display: flex;
   align-items: center;

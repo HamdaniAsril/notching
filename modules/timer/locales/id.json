@@ -7,8 +7,11 @@
   "resume": "Lanjut",
   "stop": "Stop",
   "ruler": "Menit",
+  "start": "Klik untuk mulai",
+  "paused": "Jeda",
   "widgets": {
-    "strip": "Timer"
+    "strip": "Timer",
+    "tile": "Timer kecil"
   },
   "channels": {
     "done": "Timer selesai"
