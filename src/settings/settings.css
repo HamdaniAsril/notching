@@ -33,6 +33,8 @@
   --acc-soft: #1d260b;
   --on-acc: #0f1404;
   --danger: #e5484d;
+  /* A filled danger button: white on this red reads (5.6:1), on #e5484d it does not. */
+  --danger-fill: #c62a2f;
   --on-danger: #fff;
   --shadow: rgba(0, 0, 0, 0.45);
 }
@@ -58,6 +60,8 @@
     --g3: rgba(0, 0, 0, 0.22);
     --knob: #fff;
     --acc: #4c6b12;
+    /* #e5484d is 3.9:1 on white; this red is 5.6:1. */
+    --danger: #c62a2f;
     --acc-hi: #5a7d17;
     --acc-soft: rgba(76, 107, 18, 0.13);
     --on-acc: #fff;
@@ -481,7 +485,7 @@ select {
 
 /* The second click it asks for. */
 .btn.danger.confirm {
-  background: var(--danger);
+  background: var(--danger-fill);
   box-shadow: none;
   color: var(--on-danger);
 }
