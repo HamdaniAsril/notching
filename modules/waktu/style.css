@@ -1,0 +1,51 @@
+/* Waktu: each widget fills its frame, which the notch sizes to its columns and 104 px. */
+#card {
+  height: 100%;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.wd {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 6px;
+}
+
+.wd-big {
+  min-height: 42px;
+}
+
+/* The date sits at the right end of the top line. */
+.wd-clockdate .top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wd-clockdate .top .lab:first-child {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wd-clockdate .wd-row {
+  margin-top: auto;
+}
+
+/* The face is 96 px in a 104 px frame, centred. */
+.wd-analog {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.wd-analog svg {
+  display: block;
+}

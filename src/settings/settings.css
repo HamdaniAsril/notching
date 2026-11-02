@@ -931,7 +931,52 @@ body > .ed-ghost {
   text-overflow: ellipsis;
 }
 
-.ed-slot .ed-line {
+.ed-slot /* Waktu samples: the top line, the dot time and the hour row as the widget draws them. */
+.ed-shot .top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ed-shot .wd-big svg {
+  display: block;
+}
+
+.ed-shot .wd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 7px;
+  margin-top: auto;
+}
+
+.ed-shot .wd-row .d {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--g3);
+}
+
+.ed-shot .wd-row .d.lit {
+  background: #fff;
+}
+
+.ed-shot .wd-row .d.now {
+  width: 7px;
+  height: 7px;
+  background: #e8262e;
+}
+
+.ed-analog {
+  margin: auto;
+}
+
+.ed-analog svg {
+  display: block;
+}
+
+.ed-line {
   font-size: 15px;
   line-height: 19px;
 }

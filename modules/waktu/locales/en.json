@@ -1,0 +1,8 @@
+{
+  "name": "Time",
+  "description": "Clock and date",
+  "widgets": {
+    "clockdate": "Clock + date",
+    "analog": "Analog clock"
+  }
+}

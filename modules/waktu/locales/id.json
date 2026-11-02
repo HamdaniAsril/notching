@@ -1,0 +1,8 @@
+{
+  "name": "Waktu",
+  "description": "Jam dan tanggal",
+  "widgets": {
+    "clockdate": "Jam + tanggal",
+    "analog": "Jam analog"
+  }
+}

@@ -2,6 +2,7 @@ import { dotBar, dotText, fitPitch } from '../../kit/dots';
 import type { Lang } from '../../kit/protocol';
 import type { CatalogWidget } from '../../pages/layout';
 import { el } from '../controls';
+import { packSample } from './widget-samples';
 
 // A picture of a widget for the page editor: sample content drawn the way the
 // widget draws it, at its size in the notch, on black. Not live data. The list's
@@ -53,7 +54,7 @@ export function widgetSample(w: CatalogWidget, lang: Lang): HTMLElement[] {
         return r;
       })];
     default:
-      return [el('div', 'ed-plain', w.name)];
+      return packSample(w, lang) ?? [el('div', 'ed-plain', w.name)];
   }
 }
 
