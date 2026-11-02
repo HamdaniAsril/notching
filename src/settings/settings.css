@@ -479,7 +479,7 @@ select {
 }
 
 .btn.danger:hover {
-  box-shadow: inset 0 0 0 1px #e5484d80;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 50%, transparent);
   color: var(--danger);
 }
 

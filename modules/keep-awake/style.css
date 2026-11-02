@@ -92,7 +92,8 @@
 
 .ka-chip {
   border: 0;
-  background: var(--v-track);
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
   color: var(--v-ink2);
   cursor: pointer;
 }
