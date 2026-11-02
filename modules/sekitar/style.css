@@ -1,0 +1,110 @@
+/* Sekitar: each widget fills its frame, which the notch sizes to its columns and 104 px. */
+#card {
+  height: 100%;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.wd {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 6px;
+}
+
+.wd-big {
+  min-height: 42px;
+}
+
+/* Cuaca besar: the city, the temperature and the sky at the left, the icon and the range at the right. */
+.wd-bigweather {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wd-bw-left {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wd-bw-left .lab {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wd-bw-sky {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--g1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wd-bw-right {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.wd-bw-right .ic {
+  margin-bottom: auto;
+}
+
+/* Bulan: the phase on top, the moon and the percent, the days to the next full or new moon. */
+.wd-moon {
+  justify-content: space-between;
+}
+
+.wd-moon > .lab {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wd-moon-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wd-moon-box,
+.wd-moon-disk {
+  display: block;
+  flex: none;
+}
+
+.wd-moon-pct {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wd-moon-pct .wd-big {
+  min-height: 0;
+}
+
+.wd-moon-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wd-moon-foot .lab {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

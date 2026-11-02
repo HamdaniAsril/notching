@@ -1,0 +1,33 @@
+{
+  "name": "Sekitar",
+  "description": "Cuaca dan bulan",
+  "noPlace": "Isi kota di Pengaturan",
+  "weatherKinds": {
+    "clear": "Cerah",
+    "mostlyClear": "Cerah berawan",
+    "cloudy": "Berawan",
+    "fog": "Berkabut",
+    "drizzle": "Gerimis",
+    "rain": "Hujan",
+    "showers": "Hujan sesaat",
+    "snow": "Salju",
+    "storm": "Badai petir"
+  },
+  "moon": "Bulan",
+  "moonPhases": {
+    "new": "Baru",
+    "crescent": "Sabit",
+    "quarter": "Separuh",
+    "gibbous": "Cembung",
+    "full": "Purnama"
+  },
+  "fullIn": "Purnama {n} hari",
+  "newIn": "Bulan baru {n} hari",
+  "today": "Hari ini",
+  "high": "T",
+  "low": "R",
+  "widgets": {
+    "bigweather": "Cuaca besar",
+    "moon": "Bulan"
+  }
+}

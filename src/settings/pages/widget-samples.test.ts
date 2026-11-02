@@ -31,6 +31,20 @@ test('Kalender, Hari ke- and Minggu ini have samples', () => {
   expect(week[0].querySelector('.wd-wk-week svg.dm')).not.toBeNull();
 });
 
+test('Cuaca besar and Bulan have samples', () => {
+  const wx = packSample(widget('sekitar/bigweather', 2), 'id')!;
+  expect(wx).toHaveLength(1);
+  expect(wx[0].querySelector('svg.dm')).not.toBeNull();
+  expect(wx[0].textContent).toContain('Jakarta');
+  expect(wx[0].textContent).toContain('T 33°');
+  expect(wx[0].querySelector('.ic svg')).not.toBeNull();
+  const moon = packSample(widget('sekitar/moon'), 'en')!;
+  expect(moon).toHaveLength(1);
+  expect(moon[0].querySelector('.lab')!.textContent).toBe('Moon · Gibbous');
+  expect(moon[0].querySelector('svg.wd-moon-disk')).not.toBeNull();
+  expect(moon[0].querySelector('.wd-big svg.dm')).not.toBeNull();
+});
+
 test('other widgets are not a pack sample', () => {
   expect(packSample(widget('home/date'), 'id')).toBeNull();
 });

@@ -1,0 +1,33 @@
+{
+  "name": "Around",
+  "description": "Weather and moon",
+  "noPlace": "Set a city in Settings",
+  "weatherKinds": {
+    "clear": "Clear",
+    "mostlyClear": "Mostly clear",
+    "cloudy": "Cloudy",
+    "fog": "Fog",
+    "drizzle": "Drizzle",
+    "rain": "Rain",
+    "showers": "Showers",
+    "snow": "Snow",
+    "storm": "Thunderstorm"
+  },
+  "moon": "Moon",
+  "moonPhases": {
+    "new": "New",
+    "crescent": "Crescent",
+    "quarter": "Half",
+    "gibbous": "Gibbous",
+    "full": "Full"
+  },
+  "fullIn": "Full in {n} days",
+  "newIn": "New in {n} days",
+  "today": "Today",
+  "high": "H",
+  "low": "L",
+  "widgets": {
+    "bigweather": "Weather, large",
+    "moon": "Moon"
+  }
+}

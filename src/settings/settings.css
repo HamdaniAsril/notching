@@ -1128,6 +1128,91 @@ body > .ed-ghost {
   height: 4px;
 }
 
+/* Cuaca besar and Bulan: the same rules as modules/sekitar/style.css, scoped to the slot and
+   the picker card. */
+.ed-slot .wd-bigweather,
+.ed-shot .wd-bigweather {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ed-slot .wd-bw-left,
+.ed-shot .wd-bw-left {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ed-slot .wd-bw-sky,
+.ed-shot .wd-bw-sky {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--g1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ed-slot .wd-bw-right,
+.ed-shot .wd-bw-right {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.ed-slot .wd-bw-right .ic,
+.ed-shot .wd-bw-right .ic {
+  margin-bottom: auto;
+}
+
+.ed-slot .wd-moon,
+.ed-shot .wd-moon {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ed-slot .wd-moon-row,
+.ed-shot .wd-moon-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ed-slot .wd-moon-box,
+.ed-slot .wd-moon-disk,
+.ed-shot .wd-moon-box,
+.ed-shot .wd-moon-disk {
+  display: block;
+  flex: none;
+}
+
+.ed-slot .wd-moon-pct,
+.ed-shot .wd-moon-pct {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ed-slot .wd-moon-foot,
+.ed-shot .wd-moon-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .ed-slot .rm {
   display: flex;
   align-items: center;
