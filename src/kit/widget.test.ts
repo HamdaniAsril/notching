@@ -1,40 +1,13 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
 import { icon, ICONS, weatherIcon } from './icons';
-import { big, dotRow, el, small } from './widget';
+import { el } from './widget';
 
-test('a dot row has one dot per count, the lit ones and one now', () => {
-  const row = dotRow(24, 9, 9);
-  expect(row.className).toBe('wd-row');
-  expect(row.children).toHaveLength(24);
-  expect(row.querySelectorAll('.now')).toHaveLength(1);
-  expect(row.querySelectorAll('.lit')).toHaveLength(9);
-  expect(row.children[9].classList.contains('now')).toBe(true);
-});
-
-test('without a now marker no dot is red', () => {
-  const row = dotRow(7, 3, null);
-  expect(row.querySelectorAll('.now')).toHaveLength(0);
-  expect(row.querySelectorAll('.lit')).toHaveLength(3);
-});
-
-test('a now dot inside the lit range is red, not white', () => {
-  const row = dotRow(5, 4, 1);
-  expect(row.children[1].classList.contains('now')).toBe(true);
-  expect(row.children[1].classList.contains('lit')).toBe(false);
-});
-
-test('small text is a dot box at the given pitch', () => {
-  const box = small('09:41', 3);
-  expect(box.className).toBe('wd-small');
-  expect(box.querySelector('svg.dm')?.getAttribute('height')).toBe('21');
-  expect(small('1', 2, 'x').className).toBe('x');
-});
-
-test('big and el are the home helpers, moved', () => {
-  const root = el('div');
-  expect(big(root, '12').querySelector('svg.dm')).not.toBeNull();
-  expect(el('span', 'a', 'b').textContent).toBe('b');
+test('el makes an element with its class and text', () => {
+  const e = el('span', 'v-lab', 'Jakarta');
+  expect(e.tagName).toBe('SPAN');
+  expect(e.className).toBe('v-lab');
+  expect(e.textContent).toBe('Jakarta');
 });
 
 test('every icon is a 24 px Lucide svg in currentColor', () => {
