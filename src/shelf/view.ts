@@ -133,23 +133,23 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
       if (dropping) {
         const zone = el(doc, 'div', 'sh-drop');
         zone.innerHTML = DROP_ICON;
-        zone.append(el(doc, 'span', 'lab', s.drop));
+        zone.append(el(doc, 'span', 'sh-drop-text', s.drop));
         box.replaceChildren(zone);
         return;
       }
-      const head = el(doc, 'div', 'sh-head');
-      const back = el(doc, 'button', 'lab sh-back', `‹ ${deps.backLabel}`);
+      const head = el(doc, 'div', 'pg-back sh-head');
+      const back = el(doc, 'button', 'sh-back', `‹ ${deps.backLabel}`);
       back.type = 'button';
       back.addEventListener('click', () => deps.back());
-      head.append(back, el(doc, 'span', 'lab sh-title', fill(s.title, { n: items.length })));
+      head.append(back, el(doc, 'span', 'pg-title sh-title', fill(s.title, { n: items.length })));
       if (items.length === 0) {
-        box.replaceChildren(head, el(doc, 'div', 'sh-empty lab', s.empty));
+        box.replaceChildren(head, el(doc, 'div', 'sh-empty', s.empty));
         return;
       }
-      const clear = el(doc, 'button', 'lab sh-clear', s.clear);
+      const clear = el(doc, 'button', 'sh-clear', s.clear);
       clear.type = 'button';
       clear.addEventListener('click', () => deps.clear());
-      head.append(el(doc, 'span', 'lab sh-hint', s.hint), clear);
+      head.append(el(doc, 'span', 'sh-hint', s.hint), clear);
       const grid = el(doc, 'div', 'sh-grid');
       grid.append(...items.map(tile));
       box.replaceChildren(head, grid);

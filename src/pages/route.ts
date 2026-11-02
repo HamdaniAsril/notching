@@ -22,10 +22,10 @@ export const STRIP_HEIGHT = 52;
 // grows by.
 export const HEAD_ROW = { height: 16, gap: 10 } as const;
 
-// Titipan's shelf (design 1 Nov §4, titipan-tempat.html A): a head line, then 6
-// tiles a row; past 3 rows the grid scrolls. While a drag is over the notch it is
-// the drop zone, as tall as a custom page.
-export const SHELF = { width: 520, head: 22, tile: 84, gap: 8, columns: 6, maxRows: 3, drop: 104, empty: 84 } as const;
+// Titipan's shelf (design 1 Nov §4, titipan-tempat.html A): a 28 px head (its 22 px
+// line and 6 px above the tile cards), then 6 tiles a row; past 3 rows the grid
+// scrolls. While a drag is over the notch it is the drop zone, as tall as a custom page.
+export const SHELF = { width: 520, head: 28, tile: 84, gap: 8, columns: 6, maxRows: 3, drop: 104, empty: 84 } as const;
 export const SHELF_KEY = 'shelf';
 export const SHOT_KEY = 'screenshot';
 // Screenshot's pages (design 1 Nov §5, §6; notch-hasil.html, halaman-screenshot.html

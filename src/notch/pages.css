@@ -272,7 +272,8 @@
   padding: 0 112px;
 }
 
-/* Titipan's shelf (design 1 Nov §4, titipan-tempat.html A). */
+/* Titipan's shelf (Volt §3): a head line, then kept files as black tiles with a
+   1 px ring. A drag over the notch turns the page into a drop zone with an accent ring. */
 .sh {
   height: 100%;
   user-select: none;
@@ -280,34 +281,33 @@
 }
 
 .sh-head {
-  display: flex;
-  align-items: center;
   gap: 12px;
-  height: 22px;
-}
-
-.sh-back {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--g1);
-  cursor: pointer;
+  height: 28px;
+  padding-bottom: 6px;
+  box-sizing: border-box;
 }
 
 .sh-hint {
   margin-left: auto;
+  font-weight: 500;
+  font-size: 10px;
+  color: var(--v-muted);
 }
 
-.sh-clear {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: rgba(255, 255, 255, 0.85);
-  cursor: pointer;
+/* Kosongkan removes every file from the shelf, so it is the danger pill. */
+.sh-head .sh-clear {
+  flex: none;
+  height: 20px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-size: 10px;
+  color: var(--v-danger);
 }
 
-.sh-clear:hover {
-  color: #fff;
+.sh-head .sh-clear:hover {
+  box-shadow: 0 0 0 1px #e5484d66;
 }
 
 .sh-empty {
@@ -315,17 +315,27 @@
   align-items: center;
   justify-content: center;
   height: 84px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.3);
+  padding: 0 16px;
   border-radius: 14px;
   box-sizing: border-box;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-weight: 500;
+  font-size: 12px;
+  text-align: center;
+  color: var(--v-muted);
 }
 
+/* The 2 px of padding (and the matching negative margin) leave room for the
+   tiles' rings inside the scrolling box. */
 .sh-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   grid-auto-rows: 84px;
   gap: 8px;
   max-height: calc(3 * 84px + 2 * 8px);
+  margin: -2px;
+  padding: 2px;
   overflow-y: auto;
 }
 
@@ -336,25 +346,36 @@
   align-items: center;
   gap: 4px;
   min-width: 0;
-  padding-top: 4px;
+  padding: 6px 1px 0;
+  box-sizing: border-box;
+  overflow: hidden;
   border-radius: 12px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
   cursor: default;
 }
 
-.sh-tile.sel {
-  background: rgba(255, 255, 255, 0.12);
+.sh-tile:hover {
+  box-shadow: 0 0 0 1px #ffffff2e;
+}
+
+.sh-tile.sel,
+.sh-tile.sel:hover {
+  background: var(--v-acc-soft);
+  box-shadow: 0 0 0 1.5px var(--v-acc);
 }
 
 .sh-thumb {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: var(--v-track);
   overflow: hidden;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--v-ink2);
 }
 
 .sh-thumb img {
@@ -373,15 +394,18 @@
 .sh-note {
   max-width: 100%;
   overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-weight: 500;
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.75);
+  line-height: 12px;
+  color: var(--v-ink2);
 }
 
 .sh-note {
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+  line-height: 11px;
+  color: var(--v-muted);
 }
 
 .sh-tile.missing .sh-thumb,
@@ -393,14 +417,14 @@
 
 .sh-x {
   position: absolute;
-  top: 0;
+  top: 4px;
   right: 4px;
   width: 16px;
   height: 16px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--v-ink);
   color: #000;
   font-size: 11px;
   line-height: 16px;
@@ -408,8 +432,14 @@
   opacity: 0;
 }
 
-.sh-tile:hover .sh-x {
+.sh-tile:hover .sh-x,
+.sh-x:focus-visible {
   opacity: 1;
+}
+
+.sh-x:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 1px;
 }
 
 .sh-drop {
@@ -420,10 +450,10 @@
   gap: 6px;
   height: 100%;
   box-sizing: border-box;
-  border: 1.5px dashed #fff;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: #000;
+  box-shadow: inset 0 0 0 2px var(--v-acc);
+  color: var(--v-acc);
 }
 
 .sh-drop svg {
@@ -431,12 +461,15 @@
   height: 22px;
 }
 
-.sh-drop .lab {
-  color: #fff;
+.sh-drop-text {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--v-ink);
 }
 
-/* Screenshot (design 1 Nov §5, §6): the result after a capture (notch-hasil.html)
-   and the list of the last 15 (halaman-screenshot.html v2). Sizes in route.ts SHOT. */
+/* Screenshot (Volt §3): the result after a capture and the list of the last 15.
+   Sizes in route.ts SHOT. The picture sits in a black card with a ring; buttons
+   are pills, the main one in the accent, Hapus in danger. */
 .shot {
   height: 100%;
   user-select: none;
@@ -445,8 +478,12 @@
 
 .shot-lab {
   height: 14px;
-  line-height: 14px;
   margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--v-ink2);
+  white-space: nowrap;
 }
 
 .shot-row {
@@ -460,15 +497,15 @@
   flex: none;
   width: 240px;
   height: 150px;
-  border-radius: 10px;
+  border-radius: 14px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
-  outline: 1px solid rgba(255, 255, 255, 0.15);
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
   cursor: pointer;
 }
 
 .shot-pic:hover {
-  outline: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px #ffffff2e;
 }
 
 .shot-pic img {
@@ -484,11 +521,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 4px 8px;
+  padding: 4px 10px;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  font-size: 10px;
+  color: var(--v-ink2);
 }
 
 .shot-side {
@@ -500,15 +537,17 @@
 }
 
 .shot-done {
-  font-size: 13px;
-  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--v-ink);
 }
 
 .shot-size {
-  margin-top: 4px;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+  font-family: "Barlow Condensed", "Inter", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--v-muted);
 }
 
 .shot-btns {
@@ -523,21 +562,53 @@
   align-items: center;
   gap: 8px;
   border: 0;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-ink2);
+  font-family: inherit;
+  font-weight: 600;
   font-size: 11px;
   cursor: pointer;
 }
 
 .shot-btn {
-  padding: 7px 12px;
+  padding: 7px 14px;
 }
 
 .shot-btn:hover,
 .shot-tbtn:hover {
-  background: rgba(255, 255, 255, 0.14);
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #ffffff2e;
+}
+
+.shot-btn.primary {
+  background: var(--v-acc);
+  box-shadow: none;
+  color: var(--v-on-acc);
+}
+
+.shot-btn.primary:hover {
+  background: #d6f56e;
+  color: var(--v-on-acc);
+  box-shadow: none;
+}
+
+.shot-btn.danger {
+  color: var(--v-danger);
+}
+
+.shot-btn.danger:hover {
+  color: var(--v-danger);
+  box-shadow: 0 0 0 1px #e5484d66;
+}
+
+.shot-btn:focus-visible,
+.shot-tbtn:focus-visible,
+.shot-note-btn:focus-visible,
+.shot-act:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
 }
 
 .shot-btn svg {
@@ -550,7 +621,7 @@
   height: 22px;
 }
 
-/* A notice line under the head: the keys or the permission, maybe a button. */
+/* A notice line under the head: the keys or the permission, maybe a pill button. */
 .shot-note {
   display: flex;
   align-items: center;
@@ -562,25 +633,32 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
   font-size: 12px;
-  color: var(--g1);
+  color: var(--v-muted);
 }
 
 .shot-note-btn {
   flex: none;
-  padding: 3px 8px;
+  height: 18px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--v-ink2);
   cursor: pointer;
 }
 
 .shot-note-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #ffffff2e;
 }
 
-/* 5 columns; each row a 62 px picture over its 14 px time. */
+/* 5 columns; each row a 62 px picture card over its 14 px time. */
 .shot-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -591,15 +669,15 @@
 .shot-th {
   position: relative;
   height: 62px;
-  border-radius: 7px;
+  border-radius: 12px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.06);
-  outline: 1px solid rgba(255, 255, 255, 0.12);
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
   cursor: pointer;
 }
 
 .shot-th:hover {
-  outline: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px #ffffff2e;
 }
 
 .shot-th img {
@@ -617,12 +695,13 @@
   align-items: flex-end;
   justify-content: center;
   gap: 4px;
-  padding-bottom: 4px;
+  padding-bottom: 5px;
   background: linear-gradient(transparent 40%, rgba(0, 0, 0, 0.75));
   opacity: 0;
 }
 
-.shot-th:hover .shot-acts {
+.shot-th:hover .shot-acts,
+.shot-acts:focus-within {
   opacity: 1;
 }
 
@@ -634,14 +713,20 @@
   height: 18px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px #ffffff2e;
+  color: var(--v-ink2);
   cursor: pointer;
 }
 
 .shot-act:hover {
-  background: rgba(255, 255, 255, 0.34);
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #ffffff66;
+}
+
+.shot-act.danger {
+  color: var(--v-danger);
 }
 
 .shot-act svg {
@@ -652,16 +737,16 @@
 /* A save that just failed (common.ts SAVE_FAILED_MS). */
 .shot-btn.failed,
 .shot-act.failed {
-  color: var(--red);
+  color: var(--v-danger);
 }
 
 .shot-time {
   margin-top: 3px;
   line-height: 11px;
   text-align: center;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 8px;
-  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+  font-size: 9px;
+  color: var(--v-muted);
 }
 
 .shot-empty {
@@ -669,9 +754,15 @@
   align-items: center;
   justify-content: center;
   height: 72px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.3);
+  padding: 0 16px;
   border-radius: 14px;
   box-sizing: border-box;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-weight: 500;
+  font-size: 12px;
+  text-align: center;
+  color: var(--v-muted);
 }
 
 .shot-take {
@@ -684,7 +775,7 @@
 .shot-tbtn {
   flex: 1;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 14px;
 }
 
 .shot-tbtn svg {
@@ -695,8 +786,9 @@
 
 .shot-key {
   margin-left: auto;
+  font-weight: 500;
   font-size: 9px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--v-muted);
   white-space: nowrap;
 }
 

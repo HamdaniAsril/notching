@@ -65,6 +65,17 @@ test('an empty list shows the empty line', () => {
   expect(box.querySelector('.shot-count')!.textContent).toBe('Screenshot · 0');
 });
 
+test('Volt look: no dot-matrix label anywhere, Hapus on a tile is danger', async () => {
+  deps.shotPermission.mockResolvedValue(false);
+  mountShotList(box, deps).render([shot(1)]);
+  await flush();
+  expect(box.querySelector('.lab')).toBeNull();
+  expect(tile(1).querySelector('.shot-acts button[aria-label="Hapus"]')!.classList.contains('danger')).toBe(true);
+  expect(tile(1).querySelector('.shot-acts button[aria-label="Salin"]')!.classList.contains('danger')).toBe(false);
+  mountShotList(box, deps).render([]);
+  expect(box.querySelector('.lab')).toBeNull();
+});
+
 test('the back bar goes to the Modul page', () => {
   mountShotList(box, deps).render([]);
   const back = box.querySelector<HTMLButtonElement>('.shot-head button')!;

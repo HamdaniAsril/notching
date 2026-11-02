@@ -44,6 +44,17 @@ test('drop mode shows the drop zone only', () => {
   expect(box.querySelector('.sh-tile')).toBeNull();
 });
 
+test('no dot-matrix label class in any state; the head is the Volt back bar', () => {
+  const v = mountShelfView(box, deps);
+  v.render(shelf(item(1, 'a'), item(2, 'b', { state: 'missing' })), false);
+  expect(box.querySelector('.lab')).toBeNull();
+  expect(box.querySelector('.sh-head')!.classList.contains('pg-back')).toBe(true);
+  v.render(shelf(), false);
+  expect(box.querySelector('.lab')).toBeNull();
+  v.render(shelf(item(1, 'a')), true);
+  expect(box.querySelector('.lab')).toBeNull();
+});
+
 test('head shows count and hint', () => {
   const v = mountShelfView(box, deps);
   v.render(shelf(item(1, 'a'), item(2, 'b'), item(3, 'c')), false);

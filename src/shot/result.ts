@@ -47,8 +47,8 @@ export function mountShotResult(box: HTMLElement, deps: ShotDeps): ShotResult {
     if (e.phase === 'gone' && e.id === id) void deps.close();
   });
 
-  function action(icon: string, text: string, onClick: () => void): HTMLButtonElement {
-    const b = button(doc, 'shot-btn');
+  function action(icon: string, text: string, onClick: () => void, tone: '' | 'primary' | 'danger' = ''): HTMLButtonElement {
+    const b = button(doc, tone ? `shot-btn ${tone}` : 'shot-btn');
     b.innerHTML = icon;
     b.append(text);
     b.addEventListener('click', onClick);
@@ -68,14 +68,14 @@ export function mountShotResult(box: HTMLElement, deps: ShotDeps): ShotResult {
     const saveBtn = action(saving === 'saved' ? SAVED_ICON : SAVE_ICON, s[saving === 'failed' ? 'saveFailed' : saving], () => save.save(shot));
     saveBtn.classList.toggle('failed', saving === 'failed');
     const btns = el(doc, 'div', 'shot-btns');
-    btns.append(action(COPY_ICON, s.copy, copy), saveBtn, action(DELETE_ICON, s.delete, () => {
+    btns.append(action(COPY_ICON, s.copy, copy, 'primary'), saveBtn, action(DELETE_ICON, s.delete, () => {
       deps.shotDelete(shot.id).catch(() => {});
       void deps.close();
-    }));
+    }, 'danger'));
     const side = el(doc, 'div', 'shot-side');
     side.append(info, btns);
     row.append(pic, side);
-    wrap.append(el(doc, 'div', 'lab shot-lab', fill(s.label, { kind: s.kinds[shot.kind] })), row);
+    wrap.append(el(doc, 'div', 'shot-lab', fill(s.label, { kind: s.kinds[shot.kind] })), row);
     box.replaceChildren(wrap);
   }
 

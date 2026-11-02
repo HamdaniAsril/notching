@@ -46,9 +46,9 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
   let built = '';
   let gone = false;
 
-  const count = el(doc, 'span', 'lab pg-title shot-count');
+  const count = el(doc, 'span', 'pg-title shot-count');
   const head = el(doc, 'div', 'pg-back shot-head');
-  const back = button(doc, 'lab', `‹ ${hostStrings(deps.lang).modules}`);
+  const back = button(doc, 'shot-back', `‹ ${hostStrings(deps.lang).modules}`);
   back.addEventListener('click', () => deps.back());
   head.append(back, count);
   const notes = el(doc, 'div', 'shot-notes');
@@ -75,7 +75,7 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
     const line = el(doc, 'div', 'shot-note');
     line.append(el(doc, 'span', 'shot-note-text', text));
     if (open) {
-      const b = button(doc, 'lab shot-note-btn', s.openSettings);
+      const b = button(doc, 'shot-note-btn', s.openSettings);
       b.addEventListener('click', () => void open().catch(() => {}));
       line.append(b);
     }
@@ -94,8 +94,8 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
     deps.onNotes(lines.length);
   });
 
-  function act(icon: string, label: string, run: () => void, failed = false): HTMLButtonElement {
-    const b = button(doc, failed ? 'shot-act failed' : 'shot-act');
+  function act(icon: string, label: string, run: () => void, tone: '' | 'failed' | 'danger' = ''): HTMLButtonElement {
+    const b = button(doc, tone ? `shot-act ${tone}` : 'shot-act');
     b.innerHTML = icon;
     b.setAttribute('aria-label', label);
     b.title = label;
@@ -118,8 +118,8 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
         deps.shotCopy(shot.id).catch(() => {});
         void deps.close();
       }),
-      act(saving === 'saved' ? SAVED_ICON : SAVE_ICON, s[saving === 'failed' ? 'saveFailed' : saving], () => save.save(shot), saving === 'failed'),
-      act(DELETE_ICON, s.delete, () => void deps.shotDelete(shot.id).catch(() => {})),
+      act(saving === 'saved' ? SAVED_ICON : SAVE_ICON, s[saving === 'failed' ? 'saveFailed' : saving], () => save.save(shot), saving === 'failed' ? 'failed' : ''),
+      act(DELETE_ICON, s.delete, () => void deps.shotDelete(shot.id).catch(() => {}), 'danger'),
     );
     th.append(image(doc, shot.thumb), acts);
     press.watch(th, shot.id, () => openEditor(deps, shot.id));
@@ -134,7 +134,7 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
     built = sig;
     count.textContent = fill(s.title, { n: sorted.length });
     if (sorted.length === 0) {
-      body.replaceChildren(el(doc, 'div', 'lab shot-empty', s.empty));
+      body.replaceChildren(el(doc, 'div', 'shot-empty', s.empty));
       return;
     }
     const grid = el(doc, 'div', 'shot-grid');

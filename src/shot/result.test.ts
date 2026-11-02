@@ -41,6 +41,15 @@ test('it shows the label for each kind, the copied line and the size', () => {
   expect(picture().querySelector('img')!.getAttribute('src')).toBe('notchshot://localhost/3/current.png?v=0');
 });
 
+test('Volt look: no dot-matrix label, Salin is the accent button, Hapus is danger', () => {
+  mount();
+  expect(box.querySelector('.lab')).toBeNull();
+  expect(button('Salin').classList.contains('primary')).toBe(true);
+  expect(button('Hapus').classList.contains('danger')).toBe(true);
+  expect(button('Simpan').classList.contains('primary')).toBe(false);
+  expect(button('Simpan').classList.contains('danger')).toBe(false);
+});
+
 test('English labels', () => {
   deps = fakeShotDeps({ lang: 'en' });
   mount(shot(1, { kind: 'screen' }));
