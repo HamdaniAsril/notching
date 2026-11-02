@@ -66,8 +66,8 @@ test('hm drops the hours under an hour, in both languages', () => {
   expect(hm(78 * MIN - 5, 'id')).toBe('1 j 18 m');
 });
 
-test('timeText: 09.00 in Indonesian, 9:00 in English', () => {
+test('timeText: 09.00 in Indonesian, 09:00 in English', () => {
   expect(timeText('09:00', 'id')).toBe('09.00');
-  expect(timeText('09:05', 'en')).toBe('9:05');
+  expect(timeText('09:05', 'en')).toBe('09:05');
   expect(timeText('17:30', 'en')).toBe('17:30');
 });

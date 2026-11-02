@@ -57,7 +57,8 @@ export function workdayView(s: WorkdayStrings, lang: Lang, p: WorkPrefs, now: Da
     return w;
   }
   const text = st.kind === 'before' ? s.startsAt.replace('{t}', timeText(p.start, lang)) : st.kind === 'done' ? s.done : s.off;
-  w.append(head, num(text, 20, 'wd-work-time'));
+  // "Mulai 09.00" fits the 85 px at 20 px; the longer "Starts 09:00" needs 18.
+  w.append(head, num(text, text.length > 11 ? 18 : 20, 'wd-work-time'));
   return w;
 }
 

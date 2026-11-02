@@ -71,7 +71,9 @@ test('before, done and off say so in a word, with no bar', () => {
 test('English before, done and off', () => {
   const { root, w } = setup('en');
   w.update(DEFAULT_WORK, at(27, 8, 0));
-  expect(root.querySelector('.wd-work-time')!.textContent).toBe('Starts 9:00');
+  expect(root.querySelector('.wd-work-time')!.textContent).toBe('Starts 09:00');
+  // 20 px is 5 px too wide for the 85 px inside the card.
+  expect((root.querySelector('.wd-work-time') as HTMLElement).style.fontSize).toBe('18px');
   w.update(DEFAULT_WORK, at(27, 17, 0));
   expect(root.querySelector('.wd-work-time')!.textContent).toBe('Done');
   w.update(DEFAULT_WORK, at(31, 10, 0));

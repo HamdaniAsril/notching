@@ -72,7 +72,7 @@ export function hm(ms: number, lang: Lang): string {
   return h > 0 ? `${h} ${lang === 'id' ? 'j' : 'h'} ${m} m` : `${m} m`;
 }
 
-// "09.00" in Indonesian, "9:00" in English (24-hour, the hour unpadded).
+// "09.00" in Indonesian, "09:00" in English (24-hour), as the other packages write times.
 export function timeText(t: string, lang: Lang): string {
-  return lang === 'id' ? t.replace(':', '.') : `${Number(t.slice(0, 2))}:${t.slice(3)}`;
+  return lang === 'id' ? t.replace(':', '.') : t;
 }
