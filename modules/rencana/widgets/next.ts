@@ -1,5 +1,6 @@
 import type { Lang } from '../../../src/kit/protocol';
-import { el, small } from '../../../src/kit/widget';
+import { lab, num } from '../../../src/kit/volt';
+import { el } from '../../../src/kit/widget';
 import { clock } from '../../home/format';
 import type { HomeSnapshot, Reminder } from '../../home/types';
 import { nextTimed, untilText } from '../plan';
@@ -24,21 +25,21 @@ function dayLabel(r: Reminder, now: Date, lang: Lang, s: NextStrings): string {
     : new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(day);
 }
 
-// The widget's content for `now`: the next reminder with a time, how long until it, and when.
-// Also what the editor's sample draws.
+// The widget's content for `now`: the next reminder with a time. The name and a pill with the
+// time left on top, the title big, the day at the bottom left and the time in the accent at the
+// bottom right. Also what the editor's sample draws.
 export function nextView(s: NextStrings, lang: Lang, rs: Reminder[], now: Date): HTMLElement {
-  const w = el('div', 'wd wd-next');
+  const w = el('div', 'v-card wd-next');
   const r = nextTimed(rs, now);
   const top = el('div', 'wd-nx-top');
-  top.append(el('span', 'lab', s.next.toUpperCase()));
+  top.append(lab(s.next, 'ink'));
   if (!r || r.at === null) {
     w.append(top, el('div', 'wd-nx-empty', s.nextEmpty));
     return w;
   }
-  top.append(el('span', 'lab', untilText(r.at - now.getTime(), lang)));
+  top.append(el('span', 'v-pill soft', untilText(r.at - now.getTime(), lang)));
   const foot = el('div', 'wd-nx-foot');
-  // The dot font has no full stop, so the time is always drawn with a colon.
-  foot.append(el('span', 'lab', dayLabel(r, now, lang, s)), small(clock(r.at, 'en'), 3));
+  foot.append(el('span', 'wd-nx-detail', dayLabel(r, now, lang, s)), num(clock(r.at, lang), 18, 'v-acc'));
   w.append(top, el('div', 'wd-nx-title', r.title), foot);
   return w;
 }

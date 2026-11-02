@@ -1,13 +1,15 @@
 import type { Lang } from '../../../src/kit/protocol';
 import { isoWeek, shortDay, weekOf } from '../../../src/kit/dates';
-import { el, small } from '../../../src/kit/widget';
+import { lab, num } from '../../../src/kit/volt';
+import { el } from '../../../src/kit/widget';
 import { clock, dayKey } from '../../home/format';
 import type { HomeSnapshot, Reminder } from '../../home/types';
-import { daysWithOpen, nextThisWeek } from '../plan';
+import { nextThisWeek } from '../plan';
 
 export interface WeekStrings {
-  week: string;
+  week: string; // "Minggu" / "Week", before the ISO week number
   weekEmpty: string;
+  widgets: { week: string };
 }
 
 // The reminder's own day ("2026-10-30") as a local date.
@@ -16,36 +18,36 @@ const dayDate = (day: string): Date => {
   return new Date(y, m - 1, d);
 };
 
-// Today: the time (nothing if untimed). Another day: "JUM 09.00", or "JUM" untimed.
+// "JUM" to "Jum".
+const cap = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
+
+// Today: the time (nothing if untimed). Another day: "Jum 09.00", or "Jum" untimed.
 function cue(r: Reminder, lang: Lang, today: string): string {
   const time = r.at === null ? '' : clock(r.at, lang);
   if (r.day === today) return time;
-  return `${shortDay(dayDate(r.day), lang)}${time ? ` ${time}` : ''}`;
+  return `${cap(shortDay(dayDate(r.day), lang))}${time ? ` ${time}` : ''}`;
 }
 
 const locale = (lang: Lang) => (lang === 'id' ? 'id-ID' : 'en-US');
 
-// The widget's content for `now`: the month and ISO week on top, the seven days with a dot
-// under each that has an open reminder, and the next reminder of the week at the bottom.
+// The widget's content for `now`: the name and ISO week on top, the seven days (the ones gone
+// dim, today in an accent circle), and the next reminder of the week at the bottom.
 // Also what the editor's sample draws.
 export function weekView(s: WeekStrings, lang: Lang, rs: Reminder[], now: Date): HTMLElement {
-  const w = el('div', 'wd wd-week');
+  const w = el('div', 'v-card wd-week');
 
   const head = el('div', 'wd-pk-head');
-  const month = new Intl.DateTimeFormat(locale(lang), { month: 'long' }).format(now).toUpperCase();
-  head.append(el('span', 'lab', month), el('span', 'lab', `${s.week.toUpperCase()} ${isoWeek(now)}`));
+  head.append(lab(s.widgets.week, 'ink'), el('span', 'wd-pk-wk', `${s.week} ${isoWeek(now)}`));
 
   const days = el('div', 'wd-pk-days');
-  const open = daysWithOpen(rs, now);
   const today = dayKey(now);
   for (const d of weekOf(now)) {
     const key = dayKey(d);
-    const col = el('div', `wd-pk-day${key === today ? ' today' : ''}${open.has(key) ? ' has' : ''}`);
+    const col = el('div', `wd-pk-day${key === today ? ' today' : key < today ? ' past' : ''}`);
     const letter = new Intl.DateTimeFormat(locale(lang), { weekday: 'narrow' }).format(d).toUpperCase();
-    const num = el('div', 'wd-pk-num');
-    num.append(small(String(d.getDate()), 2));
-    col.append(el('div', 'lab', letter), num);
-    if (open.has(key)) col.append(el('i', 'wd-pk-dot'));
+    const n = el('div', 'wd-pk-num');
+    n.append(num(String(d.getDate()), 14));
+    col.append(lab(letter, key === today ? 'ink' : ''), n);
     days.append(col);
   }
 
@@ -53,10 +55,11 @@ export function weekView(s: WeekStrings, lang: Lang, rs: Reminder[], now: Date):
   const next = nextThisWeek(rs, now);
   if (next) {
     const when = cue(next, lang, today);
-    if (when) foot.append(el('div', 'lab wd-pk-time', when));
-    foot.append(el('div', 'wd-pk-title', next.title));
+    foot.append(el('i', 'wd-pk-dot'));
+    if (when) foot.append(el('span', 'wd-pk-time', when));
+    foot.append(el('span', 'wd-pk-title', next.title));
   } else {
-    foot.append(el('div', 'wd-pk-title empty', s.weekEmpty));
+    foot.append(el('span', 'wd-pk-title empty', s.weekEmpty));
   }
 
   w.append(head, days, foot);

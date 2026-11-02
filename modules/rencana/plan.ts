@@ -29,11 +29,12 @@ export function daysWithOpen(rs: Reminder[], now: Date): Set<string> {
   return new Set(openReminders(rs).map(r => r.day).filter(d => days.has(d)));
 }
 
-// "18 MNT", "2 J", "3 HARI": the largest unit that fits, rounded down.
+// "18 menit lagi", "in 2 h", "3 hari lagi": the largest unit that fits, rounded down.
 export function untilText(ms: number, lang: Lang): string {
   const id = lang === 'id';
-  if (ms < 3_600_000) return `${Math.max(1, Math.floor(ms / 60_000))} ${id ? 'MNT' : 'MIN'}`;
-  if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)} ${id ? 'J' : 'H'}`;
+  const phrase = (n: number, unit: string) => (id ? `${n} ${unit} lagi` : `in ${n} ${unit}`);
+  if (ms < 3_600_000) return phrase(Math.max(1, Math.floor(ms / 60_000)), id ? 'menit' : 'min');
+  if (ms < 86_400_000) return phrase(Math.floor(ms / 3_600_000), id ? 'jam' : 'h');
   const days = Math.floor(ms / 86_400_000);
-  return `${days} ${id ? 'HARI' : days === 1 ? 'DAY' : 'DAYS'}`;
+  return phrase(days, id ? 'hari' : days === 1 ? 'day' : 'days');
 }

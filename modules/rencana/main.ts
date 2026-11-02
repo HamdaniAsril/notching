@@ -1,4 +1,5 @@
 import '../../src/kit/kit.css';
+import '../../src/kit/volt.css';
 import './style.css';
 import { connectKit } from '../../src/kit/client';
 import { startTicks } from '../home/ticks';

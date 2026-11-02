@@ -60,13 +60,13 @@ test('days with an open reminder are the ones of this week only', () => {
   expect(days.has('2026-11-02')).toBe(false);
 });
 
-test('until text is minutes under an hour, hours under a day, then days', () => {
-  expect(untilText(18 * 60000, 'id')).toBe('18 MNT');
-  expect(untilText(18 * 60000, 'en')).toBe('18 MIN');
-  expect(untilText(30_000, 'id')).toBe('1 MNT');
-  expect(untilText(2.5 * 3600000, 'id')).toBe('2 J');
-  expect(untilText(23.9 * 3600000, 'en')).toBe('23 H');
-  expect(untilText(3 * 86400000 + 5, 'id')).toBe('3 HARI');
-  expect(untilText(3 * 86400000, 'en')).toBe('3 DAYS');
-  expect(untilText(86400000, 'en')).toBe('1 DAY');
+test('until text is minutes under an hour, hours under a day, then days, as a phrase', () => {
+  expect(untilText(18 * 60000, 'id')).toBe('18 menit lagi');
+  expect(untilText(18 * 60000, 'en')).toBe('in 18 min');
+  expect(untilText(30_000, 'id')).toBe('1 menit lagi');
+  expect(untilText(2.5 * 3600000, 'id')).toBe('2 jam lagi');
+  expect(untilText(23.9 * 3600000, 'en')).toBe('in 23 h');
+  expect(untilText(3 * 86400000 + 5, 'id')).toBe('3 hari lagi');
+  expect(untilText(3 * 86400000, 'en')).toBe('in 3 days');
+  expect(untilText(86400000, 'en')).toBe('in 1 day');
 });

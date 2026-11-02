@@ -1,7 +1,7 @@
 {
   "name": "Plan",
   "description": "Reminders this week",
-  "week": "Wk",
+  "week": "Week",
   "weekEmpty": "Nothing this week",
   "next": "Up next",
   "nextEmpty": "Nothing scheduled",

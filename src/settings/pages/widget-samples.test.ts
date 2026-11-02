@@ -87,16 +87,23 @@ test('Udara has a sample', () => {
 });
 
 test('Pekan ini and Berikutnya have samples', () => {
+  // The sample is Friday 30 Oct 2026, 09:32, in ISO week 44; the next reminder is at 14.00.
   const week = packSample(widget('rencana/week', 2), 'id')!;
   expect(week).toHaveLength(1);
+  expect(week[0].classList.contains('v-card')).toBe(true);
+  expect(week[0].querySelector('.wd-pk-head .v-lab')!.textContent).toBe('Pekan ini');
+  expect(week[0].querySelector('.wd-pk-wk')!.textContent).toBe('Minggu 44');
   expect(week[0].querySelectorAll('.wd-pk-day')).toHaveLength(7);
-  expect(week[0].querySelector('.wd-pk-day.today')!.textContent).toContain('J');
-  expect(week[0].querySelectorAll('.wd-pk-day.has')).toHaveLength(2);
+  expect(week[0].querySelector('.wd-pk-day.today')!.textContent).toBe('J30');
+  expect(week[0].querySelector('.wd-pk-time')!.textContent).toBe('14.00');
   expect(week[0].querySelector('.wd-pk-title')!.textContent).toBe('Kirim invoice');
   const next = packSample(widget('rencana/next', 2), 'en')!;
   expect(next).toHaveLength(1);
-  expect(next[0].querySelector('.wd-nx-top')!.textContent).toBe('UP NEXT4 H');
-  expect(next[0].querySelector('.wd-nx-foot svg.dm')).not.toBeNull();
+  expect(next[0].querySelector('.wd-nx-top .v-lab')!.textContent).toBe('Up next');
+  expect(next[0].querySelector('.v-pill.soft')!.textContent).toBe('in 4 h');
+  expect(next[0].querySelector('.wd-nx-title')!.textContent).toBe('Kirim invoice');
+  expect(next[0].querySelector('.wd-nx-detail')!.textContent).toBe('Today');
+  expect(next[0].querySelector('.wd-nx-foot .v-num.v-acc')!.textContent).toBe('14:00');
 });
 
 test('Napas has its idle state as a sample', () => {

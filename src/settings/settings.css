@@ -1021,6 +1021,24 @@ body > .ed-ghost {
   background: var(--v-acc);
 }
 
+/* The countdown pill (Berikutnya). */
+:is(.ed-slot, .ed-shot, .ed-strip) .v-pill {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--v-acc);
+  color: var(--v-on-acc);
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-pill.soft {
+  background: var(--v-acc-soft);
+  color: var(--v-acc);
+}
+
 /* The built-in widgets (Tanggal, Jam tumpuk, Waktu sholat, Cuaca, Reminder): the same rules as
    modules/home/style.css, scoped to the slot, the picture and the strip. Only the row view is
    drawn here, so the full reminder list has no rules. */
@@ -1959,56 +1977,62 @@ body > .ed-ghost {
   color: var(--v-ink);
 }
 
-/* Pekan ini and Berikutnya: the same rules as modules/rencana/style.css, scoped to the slot
-   and the picker card. */
-.ed-slot .wd-week,
-.ed-slot .wd-next,
-.ed-shot .wd-week,
-.ed-shot .wd-next {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* Pekan ini and Berikutnya: the same rules as modules/rencana/style.css, scoped to the slot, the
+   picture and the strip. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-week,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-next {
+  justify-content: space-between;
+  min-width: 0;
 }
 
-.ed-slot .wd-pk-head,
-.ed-slot .wd-nx-top,
-.ed-shot .wd-pk-head,
-.ed-shot .wd-nx-top {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-head,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-nx-top {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
 }
 
-.ed-slot .wd-pk-days,
-.ed-shot .wd-pk-days {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-head,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-head .v-lab {
+  line-height: 13px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-wk,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-time,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-nx-detail,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-nx-empty {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-wk {
+  white-space: nowrap;
+}
+
+/* Pekan ini: seven columns, each a letter over a 22 px circle with the date. The days gone are
+   dim, today's circle is the accent. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-days {
   display: flex;
   justify-content: space-between;
 }
 
-.ed-slot .wd-pk-day,
-.ed-shot .wd-pk-day {
-  width: 22px;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-day {
+  width: 26px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  color: var(--g1);
+  gap: 2px;
 }
 
-.ed-slot .wd-pk-day .lab,
-.ed-shot .wd-pk-day .lab {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-day .v-lab {
   line-height: 12px;
 }
 
-.ed-slot .wd-pk-day .wd-small,
-.ed-shot .wd-pk-day .wd-small {
-  color: inherit;
-}
-
-.ed-slot .wd-pk-num,
-.ed-shot .wd-pk-num {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-num {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -2017,56 +2041,65 @@ body > .ed-ghost {
   justify-content: center;
 }
 
-.ed-slot .wd-pk-day.today,
-.ed-shot .wd-pk-day.today {
-  color: var(--w);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-day.past .v-num {
+  color: var(--v-dim);
 }
 
-.ed-slot .wd-pk-day.today .wd-pk-num,
-.ed-shot .wd-pk-day.today .wd-pk-num {
-  background: var(--w);
-  color: #000;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-day.today .wd-pk-num {
+  background: var(--v-acc);
 }
 
-.ed-slot .wd-pk-dot,
-.ed-shot .wd-pk-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--g1);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-day.today .v-num {
+  color: var(--v-on-acc);
 }
 
-.ed-slot .wd-pk-day.today .wd-pk-dot,
-.ed-shot .wd-pk-day.today .wd-pk-dot {
-  background: var(--w);
-}
+/* The next reminder of the week: an accent dot, the time, the title. */
 
-.ed-slot .wd-pk-foot,
-.ed-shot .wd-pk-foot {
-  margin-top: auto;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 
-.ed-slot .wd-pk-title,
-.ed-shot .wd-pk-title {
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--w);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-dot {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-time {
+  flex: none;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-title {
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ed-slot .wd-pk-title.empty,
-.ed-shot .wd-pk-title.empty {
-  color: var(--g2);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pk-title.empty {
+  font-weight: 400;
+  color: var(--v-muted);
 }
 
-.ed-slot .wd-nx-title,
-.ed-shot .wd-nx-title {
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 18px;
+/* Berikutnya: the name and the countdown pill on top, the title big over two lines in Barlow,
+   the day at the bottom left and the time in the accent at the bottom right. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-nx-title {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--v-ink);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -2074,28 +2107,27 @@ body > .ed-ghost {
   overflow-wrap: anywhere;
 }
 
-.ed-slot .wd-nx-empty,
-.ed-shot .wd-nx-empty {
-  font-size: 13px;
-  line-height: 18px;
-  color: var(--g2);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-nx-empty {
+  font-size: 12px;
+  line-height: 16px;
 }
 
-.ed-slot .wd-nx-foot,
-.ed-shot .wd-nx-foot {
-  margin-top: auto;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-nx-foot {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 8px;
 }
 
-.ed-slot .wd-nx-foot .lab,
-.ed-shot .wd-nx-foot .lab {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-nx-detail {
   min-width: 0;
-  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-nx-foot .v-num {
+  flex: none;
 }
 
 /* Napas: the same rules as modules/fokus/style.css, scoped to the slot and the picker card.
