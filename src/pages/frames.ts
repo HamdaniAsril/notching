@@ -119,7 +119,7 @@ export function mountFrameHost(deps: FrameHostDeps, doc: Document): FrameHost {
         if (entries.get(spec.key) !== e) return;
         e.iframe = null;
         const err = doc.createElement('div');
-        err.className = 'pg-error lab';
+        err.className = 'pg-error';
         err.textContent = strings.loadFailed;
         box.replaceChildren(err);
       }, READY_TIMEOUT_MS);
