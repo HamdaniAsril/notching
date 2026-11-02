@@ -6,11 +6,18 @@
   "leftOne": "{n} day left",
   "calendar": "Calendar",
   "week": "Wk",
+  "zonesTitle": "World clock",
+  "zonesCount": "{n} cities",
+  "zoneField": "City {n}",
+  "save": "Save",
+  "saveFailed": "Could not save",
+  "back": "Back",
   "widgets": {
     "clockdate": "Clock + date",
     "analog": "Analog clock",
     "calendar": "Calendar",
     "yearday": "Day of year",
-    "weekstrip": "This week"
+    "weekstrip": "This week",
+    "zones": "World clock"
   }
 }

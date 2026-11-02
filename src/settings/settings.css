@@ -1637,6 +1637,75 @@ body > .ed-ghost {
   white-space: nowrap;
 }
 
+/* Zona waktu: the same rules as modules/waktu/style.css, scoped to the slot and the picker card. */
+.ed-slot .wd-zones,
+.ed-shot .wd-zones {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ed-slot .wd-zone-head,
+.ed-shot .wd-zone-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ed-slot .wd-zone-cols,
+.ed-shot .wd-zone-cols {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ed-slot .wd-zone-col,
+.ed-shot .wd-zone-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ed-slot .wd-zone-top,
+.ed-shot .wd-zone-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.ed-slot .wd-zone-top .lab,
+.ed-shot .wd-zone-top .lab {
+  line-height: 12px;
+  min-height: 12px;
+}
+
+.ed-slot .wd-zone-diff,
+.ed-shot .wd-zone-diff {
+  color: var(--g2);
+}
+
+.ed-slot .wd-zone-col.night .wd-small,
+.ed-shot .wd-zone-col.night .wd-small {
+  color: var(--g2);
+}
+
+.ed-slot .wd-zone-mark,
+.ed-shot .wd-zone-mark {
+  display: block;
+  height: 2px;
+  background: var(--g3);
+}
+
+.ed-slot .wd-zone-mark.local,
+.ed-shot .wd-zone-mark.local {
+  background: var(--w);
+}
+
 /* Timer kecil: the same rules as modules/timer/style.css, scoped to the slot and the picker
    card. The sample is the idle state: the name and icon, the minutes, the ruler. */
 .ed-slot .wd-tl,

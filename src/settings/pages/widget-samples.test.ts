@@ -112,3 +112,15 @@ test('Jam kerja has a sample: working on the default hours at 09:32', () => {
   const en = packSample(widget('fokus/workday'), 'en')!;
   expect([...en[0].querySelectorAll('.lab')].pop()!.textContent).toBe('7 H 28 M LEFT');
 });
+
+test('Zona waktu has a sample: local time and Tokyo and London at 09:32', () => {
+  const z = packSample(widget('waktu/zones', 2), 'id')!;
+  expect(z).toHaveLength(1);
+  expect([...z[0].querySelectorAll('.wd-zone-head .lab')].map(e => e.textContent)).toEqual(['ZONA WAKTU', '3 KOTA']);
+  const cols = z[0].querySelectorAll('.wd-zone-col');
+  expect(cols).toHaveLength(3);
+  expect([...cols].slice(1).map(c => c.querySelector('.wd-zone-code')!.textContent)).toEqual(['TYO', 'LON']);
+  expect(cols[0].getAttribute('data-time')).toBe('09:32');
+  expect(z[0].querySelectorAll('svg.dm')).toHaveLength(3);
+  expect(packSample(widget('waktu/zones', 2), 'en')![0].querySelector('.wd-zone-head .lab')!.textContent).toBe('WORLD CLOCK');
+});

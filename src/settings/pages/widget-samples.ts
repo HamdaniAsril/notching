@@ -7,6 +7,8 @@ import { calendarView } from '../../../modules/waktu/widgets/calendar';
 import { clockDateView } from '../../../modules/waktu/widgets/clockdate';
 import { weekStripView } from '../../../modules/waktu/widgets/weekstrip';
 import { yearDayView } from '../../../modules/waktu/widgets/yearday';
+import { zonesView } from '../../../modules/waktu/widgets/zones';
+import { DEFAULT_ZONES } from '../../../modules/waktu/zones';
 import type { HomeSnapshot } from '../../../modules/home/types';
 import enSekitar from '../../../modules/sekitar/locales/en.json';
 import idSekitar from '../../../modules/sekitar/locales/id.json';
@@ -75,6 +77,9 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
       return [yearDayView(document.body, AT, lang === 'en' ? en : id)];
     case 'waktu/weekstrip':
       return [weekStripView(lang === 'en' ? en : id, lang, AT)];
+    case 'waktu/zones':
+      // Local time and the default cities at the fixed instant: a sample is static.
+      return [zonesView(lang === 'en' ? en : id, lang, DEFAULT_ZONES, AT)];
     case 'sekitar/bigweather':
       return [bigWeatherView(document.body, lang === 'en' ? enSekitar : idSekitar, WEATHER, AT)];
     case 'sekitar/moon':

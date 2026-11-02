@@ -190,3 +190,151 @@ body {
   width: 4px;
   height: 4px;
 }
+
+/* Zona waktu: the title and count on top, then three columns (local and two cities) at the
+   bottom. Each is the code and the hours from local, the time in dots (50 px) and a 2 px marker. */
+.wd-zones {
+  cursor: pointer;
+  outline: none;
+  min-width: 0;
+}
+
+.wd-zone-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wd-zone-cols {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.wd-zone-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wd-zone-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.wd-zone-top .lab {
+  line-height: 12px;
+  min-height: 12px;
+}
+
+.wd-zone-diff {
+  color: var(--g2);
+}
+
+.wd-zone-col.night .wd-small {
+  color: var(--g2);
+}
+
+.wd-zone-mark {
+  display: block;
+  height: 2px;
+  background: var(--g3);
+}
+
+.wd-zone-mark.local {
+  background: var(--w);
+}
+
+/* The full view, as Jam kerja: back and the name on top, then the two lists. */
+.wd-zone-full {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.wd-zone-fhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wd-zone-back,
+.wd-zone-save {
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.wd-zone-back {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--g1);
+}
+
+.wd-zone-fields {
+  display: flex;
+  gap: 24px;
+  margin-top: 14px;
+}
+
+.wd-zone-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wd-zone-select {
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left bottom / 5px 3px repeat-x;
+  color: var(--w);
+  color-scheme: dark;
+  font: 13px "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  cursor: pointer;
+}
+
+.wd-zone-select:focus {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0.9px, transparent 1.3px);
+}
+
+.wd-zone-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.wd-zone-err {
+  color: var(--g1);
+}
+
+.wd-zone-save {
+  padding: 5px 14px;
+  border: 1px solid var(--w);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--w);
+}
+
+.wd-zone-back:focus-visible,
+.wd-zone-save:focus-visible,
+.wd-zone-select:focus-visible,
+.wd-zones:focus-visible {
+  outline: 1px solid var(--g2);
+  outline-offset: 2px;
+}

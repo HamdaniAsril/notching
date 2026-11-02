@@ -1,6 +1,7 @@
 import '../../src/kit/kit.css';
 import './style.css';
 import { connectKit } from '../../src/kit/client';
+import { readPrefs, writePrefs } from '../../src/kit/prefs';
 import { everyMinute } from '../home/ticks';
 import type { HomeSnapshot } from '../home/types';
 import en from './locales/en.json';
@@ -10,6 +11,8 @@ import { renderCalendar } from './widgets/calendar';
 import { renderClockDate } from './widgets/clockdate';
 import { renderWeekStrip } from './widgets/weekstrip';
 import { renderYearDay } from './widgets/yearday';
+import { renderZones } from './widgets/zones';
+import { checkZones, DEFAULT_ZONES } from './zones';
 
 // One page for every time widget: the notch says which one this frame shows.
 async function start(): Promise<void> {
@@ -58,6 +61,22 @@ async function start(): Promise<void> {
     case 'weekstrip':
       drawEveryMinute(renderWeekStrip(root, kit.lang === 'en' ? en : id, kit.lang));
       break;
+    case 'zones': {
+      // Read first, so the row never shows the default cities before the saved ones.
+      let prefs = await readPrefs(kit, DEFAULT_ZONES, checkZones);
+      const w = renderZones(root, kit.lang === 'en' ? en : id, kit.lang, {
+        save: async p => {
+          await writePrefs(kit, p);
+          prefs = await readPrefs(kit, p, checkZones);
+          w.update(prefs, now());
+        },
+        expand: height => kit.expand(height),
+        collapse: () => kit.collapse(),
+      });
+      kit.onView(full => w.setFull(full));
+      drawEveryMinute({ update: at => w.update(prefs, at) });
+      break;
+    }
     default:
       root.replaceChildren();
   }

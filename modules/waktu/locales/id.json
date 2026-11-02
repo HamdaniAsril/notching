@@ -6,11 +6,18 @@
   "leftOne": "Sisa {n} hari",
   "calendar": "Kalender",
   "week": "Mgg",
+  "zonesTitle": "Zona waktu",
+  "zonesCount": "{n} kota",
+  "zoneField": "Kota {n}",
+  "save": "Simpan",
+  "saveFailed": "Gagal menyimpan",
+  "back": "Kembali",
   "widgets": {
     "clockdate": "Jam + tanggal",
     "analog": "Jam analog",
     "calendar": "Kalender",
     "yearday": "Hari ke-",
-    "weekstrip": "Minggu ini"
+    "weekstrip": "Minggu ini",
+    "zones": "Zona waktu"
   }
 }
