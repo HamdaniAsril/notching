@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "icon": "icon.svg",
   "permissions": [],
-  "capabilities": [],
+  "capabilities": ["prefs"],
   "widgets": [
-    { "id": "breath", "entry": "index.html", "width": 1, "kind": "work" }
+    { "id": "breath", "entry": "index.html", "width": 1, "kind": "work" },
+    { "id": "workday", "entry": "index.html", "width": 1, "kind": "work" }
   ]
 }

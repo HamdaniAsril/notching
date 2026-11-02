@@ -1610,6 +1610,33 @@ body > .ed-ghost {
   line-height: 11px;
 }
 
+/* Jam kerja: the same rules as modules/fokus/style.css, scoped to the slot and the picker card. */
+.ed-slot .wd-work,
+.ed-shot .wd-work {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ed-slot .wd-work-head,
+.ed-shot .wd-work-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  column-gap: 6px;
+}
+
+.ed-slot .wd-work-time,
+.ed-shot .wd-work-time {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 19px;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+}
+
 /* Timer kecil: the same rules as modules/timer/style.css, scoped to the slot and the picker
    card. The sample is the idle state: the name and icon, the minutes, the ruler. */
 .ed-slot .wd-tl,

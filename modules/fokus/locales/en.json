@@ -9,7 +9,19 @@
   "tap": "Click to start",
   "sec": "s",
   "done": "Done",
+  "workTitle": "Work",
+  "startsAt": "Starts {t}",
+  "left": "{t} left",
+  "off": "Day off",
+  "startField": "Start",
+  "endField": "End",
+  "save": "Save",
+  "saveFailed": "Could not save",
+  "back": "Back",
+  "days": ["M", "T", "W", "T", "F", "S", "S"],
+  "dayNames": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
   "widgets": {
-    "breath": "Breathe"
+    "breath": "Breathe",
+    "workday": "Work hours"
   }
 }

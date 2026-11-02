@@ -102,3 +102,13 @@ test('Timer kecil has its idle state as a sample', () => {
 test('other widgets are not a pack sample', () => {
   expect(packSample(widget('home/date'), 'id')).toBeNull();
 });
+
+test('Jam kerja has a sample: working on the default hours at 09:32', () => {
+  const wd = packSample(widget('fokus/workday'), 'id')!;
+  expect(wd).toHaveLength(1);
+  expect([...wd[0].querySelectorAll('.lab')].map(e => e.textContent)).toEqual(['JAM KERJA', '09–17', 'SISA 7 J 28 M']);
+  expect(wd[0].querySelector('.wd-work-time')!.textContent).toBe('32 M');
+  expect(wd[0].querySelectorAll('.wd-row .d')).toHaveLength(10);
+  const en = packSample(widget('fokus/workday'), 'en')!;
+  expect([...en[0].querySelectorAll('.lab')].pop()!.textContent).toBe('7 H 28 M LEFT');
+});

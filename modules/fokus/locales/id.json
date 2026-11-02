@@ -9,7 +9,19 @@
   "tap": "Klik untuk mulai",
   "sec": "dtk",
   "done": "Selesai",
+  "workTitle": "Jam kerja",
+  "startsAt": "Mulai {t}",
+  "left": "Sisa {t}",
+  "off": "Libur",
+  "startField": "Mulai",
+  "endField": "Selesai",
+  "save": "Simpan",
+  "saveFailed": "Gagal menyimpan",
+  "back": "Kembali",
+  "days": ["S", "S", "R", "K", "J", "S", "M"],
+  "dayNames": ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"],
   "widgets": {
-    "breath": "Napas"
+    "breath": "Napas",
+    "workday": "Jam kerja"
   }
 }

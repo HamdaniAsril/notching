@@ -104,3 +104,150 @@ body {
 .wd-br-left {
   min-width: 15px;
 }
+
+/* Jam kerja: the name and hours on top (the hours drop to their own line if both do not fit),
+   the time worked, ten dots and what is left. */
+.wd-work {
+  cursor: pointer;
+  outline: none;
+  min-width: 0;
+}
+
+.wd-work-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  column-gap: 6px;
+}
+
+.wd-work-time {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 19px;
+  letter-spacing: -0.1px;
+  white-space: nowrap;
+}
+
+.wd-work .wd-row {
+  margin-top: auto;
+}
+
+/* The full view, as the reminder list: back and the name on top, then the fields. */
+.wd-work-full {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.wd-work-fhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wd-work-back,
+.wd-work-save,
+.wd-work-day {
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.wd-work-back {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--g1);
+}
+
+.wd-work-times {
+  display: flex;
+  gap: 28px;
+  margin-top: 14px;
+}
+
+.wd-work-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wd-work-field input {
+  width: 88px;
+  padding: 4px 0;
+  border: 0;
+  outline: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left bottom / 5px 3px repeat-x;
+  color: var(--w);
+  font: 13px "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* kit.css turns selection off for the whole card. */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.wd-work-field input:focus {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0.9px, transparent 1.3px);
+}
+
+.wd-work-field input::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.wd-work-days {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.wd-work-day {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--g3);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--g2);
+}
+
+.wd-work-day[aria-pressed="true"] {
+  border-color: var(--w);
+  background: var(--w);
+  color: #000;
+}
+
+.wd-work-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.wd-work-err {
+  color: var(--g1);
+}
+
+.wd-work-save {
+  padding: 5px 14px;
+  border: 1px solid var(--w);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--w);
+}
+
+.wd-work-save:disabled {
+  border-color: var(--g3);
+  color: var(--g2);
+  cursor: default;
+}
+
+.wd-work-back:focus-visible,
+.wd-work-save:focus-visible,
+.wd-work-day:focus-visible,
+.wd-work:focus-visible {
+  outline: 1px solid var(--g2);
+  outline-offset: 2px;
+}
