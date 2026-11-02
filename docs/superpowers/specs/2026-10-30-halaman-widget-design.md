@@ -107,6 +107,8 @@ Panel tetap membuka halaman terakhir yang dibuka, seperti sekarang. Titik putih 
 | Timer | Kerja | strip | Hitung mundur dari modul Timer. Dibuat sebagai strip tipis selebar 4 kolom di bawah baris (desain Timer 31 Oktober). Bentuk 1 kolom menyusul. | 3 |
 | Now playing | Media | 2 | Lihat bawah | Tahap 2 |
 
+Pada 2 November 2026 pemilik ide memilih `widget.pego` sebagai daftar widget baru. Widget dari daftar itu, termasuk Jam + tanggal, Jam kerja, dan Timer 1 kolom, dirancang di `2026-11-02-paket-widget-design.md`.
+
 Widget langkah 1 berasal dari isi Beranda yang sekarang. Datanya tetap sama:
 - Kota yang diketik sekali.
 - Open-Meteo untuk cuaca.

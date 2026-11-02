@@ -186,9 +186,9 @@ Kalau pemilik ide tetap ingin pengaturannya di editor, bagian ini bisa dipindah 
 
 Satu paket paling banyak berisi 8 widget, dan paket `home` sudah berisi 5. Jadi widget baru dibagi ke paket-paket baru mengikuti kelompok di widget.pego **(keputusan penulis)**:
 
-- **`waktu`**: Jam + tanggal, Jam analog, Kalender, Hari ke-, Minggu ini, Zona waktu. Kemampuan: `prefs`.
+- **`waktu`**: Jam + tanggal, Jam analog, Kalender, Hari ke-, Minggu ini, Zona waktu. Kemampuan: `prefs`, ditambah `home.data` karena Jam + tanggal butuh nama kota.
 - **`fokus`**: Napas, Jam kerja. Kemampuan: `prefs`.
-- **`rencana`**: Pekan ini, Berikutnya. Kemampuan: `home.data`, `reminders`.
+- **`rencana`**: Pekan ini, Berikutnya. Kemampuan: `home.data` saja. Widget ini hanya membaca reminder.
 - **`sekitar`**: Cuaca besar, Matahari, Bulan, Udara, Cuaca per jam. Kemampuan: `home.data`.
 - **`timer`** (paket yang sudah ada) mendapat widget `tile` 1 kolom.
 
