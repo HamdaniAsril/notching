@@ -306,8 +306,11 @@
   color: var(--v-danger);
 }
 
-.sh-head .sh-clear:hover {
+.sh-head .sh-clear:hover,
+.pg-back .sh-head .sh-clear:hover,
+.pg-back button.sh-clear:hover {
   box-shadow: 0 0 0 1px #e5484d66;
+  color: var(--v-danger);
 }
 
 .sh-empty {
