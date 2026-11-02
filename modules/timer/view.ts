@@ -45,9 +45,9 @@ const clockAt = (s: Strings, ms: number): string => {
 // The strip, or the Timer page (design 31 Oct, Timer §4–5, as the owner changed
 // them on the day): the ruler and the time, which takes typed minutes; Jeda/Lanjut
 // and Stop while a timer runs. The page's ruler is bigger and sits on top, with
-// the presets below it; the strip has no presets. The strip is in the Volt look: the
+// the presets below it; the strip has no presets. Both are in the Volt look. The strip: the
 // name over the clock time the timer would end at, the ruler, and the time left, in the
-// accent, under "Menit"; the page keeps its own. `update` takes a reading from
+// accent, under "Menit". The page: two black cards, the ruler with the time, and the buttons. `update` takes a reading from
 // the core; `tick` moves the ruler and the time by this frame's clock between
 // readings. A drag or typing owns them until it ends, and the minutes just
 // started stay shown until the core answers.
@@ -63,8 +63,8 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   let lit = -1;
   const px = big ? BIG_PX_PER_MINUTE : PX_PER_MINUTE;
 
-  const red = el('i', 'rd tm-red');
-  const head = el('span', big ? 'lab tm-lab' : 'v-lab tm-lab', s.label);
+  const dot = el('i', 'tm-dot');
+  const head = el('span', 'v-lab tm-lab', s.label);
   const endClock = el('span', 'v-num tm-end');
   const status = el('span', 'v-lab tm-status', s.ruler);
   const presets = el('div', 'tm-chips');
@@ -117,9 +117,9 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   const buttons = el('span', 'tm-buttons');
   const right = el('span', 'tm-right');
   if (big) {
-    const top = el('div', 'tm-row tm-top');
+    const top = el('div', 'tm-row tm-top tm-card');
     top.append(ruler, time);
-    const bottom = el('div', 'tm-row');
+    const bottom = el('div', 'tm-row tm-card');
     bottom.append(lead, buttons);
     root.replaceChildren(top, bottom);
   } else {
@@ -143,7 +143,7 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
       state === 'running' ? chip(s.pause, 'tm-chip', () => act.pause()) : chip(s.resume, 'tm-chip', () => act.resume()),
       chip(s.stop, 'tm-chip tm-ghost', () => act.stop()),
     );
-    lead.replaceChildren(...(big ? [red, head] : [head, endClock]));
+    lead.replaceChildren(...(big ? [dot, head] : [head, endClock]));
     buttons.replaceChildren(controls);
   }
 

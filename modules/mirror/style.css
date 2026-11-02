@@ -1,28 +1,21 @@
-/* The Cermin page (2026-10-31-cermin-design.md; cermin-v6.html). Classes start
-   with cm- so they never meet the notch's own. */
+/* The Cermin page (2026-10-31-cermin-design.md; cermin-v6.html) in Volt: a camera card over a
+   controls card, both black. Classes start with cm- so they never meet the notch's own. The lamp
+   makes the panel white behind the page; all text is on the black cards, so it needs no dark ink. */
 #cm {
   display: flex;
   flex-direction: column;
+  gap: 16px;
   height: 400px;
-}
-
-/* The lamp makes the panel white behind this page, so its ink goes dark. */
-#cm.cm-lit {
-  --w: #000;
-  --g1: rgba(0, 0, 0, 0.7);
-  --g2: rgba(0, 0, 0, 0.45);
-  --g3: rgba(0, 0, 0, 0.18);
-  color: #000;
 }
 
 .cm-view {
   position: relative;
   flex: 1;
   min-height: 0;
-  margin-top: 4px;
-  border-radius: 14px;
+  border-radius: 17px;
   overflow: hidden;
-  background: #111;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
 }
 
 .cm-video {
@@ -40,29 +33,41 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.42);
+  font-size: 11px;
+  color: var(--v-muted);
 }
 
 .cm-tag {
   position: absolute;
   left: 10px;
   bottom: 8px;
-  padding: 3px 7px;
+  padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.45);
-  color: rgba(255, 255, 255, 0.8);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--v-ink2);
+  font-family: "Inter", -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.cm-card {
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 17px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
 }
 
 .cm-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex: none;
-  height: 48px;
+  height: 40px;
 }
 
 .cm-light {
@@ -73,12 +78,13 @@
   display: flex;
 }
 
-/* Timer's ruler, a size between its strip and its page. */
+/* Timer's ruler, a size between its strip and its page: faint ticks, ink at every five and at
+   the values already passed, the accent needle where the value is. */
 .cm-ruler {
   position: relative;
   flex: 1;
   min-width: 80px;
-  height: 44px;
+  height: 40px;
   overflow: hidden;
   cursor: ew-resize;
   touch-action: none;
@@ -95,55 +101,63 @@
 
 .cm-tick {
   position: absolute;
-  top: 15px;
+  top: 8px;
   width: 2px;
   height: 12px;
   margin-left: -1px;
-  background: rgba(255, 106, 26, 0.35);
+  border-radius: 1px;
+  background: var(--v-muted);
+  opacity: 0.5;
 }
 
 .cm-tick.cm-long {
-  top: 7px;
-  height: 24px;
+  top: 4px;
+  height: 20px;
 }
 
-.cm-tick.cm-on {
-  background: #ff6a1a;
+.cm-tick.cm-long,
+.cm-tick.cm-on,
+.cm-colored .cm-tick {
+  background: var(--v-ink);
+  opacity: 1;
 }
 
 .cm-num {
   position: absolute;
   bottom: 0;
   transform: translateX(-50%);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: "Inter", -apple-system, sans-serif;
   font-size: 9px;
-  line-height: 10px;
-  color: var(--g2);
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
   white-space: nowrap;
 }
 
 .cm-mark {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
+  top: 0;
   left: 50%;
-  width: 2px;
-  margin-left: -1px;
-  border-radius: 1px;
-  background: var(--w);
+  width: 3px;
+  height: 26px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--v-acc);
 }
 
 .cm-val {
   flex: none;
   width: 76px;
   text-align: right;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 22px;
-  color: var(--w);
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 30px;
+  color: var(--v-ink);
 }
 
 .cm-val.cm-k {
-  font-size: 16px;
+  font-size: 20px;
 }
 
 .cm-bar {
@@ -151,12 +165,26 @@
   align-items: center;
   justify-content: space-between;
   flex: none;
-  height: 30px;
+  height: 28px;
 }
 
-.cm-on[hidden] {
+.cm-bar .cm-on {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cm-bar .cm-on[hidden] {
   visibility: hidden;
   display: flex;
+}
+
+.cm-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--v-acc);
 }
 
 .cm-chips {
@@ -166,33 +194,34 @@
 }
 
 .cm-chip {
-  padding: 5px 10px;
+  padding: 6px 12px;
   border: 0;
   border-radius: 999px;
-  background: none;
-  box-shadow: inset 0 0 0 1px var(--g3);
-  color: var(--g1);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--v-track);
+  color: var(--v-ink2);
+  font-family: "Inter", -apple-system, sans-serif;
   font-size: 11px;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  line-height: 14px;
   white-space: nowrap;
   cursor: pointer;
 }
 
 .cm-chip:hover {
-  color: var(--w);
+  filter: brightness(1.15);
+}
+
+.cm-chip:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
 }
 
 .cm-chip[hidden] {
   display: none;
 }
 
+/* Flip and Lampu while on: the accent. */
 .cm-chip.cm-sel {
-  background: var(--w);
-  box-shadow: none;
-  color: #000;
-}
-
-#cm.cm-lit .cm-chip.cm-sel {
-  color: #fff;
+  background: var(--v-acc);
+  color: var(--v-on-acc);
 }

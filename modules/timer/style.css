@@ -1,17 +1,10 @@
-/* The Timer tile and strip in the Volt look (src/kit/volt.css), and the Timer page, which keeps
-   its own look. Classes start with tm- so they never meet the notch's own. The tile's and the
-   strip's rules are scoped to #tm.tm-tile and #tm.tm-strip, so none of them reaches the page. */
+/* The Timer tile, strip and page in the Volt look (src/kit/volt.css, volt-tokens.css). Classes
+   start with tm- so they never meet the notch's own. The tile's and the strip's rules are scoped
+   to #tm.tm-tile and #tm.tm-strip, so none of them reaches the page. */
 #tm {
   display: flex;
   flex-direction: column;
   justify-content: center;
-}
-
-/* volt.css sets the fonts and colour of the whole document; the page keeps kit.css's. */
-html:has(.tm-page),
-body:has(.tm-page) {
-  color: var(--w);
-  font-family: "Space Grotesk", -apple-system, "Segoe UI", sans-serif;
 }
 
 #tm.tm-strip {
@@ -19,9 +12,11 @@ body:has(.tm-page) {
   height: 52px;
 }
 
+/* The Timer page: two black cards, 64 and 48 px high, 16 px apart. */
 #tm.tm-page {
-  height: 96px;
-  gap: 8px;
+  height: 128px;
+  gap: 16px;
+  justify-content: flex-start;
 }
 
 /* The tile: one column, 104 px high; the whole frame is a button (see src/settings/settings.css
@@ -271,15 +266,72 @@ body:has(.tm-page) {
   background: var(--v-acc);
 }
 
-/* The page: a bigger ruler and time on top (owner, 31 Oct), buttons below. */
+/* The page: a ruler card with the time on top (owner, 31 Oct), a button card below. */
+.tm-card {
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: 17px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+}
+
 #tm.tm-page .tm-top {
-  height: 56px;
+  height: 64px;
   gap: 16px;
 }
 
 #tm.tm-page .tm-row:not(.tm-top) {
-  height: 32px;
+  height: 48px;
   justify-content: space-between;
+}
+
+#tm.tm-page .tm-lab {
+  font-size: 11px;
+  color: var(--v-ink2);
+}
+
+/* The dot beside the name while a timer runs or waits. */
+.tm-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--v-acc);
+}
+
+/* Jeda or Lanjut is the main button, as on the strip. */
+#tm.tm-page .tm-buttons .tm-chip:first-child {
+  background: var(--v-acc);
+  color: var(--v-on-acc);
+}
+
+#tm.tm-page .tm-ruler {
+  height: 40px;
+}
+
+#tm.tm-page .tm-tick {
+  top: 8px;
+  height: 12px;
+}
+
+#tm.tm-page .tm-tick.tm-long {
+  top: 4px;
+  height: 20px;
+}
+
+#tm.tm-page .tm-mark {
+  top: 0;
+  bottom: auto;
+  width: 3px;
+  height: 26px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+}
+
+#tm.tm-page .tm-time {
+  width: 104px;
+  font-size: 30px;
+  line-height: 36px;
 }
 
 .tm-row {
@@ -304,49 +356,33 @@ body:has(.tm-page) {
 }
 
 .tm-chip {
-  padding: 5px 9px;
+  padding: 5px 12px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--g1);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--v-track);
+  color: var(--v-ink2);
+  font-family: "Inter", -apple-system, sans-serif;
   font-size: 11px;
-  letter-spacing: 0.04em;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
 }
 
 .tm-chip:hover {
-  background: rgba(255, 255, 255, 0.16);
-  color: var(--w);
+  filter: brightness(1.15);
 }
 
 .tm-chip.tm-ghost {
-  background: none;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  color: var(--v-muted);
 }
 
-#tm.tm-page .tm-ruler {
-  height: 56px;
+.tm-chip:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
 }
 
-#tm.tm-page .tm-tick {
-  top: 20px;
-  width: 2px;
-  height: 14px;
-  margin-left: -1px;
-}
-
-#tm.tm-page .tm-tick.tm-long {
-  top: 9px;
-  height: 28px;
-}
-
-#tm.tm-page .tm-num {
-  font-size: 9px;
-}
-
-/* The ruler: orange ticks on a tape slid under a fixed white mark, both ends faded. */
+/* The ruler: faint ticks on a tape slid under a fixed accent needle, both ends faded; ink at
+   every five and at the minutes already passed. */
 .tm-ruler {
   position: relative;
   flex: 1;
@@ -372,7 +408,8 @@ body:has(.tm-page) {
   width: 1.5px;
   height: 9px;
   margin-left: -0.75px;
-  background: rgba(255, 106, 26, 0.35);
+  background: var(--v-muted);
+  opacity: 0.5;
 }
 
 .tm-tick.tm-long {
@@ -380,18 +417,21 @@ body:has(.tm-page) {
   height: 18px;
 }
 
+.tm-tick.tm-long,
 .tm-tick.tm-on {
-  background: #ff6a1a;
+  background: var(--v-ink);
+  opacity: 1;
 }
 
 .tm-num {
   position: absolute;
   bottom: 0;
   transform: translateX(-50%);
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 8px;
-  line-height: 9px;
-  color: var(--g2);
+  font-family: "Inter", -apple-system, sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
 }
 
 .tm-mark {
@@ -402,12 +442,11 @@ body:has(.tm-page) {
   width: 2px;
   margin-left: -1px;
   border-radius: 1px;
-  background: var(--w);
+  background: var(--v-acc);
 }
 
 .tm-time {
   flex: none;
-  width: 46px;
   box-sizing: border-box;
   padding: 2px 0;
   border: 0;
@@ -415,9 +454,9 @@ body:has(.tm-page) {
   background: none;
   outline: none;
   text-align: right;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 13px;
-  color: var(--w);
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  color: var(--v-acc);
   cursor: text;
   user-select: text;
   -webkit-user-select: text;
@@ -425,15 +464,9 @@ body:has(.tm-page) {
 
 .tm-time:hover,
 .tm-time:focus {
-  border-bottom-color: var(--g3);
-}
-
-#tm.tm-page .tm-time {
-  width: 104px;
-  font-size: 28px;
-  line-height: 36px;
+  border-bottom-color: var(--v-faint);
 }
 
 .tm-time.tm-dim {
-  color: var(--g2);
+  color: var(--v-ink2);
 }

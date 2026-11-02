@@ -31,7 +31,7 @@ test('the strip has no presets, only the ruler and a dim time', () => {
   expect(time().value).toBe('5:00');
   expect(time().classList.contains('tm-dim')).toBe(true);
   expect(button('Jeda')).toBeUndefined();
-  expect(root.querySelector('.tm-red')).toBeNull();
+  expect(root.querySelector('.tm-dot')).toBeNull();
   expect(root.querySelector('.tm-lab')!.textContent).toBe('Timer');
 });
 
@@ -76,7 +76,7 @@ test('the strip\'s name is Jeda while paused, and the page has no end time', () 
   const page = mount(PAUSED, true).root;
   expect(page.querySelector('.tm-end')).toBeNull();
   expect(page.querySelector('.tm-lab')!.textContent).toBe('Timer');
-  expect(page.querySelector('.tm-lab')!.classList.contains('lab')).toBe(true);
+  expect(page.querySelector('.tm-lab')!.classList.contains('v-lab')).toBe(true);
   expect(page.querySelector('.v-card')).toBeNull();
 });
 
@@ -150,12 +150,12 @@ test('dragging while running restarts at the new value', () => {
   expect(act.start).toHaveBeenCalledWith(12);
 });
 
-test('running shows the time left and Jeda/Stop, with no red dot on the strip but one on the page', () => {
+test('running shows the time left and Jeda/Stop, with no live dot on the strip but one on the page', () => {
   const { root, act, button, time, view } = mount(RUNNING);
   expect(time().value).toBe('6:42');
   expect(time().classList.contains('tm-dim')).toBe(false);
-  expect(root.querySelector('.tm-red')).toBeNull();
-  expect(mount(RUNNING, true).root.querySelector('.tm-red')).not.toBeNull();
+  expect(root.querySelector('.tm-dot')).toBeNull();
+  expect(mount(RUNNING, true).root.querySelector('.tm-dot')).not.toBeNull();
   expect(button('3m')).toBeUndefined();
   button('Jeda')!.click();
   expect(act.pause).toHaveBeenCalled();
@@ -196,6 +196,8 @@ test('the Timer page puts a bigger ruler and the time on top, with no dot time',
   const { root } = mount(RUNNING, true);
   expect(root.querySelector('svg')).toBeNull();
   const top = root.firstElementChild!;
+  // Two black cards: the ruler with the time, and the buttons.
+  expect([...root.children].map(c => c.classList.contains('tm-card'))).toEqual([true, true]);
   expect([...top.children].map(c => c.className)).toEqual(['tm-ruler', 'tm-time']);
   expect(root.querySelector<HTMLElement>('.tm-tick[data-m="5"]')!.style.left).toBe('60px');
   expect(root.querySelector<HTMLElement>('.tm-tape')!.style.transform).toBe('translateX(-80.4px)');

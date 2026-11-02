@@ -1,6 +1,6 @@
-import { dotBar, dotText } from '../../src/kit/dots';
 import { formatBytes, formatPercent, formatRate } from '../../src/kit/format';
 import type { Lang } from '../../src/kit/protocol';
+import { lab, num, segs } from '../../src/kit/volt';
 
 // Same as Stats in src-tauri/src/system_stats.rs.
 export interface Stats {
@@ -17,8 +17,9 @@ export interface StatStrings {
   network: string;
 }
 
-export const DOT_PITCH = 5;
-const BAR_DOTS = 18;
+// The segments under the CPU number.
+const SEGS = 12;
+const BIG_PX = 28;
 
 function el(cls: string, text = ''): HTMLDivElement {
   const d = document.createElement('div');
@@ -33,38 +34,36 @@ function usedOfTotal(used: string, total: string): string {
   return `${used.endsWith(unit) ? used.slice(0, -unit.length) : used} / ${total}`;
 }
 
-// Three columns split by dotted lines: CPU, memory, network. Numbers stay empty
-// until the first reading.
+// Three black cards: CPU, memory, network. Numbers stay empty until the first reading.
 export function renderCard(root: HTMLElement, strings: StatStrings): { update(s: Stats, lang: Lang): void } {
-  const col = (key: string, label: string, ...rest: HTMLElement[]) => {
-    const c = el('col');
+  const card = (key: string, label: string, ...rest: HTMLElement[]) => {
+    const c = el('sys-card');
     c.dataset.k = key;
-    c.append(el('lab', label), ...rest);
+    c.append(lab(label), ...rest);
     return c;
   };
-  const cpuBig = el('big');
-  const cpuBar = el('bar');
-  const memBig = el('big');
-  const memSub = el('lab sub');
-  const rx = el('rate');
-  const tx = el('rate');
+  const cpuBig = num('', BIG_PX);
+  const cpuSegs = el('sys-segs');
+  cpuSegs.append(segs(SEGS, 0));
+  const memBig = num('', BIG_PX);
+  const memSub = lab('', 'sys-sub');
+  const rx = el('sys-rate');
+  const tx = el('sys-rate');
 
-  const row = el('row');
+  const row = el('sys-row');
   row.append(
-    col('cpu', strings.cpu, cpuBig, cpuBar),
-    el('vdots'),
-    col('mem', strings.memory, memBig, memSub),
-    el('vdots'),
-    col('net', strings.network, rx, tx),
+    card('cpu', strings.cpu, cpuBig, cpuSegs),
+    card('mem', strings.memory, memBig, memSub),
+    card('net', strings.network, rx, tx),
   );
   root.replaceChildren(row);
 
   return {
     update(s, lang) {
-      cpuBig.innerHTML = dotText(formatPercent(s.cpu), DOT_PITCH);
-      cpuBar.innerHTML = dotBar(BAR_DOTS, Math.round((Math.min(100, Math.max(0, s.cpu)) / 100) * BAR_DOTS));
+      cpuBig.textContent = formatPercent(s.cpu);
+      cpuSegs.replaceChildren(segs(SEGS, Math.round((Math.min(100, Math.max(0, s.cpu)) / 100) * SEGS)));
       const mem = s.memTotal > 0 ? (s.memUsed / s.memTotal) * 100 : 0;
-      memBig.innerHTML = dotText(formatPercent(mem), DOT_PITCH);
+      memBig.textContent = formatPercent(mem);
       memSub.textContent = usedOfTotal(formatBytes(s.memUsed, lang), formatBytes(s.memTotal, lang));
       rx.textContent = `↓ ${formatRate(s.rx, lang)}`;
       tx.textContent = `↑ ${formatRate(s.tx, lang)}`;

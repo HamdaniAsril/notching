@@ -33,13 +33,13 @@ interface RulerOptions {
   label: string;
   every: number; // a number under every this many ticks
   number: (tick: number) => string;
-  color?: (tick: number) => string; // each tick its own color; otherwise orange up to the mark
+  color?: (tick: number) => string; // each tick its own color; otherwise ink up to the mark
   onChange: (tick: number) => void;
 }
 
-// Timer's ruler: ticks on a tape slid under a fixed white mark; longer every 5.
+// Timer's ruler: ticks on a tape slid under a fixed accent mark; longer every 5.
 function ruler(s: Scale, start: number, o: RulerOptions): { box: HTMLElement; draw(): void } {
-  const box = el('div', 'cm-ruler');
+  const box = el('div', o.color ? 'cm-ruler cm-colored' : 'cm-ruler');
   box.setAttribute('role', 'slider');
   box.setAttribute('aria-label', o.label);
   box.setAttribute('aria-valuemin', String(s.min));
@@ -91,9 +91,10 @@ function ruler(s: Scale, start: number, o: RulerOptions): { box: HTMLElement; dr
   return { box, draw };
 }
 
-// The Cermin page (design 31 Oct, Cermin §3–4; cermin-v6.html): the camera,
-// mirrored unless flipped, the zoom ruler, and the light's ruler while the lamp
-// is on; the camera, Flip and Lampu below.
+// The Cermin page (design 31 Oct, Cermin §3–4; cermin-v6.html) as two black Volt
+// cards: the camera, mirrored unless flipped, and under it the zoom ruler, the
+// light's ruler while the lamp is on, and the camera, Flip and Lampu. The lamp
+// turns the notch panel white; the text sits on the black cards, so it stays light.
 export function renderMirror(root: HTMLElement, t: Strings, actions: Actions): MirrorView {
   let mirrored = true;
   let zoom = ZOOM.min;
@@ -105,7 +106,7 @@ export function renderMirror(root: HTMLElement, t: Strings, actions: Actions): M
   video.autoplay = true;
   video.muted = true;
   video.playsInline = true;
-  const msg = el('div', 'cm-msg lab', '');
+  const msg = el('div', 'cm-msg v-lab', '');
   const tag = el('span', 'cm-tag', t.mirror);
   view.append(video, msg, tag);
 
@@ -148,15 +149,17 @@ export function renderMirror(root: HTMLElement, t: Strings, actions: Actions): M
     actions.lamp(lit, kelvin(light));
   });
   lamp.setAttribute('aria-pressed', 'false');
-  const on = el('span', 'lab cm-on');
-  on.append(el('i', 'rd'), document.createTextNode(t.cameraOn));
+  const on = el('span', 'v-lab cm-on');
+  on.append(el('i', 'cm-dot'), document.createTextNode(t.cameraOn));
   on.hidden = true;
   const chips = el('div', 'cm-chips');
   chips.append(camera, flip, lamp);
   const bar = el('div', 'cm-bar');
   bar.append(on, chips);
 
-  root.append(view, zoomRow, lightRow, bar);
+  const controls = el('div', 'cm-card');
+  controls.append(zoomRow, lightRow, bar);
+  root.append(view, controls);
   place();
 
   return {

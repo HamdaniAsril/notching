@@ -1,25 +1,31 @@
-/* Mockup B (2026-10-31-keep-awake-mockups/page-layout.html). Classes start with
-   ka- so they never meet the notch's own. */
-.ka-row {
+/* Mockup B (2026-10-31-keep-awake-mockups/page-layout.html) as one black Volt card. Classes start
+   with ka- so they never meet the notch's own. The frame is 440 × 104. */
+.ka-card {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 16px;
   height: 104px;
+  padding: 12px;
+  border-radius: 17px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
 }
 
+/* The status: a track-coloured square with the cup and "Mati"; the accent while on. */
 .ka-box {
-  width: 96px;
-  height: 96px;
+  width: 80px;
+  height: 80px;
   flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   border: 0;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--w);
+  border-radius: 12px;
+  background: var(--v-track);
+  color: var(--v-ink2);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
@@ -30,21 +36,28 @@
 }
 
 .ka-box-text {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 15px;
-  line-height: 18px;
-}
-
-.ka-box:not(.on) .ka-box-text {
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--g1);
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--v-muted);
 }
 
 .ka-box.on {
-  background: var(--w);
-  color: #000;
+  background: var(--v-acc);
+  color: var(--v-on-acc);
+}
+
+.ka-box.on .ka-box-text {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 22px;
+  line-height: 24px;
+  color: var(--v-on-acc);
+}
+
+.ka-head {
+  font-size: 13px;
+  line-height: 16px;
 }
 
 .ka-side {
@@ -70,30 +83,30 @@
   height: 26px;
   padding: 0 10px;
   border-radius: 999px;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: "Inter", -apple-system, sans-serif;
   font-size: 11px;
-  letter-spacing: 0.06em;
+  font-weight: 600;
   white-space: nowrap;
   box-sizing: border-box;
 }
 
 .ka-chip {
   border: 0;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--v-track);
+  color: var(--v-ink2);
   cursor: pointer;
 }
 
 .ka-chip:hover {
-  background: rgba(255, 255, 255, 0.16);
+  filter: brightness(1.15);
 }
 
 .ka-field {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
-  color: var(--g2);
+  box-shadow: inset 0 0 0 1px var(--v-faint);
+  color: var(--v-muted);
 }
 
 .ka-input {
@@ -102,7 +115,7 @@
   border: 0;
   outline: none;
   background: none;
-  color: var(--w);
+  color: var(--v-ink);
   font: inherit;
   text-align: right;
 }
@@ -110,6 +123,6 @@
 .ka-box:focus-visible,
 .ka-chip:focus-visible,
 .ka-field:focus-within {
-  outline: 1px solid var(--g1);
+  outline: 2px solid var(--v-acc);
   outline-offset: 2px;
 }

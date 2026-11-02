@@ -1,39 +1,38 @@
-/* Fixed column widths, so changing numbers never move the columns; the spare
-   space is spread evenly, so the left and right margins match. */
-.row {
+/* Three black Volt cards side by side (spec §3): the frame is 400 × 80, so each card is a third
+   of it less two 16 px gaps. Equal widths, so changing numbers never move the cards. */
+.sys-row {
   display: flex;
-  justify-content: space-between;
+  gap: 16px;
   height: 80px;
 }
 
-.col {
+.sys-card {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 17px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
 }
 
-/* "100%" in dot digits at pitch 5 is 115 px wide. */
-.col[data-k="cpu"] {
-  flex: 0 0 115px;
+.sys-segs .v-segs {
+  margin-bottom: 2px;
 }
 
-.col[data-k="mem"],
-.col[data-k="net"] {
-  flex: 0 0 90px;
-}
-
-.big {
-  min-height: 35px;
-}
-
-.rate {
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 19px;
-  white-space: nowrap;
-  letter-spacing: -0.1px;
-}
-
-.dbar {
+.sys-sub {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sys-rate {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
+  white-space: nowrap;
+  color: var(--v-ink);
 }

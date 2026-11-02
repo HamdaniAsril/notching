@@ -40,7 +40,7 @@ export function endClock(until: number, lang: Lang): string {
 type Mode = 'off' | 'timed' | 'forever';
 const modeOf = (v: AwakeView): Mode => (!v.on ? 'off' : v.forever ? 'forever' : 'timed');
 
-// Mockup B (design 31 Oct §3): the big box turns it on with no limit (the
+// Mockup B (design 31 Oct §3) on one black Volt card: the big box turns it on with no limit (the
 // owner's default, 31 Oct) or off; the
 // column beside it starts, or adds time. The column is rebuilt only when the
 // mode changes, so a reading every second keeps what is being typed.
@@ -55,12 +55,12 @@ export function renderPage(root: HTMLElement, s: Strings, lang: Lang, act: Actio
   box.append(boxText);
   box.addEventListener('click', () => (view.on ? act.stop() : act.start(null)));
 
-  const head = el('span', 'lab ka-head');
+  const head = el('span', 'v-lab ink ka-head');
   const chips = el('div', 'ka-chips');
-  const hint = el('span', 'lab ka-hint');
+  const hint = el('span', 'v-lab ka-hint');
   const side = el('div', 'ka-side');
   side.append(head, chips, hint);
-  const row = el('div', 'ka-row');
+  const row = el('div', 'ka-card');
   row.append(box, side);
   root.replaceChildren(row);
 
