@@ -64,3 +64,43 @@ body {
   margin: 16px 0 10px;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left center / 5px 3px repeat-x;
 }
+
+/* Widget helpers (src/kit/widget.ts): a row of dots, a small dot text, an icon. */
+.wd-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 7px;
+}
+
+.wd-row .d {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--g3);
+  flex: none;
+}
+
+.wd-row .d.lit {
+  background: var(--w);
+}
+
+.wd-row .d.now {
+  width: 7px;
+  height: 7px;
+  background: var(--red);
+}
+
+.wd-small {
+  color: var(--w);
+}
+
+.ic {
+  display: inline-flex;
+  flex: none;
+  color: inherit;
+}
+
+.ic svg {
+  display: block;
+}
