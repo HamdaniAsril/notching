@@ -173,3 +173,57 @@ test('a state change keeps the same button', () => {
   expect(m.root.querySelector('button')).toBe(button);
   expect(m.root.querySelectorAll('button')).toHaveLength(1);
 });
+
+test('running: a drag shows new minutes and the release starts them again, as on the strip', () => {
+  const m = mount(RUNNING);
+  m.fire('pointerdown', 100);
+  m.fire('pointermove', 76);
+  // 6:42 left counts as 7; 24 px to the left adds 4.
+  expect(m.bigWidth()).toBe(dotWidth('11', 6));
+  expect(m.root.textContent).toContain('MENIT');
+  m.fire('pointerup', 76);
+  expect(m.act.start).toHaveBeenCalledExactlyOnceWith(11);
+  expect(m.act.pause).not.toHaveBeenCalled();
+  // The new minutes stay until the core answers with the new timer.
+  expect(m.bigWidth()).toBe(dotWidth('11', 6));
+  m.tile.update({ ...RUNNING, minutes: 11, until: NOW + 660_000, text: '11:00' });
+  expect(m.root.querySelector('.lab .rd')).not.toBeNull();
+  expect(m.button.getAttribute('aria-label')).toContain('11:00');
+});
+
+test('running: the core\'s reading during a drag does not drop it', () => {
+  const m = mount(RUNNING);
+  m.fire('pointerdown', 100);
+  m.fire('pointermove', 76);
+  m.tile.update(RUNNING);
+  expect(m.bigWidth()).toBe(dotWidth('11', 6));
+  m.fire('pointerup', 76);
+  expect(m.act.start).toHaveBeenCalledExactlyOnceWith(11);
+});
+
+test('paused: a drag starts the new minutes too', () => {
+  const m = mount(PAUSED);
+  m.fire('pointerdown', 100);
+  m.fire('pointermove', 112);
+  m.fire('pointerup', 112);
+  expect(m.act.start).toHaveBeenCalledExactlyOnceWith(5);
+  expect(m.act.resume).not.toHaveBeenCalled();
+});
+
+test('running: a small wobble is still a click that pauses', () => {
+  const m = mount(RUNNING);
+  m.fire('pointerdown', 100);
+  m.fire('pointermove', 96);
+  m.fire('pointerup', 96);
+  expect(m.act.pause).toHaveBeenCalledOnce();
+  expect(m.act.start).not.toHaveBeenCalled();
+});
+
+test('running: a cancelled drag goes back to the time left and starts nothing', () => {
+  const m = mount(RUNNING);
+  m.fire('pointerdown', 100);
+  m.fire('pointermove', 76);
+  m.fire('pointercancel', 76);
+  expect(m.act.start).not.toHaveBeenCalled();
+  expect(m.button.getAttribute('aria-label')).toContain('6:42');
+});

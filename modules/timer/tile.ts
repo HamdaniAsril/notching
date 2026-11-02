@@ -42,14 +42,17 @@ export function tileView(root: HTMLElement, s: Strings, st: TileState): HTMLElem
 }
 
 // The one-column Timer: the whole frame is one button. Dragging sideways or turning the wheel
-// sets the minutes while idle; a click starts them, or pauses, or resumes. `update` takes a
+// sets the minutes while idle; a click starts them, or pauses, or resumes. A drag while a timer
+// runs or waits starts the new minutes on release, as the strip's ruler does. `update` takes a
 // reading from the core; `tick` moves the time by this frame's clock between readings.
 export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
   update(v: TimerView): void;
   tick(now: number): void;
 } {
   let view: TimerView = { state: 'idle', minutes: 30, until: null, left: null, text: null };
-  let chosen: number | null = null; // set by a drag or the wheel, until a reading leaves idle
+  // Set by a drag or the wheel: while idle until a reading leaves idle; while a timer runs, for
+  // the drag and then until the core answers the new start.
+  let chosen: number | null = null;
   let drag: { x: number; base: number; moved: boolean } | null = null;
   let lastNow = Date.now();
   let shown = '';
@@ -59,21 +62,24 @@ export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
   root.replaceChildren(button);
 
   const minutes = () => chosen ?? view.minutes;
+  const leftMs = () => view.state === 'running' ? (view.until ?? lastNow) - lastNow : view.left ?? 0;
+  // The minutes the ruler shows: the time left while a timer runs, rounded, never below 1.
+  const shownMinutes = () => view.state === 'idle' ? minutes() : Math.max(MIN_MINUTES, Math.round(leftMs() / 60_000));
+  const editing = () => view.state === 'idle' || chosen !== null;
 
   function draw(): void {
-    const left = view.state === 'running' ? (view.until ?? lastNow) - lastNow : view.left ?? 0;
-    const text = formatLeft(left);
-    const key = view.state === 'idle' ? `idle ${minutes()}` : `${view.state} ${text}`;
+    const text = formatLeft(leftMs());
+    const key = editing() ? `idle ${minutes()}` : `${view.state} ${text}`;
     if (key === shown) return;
     shown = key;
-    if (view.state === 'idle') {
+    if (editing()) {
       button.setAttribute('aria-label', `${minutes()} ${s.ruler}. ${s.start}`);
       button.replaceChildren(tileView(root, s, { kind: 'idle', minutes: minutes() }));
     } else {
       button.setAttribute('aria-label', `${view.state === 'paused' ? s.paused : s.label} ${text}`);
       button.replaceChildren(tileView(root, s, { kind: 'live', paused: view.state === 'paused', text }));
     }
-    button.classList.toggle('idle', view.state === 'idle');
+    button.classList.toggle('idle', editing());
   }
 
   const set = (m: number) => {
@@ -90,22 +96,31 @@ export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
     if (e.button !== 0) return; // a right click opens no timer
     const id = (e as PointerEvent).pointerId;
     if (id !== undefined) button.setPointerCapture?.(id);
-    drag = { x: e.clientX, base: minutes(), moved: false };
+    drag = { x: e.clientX, base: shownMinutes(), moved: false };
   });
   button.addEventListener('pointermove', e => {
-    if (!drag || view.state !== 'idle') return;
+    if (!drag) return;
     const dx = e.clientX - drag.x;
     if (!drag.moved && Math.abs(dx) < DRAG_PX) return;
     drag.moved = true;
     set(dragMinutes(drag.base, dx, PX_PER_MINUTE));
   });
-  // A short press is the click: a drag that ends here only leaves its minutes chosen.
+  // A short press is the click: a drag that ends here only leaves its minutes chosen while idle,
+  // and starts them while a timer runs or waits.
   button.addEventListener('pointerup', () => {
     const d = drag;
     drag = null;
     if (d && !d.moved) press();
+    else if (d && view.state !== 'idle' && chosen !== null) act.start(chosen);
   });
-  button.addEventListener('pointercancel', () => { drag = null; });
+  button.addEventListener('pointercancel', () => {
+    const d = drag;
+    drag = null;
+    if (d?.moved && view.state !== 'idle') {
+      chosen = null;
+      draw();
+    }
+  });
   // A click from the keyboard (a mouse click has a detail and was handled by pointerup).
   button.addEventListener('click', e => {
     if (e.detail === 0) press();
@@ -121,7 +136,7 @@ export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
   return {
     update(v) {
       view = v;
-      if (v.state !== 'idle') chosen = null;
+      if (v.state !== 'idle' && !drag) chosen = null;
       draw();
     },
     tick(now) {
