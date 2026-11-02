@@ -1,8 +1,14 @@
 {
   "name": "Time",
   "description": "Clock and date",
+  "dayOf": "Day",
+  "left": "{n} days left",
+  "leftOne": "{n} day left",
   "widgets": {
     "clockdate": "Clock + date",
-    "analog": "Analog clock"
+    "analog": "Analog clock",
+    "calendar": "Calendar",
+    "yearday": "Day of year",
+    "weekstrip": "This week"
   }
 }

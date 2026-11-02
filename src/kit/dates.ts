@@ -43,6 +43,11 @@ export function shortDay(d: Date, lang: Lang): string {
   return new Intl.DateTimeFormat(locale(lang), { weekday: 'short' }).format(d).replace('.', '').slice(0, 3).toUpperCase();
 }
 
+// "OKT", "OCT".
+export function monthShort(d: Date, lang: Lang): string {
+  return new Intl.DateTimeFormat(locale(lang), { month: 'short' }).format(d).replace('.', '').slice(0, 3).toUpperCase();
+}
+
 // "WIB", or "GMT+7" when that is all Intl has for the zone.
 export function zoneLabel(lang: Lang, d: Date, timeZone?: string): string {
   const parts = new Intl.DateTimeFormat(locale(lang), { timeZone, timeZoneName: 'short' }).formatToParts(d);

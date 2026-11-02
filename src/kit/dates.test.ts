@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { dayOfYear, daysInYear, isoWeek, monthGrid, shortDay, weekOf, zoneLabel } from './dates';
+import { dayOfYear, daysInYear, isoWeek, monthGrid, monthShort, shortDay, weekOf, zoneLabel } from './dates';
 
 test('day of the year counts from 1', () => {
   expect(dayOfYear(new Date(2026, 0, 1))).toBe(1);
@@ -44,6 +44,12 @@ test('a month starting on Monday has no leading nulls', () => {
 test('short day names are three uppercase letters', () => {
   expect(shortDay(new Date(2026, 10, 2), 'id')).toBe('SEN');
   expect(shortDay(new Date(2026, 10, 2), 'en')).toBe('MON');
+});
+
+test('short month names are three uppercase letters', () => {
+  expect(monthShort(new Date(2026, 9, 31), 'id')).toBe('OKT');
+  expect(monthShort(new Date(2026, 9, 31), 'en')).toBe('OCT');
+  expect(monthShort(new Date(2026, 8, 1), 'en')).toBe('SEP');
 });
 
 test('the zone label is Intl short name', () => {

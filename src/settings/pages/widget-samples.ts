@@ -1,7 +1,12 @@
 import type { Lang } from '../../kit/protocol';
 import type { CatalogWidget } from '../../pages/layout';
+import en from '../../../modules/waktu/locales/en.json';
+import id from '../../../modules/waktu/locales/id.json';
 import { analogSvg } from '../../../modules/waktu/widgets/analog';
+import { calendarView } from '../../../modules/waktu/widgets/calendar';
 import { clockDateView } from '../../../modules/waktu/widgets/clockdate';
+import { weekStripView } from '../../../modules/waktu/widgets/weekstrip';
+import { yearDayView } from '../../../modules/waktu/widgets/yearday';
 import { svgBox } from '../../kit/widget';
 
 // Editor samples for the widget packs, drawn with the helpers the widgets use. Static, at the
@@ -18,6 +23,12 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
     }
     case 'waktu/analog':
       return [svgBox('ed-analog', analogSvg(AT, lang))];
+    case 'waktu/calendar':
+      return [calendarView(lang, AT)];
+    case 'waktu/yearday':
+      return [yearDayView(document.body, AT, lang === 'en' ? en : id)];
+    case 'waktu/weekstrip':
+      return [weekStripView(lang, AT)];
     default:
       return null;
   }

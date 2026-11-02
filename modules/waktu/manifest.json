@@ -6,6 +6,9 @@
   "capabilities": ["home.data"],
   "widgets": [
     { "id": "clockdate", "entry": "index.html", "width": 2, "kind": "time" },
-    { "id": "analog", "entry": "index.html", "width": 1, "kind": "time" }
+    { "id": "analog", "entry": "index.html", "width": 1, "kind": "time" },
+    { "id": "calendar", "entry": "index.html", "width": 2, "kind": "time" },
+    { "id": "yearday", "entry": "index.html", "width": 1, "kind": "time" },
+    { "id": "weekstrip", "entry": "index.html", "width": 4, "kind": "time" }
   ]
 }

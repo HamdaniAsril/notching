@@ -865,6 +865,7 @@ body > .ed-ghost {
   border-radius: 0 0 22px 22px;
   background: #000;
   color: #fff;
+  --w: #fff;
   --g1: rgba(255, 255, 255, 0.68);
   --g2: rgba(255, 255, 255, 0.45);
   --g3: rgba(255, 255, 255, 0.16);
@@ -956,6 +957,175 @@ body > .ed-ghost {
 
 .ed-analog svg {
   display: block;
+}
+
+/* Kalender, Hari ke- and Minggu ini: the same rules as modules/waktu/style.css, scoped to
+   the slot, the picker card and the strip. */
+.ed-slot .wd-calendar,
+.ed-shot .wd-calendar {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ed-slot .wd-cal-side,
+.ed-shot .wd-cal-side {
+  flex: none;
+  align-self: stretch;
+  width: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ed-slot .wd-cal-month,
+.ed-shot .wd-cal-month {
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 26px;
+}
+
+.ed-slot .wd-cal-grid,
+.ed-shot .wd-cal-grid {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 12px;
+}
+
+.ed-slot .wd-cal-h,
+.ed-slot .wd-cal-d,
+.ed-shot .wd-cal-h,
+.ed-shot .wd-cal-d {
+  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 9px;
+  line-height: 12px;
+  text-align: center;
+}
+
+.ed-slot .wd-cal-h,
+.ed-slot .wd-cal-d.we,
+.ed-shot .wd-cal-h,
+.ed-shot .wd-cal-d.we {
+  color: var(--g2);
+}
+
+.ed-slot .wd-cal-d.today,
+.ed-shot .wd-cal-d.today {
+  width: 16px;
+  margin: 0 auto;
+  border-radius: 6px;
+  background: var(--red);
+  color: var(--w);
+}
+
+.ed-slot .wd-yearday,
+.ed-shot .wd-yearday {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ed-slot .wd-yearday .wd-big,
+.ed-shot .wd-yearday .wd-big {
+  color: var(--red);
+}
+
+.ed-strip .wd-weekstrip,
+.ed-shot .wd-weekstrip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ed-strip .wd-wk-today,
+.ed-strip .wd-wk-week,
+.ed-strip .wd-wk-cell,
+.ed-shot .wd-wk-today,
+.ed-shot .wd-wk-week,
+.ed-shot .wd-wk-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ed-strip .wd-wk-today,
+.ed-shot .wd-wk-today {
+  flex: none;
+  min-width: 84px;
+}
+
+.ed-strip .wd-wk-week,
+.ed-shot .wd-wk-week {
+  flex: none;
+  align-items: flex-end;
+}
+
+.ed-strip .wd-wk-today .lab,
+.ed-strip .wd-wk-week .lab,
+.ed-strip .wd-wk-cell .lab,
+.ed-shot .wd-wk-today .lab,
+.ed-shot .wd-wk-week .lab,
+.ed-shot .wd-wk-cell .lab {
+  display: flex;
+  line-height: 12px;
+}
+
+.ed-strip .wd-wk-date,
+.ed-shot .wd-wk-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ed-strip .wd-wk-days,
+.ed-shot .wd-wk-days {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ed-strip .wd-wk-cell,
+.ed-shot .wd-wk-cell {
+  align-items: center;
+}
+
+.ed-strip .wd-wk-cell .lab,
+.ed-strip .wd-wk-cell .wd-small,
+.ed-shot .wd-wk-cell .lab,
+.ed-shot .wd-wk-cell .wd-small {
+  color: inherit;
+}
+
+.ed-strip .wd-wk-cell.past,
+.ed-shot .wd-wk-cell.past {
+  color: var(--g2);
+}
+
+.ed-strip .wd-wk-cell.future,
+.ed-shot .wd-wk-cell.future {
+  color: var(--g1);
+}
+
+.ed-strip .wd-wk-cell.today,
+.ed-shot .wd-wk-cell.today {
+  color: var(--w);
+}
+
+.ed-strip .wd-wk-cell .rd,
+.ed-shot .wd-wk-cell .rd {
+  width: 4px;
+  height: 4px;
 }
 
 .ed-slot .rm {
@@ -1107,6 +1277,7 @@ body > .ed-ghost {
   box-shadow: inset 0 0 0 1.3px var(--line);
   color: #fff;
   text-align: left;
+  --w: #fff;
   display: flex;
   flex-direction: column;
   gap: 6px;

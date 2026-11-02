@@ -3,8 +3,13 @@ import './style.css';
 import { connectKit } from '../../src/kit/client';
 import { everyMinute } from '../home/ticks';
 import type { HomeSnapshot } from '../home/types';
+import en from './locales/en.json';
+import id from './locales/id.json';
 import { renderAnalog } from './widgets/analog';
+import { renderCalendar } from './widgets/calendar';
 import { renderClockDate } from './widgets/clockdate';
+import { renderWeekStrip } from './widgets/weekstrip';
+import { renderYearDay } from './widgets/yearday';
 
 // One page for every time widget: the notch says which one this frame shows.
 async function start(): Promise<void> {
@@ -12,6 +17,11 @@ async function start(): Promise<void> {
   const root = document.getElementById('card')!;
   const setTimer = (fn: () => void, ms: number) => void setTimeout(fn, ms);
   const now = () => new Date();
+  // The date widgets redraw on each minute boundary, which also catches midnight.
+  const drawEveryMinute = (w: { update(now: Date): void }): void => {
+    w.update(now());
+    everyMinute(setTimer, now, () => w.update(now()));
+  };
 
   switch (kit.widget) {
     case 'clockdate': {
@@ -39,6 +49,15 @@ async function start(): Promise<void> {
       tick();
       break;
     }
+    case 'calendar':
+      drawEveryMinute(renderCalendar(root, kit.lang));
+      break;
+    case 'yearday':
+      drawEveryMinute(renderYearDay(root, kit.lang, kit.lang === 'en' ? en : id));
+      break;
+    case 'weekstrip':
+      drawEveryMinute(renderWeekStrip(root, kit.lang));
+      break;
     default:
       root.replaceChildren();
   }

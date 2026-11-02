@@ -1,8 +1,14 @@
 {
   "name": "Waktu",
   "description": "Jam dan tanggal",
+  "dayOf": "Hari ke",
+  "left": "Sisa {n} hari",
+  "leftOne": "Sisa {n} hari",
   "widgets": {
     "clockdate": "Jam + tanggal",
-    "analog": "Jam analog"
+    "analog": "Jam analog",
+    "calendar": "Kalender",
+    "yearday": "Hari ke-",
+    "weekstrip": "Minggu ini"
   }
 }
