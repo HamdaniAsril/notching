@@ -1,0 +1,11 @@
+{
+  "id": "rencana",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "permissions": [],
+  "capabilities": ["home.data"],
+  "widgets": [
+    { "id": "week", "entry": "index.html", "width": 2, "kind": "work" },
+    { "id": "next", "entry": "index.html", "width": 2, "kind": "work" }
+  ]
+}

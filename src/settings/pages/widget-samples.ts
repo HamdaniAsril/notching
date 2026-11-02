@@ -12,6 +12,11 @@ import enSekitar from '../../../modules/sekitar/locales/en.json';
 import idSekitar from '../../../modules/sekitar/locales/id.json';
 import { bigWeatherView } from '../../../modules/sekitar/widgets/bigweather';
 import { moonView } from '../../../modules/sekitar/widgets/moon';
+import enRencana from '../../../modules/rencana/locales/en.json';
+import idRencana from '../../../modules/rencana/locales/id.json';
+import { nextView } from '../../../modules/rencana/widgets/next';
+import { weekView } from '../../../modules/rencana/widgets/week';
+import type { Reminder } from '../../../modules/home/types';
 import { svgBox } from '../../kit/widget';
 
 // Editor samples for the widget packs, drawn with the helpers the widgets use. Static, at the
@@ -25,6 +30,14 @@ const WEATHER: HomeSnapshot = {
   prayer: null,
   reminders: [],
 };
+
+// The reminders the Rencana samples show: two today (Friday), one on Saturday.
+const at = (d: number, h: number, m: number) => new Date(2026, 9, d, h, m).getTime();
+const REMINDERS: Reminder[] = [
+  { id: 1, title: 'Kirim invoice', day: '2026-10-30', at: at(30, 14, 0), done: false, notified: false },
+  { id: 2, title: 'Bayar listrik', day: '2026-10-30', at: null, done: false, notified: false },
+  { id: 3, title: 'Rapat tim', day: '2026-10-31', at: at(31, 9, 0), done: false, notified: false },
+];
 
 // The sample for a pack widget, or null for one that is not a pack's.
 export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
@@ -46,6 +59,10 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
       return [bigWeatherView(document.body, lang === 'en' ? enSekitar : idSekitar, WEATHER, AT)];
     case 'sekitar/moon':
       return [moonView(document.body, lang === 'en' ? enSekitar : idSekitar, AT)];
+    case 'rencana/week':
+      return [weekView(lang === 'en' ? enRencana : idRencana, lang, REMINDERS, AT)];
+    case 'rencana/next':
+      return [nextView(lang === 'en' ? enRencana : idRencana, lang, REMINDERS, AT)];
     default:
       return null;
   }

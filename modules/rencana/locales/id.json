@@ -1,0 +1,14 @@
+{
+  "name": "Rencana",
+  "description": "Reminder pekan ini",
+  "week": "Mgg",
+  "weekEmpty": "Pekan ini kosong",
+  "next": "Berikutnya",
+  "nextEmpty": "Tidak ada yang dijadwalkan",
+  "today": "Hari ini",
+  "tomorrow": "Besok",
+  "widgets": {
+    "week": "Pekan ini",
+    "next": "Berikutnya"
+  }
+}

@@ -1,0 +1,127 @@
+/* Rencana: each widget fills its frame, which the notch sizes to its columns and 104 px. */
+#card {
+  height: 100%;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.wd {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 6px;
+}
+
+/* Pekan ini: the month and week on top, seven day columns, the next reminder at the bottom. */
+.wd-wk-head,
+.wd-nx-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wd-wk-days {
+  display: flex;
+  justify-content: space-between;
+}
+
+.wd-wk-day {
+  width: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--g1);
+}
+
+.wd-wk-day .lab {
+  line-height: 12px;
+}
+
+.wd-wk-day .wd-small {
+  color: inherit;
+}
+
+.wd-wk-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wd-wk-day.today {
+  color: var(--w);
+}
+
+.wd-wk-day.today .wd-wk-num {
+  background: var(--w);
+  color: #000;
+}
+
+.wd-wk-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--g1);
+}
+
+.wd-wk-day.today .wd-wk-dot {
+  background: var(--w);
+}
+
+.wd-wk-foot {
+  margin-top: auto;
+  min-width: 0;
+}
+
+.wd-wk-title {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--w);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wd-wk-title.empty {
+  color: var(--g2);
+}
+
+/* Berikutnya: the label and time left on top, the title over two lines, the day and time at the bottom. */
+.wd-nx-title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 18px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.wd-nx-empty {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--g2);
+}
+
+.wd-nx-foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.wd-nx-foot .lab {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

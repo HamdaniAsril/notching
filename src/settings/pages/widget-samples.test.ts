@@ -45,6 +45,19 @@ test('Cuaca besar and Bulan have samples', () => {
   expect(moon[0].querySelector('.wd-big svg.dm')).not.toBeNull();
 });
 
+test('Pekan ini and Berikutnya have samples', () => {
+  const week = packSample(widget('rencana/week', 2), 'id')!;
+  expect(week).toHaveLength(1);
+  expect(week[0].querySelectorAll('.wd-wk-day')).toHaveLength(7);
+  expect(week[0].querySelector('.wd-wk-day.today')!.textContent).toContain('J');
+  expect(week[0].querySelectorAll('.wd-wk-day.has')).toHaveLength(2);
+  expect(week[0].querySelector('.wd-wk-title')!.textContent).toBe('Kirim invoice');
+  const next = packSample(widget('rencana/next', 2), 'en')!;
+  expect(next).toHaveLength(1);
+  expect(next[0].querySelector('.wd-nx-top')!.textContent).toBe('UP NEXT4 H');
+  expect(next[0].querySelector('.wd-nx-foot svg.dm')).not.toBeNull();
+});
+
 test('other widgets are not a pack sample', () => {
   expect(packSample(widget('home/date'), 'id')).toBeNull();
 });

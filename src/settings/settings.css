@@ -1213,6 +1213,145 @@ body > .ed-ghost {
   min-width: 0;
 }
 
+/* Pekan ini and Berikutnya: the same rules as modules/rencana/style.css, scoped to the slot
+   and the picker card. */
+.ed-slot .wd-week,
+.ed-slot .wd-next,
+.ed-shot .wd-week,
+.ed-shot .wd-next {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ed-slot .wd-wk-head,
+.ed-slot .wd-nx-top,
+.ed-shot .wd-wk-head,
+.ed-shot .wd-nx-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ed-slot .wd-wk-days,
+.ed-shot .wd-wk-days {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ed-slot .wd-wk-day,
+.ed-shot .wd-wk-day {
+  width: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: var(--g1);
+}
+
+.ed-slot .wd-wk-day .lab,
+.ed-shot .wd-wk-day .lab {
+  line-height: 12px;
+}
+
+.ed-slot .wd-wk-day .wd-small,
+.ed-shot .wd-wk-day .wd-small {
+  color: inherit;
+}
+
+.ed-slot .wd-wk-num,
+.ed-shot .wd-wk-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ed-slot .wd-wk-day.today,
+.ed-shot .wd-wk-day.today {
+  color: var(--w);
+}
+
+.ed-slot .wd-wk-day.today .wd-wk-num,
+.ed-shot .wd-wk-day.today .wd-wk-num {
+  background: var(--w);
+  color: #000;
+}
+
+.ed-slot .wd-wk-dot,
+.ed-shot .wd-wk-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--g1);
+}
+
+.ed-slot .wd-wk-day.today .wd-wk-dot,
+.ed-shot .wd-wk-day.today .wd-wk-dot {
+  background: var(--w);
+}
+
+.ed-slot .wd-wk-foot,
+.ed-shot .wd-wk-foot {
+  margin-top: auto;
+  min-width: 0;
+}
+
+.ed-slot .wd-wk-title,
+.ed-shot .wd-wk-title {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--w);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ed-slot .wd-wk-title.empty,
+.ed-shot .wd-wk-title.empty {
+  color: var(--g2);
+}
+
+.ed-slot .wd-nx-title,
+.ed-shot .wd-nx-title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 18px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.ed-slot .wd-nx-empty,
+.ed-shot .wd-nx-empty {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--g2);
+}
+
+.ed-slot .wd-nx-foot,
+.ed-shot .wd-nx-foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ed-slot .wd-nx-foot .lab,
+.ed-shot .wd-nx-foot .lab {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ed-slot .rm {
   display: flex;
   align-items: center;
