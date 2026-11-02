@@ -1,7 +1,7 @@
 # Verifikasi paket widget
 
 Tanggal: 2 November 2026
-Perangkat: MacBook Air M4 dengan notch (belum dicoba).
+Perangkat: MacBook Air M4 dengan notch. Percobaan pertama 2 November sore, build uji tidak bertanda tangan.
 Cabang: `feat/paket-widget`.
 
 Desain: `docs/superpowers/specs/2026-11-02-paket-widget-design.md`.
@@ -33,22 +33,24 @@ Hasil "Lulus" dicatat setelah dicocokkan dengan file app, bukan hanya dari lapor
 
 | # | Cek | Hasil | Bukti di file |
 |---|---|---|---|
-| 1 | Buat halaman baru di Pengaturan → Halaman. Pasang beberapa widget baru dari tiap kelompok (Waktu, Cuaca, Kerja). Widgetnya tampil di notch dan tidak ada yang terpotong. | Belum | `settings.json` → `pages` berisi `waktu/…`, `sekitar/…`, `rencana/…`, `fokus/…` |
+| 1 | Buat halaman baru di Pengaturan → Halaman. Pasang beberapa widget baru dari tiap kelompok (Waktu, Cuaca, Kerja). Widgetnya tampil di notch dan tidak ada yang terpotong. | Lulus sebagian | `settings.json` berisi halaman `p1` (`waktu/clockdate`, `fokus/workday`) dan `p2` (`fokus/breath`, `rencana/week`, `timer/tile`). Belum ada widget `sekitar/…` yang terpasang saat dicek. |
 | 2 | Jam + tanggal: kota, tanggal, jam, dan titik jam berjalan. Jam analog: jarum detik bergerak. | Belum | |
 | 3 | Kalender, Hari ke-, dan strip Minggu ini menunjukkan tanggal hari ini. | Belum | |
 | 4 | Cuaca besar, Matahari, dan Bulan tampil untuk kota yang dipilih. | Belum | `weather.json` |
-| 5 | Udara dan strip Cuaca per jam terisi, paling lambat sekitar 5 menit setelah app dibuka. | Belum | `air.json` ada, dan `weather.json` berisi `hourly` |
+| 5 | Udara dan strip Cuaca per jam terisi, paling lambat sekitar 5 menit setelah app dibuka. | Lulus (data) | `air.json` ada (AQI 70). `weather.json` berisi 48 jam `hourly`. Keduanya ditulis pukul 15.42. |
 | 6 | Pekan ini dan Berikutnya menampilkan reminder yang sama dengan widget Reminder. | Belum | `reminders.json` |
 | 7 | Napas: klik untuk mulai, lingkarannya bergerak, dan klik lagi untuk berhenti. | Belum | |
-| 8 | Timer kecil: geser untuk memilih menit, klik untuk mulai dan untuk jeda. Waktunya sama dengan strip Timer dan halaman Timer. | Belum | Status samping notch menampilkan sisa waktu |
-| 9 | Jam kerja: klik, ganti jam dan hari, lalu Simpan. Tampilannya ikut berubah. | Belum | `widget-prefs/fokus.json` |
-| 10 | Zona waktu: klik, pilih dua kota, lalu Simpan. Jamnya sesuai. | Belum | `widget-prefs/waktu.json` |
+| 8 | Timer kecil: geser untuk memilih menit, klik untuk mulai dan untuk jeda. Waktunya sama dengan strip Timer dan halaman Timer. | Gagal, sudah diperbaiki, cek ulang | Pemilik: setelah dimulai, timer kecil tidak bisa digeser lagi. Penyebabnya, geseran hanya diterima saat diam. Sekarang geseran saat berjalan atau jeda memulai menit baru begitu dilepas, sama seperti strip Timer (`a4b084b`). |
+| 9 | Jam kerja: klik, ganti jam dan hari, lalu Simpan. Tampilannya ikut berubah. | Lulus (simpan) | `widget-prefs/fokus.json` berisi 08:00–16:00, Senin–Jumat, ditulis pukul 15.44. Pemilik minta sisa waktu dibuat lebih besar daripada waktu berlalu, sudah diubah (`af7da05`), cek ulang tampilannya. |
+| 10 | Zona waktu: klik, pilih dua kota, lalu Simpan. Jamnya sesuai. | Belum | `widget-prefs/waktu.json` belum ada, jadi pilihan kota belum pernah disimpan. |
 | 11 | Widget lama (Tanggal, Jam, Cuaca, Waktu sholat, Reminder, strip Timer) tetap seperti sebelumnya. | Belum | |
 | 12 | Di monitor luar, halaman yang sama tampil normal. | Belum | |
 
 Lokasi file:
 - `settings.json`, `reminders.json`, dan `widget-prefs/` ada di folder data app.
 - `weather.json` dan `air.json` ada di folder cache app.
+
+Pemilik melaporkan "semuanya berjalan". Cek 2, 3, 4, 6, 7, 11, dan 12 tidak punya bukti di file atau belum dicoba khusus, jadi tetap "Belum" sampai dicek bersama.
 
 ## Keputusan penulis yang perlu dilihat pemilik
 
@@ -66,6 +68,8 @@ Lokasi file:
 9. **Udara.** "AQI" dipindah ke label atas supaya angka sampai 500 muat. App sekarang mengirim ke tiga alamat Open-Meteo. Yang ketiga khusus kualitas udara dan hanya menerima koordinat yang sudah dibulatkan.
 10. **Matahari.** Jam terbit dan terbenam ditaruh bertumpuk di dua sisi, karena kalau dibuat satu baris tidak muat di 234 px.
 11. **Bulan** dihitung di app tanpa internet. Hari menuju purnama atau bulan baru bisa meleset satu hari kalau jaraknya masih tiga minggu.
+12. **Timer kecil saat berjalan.** Menggeser timer yang sedang berjalan atau dijeda langsung memulai menit baru begitu dilepas, seperti strip Timer. Saat diam, geseran hanya memilih menit dan klik yang memulai.
+13. **Jam kerja.** Angka besar sekarang sisa waktu. Di bawah titik ada "SUDAH 1 J 18 M" (bahasa Inggris "1 H 18 M DONE"). Label terpanjang, "SUDAH 10 J 59 M", lebarnya sekitar 108,6 px di frame 109 px. Jadi masih muat, tapi pas sekali.
 
 ## Masih terbuka
 
