@@ -2130,30 +2130,27 @@ body > .ed-ghost {
   flex: none;
 }
 
-/* Napas: the same rules as modules/fokus/style.css, scoped to the slot and the picker card.
-   The idle sample is static, so the hint's wrapping is what the slot has to show. */
-.ed-slot .wd-breath,
-.ed-shot .wd-breath {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+/* Napas and Jam kerja: the same rules as modules/fokus/style.css, scoped alike. Only the row views
+   are drawn here, so the button and the full view have no rules. */
+
+/* Three accent circles, 60 and 40 px with the core (20 px at rest, up to 50 with the breath) on
+   top, over the name and the detail. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-breath {
+  align-items: center;
+  min-width: 0;
 }
 
-.ed-slot .wd-br-rings,
-.ed-shot .wd-br-rings {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-rings {
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   flex: none;
-  align-self: center;
+  margin-top: 7px;
 }
 
-.ed-slot .wd-br-ring,
-.ed-slot .wd-br-core,
-.ed-shot .wd-br-ring,
-.ed-shot .wd-br-core {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-ring,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-core {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -2162,60 +2159,86 @@ body > .ed-ghost {
   transform: translate(-50%, -50%);
 }
 
-.ed-slot .wd-br-ring,
-.ed-shot .wd-br-ring {
-  border: 1px solid var(--g3);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-ring.out {
+  background: rgba(200, 240, 74, 0.1);
 }
 
-.ed-slot .wd-br-core,
-.ed-shot .wd-br-core {
-  background: var(--w);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-ring.mid {
+  background: rgba(200, 240, 74, 0.2);
 }
 
-.ed-slot .wd-br-rings .rd,
-.ed-shot .wd-br-rings .rd {
-  position: absolute;
-  top: -3px;
-  left: 50%;
-  margin-left: -3px;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-core {
+  background: var(--v-acc);
 }
 
-.ed-slot .wd-br-note,
-.ed-shot .wd-br-note {
-  display: block;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-caption {
   margin-top: auto;
-  text-align: center;
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  line-height: 11px;
-}
-
-/* Jam kerja: the same rules as modules/fokus/style.css, scoped to the slot and the picker card. */
-.ed-slot .wd-work,
-.ed-shot .wd-work {
-  flex: 1;
-  min-height: 0;
+  padding: 0 4px 7px;
+  max-width: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 1px;
 }
 
-.ed-slot .wd-work-head,
-.ed-shot .wd-work-head {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-title,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-detail {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-title {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-br-detail {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+/* Jam kerja: the name and hours on top (the hours drop to their own line if both do not fit),
+   what is left in Barlow, the day's bar and the time worked at the bottom. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-work {
+  justify-content: space-between;
+  cursor: pointer;
+  outline: none;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-work-head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   column-gap: 6px;
 }
 
-.ed-slot .wd-work-time,
-.ed-shot .wd-work-time {
-  font-size: 15px;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-work-range,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-work-worked {
+  font-size: 9px;
   font-weight: 500;
-  line-height: 19px;
-  letter-spacing: -0.1px;
+  line-height: 12px;
+  color: var(--v-muted);
   white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-work-time {
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-work-gone {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 /* Timer kecil: the same rules as modules/timer/style.css, scoped to the slot and the picker

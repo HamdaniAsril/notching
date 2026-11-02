@@ -2,12 +2,13 @@
   "name": "Focus",
   "description": "Breathing and focus",
   "phases": {
-    "in": "IN",
-    "hold": "HOLD",
-    "out": "OUT"
+    "in": "Breathe in",
+    "hold": "Hold",
+    "out": "Breathe out"
   },
-  "tap": "Click to start",
-  "sec": "s",
+  "idle": "Breathe in",
+  "rounds": "{s} s · {n} rounds",
+  "roundOf": "{left} s · {cycle} of {n}",
   "done": "Done",
   "workTitle": "Work",
   "startsAt": "Starts {t}",

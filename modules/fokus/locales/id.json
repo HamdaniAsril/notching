@@ -2,12 +2,13 @@
   "name": "Fokus",
   "description": "Napas dan fokus kerja",
   "phases": {
-    "in": "TARIK",
-    "hold": "TAHAN",
-    "out": "BUANG"
+    "in": "Tarik napas",
+    "hold": "Tahan",
+    "out": "Buang napas"
   },
-  "tap": "Klik untuk mulai",
-  "sec": "dtk",
+  "idle": "Tarik napas",
+  "rounds": "{s} detik · {n} putaran",
+  "roundOf": "{left} detik · {cycle} dari {n}",
   "done": "Selesai",
   "workTitle": "Jam kerja",
   "startsAt": "Mulai {t}",

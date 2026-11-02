@@ -1,4 +1,6 @@
-/* Fokus: each widget fills its frame, which the notch sizes to its columns and 104 px. */
+/* Fokus in the Volt look (src/kit/volt.css): each widget is a .v-card that fills its frame,
+   which the notch sizes to its columns and 104 px. A frame is 109 px wide for one column; the
+   card's 12 px padding leaves 85 × 80. Napas is flush: its card has no padding. */
 #card {
   height: 100%;
 }
@@ -7,13 +9,6 @@ html,
 body {
   height: 100%;
   overflow: hidden;
-}
-
-.wd {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 3px;
 }
 
 /* Napas: the whole frame is one button. */
@@ -36,25 +31,24 @@ body {
 }
 
 .wd-br-btn:focus-visible {
-  outline: 1px solid var(--g2);
-  outline-offset: -1px;
-  border-radius: 8px;
+  outline: 1px solid var(--v-acc);
+  outline-offset: -3px;
+  border-radius: 14px;
 }
 
-.wd-br-head,
-.wd-br-foot {
-  display: flex;
-  justify-content: space-between;
+/* Three accent circles, 60 and 40 px with the core (20 px at rest, up to 50 with the breath) on
+   top, over the name and the detail. */
+.wd-breath {
   align-items: center;
-  gap: 6px;
+  min-width: 0;
 }
 
 .wd-br-rings {
   position: relative;
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   flex: none;
-  align-self: center;
+  margin-top: 7px;
 }
 
 .wd-br-ring,
@@ -67,47 +61,56 @@ body {
   transform: translate(-50%, -50%);
 }
 
-.wd-br-ring {
-  border: 1px solid var(--g3);
+.wd-br-ring.out {
+  background: rgba(200, 240, 74, 0.1);
+}
+
+.wd-br-ring.mid {
+  background: rgba(200, 240, 74, 0.2);
 }
 
 .wd-br-core {
-  background: var(--w);
+  background: var(--v-acc);
 }
 
-.wd-br-rings .rd {
-  position: absolute;
-  top: -3px;
-  left: 50%;
-  margin-left: -3px;
-}
-
-/* The hint is longer than a column is wide in Indonesian, so it wraps and stays whole. */
-.wd-br-note {
-  display: block;
+.wd-br-caption {
   margin-top: auto;
-  text-align: center;
-  white-space: normal;
+  padding: 0 4px 7px;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.wd-br-title,
+.wd-br-detail {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wd-br-title {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--v-ink);
+}
+
+.wd-br-detail {
+  font-size: 9px;
+  font-weight: 500;
   line-height: 11px;
-}
-
-.wd-br-foot {
-  margin-top: auto;
-  justify-content: flex-start;
-  gap: 5px;
-}
-
-.wd-br-phase {
-  color: var(--w);
-}
-
-.wd-br-left {
-  min-width: 15px;
+  color: var(--v-muted);
 }
 
 /* Jam kerja: the name and hours on top (the hours drop to their own line if both do not fit),
-   the time worked, ten dots and what is left. */
+   what is left in Barlow, the day's bar and the time worked at the bottom. */
 .wd-work {
+  justify-content: space-between;
   cursor: pointer;
   outline: none;
   min-width: 0;
@@ -120,23 +123,28 @@ body {
   column-gap: 6px;
 }
 
-.wd-work-time {
-  font-size: 15px;
+.wd-work-range,
+.wd-work-worked {
+  font-size: 9px;
   font-weight: 500;
-  line-height: 19px;
-  letter-spacing: -0.1px;
+  line-height: 12px;
+  color: var(--v-muted);
   white-space: nowrap;
 }
 
-.wd-work .wd-row {
-  margin-top: auto;
+.wd-work-time {
+  white-space: nowrap;
+}
+
+.wd-work-gone {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 /* The full view, as the reminder list: back and the name on top, then the fields. */
 .wd-work-full {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  min-width: 0;
 }
 
 .wd-work-fhead {
@@ -148,11 +156,9 @@ body {
 .wd-work-back,
 .wd-work-save,
 .wd-work-day {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: "Inter", -apple-system, sans-serif;
   font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -160,7 +166,7 @@ body {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--g1);
+  color: var(--v-muted);
 }
 
 .wd-work-times {
@@ -179,17 +185,20 @@ body {
   width: 88px;
   padding: 4px 0;
   border: 0;
+  border-bottom: 1px solid var(--v-track);
+  border-radius: 0;
   outline: none;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left bottom / 5px 3px repeat-x;
-  color: var(--w);
-  font: 13px "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  background: transparent;
+  color: var(--v-ink);
+  color-scheme: dark;
+  font: 500 13px "Inter", -apple-system, sans-serif;
   /* kit.css turns selection off for the whole card. */
   user-select: text;
   -webkit-user-select: text;
 }
 
 .wd-work-field input:focus {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0.9px, transparent 1.3px);
+  border-bottom-color: var(--v-acc);
 }
 
 .wd-work-field input::-webkit-calendar-picker-indicator {
@@ -207,16 +216,16 @@ body {
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid var(--g3);
+  border: 1px solid var(--v-track);
   border-radius: 50%;
   background: transparent;
-  color: var(--g2);
+  color: var(--v-muted);
 }
 
 .wd-work-day[aria-pressed="true"] {
-  border-color: var(--w);
-  background: var(--w);
-  color: #000;
+  border-color: var(--v-acc);
+  background: var(--v-acc);
+  color: var(--v-on-acc);
 }
 
 .wd-work-foot {
@@ -227,20 +236,20 @@ body {
 }
 
 .wd-work-err {
-  color: var(--g1);
+  color: var(--v-ink2);
 }
 
 .wd-work-save {
   padding: 5px 14px;
-  border: 1px solid var(--w);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--w);
+  border: 0;
+  border-radius: 999px;
+  background: var(--v-acc);
+  color: var(--v-on-acc);
 }
 
 .wd-work-save:disabled {
-  border-color: var(--g3);
-  color: var(--g2);
+  background: var(--v-track);
+  color: var(--v-muted);
   cursor: default;
 }
 
@@ -248,6 +257,6 @@ body {
 .wd-work-save:focus-visible,
 .wd-work-day:focus-visible,
 .wd-work:focus-visible {
-  outline: 1px solid var(--g2);
+  outline: 1px solid var(--v-acc);
   outline-offset: 2px;
 }

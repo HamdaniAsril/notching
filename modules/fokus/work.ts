@@ -63,13 +63,13 @@ export function workState(p: WorkPrefs, now: Date): WorkState {
   return { kind: 'working', workedMs: t - start, leftMs: end - t, progress: (t - start) / (end - start) };
 }
 
-// "2 J 30 M" / "2 H 30 M", or "42 M" under an hour. Rounded to the nearest minute so a
+// "2 j 30 m" / "2 h 30 m", or "42 m" under an hour. Rounded to the nearest minute so a
 // tick that fires a few ms early still reads the minute it is for.
 export function hm(ms: number, lang: Lang): string {
   const total = Math.max(0, Math.round(ms / 60_000));
   const h = Math.floor(total / 60);
   const m = total % 60;
-  return h > 0 ? `${h} ${lang === 'id' ? 'J' : 'H'} ${m} M` : `${m} M`;
+  return h > 0 ? `${h} ${lang === 'id' ? 'j' : 'h'} ${m} m` : `${m} m`;
 }
 
 // "09.00" in Indonesian, "9:00" in English (24-hour, the hour unpadded).

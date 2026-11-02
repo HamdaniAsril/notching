@@ -15,49 +15,51 @@ function host(): HTMLElement {
 
 const core = (root: HTMLElement) => root.querySelector<HTMLElement>('.wd-br-core')!;
 
-test('idle: the name, three rings with a red dot, and the hint', () => {
+const title = (root: HTMLElement) => root.querySelector('.wd-br-title')!.textContent;
+const detail = (root: HTMLElement) => root.querySelector('.wd-br-detail')!.textContent;
+
+test('idle: a flush card with three accent circles, the name and the length of a session', () => {
   const root = host();
   const w = renderBreath(root, id);
   expect(w.running()).toBe(false);
-  expect(root.textContent).toContain('NAPAS');
-  expect(root.textContent).toContain('Klik untuk mulai');
+  expect(root.querySelector('.v-card.flush')).not.toBeNull();
+  expect(title(root)).toBe('Tarik napas');
+  expect(detail(root)).toBe('4 detik · 5 putaran');
   expect(root.querySelectorAll('.wd-br-ring')).toHaveLength(2);
-  expect(root.querySelector('.wd-br-ring.out')!.getAttribute('style')).toContain('56px');
-  expect(root.querySelector('.wd-br-ring.mid')!.getAttribute('style')).toContain('38px');
+  expect(root.querySelector('.wd-br-ring.out')!.getAttribute('style')).toContain('60px');
+  expect(root.querySelector('.wd-br-ring.mid')!.getAttribute('style')).toContain('40px');
   expect(core(root).style.width).toBe('20px');
-  expect(root.querySelector('.wd-br-rings .rd')).not.toBeNull();
+  expect(root.querySelector('.rd')).toBeNull();
 });
 
 test('English copy', () => {
   const root = host();
   renderBreath(root, en);
-  expect(root.textContent).toContain('BREATHE');
-  expect(root.textContent).toContain('Click to start');
+  expect(title(root)).toBe('Breathe in');
+  expect(detail(root)).toBe('4 s · 5 rounds');
 });
 
 test('the editor sample is the idle view', () => {
-  const view = breathView(id, id.tap);
-  expect(view.textContent).toContain('Klik untuk mulai');
+  const view = breathView(id, id.idle);
+  expect(view.querySelector('.wd-br-title')!.textContent).toBe('Tarik napas');
+  expect(view.querySelector('.wd-br-detail')!.textContent).toBe('4 detik · 5 putaran');
   expect(view.querySelector('.wd-br-core')).not.toBeNull();
 });
 
-test('running: the phase, the cycle and the seconds left', () => {
+test('running: the phase, the seconds left and the round', () => {
   const root = host();
   const w = renderBreath(root, id);
   w.start(0);
   expect(w.running()).toBe(true);
-  expect(root.textContent).toContain('TARIK');
-  expect(root.textContent).toContain('1/5');
-  expect(root.textContent).not.toContain('Klik untuk mulai');
+  expect(title(root)).toBe('Tarik napas');
+  expect(detail(root)).toBe('4 detik · 1 dari 5');
   w.tick(5000);
-  expect(root.textContent).toContain('TAHAN');
-  expect(root.textContent).toContain('1/5');
-  expect(root.textContent).toContain('dtk');
-  expect(root.querySelector('.wd-br-left svg.dm')).not.toBeNull();
+  expect(title(root)).toBe('Tahan');
+  expect(detail(root)).toBe('3 detik · 1 dari 5');
   w.tick(9000);
-  expect(root.textContent).toContain('BUANG');
+  expect(title(root)).toBe('Buang napas');
   w.tick(16000);
-  expect(root.textContent).toContain('2/5');
+  expect(detail(root)).toBe('4 detik · 2 dari 5');
 });
 
 test('the core grows from 20 px to 50 px and back with the breath', () => {
@@ -76,15 +78,16 @@ test('the core grows from 20 px to 50 px and back with the breath', () => {
   expect(core(root).style.width).toBe('20px');
 });
 
-test('the seconds left change the dot number only when they change', () => {
+test('the seconds left change only when a whole second has gone', () => {
   const root = host();
   const w = renderBreath(root, id);
   w.start(0);
-  const before = root.querySelector('.wd-br-left svg.dm')!;
+  const before = root.querySelector('.wd-br-detail')!;
   w.tick(100);
-  expect(root.querySelector('.wd-br-left svg.dm')).toBe(before);
+  expect(root.querySelector('.wd-br-detail')).toBe(before);
+  expect(detail(root)).toBe('4 detik · 1 dari 5');
   w.tick(1100);
-  expect(root.querySelector('.wd-br-left svg.dm')).not.toBe(before);
+  expect(detail(root)).toBe('3 detik · 1 dari 5');
 });
 
 test('after the last cycle it says done, stops running, and goes idle after 3 seconds', () => {
@@ -92,13 +95,13 @@ test('after the last cycle it says done, stops running, and goes idle after 3 se
   const w = renderBreath(root, id);
   w.start(0);
   w.tick(80000);
-  expect(root.textContent).toContain('Selesai');
+  expect(title(root)).toBe('Selesai');
   expect(w.running()).toBe(false);
   vi.advanceTimersByTime(2900);
-  expect(root.textContent).toContain('Selesai');
+  expect(title(root)).toBe('Selesai');
   vi.advanceTimersByTime(200);
-  expect(root.textContent).toContain('Klik untuk mulai');
-  expect(root.textContent).not.toContain('Selesai');
+  expect(title(root)).toBe('Tarik napas');
+  expect(detail(root)).toBe('4 detik · 5 putaran');
 });
 
 test('a click starts and a second click stops', () => {
@@ -110,10 +113,10 @@ test('a click starts and a second click stops', () => {
   expect(w.running()).toBe(true);
   expect(starts).toHaveLength(1);
   w.tick(1234 + 5000);
-  expect(root.textContent).toContain('TAHAN');
+  expect(title(root)).toBe('Tahan');
   btn.click();
   expect(w.running()).toBe(false);
-  expect(root.textContent).toContain('Klik untuk mulai');
+  expect(detail(root)).toBe('4 detik · 5 putaran');
 });
 
 test('stop does nothing when idle, tick does nothing when stopped', () => {
@@ -121,7 +124,7 @@ test('stop does nothing when idle, tick does nothing when stopped', () => {
   const w = renderBreath(root, id);
   w.stop();
   w.tick(5000);
-  expect(root.textContent).toContain('Klik untuk mulai');
+  expect(detail(root)).toBe('4 detik · 5 putaran');
 });
 
 test('a click during the done message starts again', () => {
@@ -132,7 +135,7 @@ test('a click during the done message starts again', () => {
   root.querySelector('button')!.click();
   expect(w.running()).toBe(true);
   vi.advanceTimersByTime(5000);
-  expect(root.textContent).toContain('TARIK');
+  expect(detail(root)).toBe('4 detik · 1 dari 5');
 });
 
 test('a frame stamped just before the start still shows the first phase', () => {
@@ -140,7 +143,6 @@ test('a frame stamped just before the start still shows the first phase', () => 
   const w = renderBreath(root, id);
   w.start(1000);
   w.tick(990);
-  expect(root.textContent).toContain('TARIK');
-  expect(root.textContent).toContain('1/5');
-  expect(root.textContent).not.toContain('0/5');
+  expect(title(root)).toBe('Tarik napas');
+  expect(detail(root)).toBe('4 detik · 1 dari 5');
 });

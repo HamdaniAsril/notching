@@ -1,5 +1,6 @@
 import type { Lang } from '../../../src/kit/protocol';
-import { dotRow, el } from '../../../src/kit/widget';
+import { bar, lab, num } from '../../../src/kit/volt';
+import { el } from '../../../src/kit/widget';
 import { checkWork, hm, timeText, validWork, workState, type WorkPrefs } from '../work';
 
 export interface WorkdayStrings {
@@ -39,24 +40,24 @@ function range(p: WorkPrefs): string {
   return p.start.endsWith(':00') && p.end.endsWith(':00') ? `${p.start.slice(0, 2)}–${p.end.slice(0, 2)}` : `${p.start}–${p.end}`;
 }
 
-// The row view for `now`. Also what the editor's sample draws.
+// The row view for `now`: the name and hours on top, what is left big, and the day's bar with
+// the time worked under it. Before, after and off, a word instead of the bar. Also what the
+// editor's sample draws.
 export function workdayView(s: WorkdayStrings, lang: Lang, p: WorkPrefs, now: Date): HTMLElement {
-  const w = el('div', 'wd wd-work');
+  const w = el('div', 'v-card wd-work');
   const head = el('div', 'wd-work-head');
-  head.append(el('span', 'lab', s.workTitle.toUpperCase()), el('span', 'lab', range(p)));
+  head.append(lab(s.workTitle, 'ink'), el('span', 'wd-work-range', range(p)));
   const st = workState(p, now);
   if (st.kind === 'working') {
-    const lit = Math.floor(st.progress * 10);
-    w.append(
-      head,
-      el('div', 'wd-work-time', hm(st.leftMs, lang)),
-      dotRow(10, lit, lit),
-      el('div', 'lab', s.worked.replace('{t}', hm(st.workedMs, lang)).toUpperCase()),
-    );
+    const foot = el('div', 'wd-work-gone');
+    foot.append(bar(st.progress), el('span', 'wd-work-worked', s.worked.replace('{t}', hm(st.workedMs, lang))));
+    // "6 j 42 m" is 28 px; with two-digit hours and minutes ("13 j 41 m") the 85 px asks for 22.
+    const left = hm(st.leftMs, lang);
+    w.append(head, num(left, left.length > 8 ? 22 : 28, 'wd-work-time'), foot);
     return w;
   }
   const text = st.kind === 'before' ? s.startsAt.replace('{t}', timeText(p.start, lang)) : st.kind === 'done' ? s.done : s.off;
-  w.append(head, el('div', 'wd-work-time', text));
+  w.append(head, num(text, 20, 'wd-work-time'));
   return w;
 }
 
@@ -83,7 +84,7 @@ export function renderWorkday(root: HTMLElement, s: WorkdayStrings, lang: Lang, 
     input.type = 'time';
     input.value = value;
     input.addEventListener('input', () => onInput(input.value));
-    box.append(el('span', 'lab', label), input);
+    box.append(lab(label), input);
     return { box, input };
   }
 
@@ -96,11 +97,11 @@ export function renderWorkday(root: HTMLElement, s: WorkdayStrings, lang: Lang, 
     back.type = 'button';
     back.addEventListener('click', () => act.collapse());
     // As on a module page: back first, the name on the right.
-    head.append(back, el('span', 'lab', s.workTitle.toUpperCase()));
+    head.append(back, lab(s.workTitle, 'ink'));
 
     const submit = el('button', 'wd-work-save', s.save);
     submit.type = 'button';
-    const err = el('span', 'lab wd-work-err');
+    const err = lab('', 'wd-work-err');
     const refresh = (): void => { submit.disabled = !validWork(form); };
 
     const times = el('div', 'wd-work-times');
@@ -133,7 +134,7 @@ export function renderWorkday(root: HTMLElement, s: WorkdayStrings, lang: Lang, 
 
     const foot = el('div', 'wd-work-foot');
     foot.append(err, submit);
-    const wrap = el('div', 'wd-work-full');
+    const wrap = el('div', 'v-card wd-work-full');
     wrap.append(head, times, days, foot);
     refresh();
     root.replaceChildren(wrap);

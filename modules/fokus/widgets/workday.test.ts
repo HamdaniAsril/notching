@@ -25,43 +25,47 @@ const type = (inp: HTMLInputElement, value: string) => {
 };
 const save = (root: HTMLElement) => root.querySelector<HTMLButtonElement>('.wd-work-save')!;
 
-test('working: the name and hours, what is left big, ten dots and the time worked', () => {
+test('working: the name and hours, what is left big, the day bar and the time worked', () => {
   const { root, w } = setup();
   w.update(DEFAULT_WORK, TUE);
-  const labs = [...root.querySelectorAll('.lab')].map(e => e.textContent);
-  expect(labs).toEqual(['JAM KERJA', '09–17', 'SUDAH 1 J 18 M']);
-  expect(root.querySelector('.wd-work-time')!.textContent).toBe('6 J 42 M');
-  const dots = [...root.querySelectorAll('.wd-row .d')];
-  expect(dots).toHaveLength(10);
-  // 78 of 480 minutes is 16 %: one dot lit, then the red one, then the rest dim.
-  expect(dots.map(d => d.className)).toEqual(['d lit', 'd now', ...Array(8).fill('d')]);
+  expect(root.querySelector('.v-card.wd-work')).not.toBeNull();
+  expect(root.querySelector('.wd-work-head .v-lab.ink')!.textContent).toBe('Jam kerja');
+  expect(root.querySelector('.wd-work-range')!.textContent).toBe('09–17');
+  const time = root.querySelector('.wd-work-time')!;
+  expect(time.textContent).toBe('6 j 42 m');
+  expect(time.classList.contains('v-num')).toBe(true);
+  expect(root.querySelector('.wd-work-worked')!.textContent).toBe('Sudah 1 j 18 m');
+  // 78 of 480 minutes is 16.25 %.
+  expect(root.querySelectorAll('.v-bar')).toHaveLength(1);
+  expect(root.querySelector<HTMLElement>('.v-bar .v-fill')!.style.width).toBe('16.25%');
+  expect(root.querySelector('.wd-row')).toBeNull();
 });
 
 test('working in English', () => {
   const { root, w } = setup('en');
   w.update(DEFAULT_WORK, at(27, 14, 0));
-  expect(root.textContent).toContain('WORK');
-  expect(root.querySelector('.wd-work-time')!.textContent).toBe('3 H 0 M');
-  expect([...root.querySelectorAll('.lab')].pop()!.textContent).toBe('5 H 0 M DONE');
-  const dots = [...root.querySelectorAll('.wd-row .d')];
-  expect(dots.filter(d => d.className === 'd lit')).toHaveLength(6); // 62 % lights six, the next is red
-  expect(dots[6].className).toBe('d now');
+  expect(root.querySelector('.wd-work-head .v-lab.ink')!.textContent).toBe('Work');
+  expect(root.querySelector('.wd-work-time')!.textContent).toBe('3 h 0 m');
+  expect(root.querySelector('.wd-work-worked')!.textContent).toBe('5 h 0 m done');
+  expect(root.querySelector<HTMLElement>('.v-bar .v-fill')!.style.width).toBe('62.5%');
 });
 
 test('the hours with minutes show them, and the head may wrap rather than cut', () => {
   const view = workdayView(id, 'id', { start: '08:30', end: '16:45', days: [1] }, at(26, 10, 0));
-  expect(view.querySelectorAll('.lab')[1].textContent).toBe('08:30–16:45');
+  expect(view.querySelector('.wd-work-range')!.textContent).toBe('08:30–16:45');
 });
 
-test('before, done and off say so in a word', () => {
+test('before, done and off say so in a word, with no bar', () => {
   const { root, w } = setup();
   w.update(DEFAULT_WORK, at(27, 8, 0));
   expect(root.querySelector('.wd-work-time')!.textContent).toBe('Mulai 09.00');
+  expect(root.querySelector('.v-bar')).toBeNull();
   w.update(DEFAULT_WORK, at(27, 17, 0));
   expect(root.querySelector('.wd-work-time')!.textContent).toBe('Selesai');
   w.update(DEFAULT_WORK, at(31, 10, 0));
   expect(root.querySelector('.wd-work-time')!.textContent).toBe('Libur');
-  expect(root.querySelector('.wd-row')).toBeNull();
+  expect(root.querySelector('.v-bar')).toBeNull();
+  expect(root.querySelector('.wd-work-head .v-lab.ink')!.textContent).toBe('Jam kerja');
 });
 
 test('English before, done and off', () => {
@@ -94,6 +98,8 @@ test('the full view: two time fields, seven days Monday first, Simpan and back',
   expect(days.map(d => d.textContent)).toEqual(['S', 'S', 'R', 'K', 'J', 'S', 'M']);
   expect(days.map(d => d.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'true', 'false', 'false', 'false', 'true']);
   expect(root.querySelector('.wd-work-back')!.textContent).toBe('‹ Kembali');
+  expect(root.querySelector('.wd-work-fhead .v-lab.ink')!.textContent).toBe('Jam kerja');
+  expect(root.querySelector('.v-card.wd-work-full')).not.toBeNull();
   expect(save(root).textContent).toBe('Simpan');
   expect(save(root).disabled).toBe(false);
 });
@@ -166,7 +172,7 @@ test('an update while the form is open keeps what was typed; closing shows the r
   w.update(DEFAULT_WORK, at(27, 10, 19));
   expect(input(root, 'start').value).toBe('07:30');
   w.setFull(false);
-  expect(root.querySelector('.wd-work-time')!.textContent).toBe('6 J 41 M');
+  expect(root.querySelector('.wd-work-time')!.textContent).toBe('6 j 41 m');
   w.setFull(true);
   expect(input(root, 'start').value).toBe('09:00'); // reopened from the saved hours
 });

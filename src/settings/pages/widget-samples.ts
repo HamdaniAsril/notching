@@ -133,7 +133,7 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
     case 'fokus/breath': {
       // The idle state: a sample is static.
       const strings = lang === 'en' ? enFokus : idFokus;
-      return [breathView(strings, strings.tap)];
+      return [breathView(strings, strings.idle)];
     }
     case 'fokus/workday':
       // Working, with the default hours: a sample is static.

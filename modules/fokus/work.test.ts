@@ -56,14 +56,14 @@ test('empty or out-of-range days fall back to the default days, keeping the time
 });
 
 test('hm drops the hours under an hour, in both languages', () => {
-  expect(hm(150 * MIN, 'id')).toBe('2 J 30 M');
-  expect(hm(150 * MIN, 'en')).toBe('2 H 30 M');
-  expect(hm(42 * MIN, 'id')).toBe('42 M');
-  expect(hm(60 * MIN, 'en')).toBe('1 H 0 M');
-  expect(hm(0, 'id')).toBe('0 M');
-  expect(hm(-5 * MIN, 'id')).toBe('0 M');
+  expect(hm(150 * MIN, 'id')).toBe('2 j 30 m');
+  expect(hm(150 * MIN, 'en')).toBe('2 h 30 m');
+  expect(hm(42 * MIN, 'id')).toBe('42 m');
+  expect(hm(60 * MIN, 'en')).toBe('1 h 0 m');
+  expect(hm(0, 'id')).toBe('0 m');
+  expect(hm(-5 * MIN, 'id')).toBe('0 m');
   // A tick a few ms early still reads the minute that is about to start.
-  expect(hm(78 * MIN - 5, 'id')).toBe('1 J 18 M');
+  expect(hm(78 * MIN - 5, 'id')).toBe('1 j 18 m');
 });
 
 test('timeText: 09.00 in Indonesian, 9:00 in English', () => {

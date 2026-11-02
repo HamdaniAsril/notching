@@ -1,37 +1,51 @@
-import { el, small } from '../../../src/kit/widget';
-import { breathAt, CYCLES, type Breath, type Phase } from '../breath';
+import { el } from '../../../src/kit/widget';
+import { breathAt, CYCLES, PHASE_S, type Breath, type Phase } from '../breath';
 
 export interface BreathStrings {
-  phases: Record<Phase, string>;
-  tap: string;
-  sec: string;
+  phases: Record<Phase, string>; // "Tarik napas", "Tahan", "Buang napas"
+  idle: string; // the name when idle
+  rounds: string; // "{s} detik · {n} putaran"
+  roundOf: string; // "{left} detik · {cycle} dari {n}"
   done: string;
-  widgets: { breath: string };
 }
 
 const CORE_MIN = 20;
 const CORE_SPAN = 30;
 const DONE_MS = 3000;
 
-// The three rings (outer 56, middle 38, core `core` px, a red dot on the outer one).
+// The three circles: the outer haze (60 px), the glow (40 px) and the core (`core` px, the
+// breath) on top.
 function ringsView(core: number): { box: HTMLElement; core: HTMLElement } {
   const box = el('div', 'wd-br-rings');
   const c = el('i', 'wd-br-core');
   c.style.width = c.style.height = `${core}px`;
   const outer = el('i', 'wd-br-ring out');
-  outer.style.width = outer.style.height = '56px';
+  outer.style.width = outer.style.height = '60px';
   const mid = el('i', 'wd-br-ring mid');
-  mid.style.width = mid.style.height = '38px';
-  box.append(outer, mid, c, el('i', 'rd'));
+  mid.style.width = mid.style.height = '40px';
+  box.append(outer, mid, c);
   return { box, core: c };
 }
 
-const title = (s: BreathStrings) => el('span', 'lab', s.widgets.breath.toUpperCase());
+const sessionText = (s: BreathStrings) => s.rounds.replace('{s}', String(PHASE_S)).replace('{n}', String(CYCLES));
 
-// Idle, or done when `text` is the done message. Also what the editor's sample draws.
+// The name and a line of detail under the circles.
+function caption(): { box: HTMLElement; title: HTMLElement; detail: HTMLElement } {
+  const box = el('div', 'wd-br-caption');
+  const title = el('div', 'wd-br-title');
+  const detail = el('div', 'wd-br-detail');
+  box.append(title, detail);
+  return { box, title, detail };
+}
+
+// Idle, or done when `text` is the done message: the name and the length of a session. Also
+// what the editor's sample draws.
 export function breathView(s: BreathStrings, text: string): HTMLElement {
-  const w = el('div', 'wd wd-breath');
-  w.append(title(s), ringsView(CORE_MIN).box, el('div', 'lab wd-br-note', text));
+  const w = el('div', 'v-card flush wd-breath');
+  const c = caption();
+  c.title.textContent = text;
+  c.detail.textContent = sessionText(s);
+  w.append(ringsView(CORE_MIN).box, c.box);
   return w;
 }
 
@@ -43,16 +57,10 @@ interface Running {
 // The running view is built once and updated every frame: the core size each time, the
 // text only when it changes.
 function runningView(s: BreathStrings): Running {
-  const w = el('div', 'wd wd-breath');
-  const head = el('div', 'wd-br-head');
-  const count = el('span', 'lab');
-  head.append(title(s), count);
+  const w = el('div', 'v-card flush wd-breath');
   const rings = ringsView(CORE_MIN);
-  const foot = el('div', 'wd-br-foot');
-  const name = el('span', 'lab wd-br-phase');
-  const left = el('div', 'wd-br-left');
-  foot.append(name, left, el('span', 'lab', s.sec));
-  w.append(head, rings.box, foot);
+  const c = caption();
+  w.append(rings.box, c.box);
   let shown = '';
   return {
     view: w,
@@ -62,9 +70,8 @@ function runningView(s: BreathStrings): Running {
       const key = `${b.phase} ${b.left} ${b.cycle}`;
       if (key === shown) return;
       shown = key;
-      count.textContent = `${b.cycle}/${CYCLES}`;
-      name.textContent = s.phases[b.phase];
-      left.replaceChildren(small(String(b.left), 3, 'wd-small wd-br-num'));
+      c.title.textContent = s.phases[b.phase];
+      c.detail.textContent = s.roundOf.replace('{left}', String(b.left)).replace('{cycle}', String(b.cycle)).replace('{n}', String(CYCLES));
     },
   };
 }
@@ -96,7 +103,7 @@ export function renderBreath(root: HTMLElement, s: BreathStrings, hooks: BreathH
     clearTimeout(idleTimer);
     t0 = null;
     run = null;
-    show(breathView(s, s.tap));
+    show(breathView(s, s.idle));
   };
 
   const w: BreathWidget = {

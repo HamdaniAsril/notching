@@ -109,11 +109,12 @@ test('Pekan ini and Berikutnya have samples', () => {
 test('Napas has its idle state as a sample', () => {
   const id = packSample(widget('fokus/breath'), 'id')!;
   expect(id).toHaveLength(1);
-  expect(id[0].querySelector('.lab')!.textContent).toBe('NAPAS');
-  expect(id[0].textContent).toContain('Klik untuk mulai');
+  expect(id[0].classList.contains('flush')).toBe(true);
+  expect(id[0].querySelector('.wd-br-title')!.textContent).toBe('Tarik napas');
+  expect(id[0].querySelector('.wd-br-detail')!.textContent).toBe('4 detik · 5 putaran');
   expect(id[0].querySelectorAll('.wd-br-ring')).toHaveLength(2);
   expect(id[0].querySelector('.wd-br-core')).not.toBeNull();
-  expect(packSample(widget('fokus/breath'), 'en')![0].textContent).toContain('BREATHE');
+  expect(packSample(widget('fokus/breath'), 'en')![0].querySelector('.wd-br-detail')!.textContent).toBe('4 s · 5 rounds');
 });
 
 test('Timer kecil has its idle state as a sample', () => {
@@ -134,11 +135,13 @@ test('other widgets are not a pack sample', () => {
 test('Jam kerja has a sample: working on the default hours at 09:32', () => {
   const wd = packSample(widget('fokus/workday'), 'id')!;
   expect(wd).toHaveLength(1);
-  expect([...wd[0].querySelectorAll('.lab')].map(e => e.textContent)).toEqual(['JAM KERJA', '09–17', 'SUDAH 32 M']);
-  expect(wd[0].querySelector('.wd-work-time')!.textContent).toBe('7 J 28 M');
-  expect(wd[0].querySelectorAll('.wd-row .d')).toHaveLength(10);
+  expect(wd[0].querySelector('.wd-work-head .v-lab')!.textContent).toBe('Jam kerja');
+  expect(wd[0].querySelector('.wd-work-range')!.textContent).toBe('09–17');
+  expect(wd[0].querySelector('.wd-work-time')!.textContent).toBe('7 j 28 m');
+  expect(wd[0].querySelector('.wd-work-worked')!.textContent).toBe('Sudah 32 m');
+  expect(wd[0].querySelector<HTMLElement>('.v-bar .v-fill')!.style.width).toBe('6.72%');
   const en = packSample(widget('fokus/workday'), 'en')!;
-  expect([...en[0].querySelectorAll('.lab')].pop()!.textContent).toBe('32 M DONE');
+  expect(en[0].querySelector('.wd-work-worked')!.textContent).toBe('32 m done');
 });
 
 test('Zona waktu has a sample: home, Tokyo and London at 09:32', () => {
