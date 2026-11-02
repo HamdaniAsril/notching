@@ -82,10 +82,10 @@ test('a rectangle and an ellipse use the box whichever corner was dragged first'
   expect(calls).toContainEqual(['ellipse', 60, 40, 40, 20, 0, 0, Math.PI * 2]);
 });
 
-test('text is Space Grotesk 600, in its colour, from its corner', () => {
+test('text is Inter 600, in its colour, from its corner', () => {
   const { ctx, calls } = recorder();
   drawShapes(ctx, [{ id: 1, type: 'text', color: '#F5B700', size: 40, x: 100, y: 200, text: 'halo' }], image());
-  expect(textFont(40)).toContain('600 40px "Space Grotesk"');
+  expect(textFont(40)).toContain('600 40px "Inter"');
   const fill = calls.find(c => c[0] === 'fillText')!;
   expect(fill.slice(0, 2)).toEqual(['fillText', 'halo']);
   expect(fill[2]).toBe(100);

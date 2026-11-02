@@ -4,10 +4,10 @@ import { LINE_HEIGHT, bounds, handles, isBlank, scaleFor, type Box, type Doc, ty
 // Drawing of the editor's shapes, in image pixels. The same code serves the
 // screen and the exported picture.
 
-export const TEXT_FAMILY = '"Space Grotesk"';
+export const TEXT_FAMILY = '"Inter"';
 export const textFont = (size: number): string => `600 ${size}px ${TEXT_FAMILY}, -apple-system, sans-serif`;
 
-// Space Grotesk 600 has to be loaded before canvas text can use it.
+// Inter 600 has to be loaded before canvas text can use it.
 export const FONT_PROBE = `600 24px ${TEXT_FAMILY}`;
 
 export type Source = CanvasImageSource & { width: number; height: number };
