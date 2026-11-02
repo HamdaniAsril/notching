@@ -1,15 +1,15 @@
-/* Keyboard Cleaning Mode's dim layer (2026-10-31-keyboard-clean-mockups/clean-look.html,
-   choice C): 90 % black over the whole screen, the message in the middle. */
-@import '@fontsource/space-grotesk/latin-500.css';
-@import '@fontsource/space-mono/latin-400.css';
+/* Keyboard Cleaning Mode's screen in the Volt look (design 3 Nov §4): pure
+   black over the whole screen, the message in the middle, five esc keys that
+   light up in the accent one per press. */
+@import '../kit/volt-tokens.css';
 
 html,
 body {
   margin: 0;
   height: 100%;
-  background: rgba(0, 0, 0, 0.9);
-  color: #fff;
-  font-family: "Space Grotesk", -apple-system, sans-serif;
+  background: #000;
+  color: var(--v-ink);
+  font-family: 'Inter', -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   user-select: none;
   -webkit-user-select: none;
@@ -31,7 +31,7 @@ body {
 
 .kc-title {
   font-size: 26px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .kc-keys {
@@ -46,24 +46,23 @@ body {
   padding: 0 0 8px 10px;
   display: flex;
   align-items: flex-end;
-  border-radius: 10px;
-  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.3);
-  font-family: "Space Mono", ui-monospace, monospace;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-family: 'Barlow Condensed', 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--v-muted);
   transition: background 0.12s, color 0.12s;
 }
 
 .kc-key.kc-on {
-  background: #fff;
+  background: var(--v-acc);
   box-shadow: none;
-  color: #000;
+  color: var(--v-on-acc);
 }
 
 .kc-hint {
-  font-family: "Space Mono", ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--v-muted);
 }

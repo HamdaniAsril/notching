@@ -1,6 +1,7 @@
-/* Cmd+Shift+4's picker (design 1 Nov §3): the screen 15 % darker, the window
-   under the cursor or the dragged area cut out and outlined in white. */
-@import '@fontsource/space-mono/latin-400.css';
+/* Cmd+Shift+4's picker (design 1 Nov §3, Volt look 3 Nov): the screen 15 %
+   darker, the window under the cursor or the dragged area cut out and outlined
+   in the accent, its size on a black pill. */
+@import '../kit/volt-tokens.css';
 
 html,
 body {
@@ -29,7 +30,9 @@ body {
   display: none;
   position: absolute;
   box-sizing: border-box;
-  border: 2px solid #fff;
+  border: 2px solid var(--v-acc);
+  /* A dark hairline outside, so the lime still shows over a white window. */
+  outline: 1px solid #00000073;
   box-shadow: 0 0 0 20000px rgba(0, 0, 0, 0.15);
 }
 
@@ -45,13 +48,13 @@ body {
   display: none;
   position: absolute;
   transform: translateX(-100%);
-  padding: 3px 7px;
-  border-radius: 4px;
-  background: #fff;
-  color: #000;
-  font-family: "Space Mono", ui-monospace, monospace;
-  font-size: 11px;
-  line-height: 14px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-ink);
+  font: 600 11px/14px 'Inter', -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 

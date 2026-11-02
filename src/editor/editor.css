@@ -1,21 +1,17 @@
-/* Screenshot's editor window (design 1 Nov §7, editor.html v2): black #0b0b0c
-   without frosted glass, Space Grotesk and Space Mono. The title bar lies over
-   the page (editor_window.rs), so the header leaves room for its buttons. The
-   stage's insets are the chrome fit_size counts: 64 top, 56 bottom, 64 left. */
-@import '@fontsource/space-grotesk/latin-400.css';
-@import '@fontsource/space-grotesk/latin-500.css';
-@import '@fontsource/space-grotesk/latin-600.css'; /* the text tool */
-@import '@fontsource/space-mono/latin-400.css';
+/* Screenshot's editor window in the Volt look (design 3 Nov §4): black panels
+   with a 1 px ring on a near-black stage, Inter, the lime accent for the active
+   tool and the selected option. The title bar lies over the page
+   (editor_window.rs), so the header leaves room for its buttons. The stage's
+   insets are the chrome fit_size counts: 64 top, 56 bottom, 64 left. The pen
+   and background colours are the user's content and keep their own colours. */
+@import '../kit/volt-tokens.css';
+@import '@fontsource/space-grotesk/latin-600.css'; /* the text tool draws in it (render.ts) */
 
 :root {
   color-scheme: dark;
-  --bg: #0b0b0c;
-  --fg: #fff;
-  --dim: rgba(255, 255, 255, 0.45);
-  --icon: rgba(255, 255, 255, 0.6);
-  --soft: rgba(255, 255, 255, 0.08);
-  --soft-hover: rgba(255, 255, 255, 0.14);
-  --red: #e8262e;
+  --ed-stage: #0f100e;
+  --ed-hover: #ffffff0f;
+  --ed-ring-hi: #ffffff2e;
 }
 
 html,
@@ -23,9 +19,9 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
-  color: var(--fg);
-  font: 12px 'Space Grotesk', -apple-system, sans-serif;
+  background: var(--ed-stage);
+  color: var(--v-ink);
+  font: 500 12px/1.3 'Inter', -apple-system, sans-serif;
   user-select: none;
   -webkit-user-select: none;
   cursor: default;
@@ -49,10 +45,8 @@ body {
 }
 
 .ed-lab {
-  font: 9px/13px 'Space Mono', ui-monospace, monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--dim);
+  font: 500 12px/16px 'Inter', -apple-system, sans-serif;
+  color: var(--v-muted);
   white-space: nowrap;
 }
 
@@ -80,7 +74,7 @@ body {
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--icon);
+  color: var(--v-muted);
 }
 
 .ed-ib svg {
@@ -89,8 +83,8 @@ body {
 }
 
 .ed-ib:not(:disabled):hover {
-  background: var(--soft);
-  color: var(--fg);
+  background: var(--ed-hover);
+  color: var(--v-ink);
 }
 
 .ed-ib:disabled {
@@ -99,32 +93,40 @@ body {
 
 .ed-btn {
   padding: 7px 14px;
-  border-radius: 10px;
-  background: var(--soft);
-  color: var(--fg);
-  font: 11px 'Space Mono', ui-monospace, monospace;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-ink2);
+  font: 600 11px/14px 'Inter', -apple-system, sans-serif;
 }
 
 .ed-btn:hover {
-  background: var(--soft-hover);
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px var(--ed-ring-hi);
 }
 
 .ed-btn.ed-pri {
-  background: #fff;
-  color: #000;
+  background: var(--v-acc);
+  box-shadow: none;
+  color: var(--v-on-acc);
 }
 
 .ed-btn.ed-pri:hover {
-  background: rgba(255, 255, 255, 0.86);
+  background: #d6f56e;
+  color: var(--v-on-acc);
 }
 
-.ed-btn.ed-failed {
-  color: var(--red);
+/* A failed Simpan or Salin says so in the danger colour, on a black pill. */
+.ed-btn.ed-failed,
+.ed-btn.ed-pri.ed-failed {
+  background: #000;
+  box-shadow: 0 0 0 1px #e5484d66;
+  color: var(--v-danger);
 }
 
 .ed-ib:focus-visible,
 .ed-btn:focus-visible {
-  outline: 2px solid var(--fg);
+  outline: 2px solid var(--v-acc);
   outline-offset: 2px;
 }
 
@@ -168,7 +170,7 @@ body {
   margin: 0;
   padding: 0;
   border: 0;
-  outline: 1px dashed var(--dim);
+  outline: 1px solid var(--v-acc);
   outline-offset: 2px;
   background: transparent;
   font: 600 16px/1.2 'Space Grotesk', -apple-system, sans-serif;
@@ -184,7 +186,8 @@ body {
   width: 40px;
   padding: 6px 0;
   border-radius: 14px;
-  background: var(--soft);
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -201,7 +204,7 @@ body {
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--v-muted);
   cursor: default;
 }
 
@@ -211,20 +214,28 @@ body {
 }
 
 .ed-tool:hover {
-  background: var(--soft);
-  color: var(--fg);
+  background: var(--ed-hover);
+  color: var(--v-ink);
 }
 
 .ed-tool.ed-on {
-  background: #fff;
-  color: #000;
+  background: var(--v-acc-soft);
+  color: var(--v-acc);
 }
 
-.ed-tool:focus-visible,
-.ed-sw:focus-visible,
-.ed-wd:focus-visible {
-  outline: 2px solid var(--fg);
+.ed-tool:focus-visible {
+  outline: 2px solid var(--v-acc);
   outline-offset: 2px;
+}
+
+/* The swatches and widths show their selection in the accent, so their focus
+   ring is the ink colour and the two never read as one. */
+.ed-sw:focus-visible,
+.ed-wd:focus-visible,
+.ed-chip:focus-visible,
+.ed-pickb:focus-visible {
+  outline: 2px solid var(--v-ink);
+  outline-offset: 3px;
 }
 
 .ed-bar {
@@ -237,7 +248,8 @@ body {
   gap: 12px;
   padding: 8px 14px;
   border-radius: 14px;
-  background: var(--soft);
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
   white-space: nowrap;
 }
 
@@ -250,7 +262,7 @@ body {
 .ed-sep {
   width: 1px;
   height: 18px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--v-ring);
 }
 
 .ed-sw {
@@ -271,8 +283,12 @@ body {
 .ed-c5 { background: #fff; }
 
 .ed-sw.ed-sel {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--v-acc);
   outline-offset: 2px;
+}
+
+.ed-sw.ed-sel:focus-visible {
+  outline-color: var(--v-ink);
 }
 
 .ed-wd {
@@ -289,14 +305,14 @@ body {
 }
 
 .ed-wd:hover {
-  background: var(--soft);
+  background: var(--ed-hover);
 }
 
 .ed-w {
   display: block;
   width: 18px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--v-muted);
 }
 
 /* In the order of WIDTHS (4, 8, 14). */
@@ -305,18 +321,18 @@ body {
 .ed-w2 { height: 7px; }
 
 .ed-wd.ed-sel {
-  background: var(--soft-hover);
+  background: var(--v-acc-soft);
 }
 
 .ed-wd.ed-sel .ed-w {
-  background: #fff;
+  background: var(--v-acc);
 }
 
 /* Sudut: an icon, the word, a slider and its number. */
 .ed-corner {
   gap: 6px;
-  font: 10px 'Space Mono', ui-monospace, monospace;
-  color: rgba(255, 255, 255, 0.7);
+  font: 500 11px/14px 'Inter', -apple-system, sans-serif;
+  color: var(--v-muted);
 }
 
 .ed-cicon svg {
@@ -328,9 +344,11 @@ body {
 .ed-cval {
   min-width: 2ch;
   text-align: right;
+  color: var(--v-ink2);
+  font-variant-numeric: tabular-nums;
 }
 
-/* A slider as in the mockup: a 3 px track, a white thumb. Used by Sudut and Jarak. */
+/* A slider as in the mockup: a 3 px track, a lime thumb. Used by Sudut and Jarak. */
 .ed-range {
   -webkit-appearance: none;
   appearance: none;
@@ -345,7 +363,7 @@ body {
 .ed-range::-webkit-slider-runnable-track {
   height: 3px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--v-track);
 }
 
 .ed-range::-webkit-slider-thumb {
@@ -356,11 +374,11 @@ body {
   margin-top: -5px;
   border: 0;
   border-radius: 50%;
-  background: #fff;
+  background: var(--v-acc);
 }
 
 .ed-range:focus-visible {
-  outline: 2px solid var(--fg);
+  outline: 2px solid var(--v-acc);
   outline-offset: 3px;
   border-radius: 7px;
 }
@@ -377,11 +395,17 @@ body {
   margin: 0;
   padding: 4px 8px;
   border: 0;
-  border-radius: 8px;
-  background: var(--soft);
-  color: var(--fg);
-  font: 11px 'Space Mono', ui-monospace, monospace;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-ink2);
+  font: 600 11px/14px 'Inter', -apple-system, sans-serif;
   cursor: default;
+}
+
+.ed-bgbtn:hover {
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px var(--ed-ring-hi);
 }
 
 .ed-bgbtn svg {
@@ -390,12 +414,13 @@ body {
 }
 
 .ed-bgbtn.ed-on {
-  background: #fff;
-  color: #000;
+  background: var(--v-acc-soft);
+  box-shadow: 0 0 0 1px var(--v-acc);
+  color: var(--v-acc);
 }
 
 .ed-bgbtn:focus-visible {
-  outline: 2px solid var(--fg);
+  outline: 2px solid var(--v-acc);
   outline-offset: 2px;
 }
 
@@ -407,9 +432,8 @@ body {
   box-sizing: border-box;
   padding: 12px;
   border-radius: 14px;
-  background: #1a1a1c;
-  outline: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring), 0 18px 40px rgba(0, 0, 0, 0.6);
   white-space: normal;
 }
 
@@ -418,10 +442,8 @@ body {
 }
 
 .ed-plab {
-  font: 9px/13px 'Space Mono', ui-monospace, monospace;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--dim);
+  font: 500 11px/14px 'Inter', -apple-system, sans-serif;
+  color: var(--v-muted);
 }
 
 .ed-row {
@@ -439,17 +461,17 @@ body {
   padding: 0;
   border: 0;
   border-radius: 6px;
-  outline: 1px solid rgba(255, 255, 255, 0.15);
+  outline: 1px solid var(--ed-ring-hi);
   cursor: default;
 }
 
 .ed-chip.ed-sel {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--v-acc);
+  outline-offset: 1px;
 }
 
-.ed-chip:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: 2px;
+.ed-chip.ed-sel:focus-visible {
+  outline-color: var(--v-ink);
 }
 
 /* Tanpa background: a checkerboard. */
@@ -510,25 +532,23 @@ body {
   margin: 0;
   padding: 6px 4px;
   border: 0;
-  border-radius: 8px;
-  background: var(--soft);
-  color: var(--fg);
-  font: 10px 'Space Mono', ui-monospace, monospace;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-ink2);
+  font: 600 11px/14px 'Inter', -apple-system, sans-serif;
   cursor: default;
 }
 
 .ed-pickb:hover {
-  background: var(--soft-hover);
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px var(--ed-ring-hi);
 }
 
 .ed-pickb.ed-sel {
-  background: #fff;
-  color: #000;
-}
-
-.ed-pickb:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: 2px;
+  background: var(--v-acc-soft);
+  box-shadow: 0 0 0 1px var(--v-acc);
+  color: var(--v-acc);
 }
 
 /* The file input is opened by Pilih file…; it is not shown. */
