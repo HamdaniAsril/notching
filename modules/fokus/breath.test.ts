@@ -34,3 +34,8 @@ test('after 80 seconds there is nothing left', () => {
   expect(breathAt(80000)).toBeNull();
   expect(breathAt(200000)).toBeNull();
 });
+
+test('a time before the start counts as the start', () => {
+  expect(breathAt(-5)).toEqual(breathAt(0));
+  expect(breathAt(-5)).toEqual({ phase: 'in', left: 4, cycle: 1, scale: 0 });
+});

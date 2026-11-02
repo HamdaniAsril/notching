@@ -13,7 +13,9 @@ export interface Breath {
 }
 
 // Where the breath is `elapsedMs` after the start, or null once the last cycle is over.
+// A frame stamped just before the click that started the session counts as the start.
 export function breathAt(elapsedMs: number): Breath | null {
+  elapsedMs = Math.max(0, elapsedMs);
   const phaseMs = PHASE_S * 1000;
   const cycleMs = ORDER.length * phaseMs;
   if (elapsedMs >= CYCLES * cycleMs) return null;

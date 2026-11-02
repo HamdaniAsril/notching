@@ -134,3 +134,13 @@ test('a click during the done message starts again', () => {
   vi.advanceTimersByTime(5000);
   expect(root.textContent).toContain('TARIK');
 });
+
+test('a frame stamped just before the start still shows the first phase', () => {
+  const root = host();
+  const w = renderBreath(root, id);
+  w.start(1000);
+  w.tick(990);
+  expect(root.textContent).toContain('TARIK');
+  expect(root.textContent).toContain('1/5');
+  expect(root.textContent).not.toContain('0/5');
+});
