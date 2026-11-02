@@ -1,22 +1,6 @@
-/* Volt look for page widgets. Imported by widget packages after kit.css, so the
-   html/body font rule below wins inside widget iframes only. */
-@import '@fontsource/inter/latin-500.css';
-@import '@fontsource/inter/latin-600.css';
-@import '@fontsource/barlow-condensed/latin-500.css';
-@import '@fontsource/barlow-condensed/latin-600.css';
-@import '@fontsource/barlow-condensed/latin-700.css';
-
-:root {
-  --v-ink: #f3f5f0;
-  --v-ink2: #c4c8bf;
-  --v-muted: #8c9187;
-  --v-dim: #80857b;
-  --v-faint: #454941;
-  --v-track: #23251f;
-  --v-acc: #c8f04a;
-  --v-acc-soft: #1d260b;
-  --v-on-acc: #0f1404;
-}
+/* Volt look for page widgets. Imported by widget packages after kit.css; the
+   fonts and variables come from volt-tokens.css. */
+@import './volt-tokens.css';
 
 html,
 body {

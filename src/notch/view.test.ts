@@ -214,7 +214,7 @@ test('the missed dot shows only while idle', () => {
   expect(dot.getAttribute('display')).toBe('none');
 });
 
-test('the missed dot is red, inside the notch widened to the left, or under the lens', () => {
+test('the missed dot is the accent, inside the notch widened to the left, or under the lens', () => {
   const r = fakeRaf();
   const beside = document.createElement('div');
   const c = ctl({ width: 190, height: 32 });
@@ -236,7 +236,7 @@ test('the missed dot is red, inside the notch widened to the left, or under the 
   expect([b.getAttribute('cx'), b.getAttribute('cy')]).toEqual(['0', '9']);
   expect(under.querySelector('.missed-tab')).toBeNull();
   for (const d of [a, b]) {
-    expect([d.getAttribute('fill'), d.getAttribute('stroke')]).toEqual(['#E8262E', null]);
+    expect([d.getAttribute('fill'), d.getAttribute('stroke')]).toEqual(['#C8F04A', null]);
   }
 });
 
@@ -288,7 +288,7 @@ test('a status sits right of the notch, the missed dot left', () => {
   expect(shown(root, '.st-items')).toBe(false);
 });
 
-test('several statuses widen the tab and get dotted separators', () => {
+test('several statuses widen the tab and get thin line separators', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
   v.setStatus([st('18:42')]);
@@ -296,7 +296,8 @@ test('several statuses widen the tab and get dotted separators', () => {
   v.setStatus([st('18:42', '/t/icon.svg'), st('1:42', '/k/icon.svg'), st('3', '/s/icon.svg')]);
   expect(shown(root, '.st-items')).toBe(true);
   expect(root.querySelectorAll('.st-sep')).toHaveLength(2);
-  expect(root.querySelectorAll('.st-sep circle')).toHaveLength(10);
+  expect(root.querySelectorAll('.st-sep line')).toHaveLength(2);
+  expect(root.querySelector('.st-sep circle')).toBeNull();
   expect([...root.querySelectorAll('.st-text')].map(t => t.textContent)).toEqual(['18:42', '1:42', '3']);
   expect([...root.querySelectorAll('.st-icon')].map(i => i.getAttribute('href'))).toEqual(['/t/icon.svg', '/k/icon.svg', '/s/icon.svg']);
   const many = root.querySelector('.st-tab')!.getAttribute('d')!;

@@ -85,7 +85,7 @@ const PILL_H = 22;
 const PILL_PAD = 12;
 const PILL_CHAR = 7;
 const PILL_DOT = 14;
-// Between two statuses (status-banyak.html, B): a dotted line in a 12 px gap.
+// Between two statuses: a thin line in a 12 px gap.
 const ST_SEP = 12;
 
 // The G2 glow from notif-v1.html: a gradient running round the notice's rim.
@@ -161,13 +161,13 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   defs.append(fade, gradient, blur, white, lampFill, lampGlow);
   const glow = doc.createElementNS(SVG_NS, 'g');
   glow.setAttribute('class', 'notice-glow');
-  // A missed notice: the accent red dot (spec 5), inside the notch widened to the
+  // A missed notice: the Volt accent dot, inside the notch widened to the
   // left, or under the lens on a screen without a notch.
   const dot = doc.createElementNS(SVG_NS, 'circle');
   dot.setAttribute('class', 'missed-dot');
   dot.setAttribute('r', '3');
   dot.setAttribute('cx', String(notch ? -notch.width / 2 - MISSED_TAB / 2 + 2 : 0));
-  dot.setAttribute('fill', '#E8262E');
+  dot.setAttribute('fill', '#C8F04A');
   dot.setAttribute('display', 'none');
   const tab = doc.createElementNS(SVG_NS, 'path');
   tab.setAttribute('class', 'missed-tab');
@@ -343,8 +343,8 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     return e;
   }
 
-  // One status at x (its left edge): the icon, then the text (monospace:
-  // PILL_CHAR a character). Text is set as text, never markup.
+  // One status at x (its left edge): the icon, then the text (Inter with tabular
+  // digits, set in notch.css: PILL_CHAR a character at most). Text is set as text, never markup.
   function drawItem(s: StatusView, x: number, cy: number): SVGElement[] {
     const out: SVGElement[] = [];
     if (s.icon) {
@@ -355,18 +355,17 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
       out.push(icon);
     }
     const text = svgEl('text', {
-      class: 'st-text', x: x + iconRoom(s), y: cy + 4, 'text-anchor': 'start', fill: '#fff',
-      'font-family': '"Space Mono", ui-monospace, monospace', 'font-size': 11, 'letter-spacing': 0.6,
+      class: 'st-text', x: x + iconRoom(s), y: cy + 4, 'text-anchor': 'start', fill: '#F3F5F0',
     });
     text.textContent = s.text;
     out.push(text);
     return out;
   }
 
-  // Five small dots, 4 px apart, centred in the gap at x.
+  // A thin vertical line, 12 px tall, centred in the gap at x.
   function drawSep(x: number, cy: number): SVGElement {
     const g = svgEl('g', { class: 'st-sep' });
-    for (let i = -2; i <= 2; i++) g.append(svgEl('circle', { cx: x, cy: cy + 4 * i, r: 0.9, fill: 'rgba(255,255,255,.4)' }));
+    g.append(svgEl('line', { x1: x, x2: x, y1: cy - 6, y2: cy + 6, stroke: 'rgba(255,255,255,.2)', 'stroke-width': 1 }));
     return g;
   }
 

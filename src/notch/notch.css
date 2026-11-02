@@ -41,7 +41,8 @@
   padding: 8px 16px 11px;
   border-radius: 18px;
   background: #000;
-  color: #fff;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-muted);
   opacity: 0;
   pointer-events: none;
   /* top: slides to a new card's height at about the panel's pace. */
@@ -62,6 +63,11 @@
 .notch-pill .ic {
   position: relative;
   cursor: pointer;
+  transition: color 0.12s;
+}
+
+.notch-pill .ic:hover {
+  color: var(--v-ink2);
 }
 
 .notch-pill.show .ic {
@@ -76,11 +82,10 @@
   width: 15px;
   height: 15px;
   display: block;
-  opacity: 0.4;
 }
 
-.notch-pill .on svg {
-  opacity: 1;
+.notch-pill .on {
+  color: var(--v-ink);
 }
 
 .notch-pill .on::after {
@@ -92,10 +97,10 @@
   height: 3px;
   margin-left: -1.5px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--v-acc);
 }
 
-/* A missed notice: a small white dot at the icon's top right. */
+/* A missed notice: a small accent dot at the icon's top right. */
 .notch-pill .missed::before {
   content: "";
   position: absolute;
@@ -104,7 +109,7 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--v-acc);
 }
 
 /* Notice ears beside the notch, or inside the small pill (notif-v1.html). */
@@ -114,7 +119,8 @@
   left: 0;
   width: 100%;
   pointer-events: none;
-  color: #fff;
+  color: var(--v-ink);
+  font-family: "Inter", -apple-system, sans-serif;
 }
 
 .notch-notice .ear {
@@ -157,11 +163,24 @@
 
 .notch-notice .t1 {
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--v-ink);
 }
 
+/* The detail is often a time or a count: the Volt number face. */
 .notch-notice .t2 {
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.6);
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v-muted);
   margin-left: 6px;
+}
+
+/* The live status's text (view.ts drawItem): Inter, digits of one width so a
+   ticking time does not jitter. */
+.st-text {
+  font-family: "Inter", -apple-system, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }

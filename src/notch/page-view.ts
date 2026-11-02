@@ -171,7 +171,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     page = el(doc, 'div', 'pg-page');
     page.append(head);
     if (present.length === 0 && !v.strip) {
-      page.append(el(doc, 'div', 'pg-empty lab', strings.pageEmpty));
+      page.append(el(doc, 'div', 'pg-empty', strings.pageEmpty));
       return page;
     }
     const r = el(doc, 'div', 'pg-row');
@@ -208,7 +208,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
 
   function modules(v: Extract<PageView, { kind: 'modules' }>, strings: HostStrings): HTMLElement {
     deps.frames.keep([]);
-    if (v.modules.length === 0) return el(doc, 'div', 'pg-empty lab', strings.noModules);
+    if (v.modules.length === 0) return el(doc, 'div', 'pg-empty', strings.noModules);
     const grid = el(doc, 'div', 'mods-grid');
     let line: HTMLElement | null = null;
     v.modules.forEach((m, i) => {
@@ -238,10 +238,10 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     deps.frames.keep([spec.key]);
     const wrap = el(doc, 'div', 'pg-module');
     const bar = el(doc, 'div', 'pg-back');
-    const back = el(doc, 'button', 'lab', `‹ ${strings.modules}`);
+    const back = el(doc, 'button', 'pg-back-btn', `‹ ${strings.modules}`);
     back.type = 'button';
     back.addEventListener('click', () => deps.onBack());
-    bar.append(back, el(doc, 'span', 'lab pg-title', m.name));
+    bar.append(back, el(doc, 'span', 'pg-title', m.name));
     wrap.append(bar, deps.frames.frame(spec, s.lang, strings));
     return wrap;
   }

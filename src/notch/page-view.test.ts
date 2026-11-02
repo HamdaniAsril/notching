@@ -251,6 +251,7 @@ test('a Modul page without modules says so', () => {
   const { content, show } = mount();
   show({ ...TEST_STATE, modules: [TEST_STATE.modules[0]] }, 'modules');
   expect(content.querySelector('.pg-empty')!.textContent).toBe(STR.noModules);
+  expect(content.querySelector('.lab')).toBeNull();
 });
 
 test('a module page has a back bar to the Modul page', () => {
@@ -259,6 +260,7 @@ test('a module page has a back bar to the Modul page', () => {
   const back = content.querySelector<HTMLButtonElement>('.pg-back button')!;
   expect(back.textContent).toContain('Modul');
   expect(content.querySelector('.pg-back')!.textContent).toContain('system-stat');
+  expect(content.querySelector('.pg-back .lab')).toBeNull();
   expect(content.querySelector('iframe')!.getAttribute('src')).toBe('mod://system-stat/index.html');
   back.click();
   expect(deps.onBack).toHaveBeenCalled();

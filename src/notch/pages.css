@@ -2,9 +2,6 @@
    (page-layout.html, choice C), the Modul page's tiles (modules-page.html,
    choice A), or a module's page under a back bar. */
 
-/* The page head's face (Volt §4); the widgets bring their own fonts. */
-@import '@fontsource/inter/latin-600.css';
-
 .pg-frame {
   height: 100%;
 }
@@ -29,7 +26,7 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #f3f5f0;
+  color: var(--v-ink);
 }
 
 .pg-head-count {
@@ -37,7 +34,7 @@
   align-items: center;
   gap: 6px;
   flex: none;
-  color: #8c9187;
+  color: var(--v-muted);
 }
 
 .pg-head-count::before {
@@ -45,7 +42,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #c8f04a;
+  background: var(--v-acc);
 }
 
 /* Beside a notch: in the camera row over the panel's top padding, the name
@@ -91,7 +88,7 @@
   overflow: hidden;
   border-radius: 17px;
   background: #000;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px var(--v-ring);
 }
 
 /* A full view: one widget covers the page; the others wait, frames and all. */
@@ -116,6 +113,10 @@
 
 .pg-empty,
 .pg-error {
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--v-muted);
   display: flex;
   align-items: center;
   height: 100%;
@@ -151,9 +152,21 @@
   padding: 10px 4px 8px;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-ink2);
   cursor: pointer;
+  transition: box-shadow 0.12s, color 0.12s;
+}
+
+.mods-tile:hover {
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #ffffff2e;
+}
+
+.mods-tile:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
 }
 
 .mods-tile .glyph {
@@ -170,21 +183,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--g1);
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+  line-height: 12px;
+  color: var(--v-muted);
 }
 
-/* On (Keep awake): white. Running (Timer): a small red dot. */
-.mods-tile.on {
-  background: #fff;
-  color: #000;
+.mods-tile:hover .mods-name {
+  color: var(--v-ink2);
+}
+
+/* On (Keep awake): icon and name in ink inside a thin accent ring. Running
+   (Timer): a small accent dot. */
+.mods-tile.on,
+.mods-tile.on:hover {
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #c8f04a66;
 }
 
 .mods-tile.on .mods-name {
-  color: #000;
+  color: var(--v-ink);
 }
 
 .mods-run {
@@ -194,23 +213,39 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--red);
+  background: var(--v-acc);
 }
 
-/* A module's page: "‹ Modul" over its card. */
+/* A module's page: "‹ Modul" over its card (Inter 600 11 px, ink-2). */
 .pg-back {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 24px;
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--v-ink2);
+  white-space: nowrap;
 }
 
 .pg-back button {
   padding: 0;
   border: 0;
+  border-radius: 4px;
   background: none;
-  color: var(--g1);
+  font: inherit;
+  color: inherit;
   cursor: pointer;
+}
+
+.pg-back button:hover {
+  color: var(--v-ink);
+}
+
+.pg-back button:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
 }
 
 .pg-title {
@@ -225,6 +260,11 @@
   --g1: rgba(0, 0, 0, 0.68);
   --g2: rgba(0, 0, 0, 0.45);
   --g3: rgba(0, 0, 0, 0.18);
+  --v-ink: #000;
+  --v-ink2: rgba(0, 0, 0, 0.68);
+  --v-muted: rgba(0, 0, 0, 0.45);
+  --v-acc: #4c6b12;
+  --v-ring: #0000001a;
   color: #000;
 }
 

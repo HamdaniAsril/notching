@@ -1,6 +1,7 @@
 /* Shared look for module cards and the notch (spec 5, beranda-nothing.html).
    No color-scheme here or in the notch page: a mismatch between a page and its
    iframe makes WebKit paint the frame opaque. */
+@import './volt-tokens.css';
 @import '@fontsource/space-grotesk/latin-400.css';
 @import '@fontsource/space-grotesk/latin-500.css';
 @import '@fontsource/space-mono/latin-400.css';
@@ -18,7 +19,7 @@ body {
   margin: 0;
   background: transparent;
   color: var(--w);
-  font-family: "Space Grotesk", -apple-system, "Segoe UI", sans-serif;
+  font-family: "Inter", -apple-system, "Segoe UI", sans-serif;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
