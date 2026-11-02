@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { checkZones, CITIES, DEFAULT_ZONES, diffLabel, zoneTime } from './zones';
+import { checkZones, CITIES, clockText, DEFAULT_ZONES, diffLabel, zoneTime } from './zones';
 
 const SAT = Date.UTC(2026, 9, 31, 2, 41);
 
@@ -60,4 +60,11 @@ test('the cities are unique, named in both languages and every zone is a real on
     expect(codes).toContain(code);
   }
   expect(CITIES.find(c => c.code === 'MKK')).toMatchObject({ tz: 'Asia/Riyadh', id: 'Mekkah' });
+});
+
+test('the clock text: a dot in Indonesian, a colon otherwise, two digits each', () => {
+  expect(clockText(9, 41, 'id')).toBe('09.41');
+  expect(clockText(0, 5, 'id')).toBe('00.05');
+  expect(clockText(9, 41, 'en')).toBe('09:41');
+  expect(clockText(23, 59, 'en')).toBe('23:59');
 });

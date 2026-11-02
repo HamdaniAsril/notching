@@ -1,36 +1,39 @@
 import type { Lang } from '../../../src/kit/protocol';
-import { isoWeek, monthShort, shortDay, weekOf } from '../../../src/kit/dates';
-import { el, small } from '../../../src/kit/widget';
+import { isoWeek, shortDay, weekOf } from '../../../src/kit/dates';
+import { lab, num } from '../../../src/kit/volt';
+import { el } from '../../../src/kit/widget';
 
 export interface WeekStripStrings {
   week: string;
 }
 
-// The strip's content for `now`: today's weekday, date and month on the left, the seven
-// days of the week in the middle (today white with a red dot, past days dim) and the ISO
+const cap = (s: string, locale: string) => s.charAt(0).toLocaleUpperCase(locale) + s.slice(1);
+
+// The strip's content for `now`: today's weekday, date and month on the left, the seven days
+// of the week in the middle (today in an accent pill, a day of another month dim) and the ISO
 // week on the right. Also what the editor's sample draws.
 export function weekStripView(s: WeekStripStrings, lang: Lang, now: Date): HTMLElement {
-  const w = el('div', 'wd-weekstrip');
+  const locale = lang === 'id' ? 'id-ID' : 'en-US';
+  const w = el('div', 'v-card wd-weekstrip');
 
-  const long = new Intl.DateTimeFormat(lang === 'id' ? 'id-ID' : 'en-US', { weekday: 'long' }).format(now);
+  const long = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(now);
+  const month = new Intl.DateTimeFormat(locale, { month: 'long' }).format(now);
   const left = el('div', 'wd-wk-today');
-  const date = el('div', 'wd-wk-date');
-  date.append(small(String(now.getDate()), 2), el('span', 'lab wd-wk-month', monthShort(now, lang)));
-  left.append(el('div', 'lab', long.toUpperCase()), date);
+  left.append(lab(cap(long, locale)), num(`${now.getDate()} ${cap(month, locale)}`, 16, 'wd-wk-date'));
 
   const days = el('div', 'wd-wk-days');
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   for (const d of weekOf(now)) {
     const t = d.getTime();
-    const cell = el('div', `wd-wk-cell ${t === today ? 'today' : t < today ? 'past' : 'future'}`);
-    const name = el('div', 'lab', shortDay(d, lang));
-    if (t === today) name.append(el('i', 'rd'));
-    cell.append(name, small(String(d.getDate()), 2));
+    const cls = ['wd-wk-cell', t === today ? 'today' : t < today ? 'past' : 'future', d.getMonth() !== now.getMonth() ? 'other' : ''];
+    const cell = el('div', cls.filter(Boolean).join(' '));
+    const name = shortDay(d, lang);
+    cell.append(el('span', 'wd-wk-name', name.charAt(0) + name.slice(1).toLowerCase()), num(String(d.getDate()).padStart(2, '0'), 14));
     days.append(cell);
   }
 
   const week = el('div', 'wd-wk-week');
-  week.append(el('div', 'lab', s.week.toUpperCase()), small(String(isoWeek(now)), 2));
+  week.append(lab(s.week), num(String(isoWeek(now)), 16));
 
   w.append(left, days, week);
   return w;

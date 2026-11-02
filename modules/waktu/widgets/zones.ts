@@ -1,7 +1,8 @@
 import { zoneLabel } from '../../../src/kit/dates';
 import type { Lang } from '../../../src/kit/protocol';
-import { el, small } from '../../../src/kit/widget';
-import { checkZones, cityByCode, CITIES, diffLabel, isNight, zoneTime, type ZonePrefs } from '../zones';
+import { lab, num } from '../../../src/kit/volt';
+import { el } from '../../../src/kit/widget';
+import { checkZones, cityByCode, CITIES, clockText, diffLabel, isNight, zoneTime, type ZonePrefs } from '../zones';
 
 export interface ZonesStrings {
   zonesTitle: string; // "Zona waktu" / "World clock"
@@ -10,6 +11,9 @@ export interface ZonesStrings {
   save: string;
   saveFailed: string;
   back: string;
+  here: string; // "Di sini" / "Here"
+  hours: string; // "jam" / "hr"
+  night: string; // "malam" / "night"
 }
 
 export interface ZonesActions {
@@ -20,53 +24,56 @@ export interface ZonesActions {
 
 export interface ZonesWidget {
   update(p: ZonePrefs, now: Date): void;
+  setHome(city: string | null): void; // the home city's name, as clockdate has it
   setFull(full: boolean): void;
 }
 
 // The full view's height: a heading, two city lists and Simpan.
 const FULL_HEIGHT = 220;
 
-const pad = (n: number) => String(n).padStart(2, '0');
-
-// One column: the code and the hours from local over the time in dots and a marker.
-function column(code: string, diff: string, h: number, m: number, local: boolean): HTMLElement {
-  const text = `${pad(h)}:${pad(m)}`;
-  const col = el('div', `wd-zone-col${isNight(h) ? ' night' : ''}`);
+// One column: the city, its clock, and the line under it (`sub`).
+function column(name: string, text: string, night: boolean, sub: string, home: boolean): HTMLElement {
+  const col = el('div', `wd-zone-col${night ? ' night' : ''}`);
   col.dataset.time = text;
-  const top = el('div', 'wd-zone-top');
-  top.append(el('span', 'lab wd-zone-code', code), el('span', 'lab wd-zone-diff', diff));
-  col.append(top, small(text, 2, 'wd-small wd-zone-time'), el('i', `wd-zone-mark${local ? ' local' : ''}`));
+  col.append(el('span', home ? 'wd-zone-city v-acc' : 'wd-zone-city', name), num(text, 25), el('span', 'wd-zone-sub', sub));
   return col;
 }
 
-// The row view for `now`: the title and count over the local time and the two chosen cities.
+// The row view for `now`: the title and count over the home city and the two chosen cities
+// with their hours from home. `home` is the home city's name, or null for the zone's.
 // Also what the editor's sample draws.
-export function zonesView(s: ZonesStrings, lang: Lang, p: ZonePrefs, now: Date): HTMLElement {
-  const w = el('div', 'wd wd-zones');
+export function zonesView(s: ZonesStrings, lang: Lang, p: ZonePrefs, now: Date, home: string | null = null): HTMLElement {
+  const w = el('div', 'v-card wd-zones');
   const head = el('div', 'wd-zone-head');
-  head.append(el('span', 'lab', s.zonesTitle.toUpperCase()), el('span', 'lab', s.zonesCount.replace('{n}', '3').toUpperCase()));
+  head.append(lab(s.zonesTitle, 'ink'), lab(s.zonesCount.replace('{n}', '3')));
 
   const here = zoneTime(undefined, now);
   const cols = el('div', 'wd-zone-cols');
-  cols.append(column(zoneLabel(lang, now).toUpperCase(), '', here.h, here.m, true));
-  for (const code of p.cities) {
-    const z = zoneTime(cityByCode(code).tz, now);
-    cols.append(column(code, diffLabel(here.offsetMin, z.offsetMin, lang), z.h, z.m, false));
-  }
+  cols.append(column(home ?? zoneLabel(lang, now), clockText(here.h, here.m, lang), isNight(here.h), s.here, true));
+  cols.append(el('i', 'wd-zone-line'));
+  p.cities.forEach((code, i) => {
+    const city = cityByCode(code);
+    const z = zoneTime(city.tz, now);
+    const night = isNight(z.h);
+    const diff = `${diffLabel(here.offsetMin, z.offsetMin, lang)} ${s.hours}`;
+    cols.append(column(city[lang], clockText(z.h, z.m, lang), night, night ? `${diff} · ${s.night}` : diff, false));
+    if (i === 0) cols.append(el('i', 'wd-zone-line'));
+  });
   w.append(head, cols);
   return w;
 }
 
-// Zona waktu (2 columns): local time and two chosen cities. A click asks for the full view,
+// Zona waktu (2 columns): the home city and two chosen cities. A click asks for the full view,
 // where the cities are picked.
 export function renderZones(root: HTMLElement, s: ZonesStrings, lang: Lang, act: ZonesActions): ZonesWidget {
   let full = false;
   let prefs: ZonePrefs | null = null;
   let now = new Date();
+  let home: string | null = null;
 
   function renderRow(): void {
     if (!prefs) return;
-    const w = zonesView(s, lang, prefs, now);
+    const w = zonesView(s, lang, prefs, now, home);
     w.setAttribute('role', 'button');
     w.tabIndex = 0;
     w.addEventListener('click', () => act.expand(FULL_HEIGHT));
@@ -87,7 +94,7 @@ export function renderZones(root: HTMLElement, s: ZonesStrings, lang: Lang, act:
     }
     list.value = value;
     list.addEventListener('change', () => onChange(list.value));
-    box.append(el('span', 'lab', s.zoneField.replace('{n}', String(n)).toUpperCase()), list);
+    box.append(lab(s.zoneField.replace('{n}', String(n))), list);
     return { box, list };
   }
 
@@ -99,7 +106,7 @@ export function renderZones(root: HTMLElement, s: ZonesStrings, lang: Lang, act:
     back.type = 'button';
     back.addEventListener('click', () => act.collapse());
     // As on a module page: back first, the name on the right.
-    head.append(back, el('span', 'lab', s.zonesTitle.toUpperCase()));
+    head.append(back, lab(s.zonesTitle, 'ink'));
 
     const first = field(1, form.cities[0], code => { form.cities[0] = code; });
     const second = field(2, form.cities[1], code => { form.cities[1] = code; });
@@ -108,7 +115,7 @@ export function renderZones(root: HTMLElement, s: ZonesStrings, lang: Lang, act:
 
     const submit = el('button', 'wd-zone-save', s.save);
     submit.type = 'button';
-    const err = el('span', 'lab wd-zone-err');
+    const err = lab('', 'wd-zone-err');
     submit.addEventListener('click', () => {
       err.textContent = '';
       act.save(checkZones(form)).then(() => act.collapse(), () => { err.textContent = s.saveFailed; });
@@ -116,7 +123,7 @@ export function renderZones(root: HTMLElement, s: ZonesStrings, lang: Lang, act:
 
     const foot = el('div', 'wd-zone-foot');
     foot.append(err, submit);
-    const wrap = el('div', 'wd-zone-full');
+    const wrap = el('div', 'v-card wd-zone-full');
     wrap.append(head, fields, foot);
     root.replaceChildren(wrap);
     first.list.focus();
@@ -132,6 +139,10 @@ export function renderZones(root: HTMLElement, s: ZonesStrings, lang: Lang, act:
     update(p, at) {
       prefs = p;
       now = at;
+      if (!full) renderRow();
+    },
+    setHome(city) {
+      home = city;
       if (!full) renderRow();
     },
   };

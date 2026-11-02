@@ -18,32 +18,41 @@ test('on 31 Oct 2026 exactly one cell is today and it reads 31', () => {
 test('the grid has the 31 days of October and a header of 7 single letters', () => {
   const root = host();
   renderCalendar(root, id, 'id').update(NOW);
-  const days = [...root.querySelectorAll('.wd-cal-grid .wd-cal-d')].filter(c => c.textContent);
+  const days = [...root.querySelectorAll('.wd-cal-grid .wd-cal-d:not(.out)')];
   expect(days).toHaveLength(31);
   const head = [...root.querySelectorAll('.wd-cal-grid .wd-cal-h')].map(h => h.textContent);
-  expect(head).toHaveLength(7);
-  expect(head.every(h => h!.length === 1)).toBe(true);
+  expect(head).toEqual(['S', 'S', 'R', 'K', 'J', 'S', 'M']);
 });
 
-test('Saturday and Sunday columns are marked', () => {
+test('days of the months around fill the first and last week, dimmed', () => {
   const root = host();
-  renderCalendar(root, en, 'en').update(NOW);
-  // 1 Oct 2026 is a Thursday, so 3 Oct is a Saturday and 4 Oct a Sunday.
-  const marked = [...root.querySelectorAll('.wd-cal-d.we')].map(c => c.textContent).filter(Boolean);
-  expect(marked.slice(0, 4)).toEqual(['3', '4', '10', '11']);
-  expect(root.querySelector('.wd-cal-d.we.today')!.textContent).toBe('31');
+  renderCalendar(root, id, 'id').update(NOW);
+  const cells = [...root.querySelectorAll('.wd-cal-grid .wd-cal-d')];
+  // 1 Oct 2026 is a Thursday, so the week starts on 28 Sep; the last week ends on Sunday 1 Nov.
+  expect(cells.slice(0, 4).map(c => c.textContent)).toEqual(['28', '29', '30', '1']);
+  expect(cells.slice(0, 4).map(c => c.classList.contains('out'))).toEqual([true, true, true, false]);
+  expect(cells).toHaveLength(35);
+  expect(cells[34].textContent).toBe('1');
+  expect(cells[34].classList.contains('out')).toBe(true);
 });
 
-test('the month label and the year', () => {
+test('the month name and the year, and the title', () => {
   const idRoot = host();
   renderCalendar(idRoot, id, 'id').update(NOW);
-  expect(idRoot.querySelector('.wd-cal-month')!.textContent).toBe('OKT');
-  expect(idRoot.querySelector('.wd-cal-side .lab')!.textContent).toBe('KALENDER');
-  expect(idRoot.querySelector('.wd-cal-side .lab:last-child')!.textContent).toBe('2026');
+  expect(idRoot.querySelector('.wd-cal-month')!.textContent).toBe('Oktober');
+  expect(idRoot.querySelector('.wd-cal-year')!.textContent).toBe('2026');
+  expect(idRoot.querySelector('.wd-cal-title')!.textContent).toBe('Kalender');
   const enRoot = host();
   renderCalendar(enRoot, en, 'en').update(NOW);
-  expect(enRoot.querySelector('.wd-cal-month')!.textContent).toBe('OCT');
-  expect(enRoot.querySelector('.wd-cal-side .lab')!.textContent).toBe('CALENDAR');
+  expect(enRoot.querySelector('.wd-cal-month')!.textContent).toBe('October');
+  expect(enRoot.querySelector('.wd-cal-title')!.textContent).toBe('Calendar');
+});
+
+test('a month of six weeks still fits: at most 7 rows of the grid', () => {
+  const root = host();
+  // 1 Aug 2026 is a Saturday: six weeks.
+  renderCalendar(root, id, 'id').update(new Date(2026, 7, 15));
+  expect(root.querySelectorAll('.wd-cal-grid .wd-cal-d')).toHaveLength(42);
 });
 
 test('an update replaces the content', () => {
@@ -52,6 +61,6 @@ test('an update replaces the content', () => {
   w.update(NOW);
   w.update(new Date(2026, 10, 2, 8, 0));
   expect(root.querySelectorAll('.wd-calendar')).toHaveLength(1);
-  expect(root.querySelector('.wd-cal-month')!.textContent).toBe('NOV');
+  expect(root.querySelector('.wd-cal-month')!.textContent).toBe('November');
   expect(root.querySelector('.today')!.textContent).toBe('2');
 });

@@ -1,5 +1,11 @@
 @import '../kit/kit.css';
 @import '../notch/notch.css';
+/* The Volt fonts for the widget samples; only the faces, so the window keeps its own look. */
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/barlow-condensed/latin-500.css';
+@import '@fontsource/barlow-condensed/latin-600.css';
+@import '@fontsource/barlow-condensed/latin-700.css';
 
 /* The settings window (settings.html, option S1). Dark is the mockup; light is
    its mirror image. It follows the device (spec 5).
@@ -929,195 +935,382 @@ body > .ed-ghost {
   line-height: 19px;
 }
 
-/* Waktu samples: the widget's own markup, in a grid slot or a picker card. The dots, the
-   dot time and the row come from kit.css. */
-.ed-slot .wd-top,
-.ed-shot .wd-top {
+/* The Volt look of the widget packs, for the editor's samples (src/kit/volt.css, scoped:
+   the settings window itself keeps its own fonts and colours). A sample is the widget's own
+   markup, so its root is a .v-card: it fills the slot or the picture, whose padding is the
+   card's 12 px, so the card adds none. */
+:is(.ed-slot, .ed-shot, .ed-strip) {
+  --v-ink: #f3f5f0;
+  --v-ink2: #c4c8bf;
+  --v-muted: #8c9187;
+  --v-dim: #80857b;
+  --v-faint: #454941;
+  --v-track: #23251f;
+  --v-acc: #c8f04a;
+  --v-acc-soft: #1d260b;
+  --v-on-acc: #0f1404;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-card {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  padding: 0;
   display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  font-family: "Inter", -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-ink);
+}
+
+.ed-strip .v-card {
+  align-self: stretch;
+}
+
+/* A flush widget (Jam analog) fills the whole card: no padding in the slot or the picture. */
+.ed-slot:has(.v-card.flush),
+.ed-shot:has(.v-card.flush) {
+  padding: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-lab {
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--v-muted);
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-lab.ink {
+  color: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-num {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-acc {
+  color: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-bar {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--v-track);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .v-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--v-acc);
+}
+
+/* Waktu: the same rules as modules/waktu/style.css, scoped to the slot, the picture and the
+   strip. */
+
+/* The small Inter lines shared by the widgets. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-date,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pct,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-year,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-yearday-left,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-name,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-city,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-sub,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-h,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-d {
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Jam + tanggal: the city and date on top, the time with its seconds, the day bar. The time
+   is 52 px, the seconds 17 px on the same baseline. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-clockdate {
+  justify-content: space-between;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-city {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-date {
+  flex: none;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-time {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-time .v-num:first-child {
+  line-height: 0.9;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-day {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-day .v-bar {
+  flex: 1;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-pct {
+  color: var(--v-muted);
+}
+
+/* Jam analog: the SVG face is the whole 109 × 104 frame. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-analog {
+  justify-content: center;
+  align-items: center;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-analog svg {
+  display: block;
+}
+
+/* Kalender: the title with the month and year on the left, a Monday-first grid on the right.
+   Cells are 14 × 11 px, so the header and six weeks are 77 px of the 80 px inside the card. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-calendar {
+  flex-direction: row;
   justify-content: space-between;
   gap: 12px;
 }
 
-.ed-slot .wd-row,
-.ed-shot .wd-row {
-  margin-top: auto;
-}
-
-.ed-analog {
-  margin: auto;
-}
-
-.ed-analog svg {
-  display: block;
-}
-
-/* Kalender, Hari ke- and Minggu ini: the same rules as modules/waktu/style.css, scoped to
-   the slot, the picker card and the strip. */
-.ed-slot .wd-calendar,
-.ed-shot .wd-calendar {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-side {
   flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.ed-slot .wd-cal-side,
-.ed-shot .wd-cal-side {
-  flex: none;
-  align-self: stretch;
-  width: 58px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
-.ed-slot .wd-cal-month,
-.ed-shot .wd-cal-month {
-  font-family: "Space Grotesk", -apple-system, "Segoe UI", sans-serif;
-  font-size: 22px;
-  font-weight: 500;
-  line-height: 26px;
-}
-
-.ed-slot .wd-cal-grid,
-.ed-shot .wd-cal-grid {
-  flex: 1;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-name {
   min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 12px;
 }
 
-.ed-slot .wd-cal-h,
-.ed-slot .wd-cal-d,
-.ed-shot .wd-cal-h,
-.ed-shot .wd-cal-d {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px;
-  line-height: 12px;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-month {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-year {
+  margin-top: 1px;
+  font-weight: 500;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-grid {
+  flex: none;
+  align-self: flex-start;
+  display: grid;
+  grid-template-columns: repeat(7, 14px);
+  grid-auto-rows: 11px;
+  column-gap: 1px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-h,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-d {
+  line-height: 11px;
   text-align: center;
 }
 
-.ed-slot .wd-cal-h,
-.ed-slot .wd-cal-d.we,
-.ed-shot .wd-cal-h,
-.ed-shot .wd-cal-d.we {
-  color: var(--g2);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-h {
+  color: var(--v-muted);
 }
 
-.ed-slot .wd-cal-d.today,
-.ed-shot .wd-cal-d.today {
-  width: 16px;
-  margin: 0 auto;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-d {
+  color: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-d.out {
+  color: var(--v-dim);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-cal-d.today {
   border-radius: 6px;
-  background: var(--red);
-  color: var(--w);
+  background: var(--v-acc);
+  color: var(--v-on-acc);
+  font-weight: 600;
 }
 
-.ed-slot .wd-yearday,
-.ed-shot .wd-yearday {
-  flex: 1;
-  min-height: 0;
+/* Hari ke-: the number is 50 px in the accent, the bar and the days left sit under it. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-yearday {
+  justify-content: space-between;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-year {
+  color: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-day-no {
+  line-height: 0.9;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-foot {
   display: flex;
   flex-direction: column;
+  gap: 5px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-yearday-left {
+  line-height: 11px;
+  color: var(--v-ink2);
+}
+
+/* Minggu ini: the strip is 484 × 52 with no vertical padding. The day and the week take the
+   room left either side of the seven 27 × 35 cells. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-weekstrip {
+  flex-direction: row;
   justify-content: space-between;
-  gap: 6px;
+  align-items: center;
+  gap: 12px;
 }
 
-.ed-slot .wd-yearday .wd-big,
-.ed-shot .wd-yearday .wd-big {
-  color: var(--red);
-}
-
-.ed-strip .wd-weekstrip,
-.ed-shot .wd-weekstrip {
-  flex: 1;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-today,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-week {
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.ed-strip .wd-wk-today,
-.ed-strip .wd-wk-week,
-.ed-strip .wd-wk-cell,
-.ed-shot .wd-wk-today,
-.ed-shot .wd-wk-week,
-.ed-shot .wd-wk-cell {
-  display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-.ed-strip .wd-wk-today,
-.ed-shot .wd-wk-today {
-  flex: none;
-  min-width: 84px;
-}
-
-.ed-strip .wd-wk-week,
-.ed-shot .wd-wk-week {
-  flex: none;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-week {
   align-items: flex-end;
 }
 
-.ed-strip .wd-wk-today .lab,
-.ed-strip .wd-wk-week .lab,
-.ed-strip .wd-wk-cell .lab,
-.ed-shot .wd-wk-today .lab,
-.ed-shot .wd-wk-week .lab,
-.ed-shot .wd-wk-cell .lab {
-  display: flex;
-  line-height: 12px;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-today .v-lab,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-week .v-lab {
+  font-size: 9px;
+  font-weight: 500;
 }
 
-.ed-strip .wd-wk-date,
-.ed-shot .wd-wk-date {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-date {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-days {
+  flex: none;
   display: flex;
+  gap: 4px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-cell {
+  width: 27px;
+  height: 35px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 1px;
+  border-radius: 9px;
 }
 
-.ed-strip .wd-wk-days,
-.ed-shot .wd-wk-days {
-  flex: 1;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-name {
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-cell .v-num {
+  color: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-cell.other .v-num {
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-cell.today {
+  background: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-cell.today .wd-wk-name,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-wk-cell.today .v-num {
+  color: var(--v-on-acc);
+}
+
+/* Zona waktu: the title and count on top, then three columns (the home city and two chosen
+   cities) split by 1 px lines. Each is the city, its clock at 25 px and a line under it. A night
+   city's clock is dim. The home column is 52 px (the clock is up to 49), so the other two have 70 px:
+   "−12 jam · malam" at 9 px is 69. Proportional digits keep both inside those widths. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zones {
+  justify-content: space-between;
   min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-head {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
 }
 
-.ed-strip .wd-wk-cell,
-.ed-shot .wd-wk-cell {
-  align-items: center;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-cols {
+  display: grid;
+  grid-template-columns: 52px 1px minmax(0, 1fr) 1px minmax(0, 1fr);
+  column-gap: 4px;
 }
 
-.ed-strip .wd-wk-cell .lab,
-.ed-strip .wd-wk-cell .wd-small,
-.ed-shot .wd-wk-cell .lab,
-.ed-shot .wd-wk-cell .wd-small {
-  color: inherit;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-line {
+  background: var(--v-track);
 }
 
-.ed-strip .wd-wk-cell.past,
-.ed-shot .wd-wk-cell.past {
-  color: var(--g2);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
-.ed-strip .wd-wk-cell.future,
-.ed-shot .wd-wk-cell.future {
-  color: var(--g1);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-city,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 11px;
 }
 
-.ed-strip .wd-wk-cell.today,
-.ed-shot .wd-wk-cell.today {
-  color: var(--w);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-city {
+  color: var(--v-ink2);
 }
 
-.ed-strip .wd-wk-cell .rd,
-.ed-shot .wd-wk-cell .rd {
-  width: 4px;
-  height: 4px;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-city.v-acc {
+  color: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-sub {
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-col .v-num,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-sub {
+  font-variant-numeric: proportional-nums;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-zone-col.night .v-num {
+  color: var(--v-muted);
 }
 
 /* Cuaca besar and Bulan: the same rules as modules/sekitar/style.css, scoped to the slot and
@@ -1627,75 +1820,6 @@ body > .ed-ghost {
   line-height: 19px;
   letter-spacing: -0.1px;
   white-space: nowrap;
-}
-
-/* Zona waktu: the same rules as modules/waktu/style.css, scoped to the slot and the picker card. */
-.ed-slot .wd-zones,
-.ed-shot .wd-zones {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ed-slot .wd-zone-head,
-.ed-shot .wd-zone-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.ed-slot .wd-zone-cols,
-.ed-shot .wd-zone-cols {
-  margin-top: auto;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.ed-slot .wd-zone-col,
-.ed-shot .wd-zone-col {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.ed-slot .wd-zone-top,
-.ed-shot .wd-zone-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.ed-slot .wd-zone-top .lab,
-.ed-shot .wd-zone-top .lab {
-  line-height: 12px;
-  min-height: 12px;
-}
-
-.ed-slot .wd-zone-diff,
-.ed-shot .wd-zone-diff {
-  color: var(--g2);
-}
-
-.ed-slot .wd-zone-col.night .wd-small,
-.ed-shot .wd-zone-col.night .wd-small {
-  color: var(--g2);
-}
-
-.ed-slot .wd-zone-mark,
-.ed-shot .wd-zone-mark {
-  display: block;
-  height: 2px;
-  background: var(--g3);
-}
-
-.ed-slot .wd-zone-mark.local,
-.ed-shot .wd-zone-mark.local {
-  background: var(--w);
 }
 
 /* Timer kecil: the same rules as modules/timer/style.css, scoped to the slot and the picker

@@ -92,3 +92,9 @@ export function diffLabel(from: number, to: number, lang: Lang): string {
 
 // 22:00 to 05:59.
 export const isNight = (h: number): boolean => h >= 22 || h < 6;
+
+// "09.41" in Indonesian, "09:41" otherwise.
+export function clockText(h: number, m: number, lang: Lang): string {
+  const two = (n: number) => String(n).padStart(2, '0');
+  return `${two(h)}${lang === 'id' ? '.' : ':'}${two(m)}`;
+}

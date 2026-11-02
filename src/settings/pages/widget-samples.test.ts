@@ -8,27 +8,31 @@ const widget = (ref: string, width = 1): CatalogWidget =>
 
 test('the waktu widgets have samples', () => {
   const clock = packSample(widget('waktu/clockdate', 2), 'id')!;
-  expect(clock).not.toBeNull();
-  expect(clock[0].textContent).toContain('JAKARTA');
-  expect(clock[0].textContent).toContain('JUM 30.10');
-  expect(clock.some(e => e.querySelector('svg.dm'))).toBe(true);
+  expect(clock).toHaveLength(1);
+  expect(clock[0].classList.contains('v-card')).toBe(true);
+  expect(clock[0].querySelector('.wd-city')!.textContent).toBe('Jakarta');
+  expect(clock[0].querySelector('.wd-date')!.textContent).toBe('Jum, 30 Okt');
+  expect([...clock[0].querySelectorAll('.wd-time .v-num')].map(n => n.textContent)).toEqual(['09.32', '15']);
+  expect(clock[0].querySelector('.wd-pct')!.textContent).toBe('40% hari');
   const analog = packSample(widget('waktu/analog'), 'en')!;
   expect(analog).not.toBeNull();
-  expect(analog[0].querySelectorAll('circle.tk')).toHaveLength(12);
+  expect(analog[0].classList.contains('flush')).toBe(true);
+  expect(analog[0].querySelectorAll('line.tk')).toHaveLength(12);
+  expect(analog[0].querySelector('text')!.textContent).toBe('Jakarta');
 });
 
 test('Kalender, Hari ke- and Minggu ini have samples', () => {
   const cal = packSample(widget('waktu/calendar', 2), 'id')!;
   expect(cal).toHaveLength(1);
   expect(cal[0].querySelector('.today')!.textContent).toBe('30');
-  expect(cal[0].querySelector('.wd-cal-month')!.textContent).toBe('OKT');
+  expect(cal[0].querySelector('.wd-cal-month')!.textContent).toBe('Oktober');
   const day = packSample(widget('waktu/yearday'), 'id')!;
-  expect(day[0].querySelector('svg.dm')).not.toBeNull();
-  expect(day[0].querySelector('.wd-yearday-left')!.textContent).toBe('SISA 62 HARI');
+  expect(day[0].querySelector('.v-num.v-acc')!.textContent).toBe('303');
+  expect(day[0].querySelector('.wd-yearday-left')!.textContent).toBe('62 hari lagi');
   const week = packSample(widget('waktu/weekstrip', 4), 'en')!;
   expect(week[0].querySelectorAll('.wd-wk-cell')).toHaveLength(7);
-  expect(week[0].querySelector('.wd-wk-cell.today .lab')!.textContent).toBe('FRI');
-  expect(week[0].querySelector('.wd-wk-week svg.dm')).not.toBeNull();
+  expect(week[0].querySelector('.wd-wk-cell.today .wd-wk-name')!.textContent).toBe('Fri');
+  expect(week[0].querySelector('.wd-wk-week .v-num')!.textContent).toBe('44');
 });
 
 test('Cuaca besar and Bulan have samples', () => {
@@ -113,14 +117,15 @@ test('Jam kerja has a sample: working on the default hours at 09:32', () => {
   expect([...en[0].querySelectorAll('.lab')].pop()!.textContent).toBe('32 M DONE');
 });
 
-test('Zona waktu has a sample: local time and Tokyo and London at 09:32', () => {
+test('Zona waktu has a sample: home, Tokyo and London at 09:32', () => {
   const z = packSample(widget('waktu/zones', 2), 'id')!;
   expect(z).toHaveLength(1);
-  expect([...z[0].querySelectorAll('.wd-zone-head .lab')].map(e => e.textContent)).toEqual(['ZONA WAKTU', '3 KOTA']);
+  expect([...z[0].querySelectorAll('.wd-zone-head .v-lab')].map(e => e.textContent)).toEqual(['Zona waktu', '3 kota']);
   const cols = z[0].querySelectorAll('.wd-zone-col');
   expect(cols).toHaveLength(3);
-  expect([...cols].slice(1).map(c => c.querySelector('.wd-zone-code')!.textContent)).toEqual(['TYO', 'LON']);
-  expect(cols[0].getAttribute('data-time')).toBe('09:32');
-  expect(z[0].querySelectorAll('svg.dm')).toHaveLength(3);
-  expect(packSample(widget('waktu/zones', 2), 'en')![0].querySelector('.wd-zone-head .lab')!.textContent).toBe('WORLD CLOCK');
+  expect([...cols].map(c => c.querySelector('.wd-zone-city')!.textContent)).toEqual(['Jakarta', 'Tokyo', 'London']);
+  expect(cols[0].querySelector('.wd-zone-city')!.classList.contains('v-acc')).toBe(true);
+  expect(cols[0].getAttribute('data-time')).toBe('09.32');
+  expect(z[0].querySelectorAll('.v-num')).toHaveLength(3);
+  expect(packSample(widget('waktu/zones', 2), 'en')![0].querySelector('.wd-zone-head .v-lab')!.textContent).toBe('World clock');
 });

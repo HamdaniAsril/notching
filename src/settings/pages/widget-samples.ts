@@ -64,13 +64,10 @@ const REMINDERS: Reminder[] = [
 // The sample for a pack widget, or null for one that is not a pack's.
 export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
   switch (w.ref) {
-    case 'waktu/clockdate': {
-      // The widget's own content, minus the wrapper that fills a frame.
-      const view = clockDateView(document.body, lang, AT, 'Jakarta');
-      return [...view.children] as HTMLElement[];
-    }
+    case 'waktu/clockdate':
+      return [clockDateView(document.body, lang, AT, 'Jakarta')];
     case 'waktu/analog':
-      return [svgBox('ed-analog', analogSvg(AT, lang))];
+      return [svgBox('v-card flush wd-analog', analogSvg(AT, lang, 'Jakarta'))];
     case 'waktu/calendar':
       return [calendarView(lang === 'en' ? en : id, lang, AT)];
     case 'waktu/yearday':
@@ -78,8 +75,8 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
     case 'waktu/weekstrip':
       return [weekStripView(lang === 'en' ? en : id, lang, AT)];
     case 'waktu/zones':
-      // Local time and the default cities at the fixed instant: a sample is static.
-      return [zonesView(lang === 'en' ? en : id, lang, DEFAULT_ZONES, AT)];
+      // Home and the default cities at the fixed instant: a sample is static.
+      return [zonesView(lang === 'en' ? en : id, lang, DEFAULT_ZONES, AT, 'Jakarta')];
     case 'sekitar/bigweather':
       return [bigWeatherView(document.body, lang === 'en' ? enSekitar : idSekitar, WEATHER, AT)];
     case 'sekitar/moon':

@@ -1,4 +1,5 @@
 import '../../src/kit/kit.css';
+import '../../src/kit/volt.css';
 import './style.css';
 import { connectKit } from '../../src/kit/client';
 import { readPrefs, writePrefs } from '../../src/kit/prefs';
@@ -26,30 +27,36 @@ async function start(): Promise<void> {
     everyMinute(setTimer, now, () => w.update(now()));
   };
 
+  // Home's city for the widgets that name it; a failed read keeps the last one.
+  const readCity = (apply: (city: string | null) => void) => void kit.call<HomeSnapshot>('home.data', 'read').then(
+    snap => apply(snap.place?.name ?? null),
+    () => {},
+  );
+  // Redraw on each second boundary, so the seconds hand and the seconds digits follow the system clock.
+  const everySecond = (draw: (t: Date) => void): void => {
+    const tick = (): void => {
+      const t = now();
+      draw(t);
+      setTimer(tick, 1000 - t.getMilliseconds());
+    };
+    tick();
+  };
+
   switch (kit.widget) {
     case 'clockdate': {
       const w = renderClockDate(root, kit.lang);
       let city: string | null = null;
-      const draw = () => w.update(now(), city);
-      // The city comes from Home's snapshot; a failed read keeps the last one.
-      const readCity = () => void kit.call<HomeSnapshot>('home.data', 'read').then(s => {
-        city = s.place?.name ?? null;
-        draw();
-      }, () => {});
-      draw();
-      readCity();
-      everyMinute(setTimer, now, () => { draw(); readCity(); });
+      readCity(c => { city = c; });
+      everyMinute(setTimer, now, () => readCity(c => { city = c; }));
+      everySecond(t => w.update(t, city));
       break;
     }
     case 'analog': {
       const w = renderAnalog(root, kit.lang);
-      // Redraw on each second boundary so the second hand ticks with the system clock.
-      const tick = (): void => {
-        const t = now();
-        w.update(t);
-        setTimer(tick, 1000 - t.getMilliseconds());
-      };
-      tick();
+      let city: string | null = null;
+      readCity(c => { city = c; });
+      everyMinute(setTimer, now, () => readCity(c => { city = c; }));
+      everySecond(t => w.update(t, city));
       break;
     }
     case 'calendar':
@@ -74,6 +81,8 @@ async function start(): Promise<void> {
         collapse: () => kit.collapse(),
       });
       kit.onView(full => w.setFull(full));
+      readCity(c => w.setHome(c));
+      everyMinute(setTimer, now, () => readCity(c => w.setHome(c)));
       drawEveryMinute({ update: at => w.update(prefs, at) });
       break;
     }

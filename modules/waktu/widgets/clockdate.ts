@@ -1,25 +1,38 @@
 import type { Lang } from '../../../src/kit/protocol';
-import { shortDay, zoneLabel } from '../../../src/kit/dates';
-import { big, dotRow, el } from '../../../src/kit/widget';
+import { monthShort, shortDay, zoneLabel } from '../../../src/kit/dates';
+import { bar, lab, num } from '../../../src/kit/volt';
+import { el } from '../../../src/kit/widget';
+import en from '../locales/en.json';
+import id from '../locales/id.json';
+import { clockText } from '../zones';
 
-const pad = (n: number) => String(n).padStart(2, '0');
+const T = { id, en };
+const two = (n: number) => String(n).padStart(2, '0');
+// "SAB" to "Sab".
+const cap = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
 
-// The widget's content for `now`: "<CITY> · <zone>" and "<day> <dd>.<mm>" over the time in
-// dots and a row of 24 for the hours. Also what the editor's sample draws.
-export function clockDateView(root: HTMLElement, lang: Lang, now: Date, city: string | null): HTMLElement {
-  const zone = zoneLabel(lang, now);
-  const w = el('div', 'wd wd-clockdate');
+// The widget's content for `now`: the city and "Sab, 31 Okt" over the time with the seconds
+// small in the accent, and a bar of the day gone. Also what the editor's sample draws.
+export function clockDateView(_root: HTMLElement, lang: Lang, now: Date, city: string | null): HTMLElement {
+  const w = el('div', 'v-card wd-clockdate');
   const top = el('div', 'wd-top');
   top.append(
-    el('div', 'lab', city ? `${city.toUpperCase()} · ${zone}` : zone),
-    el('div', 'lab', `${shortDay(now, lang)} ${pad(now.getDate())}.${pad(now.getMonth() + 1)}`),
+    lab(city ?? zoneLabel(lang, now), 'ink wd-city'),
+    el('span', 'wd-date', `${cap(shortDay(now, lang))}, ${now.getDate()} ${cap(monthShort(now, lang))}`),
   );
-  const hour = now.getHours();
-  w.append(top, big(root, `${pad(hour)}:${pad(now.getMinutes())}`), dotRow(24, hour, hour));
+
+  const time = el('div', 'wd-time');
+  time.append(num(clockText(now.getHours(), now.getMinutes(), lang), 52), num(two(now.getSeconds()), 17, 'v-acc wd-sec'));
+
+  const gone = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400;
+  const day = el('div', 'wd-day');
+  day.append(bar(gone), el('span', 'wd-pct', T[lang].dayPct.replace('{n}', String(Math.round(gone * 100)))));
+
+  w.append(top, time, day);
   return w;
 }
 
-// Jam + tanggal.
+// Jam + tanggal. The seconds show, so the page redraws each second.
 export function renderClockDate(root: HTMLElement, lang: Lang): { update(now: Date, city: string | null): void } {
   return {
     update(now, city) {

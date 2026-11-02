@@ -1,24 +1,26 @@
 import type { Lang } from '../../../src/kit/protocol';
 import { dayOfYear, daysInYear } from '../../../src/kit/dates';
-import { big, dotRow, el } from '../../../src/kit/widget';
+import { bar, lab, num } from '../../../src/kit/volt';
+import { el } from '../../../src/kit/widget';
 
 export interface YearDayStrings {
   dayOf: string;
-  left: string; // "Sisa {n} hari"
+  left: string; // "{n} hari lagi"
   leftOne: string; // the same for one day
 }
 
-// The widget's content for `now`: "HARI KE" and the year over the day number in red, a bar
-// of the 12 months and the days left. Also what the editor's sample draws.
-export function yearDayView(root: HTMLElement, now: Date, s: YearDayStrings): HTMLElement {
+// The widget's content for `now`: "Hari ke" and the year over the day number in the accent,
+// a bar of the year gone and the days left. Also what the editor's sample draws.
+export function yearDayView(_root: HTMLElement, now: Date, s: YearDayStrings): HTMLElement {
   const day = dayOfYear(now);
-  const left = daysInYear(now.getFullYear()) - day;
-  const month = now.getMonth();
-  const w = el('div', 'wd wd-yearday');
+  const total = daysInYear(now.getFullYear());
+  const left = total - day;
+  const w = el('div', 'v-card wd-yearday');
   const top = el('div', 'wd-top');
-  top.append(el('div', 'lab', s.dayOf.toUpperCase()), el('div', 'lab', String(now.getFullYear())));
-  const text = (left === 1 ? s.leftOne : s.left).replace('{n}', String(left)).toUpperCase();
-  w.append(top, big(root, String(day)), dotRow(12, month, month), el('div', 'lab wd-yearday-left', text));
+  top.append(lab(s.dayOf, 'ink'), el('span', 'wd-year', String(now.getFullYear())));
+  const foot = el('div', 'wd-foot');
+  foot.append(bar(day / total), el('span', 'wd-yearday-left', (left === 1 ? s.leftOne : s.left).replace('{n}', String(left))));
+  w.append(top, num(String(day), 50, 'v-acc wd-day-no'), foot);
   return w;
 }
 

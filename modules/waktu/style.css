@@ -1,4 +1,6 @@
-/* Waktu: each widget fills its frame, which the notch sizes to its columns and 104 px. */
+/* Waktu in the Volt look (src/kit/volt.css): each widget is a .v-card that fills its frame,
+   which the notch sizes to its columns and 104 px, or 52 px for the strip. A frame is 109 px
+   wide for one column and 234 px for two; the card's 12 px padding leaves 85 and 210. */
 #card {
   height: 100%;
 }
@@ -9,191 +11,252 @@ body {
   overflow: hidden;
 }
 
-.wd {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 6px;
+/* The small Inter lines shared by the widgets. */
+.wd-date,
+.wd-pct,
+.wd-year,
+.wd-yearday-left,
+.wd-wk-name,
+.wd-zone-city,
+.wd-zone-sub,
+.wd-cal-h,
+.wd-cal-d {
+  font-size: 9px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.wd-big {
-  min-height: 42px;
-}
-
-/* The date sits at the right end of the top line. */
-.wd-clockdate .wd-top {
+.wd-top {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
 }
 
-.wd-clockdate .wd-top .lab:first-child {
+/* Jam + tanggal: the city and date on top, the time with its seconds, the day bar. The time
+   is 52 px, the seconds 17 px on the same baseline. */
+.wd-clockdate {
+  justify-content: space-between;
   min-width: 0;
-  display: block;
+}
+
+.wd-city {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.wd-clockdate .wd-row {
-  margin-top: auto;
+.wd-date {
+  flex: none;
+  color: var(--v-muted);
 }
 
-/* The face is 96 px in a 104 px frame, centred. */
-.wd-analog {
+.wd-time {
   display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.wd-time .v-num:first-child {
+  line-height: 0.9;
+}
+
+.wd-day {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.wd-day .v-bar {
+  flex: 1;
+}
+
+.wd-pct {
+  color: var(--v-muted);
+}
+
+/* Jam analog: the SVG face is the whole 109 × 104 frame. */
+.wd-analog {
   justify-content: center;
   align-items: center;
-  height: 100%;
 }
 
 .wd-analog svg {
   display: block;
 }
 
-/* Kalender: the month on the left, a 7-column grid on the right. 9 px cells at 12 px make
-   the header and six weeks 84 px, in the 104 px frame. */
+/* Kalender: the title with the month and year on the left, a Monday-first grid on the right.
+   Cells are 14 × 11 px, so the header and six weeks are 77 px of the 80 px inside the card. */
 .wd-calendar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .wd-cal-side {
-  flex: none;
-  align-self: stretch;
-  width: 58px;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
+.wd-cal-name {
+  min-width: 0;
+}
+
 .wd-cal-month {
-  font-family: "Space Grotesk", -apple-system, "Segoe UI", sans-serif;
-  font-size: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wd-cal-year {
+  margin-top: 1px;
   font-weight: 500;
-  line-height: 26px;
-  text-transform: uppercase;
+  color: var(--v-muted);
 }
 
 .wd-cal-grid {
-  flex: 1;
-  min-width: 0;
+  flex: none;
+  align-self: flex-start;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 12px;
+  grid-template-columns: repeat(7, 14px);
+  grid-auto-rows: 11px;
+  column-gap: 1px;
 }
 
 .wd-cal-h,
 .wd-cal-d {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px;
-  line-height: 12px;
+  line-height: 11px;
   text-align: center;
 }
 
-.wd-cal-h,
-.wd-cal-d.we {
-  color: var(--g2);
+.wd-cal-h {
+  color: var(--v-muted);
+}
+
+.wd-cal-d {
+  color: var(--v-ink2);
+}
+
+.wd-cal-d.out {
+  color: var(--v-dim);
 }
 
 .wd-cal-d.today {
-  width: 16px;
-  margin: 0 auto;
   border-radius: 6px;
-  background: var(--red);
-  color: var(--w);
+  background: var(--v-acc);
+  color: var(--v-on-acc);
+  font-weight: 600;
 }
 
-/* Hari ke-: the number is red, the bar and the days left sit under it. */
+/* Hari ke-: the number is 50 px in the accent, the bar and the days left sit under it. */
 .wd-yearday {
   justify-content: space-between;
 }
 
-.wd-yearday .wd-top {
+.wd-year {
+  color: var(--v-ink2);
+}
+
+.wd-day-no {
+  line-height: 0.9;
+}
+
+.wd-foot {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.wd-yearday .wd-big {
-  color: var(--red);
+.wd-yearday-left {
+  line-height: 11px;
+  color: var(--v-ink2);
 }
 
-/* Minggu ini: 40 px, two lines of 12 and 14 px with 4 px between. */
+/* Minggu ini: the strip is 484 × 52 with no vertical padding. The day and the week take the
+   room left either side of the seven 27 × 35 cells. */
 .wd-weekstrip {
-  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  height: 100%;
+  gap: 12px;
+  padding: 0 12px;
 }
 
 .wd-wk-today,
-.wd-wk-week,
-.wd-wk-cell {
+.wd-wk-week {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.wd-wk-today {
-  flex: none;
-  min-width: 84px;
+  gap: 2px;
 }
 
 .wd-wk-week {
-  flex: none;
   align-items: flex-end;
 }
 
-.wd-wk-today .lab,
-.wd-wk-week .lab,
-.wd-wk-cell .lab {
-  line-height: 12px;
+.wd-wk-today .v-lab,
+.wd-wk-week .v-lab {
+  font-size: 9px;
+  font-weight: 500;
 }
 
 .wd-wk-date {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wd-wk-days {
-  flex: 1;
-  min-width: 0;
+  flex: none;
   display: flex;
-  justify-content: space-between;
+  gap: 4px;
 }
 
 .wd-wk-cell {
+  width: 27px;
+  height: 35px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-radius: 9px;
 }
 
-.wd-wk-cell .lab,
-.wd-wk-cell .wd-small {
-  color: inherit;
+.wd-wk-name {
+  line-height: 11px;
+  color: var(--v-muted);
 }
 
-.wd-wk-cell.past {
-  color: var(--g2);
+.wd-wk-cell .v-num {
+  color: var(--v-ink2);
 }
 
-.wd-wk-cell.future {
-  color: var(--g1);
+.wd-wk-cell.other .v-num {
+  color: var(--v-muted);
 }
 
 .wd-wk-cell.today {
-  color: var(--w);
+  background: var(--v-acc);
 }
 
-.wd-wk-cell .rd {
-  width: 4px;
-  height: 4px;
+.wd-wk-cell.today .wd-wk-name,
+.wd-wk-cell.today .v-num {
+  color: var(--v-on-acc);
 }
 
-/* Zona waktu: the title and count on top, then three columns (local and two cities) at the
-   bottom. Each is the code and the hours from local, the time in dots (50 px) and a 2 px marker. */
+/* Zona waktu: the title and count on top, then three columns (the home city and two chosen
+   cities) split by 1 px lines. Each is the city, its clock at 25 px and a line under it. A night
+   city's clock is dim. The home column is 52 px (the clock is up to 49), so the other two have 70 px:
+   "−12 jam · malam" at 9 px is 69. Proportional digits keep both inside those widths. */
 .wd-zones {
+  justify-content: space-between;
   cursor: pointer;
   outline: none;
   min-width: 0;
@@ -206,54 +269,53 @@ body {
 }
 
 .wd-zone-cols {
-  margin-top: auto;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 52px 1px minmax(0, 1fr) 1px minmax(0, 1fr);
+  column-gap: 4px;
+}
+
+.wd-zone-line {
+  background: var(--v-track);
 }
 
 .wd-zone-col {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   min-width: 0;
 }
 
-.wd-zone-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 4px;
-  white-space: nowrap;
+.wd-zone-city,
+.wd-zone-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 11px;
 }
 
-.wd-zone-top .lab {
-  line-height: 12px;
-  min-height: 12px;
+.wd-zone-city {
+  color: var(--v-ink2);
 }
 
-.wd-zone-diff {
-  color: var(--g2);
+.wd-zone-city.v-acc {
+  color: var(--v-acc);
 }
 
-.wd-zone-col.night .wd-small {
-  color: var(--g2);
+.wd-zone-sub {
+  color: var(--v-muted);
 }
 
-.wd-zone-mark {
-  display: block;
-  height: 2px;
-  background: var(--g3);
+.wd-zone-col .v-num,
+.wd-zone-sub {
+  font-variant-numeric: proportional-nums;
 }
 
-.wd-zone-mark.local {
-  background: var(--w);
+.wd-zone-col.night .v-num {
+  color: var(--v-muted);
 }
 
 /* The full view, as Jam kerja: back and the name on top, then the two lists. */
 .wd-zone-full {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  min-width: 0;
 }
 
 .wd-zone-fhead {
@@ -264,11 +326,9 @@ body {
 
 .wd-zone-back,
 .wd-zone-save {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: "Inter", -apple-system, sans-serif;
   font-size: 10px;
-  font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -276,12 +336,12 @@ body {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--g1);
+  color: var(--v-muted);
 }
 
 .wd-zone-fields {
   display: flex;
-  gap: 24px;
+  gap: 16px;
   margin-top: 14px;
 }
 
@@ -297,19 +357,20 @@ body {
   width: 100%;
   padding: 4px 0;
   border: 0;
+  border-bottom: 1px solid var(--v-track);
   border-radius: 0;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left bottom / 5px 3px repeat-x;
-  color: var(--w);
+  background: transparent;
+  color: var(--v-ink);
   color-scheme: dark;
-  font: 13px "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font: 500 12px "Inter", -apple-system, sans-serif;
   cursor: pointer;
 }
 
 .wd-zone-select:focus {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0.9px, transparent 1.3px);
+  border-bottom-color: var(--v-acc);
 }
 
 .wd-zone-foot {
@@ -320,21 +381,21 @@ body {
 }
 
 .wd-zone-err {
-  color: var(--g1);
+  color: var(--v-ink2);
 }
 
 .wd-zone-save {
   padding: 5px 14px;
-  border: 1px solid var(--w);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--w);
+  border: 0;
+  border-radius: 999px;
+  background: var(--v-acc);
+  color: var(--v-on-acc);
 }
 
 .wd-zone-back:focus-visible,
 .wd-zone-save:focus-visible,
 .wd-zone-select:focus-visible,
 .wd-zones:focus-visible {
-  outline: 1px solid var(--g2);
+  outline: 1px solid var(--v-acc);
   outline-offset: 2px;
 }
