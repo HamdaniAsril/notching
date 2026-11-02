@@ -8,7 +8,16 @@ export interface Place {
   longitude: number;
 }
 
-// `latitude`/`longitude` are the rounded coordinates the weather was fetched for.
+// One forecast hour: `at` ms since the epoch, `rain` the chance of rain in percent.
+export interface Hour {
+  at: number;
+  temp: number;
+  code: number;
+  rain: number;
+}
+
+// `latitude`/`longitude` are the rounded coordinates the weather was fetched for. `hourly` is up
+// to 48 hours from midnight today, and missing in a cache older than the hours.
 export interface Weather {
   temp: number;
   code: number; // WMO weather code
@@ -17,6 +26,7 @@ export interface Weather {
   fetchedAt: number;
   latitude: number;
   longitude: number;
+  hourly?: Hour[];
 }
 
 export type PrayerName = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';

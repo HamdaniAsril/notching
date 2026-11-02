@@ -26,11 +26,20 @@ export function fakeHome(params: URLSearchParams): (capability: string, method: 
     return { today: day(0), prev: [...all].reverse().find(p => p.at <= now)!, next: all.find(p => p.at > now)! };
   }
 
+  // Two days of hours from midnight today: dry, with a rainy afternoon.
+  function hourly() {
+    return Array.from({ length: 48 }, (_, i) => {
+      const h = i % 24;
+      const rainy = h >= 15 && h <= 18;
+      return { at: at(0, i, 0), temp: Math.round((26 + Math.min(h, 24 - h) / 3) * 10) / 10, code: rainy ? 61 : h >= 6 && h <= 17 ? 3 : 1, rain: rainy ? 70 : 10 };
+    });
+  }
+
   function snapshot(): HomeSnapshot {
     return {
       place: hasCity ? { name: 'Jakarta', region: 'Jakarta', country: 'Indonesia', latitude: -6.21462, longitude: 106.84513 } : null,
       weather: hasCity
-        ? { temp: 31.4, code: 3, min: 24.7, max: 33.2, fetchedAt: Date.now(), latitude: -6.21, longitude: 106.85 }
+        ? { temp: 31.4, code: 3, min: 24.7, max: 33.2, fetchedAt: Date.now(), latitude: -6.21, longitude: 106.85, hourly: hourly() }
         : null,
       prayer: hasCity ? prayer() : null,
       sun: hasCity ? { rise: at(0, 6, 30), set: at(0, 17, 48), nextRise: at(1, 5, 31) } : null,

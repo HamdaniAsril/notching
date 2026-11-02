@@ -170,3 +170,69 @@ body {
 .wd-sun-side .lab {
   line-height: 12px;
 }
+
+/* Cuaca per jam: 40 px, two lines of 12 px with 4 between. Across 484 px: the label 54, the rain
+   at most 80, two gaps of 10 and eight cells of up to 41 (icon 12, gap 3, four characters at 6.4). */
+.wd-hourly {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+}
+
+.wd-hr-left {
+  flex: none;
+  width: 54px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wd-hr-cells {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.wd-hr-cell {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--g1);
+}
+
+.wd-hr-cell.now {
+  color: var(--w);
+}
+
+.wd-hr-cell.now .ic {
+  color: var(--red);
+}
+
+.wd-hr-top {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.wd-hourly .lab {
+  line-height: 12px;
+}
+
+.wd-hr-t {
+  letter-spacing: 0.04em;
+}
+
+.wd-hr-t,
+.wd-hr-h {
+  color: inherit;
+}
+
+.wd-hr-right {
+  flex: none;
+  min-width: 80px;
+  justify-content: flex-end;
+}

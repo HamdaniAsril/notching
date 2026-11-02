@@ -1297,6 +1297,86 @@ body > .ed-ghost {
   line-height: 12px;
 }
 
+/* Cuaca per jam: the same rules as modules/sekitar/style.css, scoped to the slot and the picker card. */
+.ed-strip .wd-hourly,
+.ed-shot .wd-hourly {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+}
+
+.ed-strip .wd-hr-left,
+.ed-shot .wd-hr-left {
+  flex: none;
+  width: 54px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ed-strip .wd-hr-cells,
+.ed-shot .wd-hr-cells {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.ed-strip .wd-hr-cell,
+.ed-shot .wd-hr-cell {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--g1);
+}
+
+.ed-strip .wd-hr-cell.now,
+.ed-shot .wd-hr-cell.now {
+  color: var(--w);
+}
+
+.ed-strip .wd-hr-cell.now .ic,
+.ed-shot .wd-hr-cell.now .ic {
+  color: var(--red);
+}
+
+.ed-strip .wd-hr-top,
+.ed-shot .wd-hr-top {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ed-strip .wd-hourly .lab,
+.ed-shot .wd-hourly .lab {
+  display: flex;
+  line-height: 12px;
+}
+
+.ed-strip .wd-hr-t,
+.ed-shot .wd-hr-t {
+  letter-spacing: 0.04em;
+}
+
+.ed-strip .wd-hr-t,
+.ed-shot .wd-hr-t,
+.ed-strip .wd-hr-h,
+.ed-shot .wd-hr-h {
+  color: inherit;
+}
+
+.ed-strip .wd-hr-right,
+.ed-shot .wd-hr-right {
+  flex: none;
+  min-width: 80px;
+  justify-content: flex-end;
+}
+
 /* Pekan ini and Berikutnya: the same rules as modules/rencana/style.css, scoped to the slot
    and the picker card. */
 .ed-slot .wd-week,

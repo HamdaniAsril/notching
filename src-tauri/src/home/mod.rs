@@ -143,6 +143,7 @@ mod tests {
             fetched_at: now().timestamp_millis(),
             latitude: (place.latitude * 100.0).round() / 100.0,
             longitude: (place.longitude * 100.0).round() / 100.0,
+            hourly: vec![],
         }
     }
 

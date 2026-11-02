@@ -5,6 +5,7 @@ import { everyMinute, startTicks } from '../home/ticks';
 import en from './locales/en.json';
 import id from './locales/id.json';
 import { renderBigWeather } from './widgets/bigweather';
+import { renderHourly } from './widgets/hourly';
 import { renderMoon } from './widgets/moon';
 import { renderSun } from './widgets/sun';
 
@@ -31,6 +32,11 @@ async function start(): Promise<void> {
     case 'sun': {
       const w = renderSun(root, strings, kit.lang);
       startTicks(kit, s => w.update(s, now()), setTimer, now, { weather: false });
+      break;
+    }
+    case 'hourly': {
+      const w = renderHourly(root, strings, kit.lang);
+      startTicks(kit, s => w.update(s, now()), setTimer, now, { weather: true });
       break;
     }
     default:

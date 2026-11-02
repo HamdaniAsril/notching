@@ -24,7 +24,18 @@ impl Endpoint {
     }
 }
 
-/// `latitude`/`longitude` are the rounded coordinates that were sent.
+/// One forecast hour: `at` in ms since the epoch, `rain` the chance of rain in percent.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Hour {
+    pub at: i64,
+    pub temp: f64,
+    pub code: u32,
+    pub rain: u32,
+}
+
+/// `latitude`/`longitude` are the rounded coordinates that were sent. `hourly` is empty in a
+/// cache written before the hours existed.
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Weather {
@@ -35,7 +46,11 @@ pub struct Weather {
     pub fetched_at: i64,
     pub latitude: f64,
     pub longitude: f64,
+    #[serde(default)]
+    pub hourly: Vec<Hour>,
 }
+
+const MAX_HOURS: usize = 48;
 
 pub const FRESH_MS: i64 = 30 * 60_000;
 pub const RETRY_MS: i64 = 5 * 60_000;
@@ -73,8 +88,10 @@ pub fn forecast_query(place: &Place) -> Vec<(&'static str, String)> {
         ("longitude", format!("{:.2}", place.longitude)),
         ("current", "temperature_2m,weather_code".into()),
         ("daily", "temperature_2m_max,temperature_2m_min".into()),
+        ("hourly", "temperature_2m,weather_code,precipitation_probability".into()),
+        ("timeformat", "unixtime".into()),
         ("timezone", "auto".into()),
-        ("forecast_days", "1".into()),
+        ("forecast_days", "2".into()),
     ]
 }
 
@@ -110,6 +127,25 @@ pub fn parse_places(json: &str) -> Result<Vec<Place>, String> {
         .unwrap_or_default())
 }
 
+// The hours that have all four values; a gap drops that hour, not the forecast.
+fn parse_hours(v: &Value) -> Vec<Hour> {
+    let h = &v["hourly"];
+    let Some(times) = h["time"].as_array() else { return vec![] };
+    times
+        .iter()
+        .enumerate()
+        .filter_map(|(i, t)| {
+            Some(Hour {
+                at: t.as_i64()? * 1000,
+                temp: h["temperature_2m"][i].as_f64()?,
+                code: h["weather_code"][i].as_f64()? as u32,
+                rain: h["precipitation_probability"][i].as_f64()?.round().clamp(0.0, 100.0) as u32,
+            })
+        })
+        .take(MAX_HOURS)
+        .collect()
+}
+
 pub fn parse_forecast(json: &str, place: &Place, now_ms: i64) -> Result<Weather, String> {
     let v = parse(json)?;
     let num = |x: &Value| x.as_f64().ok_or_else(|| "incomplete forecast".to_string());
@@ -121,6 +157,7 @@ pub fn parse_forecast(json: &str, place: &Place, now_ms: i64) -> Result<Weather,
         fetched_at: now_ms,
         latitude: rounded(place.latitude),
         longitude: rounded(place.longitude),
+        hourly: parse_hours(&v),
     })
 }
 
@@ -210,8 +247,10 @@ mod tests {
                 ("longitude", "106.85"),
                 ("current", "temperature_2m,weather_code"),
                 ("daily", "temperature_2m_max,temperature_2m_min"),
+                ("hourly", "temperature_2m,weather_code,precipitation_probability"),
+                ("timeformat", "unixtime"),
                 ("timezone", "auto"),
-                ("forecast_days", "1"),
+                ("forecast_days", "2"),
             ])
         );
     }
@@ -240,8 +279,86 @@ mod tests {
     fn a_forecast_from_open_meteo() {
         assert_eq!(
             parse_forecast(FORECAST_JSON, &jakarta(), 1000),
-            Ok(Weather { temp: 26.3, code: 3, min: 24.7, max: 31.4, fetched_at: 1000, latitude: -6.21, longitude: 106.85 })
+            Ok(Weather { temp: 26.3, code: 3, min: 24.7, max: 31.4, fetched_at: 1000, latitude: -6.21, longitude: 106.85, hourly: vec![] })
         );
+    }
+
+    #[test]
+    fn a_forecast_with_hours() {
+        let json = r#"{"current":{"temperature_2m":26.3,"weather_code":3},
+            "daily":{"temperature_2m_max":[31.4,32.0],"temperature_2m_min":[24.7,24.9]},
+            "hourly":{"time":[1793239200,1793242800,1793246400],
+                      "temperature_2m":[26.1,27.4,28.0],
+                      "weather_code":[3,61,80],
+                      "precipitation_probability":[10,60,85]}}"#;
+        let w = parse_forecast(json, &jakarta(), 0).unwrap();
+        assert_eq!(
+            w.hourly,
+            vec![
+                Hour { at: 1_793_239_200_000, temp: 26.1, code: 3, rain: 10 },
+                Hour { at: 1_793_242_800_000, temp: 27.4, code: 61, rain: 60 },
+                Hour { at: 1_793_246_400_000, temp: 28.0, code: 80, rain: 85 },
+            ]
+        );
+    }
+
+    #[test]
+    fn an_hour_with_a_gap_is_skipped_and_at_most_48_are_kept() {
+        let json = r#"{"current":{"temperature_2m":26.3,"weather_code":3},
+            "daily":{"temperature_2m_max":[31.4],"temperature_2m_min":[24.7]},
+            "hourly":{"time":[3600,7200,10800],"temperature_2m":[20.0,null,22.0],
+                      "weather_code":[1,2,3],"precipitation_probability":[0,0,null]}}"#;
+        let w = parse_forecast(json, &jakarta(), 0).unwrap();
+        assert_eq!(w.hourly, vec![Hour { at: 3_600_000, temp: 20.0, code: 1, rain: 0 }]);
+
+        let n = 60;
+        let list = |f: &dyn Fn(usize) -> String| (0..n).map(|i| f(i)).collect::<Vec<_>>().join(",");
+        let long = format!(
+            r#"{{"current":{{"temperature_2m":1.0,"weather_code":0}},"daily":{{"temperature_2m_max":[1.0],"temperature_2m_min":[0.0]}},
+            "hourly":{{"time":[{}],"temperature_2m":[{}],"weather_code":[{}],"precipitation_probability":[{}]}}}}"#,
+            list(&|i| (1_793_239_200 + 3600 * i as i64).to_string()),
+            list(&|i| format!("{}.5", 20 + i % 10)),
+            list(&|_| "3".into()),
+            list(&|_| "40".into()),
+        );
+        let w = parse_forecast(&long, &jakarta(), 0).unwrap();
+        assert_eq!(w.hourly.len(), 48);
+        assert_eq!(w.hourly[47].at, (1_793_239_200 + 3600 * 47) * 1000);
+    }
+
+    #[test]
+    fn a_forecast_without_hourly_data_still_parses() {
+        let w = parse_forecast(FORECAST_JSON, &jakarta(), 0).unwrap();
+        assert!(w.hourly.is_empty());
+    }
+
+    #[test]
+    fn two_days_of_hours_stay_far_under_the_body_limit() {
+        // Real-looking numbers: a 10-digit unix time, one decimal, a 2-digit code, a percent.
+        let n = 48;
+        let list = |f: &dyn Fn(usize) -> String| (0..n).map(|i| f(i)).collect::<Vec<_>>().join(",");
+        let body = format!(
+            r#"{{"hourly":{{"time":[{}],"temperature_2m":[{}],"weather_code":[{}],"precipitation_probability":[{}]}}}}"#,
+            list(&|i| (1_793_239_200 + 3600 * i as i64).to_string()),
+            list(&|i| format!("{}.8", 24 + i % 9)),
+            list(&|_| "61".into()),
+            list(&|_| "100".into()),
+        );
+        assert!((body.len() as u64) < BODY_LIMIT / 10, "{} bytes", body.len());
+    }
+
+    #[test]
+    fn an_old_cache_without_hours_still_loads() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path().join(WEATHER_FILE);
+        std::fs::write(
+            &p,
+            r#"{"temp":26.3,"code":3,"min":24.7,"max":31.4,"fetchedAt":1000,"latitude":-6.21,"longitude":106.85}"#,
+        )
+        .unwrap();
+        let w = load_cache(&p).unwrap();
+        assert_eq!(w.temp, 26.3);
+        assert!(w.hourly.is_empty());
     }
 
     #[test]

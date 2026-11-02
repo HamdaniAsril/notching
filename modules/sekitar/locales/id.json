@@ -33,9 +33,13 @@
   "toRise": "SAMPAI TERBIT",
   "rise": "terbit",
   "set": "terbenam",
+  "perHour": "PER JAM",
+  "rainAt": "HUJAN {t}",
+  "dry": "CERAH",
   "widgets": {
     "bigweather": "Cuaca besar",
     "moon": "BULAN",
-    "sun": "Matahari"
+    "sun": "Matahari",
+    "hourly": "Cuaca per jam"
   }
 }

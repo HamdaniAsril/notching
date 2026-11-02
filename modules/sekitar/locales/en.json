@@ -33,9 +33,13 @@
   "toRise": "TO SUNRISE",
   "rise": "rise",
   "set": "set",
+  "perHour": "HOURLY",
+  "rainAt": "RAIN {t}",
+  "dry": "DRY",
   "widgets": {
     "bigweather": "Weather, large",
     "moon": "MOON",
-    "sun": "Sun"
+    "sun": "Sun",
+    "hourly": "Hourly weather"
   }
 }

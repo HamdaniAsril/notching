@@ -45,6 +45,16 @@ test('Cuaca besar and Bulan have samples', () => {
   expect(moon[0].querySelector('.wd-big svg.dm')).not.toBeNull();
 });
 
+test('Cuaca per jam has a sample with the rainy afternoon', () => {
+  const hr = packSample(widget('sekitar/hourly', 4), 'id')!;
+  expect(hr).toHaveLength(1);
+  expect(hr[0].querySelectorAll('.wd-hr-cell')).toHaveLength(8);
+  expect(hr[0].querySelector('.wd-hr-left .lab')!.textContent).toBe('PER JAM');
+  expect(hr[0].querySelector('.wd-hr-right')!.textContent).toBe('HUJAN 15.00');
+  const en = packSample(widget('sekitar/hourly', 4), 'en')!;
+  expect(en[0].querySelector('.wd-hr-right')!.textContent).toBe('RAIN 3 PM');
+});
+
 test('Matahari has a sample', () => {
   const sun = packSample(widget('sekitar/sun', 2), 'id')!;
   expect(sun).toHaveLength(1);
