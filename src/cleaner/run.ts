@@ -52,15 +52,18 @@ export function mountRun(box: HTMLElement, deps: RunDeps): RunView {
       const lines = el(doc, 'div', 'cl-plan');
       if (plan.permanent > 0) lines.append(el(doc, 'div', 'cl-pline', fill(s.confirmPermanent, { size: size(plan.permanent) })));
       if (plan.trash > 0) lines.append(el(doc, 'div', 'cl-pline', fill(s.confirmTrash, { size: size(plan.trash) })));
-      lines.append(el(doc, 'div', 'lab', fill(s.confirmCount, { n: plan.count })));
+      lines.append(el(doc, 'div', 'cl-pcount', fill(s.confirmCount, { n: plan.count })));
       const title = el(doc, 'div', 'cl-rtitle', kind === 'uninstall' && name ? name : s.cleanTitle);
-      const yes = button(doc, 'cl-go cl-yes', kind === 'uninstall' ? s.yesRemove : s.yesClean);
-      const no = button(doc, 'cl-ghost cl-no', s.cancel);
+      const card = el(doc, 'div', 'cl-card cl-ask');
+      card.append(title, lines);
+      // Every destructive confirm is the danger pill.
+      const yes = button(doc, 'cl-btn danger cl-yes', kind === 'uninstall' ? s.yesRemove : s.yesClean);
+      const no = button(doc, 'cl-btn cl-no', s.cancel);
       yes.addEventListener('click', () => settle(true));
       no.addEventListener('click', () => settle(false));
       const btns = el(doc, 'div', 'cl-rbtns');
       btns.append(no, yes);
-      screen(title, lines, btns);
+      screen(card, btns);
       doc.addEventListener('keydown', onKey);
       return new Promise<boolean>(resolve => { answer = resolve; });
     },
@@ -72,9 +75,11 @@ export function mountRun(box: HTMLElement, deps: RunDeps): RunView {
       const fillBar = el(doc, 'span', 'cl-meter-fill');
       fillBar.style.width = `${total > 0 ? (done / total) * 100 : 0}%`;
       meter.append(fillBar);
-      const stop = button(doc, 'cl-ghost cl-stop', s.stop);
+      const stop = button(doc, 'cl-btn cl-stop', s.stop);
       stop.addEventListener('click', () => deps.onStop());
-      screen(el(doc, 'div', 'lab', fill(s.progress, { done, total })), meter, stop);
+      const card = el(doc, 'div', 'cl-card cl-working');
+      card.append(el(doc, 'div', 'cl-pnum', fill(s.progress, { done, total })), meter);
+      screen(card, stop);
     },
     result(freed, skipped) {
       const list = el(doc, 'div', 'cl-skips');
@@ -84,16 +89,18 @@ export function mountRun(box: HTMLElement, deps: RunDeps): RunView {
           line.append(el(doc, 'div', 'cl-detail', s.adminHint));
           if (k.id !== undefined && deps.onReveal) {
             const id = k.id;
-            const reveal = button(doc, 'lab cl-note-btn', s.showInFinder);
+            const reveal = button(doc, 'cl-note-btn', s.showInFinder);
             reveal.addEventListener('click', () => deps.onReveal?.(id));
             line.append(reveal);
           }
         }
         list.append(line);
       }
-      const back = button(doc, 'cl-ghost cl-done', s.back);
+      const back = button(doc, 'cl-btn primary cl-done', s.back);
       back.addEventListener('click', () => deps.onDone());
-      screen(el(doc, 'div', 'cl-freed', fill(s.freed, { size: size(freed) })), list, back);
+      const card = el(doc, 'div', 'cl-card cl-outcome');
+      card.append(el(doc, 'div', 'cl-freed', fill(s.freed, { size: size(freed) })));
+      screen(card, list, back);
     },
   };
 }

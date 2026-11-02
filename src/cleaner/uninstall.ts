@@ -46,7 +46,7 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
 
   function head(label: string, onBack: () => void, right?: HTMLElement): HTMLElement {
     const h = el(doc, 'div', 'cl-lhead');
-    const b = button(doc, 'lab cl-back', `‹ ${label}`);
+    const b = button(doc, 'cl-back', `‹ ${label}`);
     b.addEventListener('click', onBack);
     h.append(b);
     if (right) h.append(right);
@@ -64,7 +64,7 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
     const q = search.value.trim().toLowerCase();
     const shown = apps.filter(a => !q || a.name.toLowerCase().includes(q) || a.bundleId.toLowerCase().includes(q));
     const body = el(doc, 'div', 'cl-lbody');
-    if (shown.length === 0) body.append(el(doc, 'span', 'lab cl-measuring', s.noApps));
+    if (shown.length === 0) body.append(el(doc, 'span', 'cl-measuring', s.noApps));
     for (const a of shown) {
       const row = button(doc, 'cl-row cl-app');
       row.append(el(doc, 'span', 'cl-name', a.name), el(doc, 'span', 'cl-size', size(a.bytes)));
@@ -91,7 +91,7 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
       drawDetail();
       return;
     }
-    frame(head(s.uninstallTitle, () => drawList()), el(doc, 'span', 'lab cl-measuring', s.measuring));
+    frame(head(s.uninstallTitle, () => drawList()), el(doc, 'span', 'cl-measuring', s.measuring));
     deps.bridge.cleanerAppDetail(a.id).then(scan => {
       if (mine !== seq) return;
       scanId = scan.scanId;
@@ -140,7 +140,7 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
     const foot = el(doc, 'div', 'cl-lfoot');
     if (a.refused) {
       foot.append(el(doc, 'span', 'cl-note-text', s.ownUninstaller));
-      frame(head(s.uninstallTitle, () => drawList(), el(doc, 'span', 'lab', a.name)), body, foot);
+      frame(head(s.uninstallTitle, () => drawList(), el(doc, 'span', 'cl-sel', a.name)), body, foot);
       return;
     }
     const appItem = items.find(i => i.category === 'app');
@@ -156,14 +156,14 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
     const running = appItem?.inUse ?? a.running;
     if (running) foot.append(el(doc, 'span', 'cl-note-text', fill(s.quitFirst, { app: a.name })));
     const plan = selection(items, ticked);
-    const go = button(doc, 'cl-go', fill(s.remove, { app: a.name, size: size(plan.permanent + plan.trash) }));
+    const go = button(doc, 'cl-btn primary cl-go', fill(s.remove, { app: a.name, size: size(plan.permanent + plan.trash) }));
     go.disabled = running || plan.count === 0;
     go.addEventListener('click', () => {
       const ids = items.filter(i => ticked.has(i.id)).map(i => i.id);
       deps.remove(scanId, ids, plan, a.id, a.name);
     });
     foot.append(go);
-    frame(head(s.uninstallTitle, () => drawList(), el(doc, 'span', 'lab', a.name)), body, foot);
+    frame(head(s.uninstallTitle, () => drawList(), el(doc, 'span', 'cl-sel', a.name)), body, foot);
   }
 
   return {
@@ -172,7 +172,7 @@ export function mountUninstall(box: HTMLElement, deps: UninstallDeps): Uninstall
       loaded = false;
       current = null;
       search.value = '';
-      frame(head(s.uninstallTitle, () => deps.back()), el(doc, 'span', 'lab cl-measuring', s.measuring));
+      frame(head(s.uninstallTitle, () => deps.back()), el(doc, 'span', 'cl-measuring', s.measuring));
       deps.bridge.cleanerApps().then(scan => {
         if (mine !== seq) return;
         appsScan = scan.scanId;

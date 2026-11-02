@@ -1,17 +1,11 @@
 import type { CleanerOverview, CleanerParts } from '../bridge';
 import type { Lang } from '../kit/protocol';
 
-// The bar's colours (cleaner-warna.html, pilihan 1): the only colour in Cleaner.
-export const BAR_COLORS = {
-  apps: '#2f7cf6',
-  documents: '#f5a623',
-  photos: '#f8d03a',
-  cleanable: '#e8262e',
-  other: '#9b9b9b',
-  free: '#1a1a1a',
-} as const;
+// The bar's parts, in order. Their colours are in pages.css (`.cl-seg[data-key]`),
+// from the accent and the greys.
+export const PART_KEYS = ['apps', 'documents', 'photos', 'cleanable', 'other', 'free'] as const;
 
-export type PartKey = keyof typeof BAR_COLORS;
+export type PartKey = (typeof PART_KEYS)[number];
 
 // `known` false: macOS kept it from us (no Full Disk Access); its bytes are in Lainnya.
 export interface BarPart { key: PartKey; bytes: number; known: boolean }

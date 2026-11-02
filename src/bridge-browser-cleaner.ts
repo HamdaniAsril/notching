@@ -9,7 +9,7 @@ const GB = 1e9;
 const MB = 1e6;
 
 // Cleaner in a normal browser (`npm run dev`): made-up numbers, nothing removed.
-// ?fda=0 shows the start view without Full Disk Access; ?test=1 shows MODE COBA.
+// ?fda=0 shows the start view without Full Disk Access; ?test=1 shows the test-mode pill.
 export function fakeCleaner(params: URLSearchParams): CleanerFake {
   const subs = new Set<(e: CleanerEvent) => void>();
   const fda = params.get('fda') !== '0';

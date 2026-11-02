@@ -1,9 +1,8 @@
 import type { Bridge, CleanerOverview, CleanerParts } from '../bridge';
 import { type CleanerStrings, fill, hostStrings } from '../i18n';
-import { dotText } from '../kit/dots';
 import type { Lang } from '../kit/protocol';
 import { BROOM_ICON, button, el, TRASH_ICON } from './dom';
-import { BAR_COLORS, barParts, sizeText } from './format';
+import { barParts, sizeText } from './format';
 
 export interface HomeDeps {
   bridge: Pick<Bridge, 'cleanerOverview' | 'cleanerParts' | 'openFullDiskAccessSettings'>;
@@ -24,11 +23,9 @@ export interface Home {
   destroy(): void;
 }
 
-const BIG_DOT = 4;
-
-// Cleaner's start view (design 1 Nov §4, cleaner-tempat.html A, cleaner-warna.html 1):
-// the disk's name and free space, what is used as a big dot number, the coloured
-// bar with its legend, and the two tiles. The overview comes first; the parts,
+// Cleaner's start view (design 1 Nov §4, Volt look): the disk's name, then a card
+// with what is used as a big Barlow number, the free space, the bar per kind with
+// its legend, and the two tiles. The overview comes first; the parts,
 // which walk folders, fill in as they land.
 export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
   const doc = box.ownerDocument;
@@ -39,25 +36,27 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
   let seq = 0;
 
   const head = el(doc, 'div', 'cl-head');
-  const back = button(doc, 'lab cl-back', `‹ ${hostStrings(deps.lang).modules}`);
+  const back = button(doc, 'cl-back', `‹ ${hostStrings(deps.lang).modules}`);
   back.addEventListener('click', () => deps.onBack());
-  const vol = el(doc, 'span', 'lab cl-vol');
-  const free = el(doc, 'span', 'lab cl-free');
-  head.append(back, vol, free);
+  const vol = el(doc, 'span', 'cl-vol');
+  head.append(back, vol);
   const usedRow = el(doc, 'div', 'cl-used');
   const big = el(doc, 'span', 'cl-big');
-  const of = el(doc, 'span', 'lab cl-of');
-  usedRow.append(big, of);
+  const of = el(doc, 'span', 'cl-of');
+  const free = el(doc, 'span', 'cl-free');
+  usedRow.append(big, of, free);
   const bar = button(doc, 'cl-bar');
   bar.addEventListener('click', () => deps.onDisk());
   const legend = el(doc, 'div', 'cl-legend');
+  const card = el(doc, 'div', 'cl-card');
+  card.append(usedRow, bar, legend);
   const tiles = el(doc, 'div', 'cl-tiles');
   const clean = tile('clean', BROOM_ICON, s.cleanTitle, () => deps.onClean());
   const uninstall = tile('uninstall', TRASH_ICON, s.uninstallTitle, () => deps.onUninstall());
   tiles.append(clean.box, uninstall.box);
   const note = el(doc, 'div', 'cl-note');
   const wrap = el(doc, 'div', 'cl-home');
-  wrap.append(head, usedRow, bar, legend, tiles, note);
+  wrap.append(head, card, tiles, note);
   box.replaceChildren(wrap);
   let showNote = false;
   // offsetHeight, not the bounding box: the panel's entrance scales it. A view
@@ -87,8 +86,8 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
     vol.textContent = o.volume;
     free.textContent = fill(s.free, { size: size(o.free) });
     head.querySelector('.cl-test')?.remove();
-    if (o.testMode) head.insertBefore(el(doc, 'span', 'lab cl-test', s.testMode), free);
-    big.innerHTML = dotText(String(Math.round(Math.max(0, o.total - o.free) / 1e9)), BIG_DOT);
+    if (o.testMode) head.insertBefore(el(doc, 'span', 'cl-test', s.testMode), vol);
+    big.textContent = String(Math.round(Math.max(0, o.total - o.free) / 1e9));
     of.textContent = fill(s.usedOf, { size: size(o.total) });
     const all = barParts(o, parts);
     const total = Math.max(1, o.total);
@@ -96,16 +95,15 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
       const seg = el(doc, 'span', 'cl-seg');
       seg.dataset.key = p.key;
       seg.style.width = `${(p.bytes / total) * 100}%`;
-      seg.style.background = BAR_COLORS[p.key];
       return seg;
     }));
     if (!parts) {
-      legend.replaceChildren(el(doc, 'span', 'lab cl-measuring', s.measuring));
+      legend.replaceChildren(el(doc, 'span', 'cl-measuring', s.measuring));
     } else {
       legend.replaceChildren(...all.filter(p => p.key !== 'free').map(p => {
         const leg = el(doc, 'span', 'cl-leg');
         const dot = el(doc, 'i', 'cl-dot');
-        dot.style.background = BAR_COLORS[p.key];
+        dot.dataset.key = p.key;
         leg.append(dot, `${s.parts[p.key]} ${p.known ? size(p.bytes) : s.unknown}`);
         return leg;
       }));
@@ -115,7 +113,7 @@ export function mountHome(box: HTMLElement, deps: HomeDeps): Home {
     showNote = !o.fda;
     note.replaceChildren();
     if (showNote) {
-      const open = button(doc, 'lab cl-note-btn', s.allow);
+      const open = button(doc, 'cl-note-btn', s.allow);
       open.addEventListener('click', () => void deps.bridge.openFullDiskAccessSettings().catch(() => {}));
       note.append(el(doc, 'span', 'cl-note-text', s.noFda), open);
     }

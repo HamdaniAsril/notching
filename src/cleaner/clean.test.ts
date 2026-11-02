@@ -119,3 +119,12 @@ test('what runs now only adds busy marks; one set by the scan stays', async () =
   view.inUse([2]);
   expect([itemTick(box, 2).disabled, itemTick(box, 2).checked]).toEqual([true, false]);
 });
+
+test('Volt look: no dot-matrix label class, and Bersihkan is the accent primary', async () => {
+  const { box } = setup([...ITEMS, item(9, 'trash', 5)], false);
+  await tick();
+  box.querySelector<HTMLElement>('.cl-cat[data-category="appCache"] > .cl-row')!.click();
+  expect(box.querySelector('.lab')).toBeNull();
+  expect(footer(box).classList.contains('primary')).toBe(true);
+  expect(footer(box).classList.contains('danger')).toBe(false);
+});

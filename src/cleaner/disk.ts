@@ -36,7 +36,7 @@ export function mountDisk(box: HTMLElement, deps: DiskDeps): Disk {
 
   function frame(title: string, ...children: HTMLElement[]): void {
     const head = el(doc, 'div', 'cl-lhead');
-    const back = button(doc, 'lab cl-back', `‹ ${title}`);
+    const back = button(doc, 'cl-back', `‹ ${title}`);
     back.addEventListener('click', () => {
       if (path.length === 0) deps.back();
       else {
@@ -66,7 +66,7 @@ export function mountDisk(box: HTMLElement, deps: DiskDeps): Disk {
     }
     const isAppRoot = path.length === 0 && n.name === 'App';
     if (!rest && n.readable && !isAppRoot) {
-      const reveal = button(doc, 'lab cl-reveal', s.showInFinder);
+      const reveal = button(doc, 'cl-reveal', s.showInFinder);
       reveal.addEventListener('click', e => {
         e.stopPropagation();
         void deps.bridge.cleanerRevealPath([...path, n.name]).catch(() => {});
@@ -101,7 +101,7 @@ export function mountDisk(box: HTMLElement, deps: DiskDeps): Disk {
       const mine = ++seq;
       root = null;
       path = [];
-      frame(s.diskTitle, el(doc, 'span', 'lab cl-measuring', s.measuring));
+      frame(s.diskTitle, el(doc, 'span', 'cl-measuring', s.measuring));
       deps.bridge.cleanerBreakdown().then(tree => {
         if (mine !== seq) return;
         root = tree;

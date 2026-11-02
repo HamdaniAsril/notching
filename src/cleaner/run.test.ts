@@ -53,3 +53,17 @@ test('progress and the result with its skips', async () => {
   expect(text(box)).toContain('com.x · berubah sejak dipindai');
   expect(text(box)).toContain('Butuh izin admin. Hapus lewat Finder');
 });
+
+test('every destructive confirm is the danger pill; Batal and Kembali are not', async () => {
+  const { box, run } = setup();
+  void run.confirm({ permanent: 1, trash: 0, count: 1 }, 'clean');
+  expect(box.querySelector('.cl-yes')!.classList.contains('danger')).toBe(true);
+  expect(box.querySelector('.cl-no')!.classList.contains('danger')).toBe(false);
+  void run.confirm({ permanent: 0, trash: 1, count: 1 }, 'uninstall', 'Spotify');
+  expect(box.querySelector('.cl-yes')!.classList.contains('danger')).toBe(true);
+  run.progress(1, 4);
+  expect(box.querySelector<HTMLElement>('.cl-meter-fill')!.style.width).toBe('25%');
+  run.result(1e9, [{ label: 'x', reason: 'failed', admin: true, id: 1 }]);
+  expect(box.querySelector('.cl-done')!.classList.contains('primary')).toBe(true);
+  expect(box.querySelector('.lab')).toBeNull();
+});

@@ -795,51 +795,133 @@
   white-space: nowrap;
 }
 
-/* Cleaner (design 1 Nov §4, cleaner-tempat.html A, cleaner-warna.html 1). */
+/* Cleaner (Volt, spec 3 Nov §3): black cards with a 1 px ring, Inter text,
+   Barlow numbers, the accent for what is chosen. The destructive confirm is
+   the danger pill, like Titipan's Kosongkan. */
 .cl,
 .cl-screen {
   height: 100%;
 }
 
+.cl-card {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border-radius: 14px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+}
+
+/* Start view: the head, the disk card, the two tiles, the Full Disk Access line. */
 .cl-home {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  font-family: "Inter", -apple-system, sans-serif;
 }
 
-.cl-head,
-.cl-used {
+.cl-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  flex: none;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
-.cl-head .cl-free {
+.cl-vol {
+  min-width: 0;
   margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--v-muted);
 }
 
 .cl-test {
-  padding: 1px 6px;
-  border-radius: 6px;
-  background: #fff;
-  color: #000;
+  flex: none;
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--v-acc);
+  font-size: 10px;
+  color: var(--v-on-acc);
+}
+
+.cl-test + .cl-vol {
+  margin-left: 0;
+}
+
+.cl-back {
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--v-ink2);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cl-back:hover {
+  color: var(--v-ink);
+}
+
+.cl-card .cl-measuring,
+.cl-measuring {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--v-muted);
+}
+
+.cl-home .cl-card {
+  gap: 8px;
+  padding: 12px;
 }
 
 .cl-used {
-  align-items: flex-end;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .cl-big {
-  color: #fff;
-  line-height: 0;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--v-ink);
+}
+
+.cl-of {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--v-muted);
+}
+
+.cl-free {
+  flex: none;
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--v-ink2);
+  white-space: nowrap;
 }
 
 .cl-bar {
   display: flex;
   gap: 2px;
   width: 100%;
-  height: 12px;
+  height: 8px;
   padding: 0;
   border: 0;
   border-radius: 4px;
@@ -848,67 +930,125 @@
   cursor: pointer;
 }
 
+.cl-bar:hover .cl-seg {
+  filter: brightness(1.2);
+}
+
+.cl-bar:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
+}
+
 .cl-seg {
   display: block;
   height: 100%;
   min-width: 0;
 }
 
-.cl-bar:hover .cl-seg {
-  filter: brightness(1.15);
+/* Per kind, from the accent and the greys: the accent is what Deep clean can
+   take; Apps is the accent at half strength. */
+.cl-seg[data-key="apps"],
+.cl-dot[data-key="apps"] {
+  background: #c8f04a80;
+}
+
+.cl-seg[data-key="documents"],
+.cl-dot[data-key="documents"] {
+  background: var(--v-ink2);
+}
+
+.cl-seg[data-key="photos"],
+.cl-dot[data-key="photos"] {
+  background: var(--v-muted);
+}
+
+.cl-seg[data-key="cleanable"],
+.cl-dot[data-key="cleanable"] {
+  background: var(--v-acc);
+}
+
+.cl-seg[data-key="other"],
+.cl-dot[data-key="other"] {
+  background: var(--v-faint);
+}
+
+.cl-seg[data-key="free"] {
+  background: var(--v-track);
 }
 
 .cl-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 4px 8px;
   min-height: 14px;
 }
 
 .cl-leg {
   display: inline-flex;
   align-items: center;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+  font-size: 10px;
+  color: var(--v-ink2);
   white-space: nowrap;
 }
 
 .cl-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   margin-right: 5px;
-  border-radius: 2px;
+  border-radius: 50%;
 }
 
 .cl-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 8px;
 }
 
 .cl-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 5px;
-  padding: 11px 12px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.07);
-  color: #fff;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-family: inherit;
+  color: var(--v-ink);
   text-align: left;
   cursor: pointer;
 }
 
 .cl-tile:hover {
-  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 1px #ffffff2e;
+}
+
+.cl-tile:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
+}
+
+.cl-ticon {
+  grid-row: 1 / span 2;
+  color: var(--v-ink2);
 }
 
 .cl-ticon svg {
+  display: block;
   width: 18px;
   height: 18px;
+}
+
+.cl-tname,
+.cl-tsub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cl-tname {
@@ -917,11 +1057,12 @@
 }
 
 .cl-tsub {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-weight: 500;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--v-muted);
 }
 
+/* The Full Disk Access line: muted text and a pill button. */
 .cl-note {
   display: flex;
   align-items: center;
@@ -933,56 +1074,87 @@
 }
 
 .cl-note-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
   font-size: 12px;
-  color: var(--g1);
+  color: var(--v-muted);
 }
 
 .cl-note-btn {
   flex: none;
-  padding: 3px 8px;
+  height: 18px;
+  padding: 0 10px;
   border: 0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--v-ink2);
   cursor: pointer;
 }
 
-/* Cleaner's lists: a head, a scrolling body, a footer with the button. */
+.cl-note-btn:hover {
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #ffffff2e;
+}
+
+.cl-note-btn:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
+}
+
+/* Lists: a head, one card that scrolls, a footer with the button. Rows are
+   separated by 1 px ring lines. */
 .cl-list {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  font-family: "Inter", -apple-system, sans-serif;
 }
 
 .cl-lhead {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   height: 22px;
   flex: none;
 }
 
-.cl-back {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--g1);
-  cursor: pointer;
-}
-
-.cl-back:hover {
-  color: #fff;
+.cl-sel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--v-muted);
 }
 
 .cl-lbody {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
   scrollbar-width: none;
+  border-radius: 14px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+}
+
+.cl-lbody:empty {
+  display: none;
+}
+
+.cl-lbody > .cl-measuring,
+.cl-list > .cl-measuring {
+  display: block;
+  padding: 10px 12px;
 }
 
 .cl-lfoot {
@@ -991,7 +1163,19 @@
   justify-content: flex-end;
   gap: 10px;
   flex: none;
+  margin-top: auto;
   padding-top: 10px;
+}
+
+.cl-lfoot .cl-note-text {
+  margin-right: auto;
+}
+
+/* A long app name in "Hapus {app}" cuts the button, not the panel. */
+.cl-lfoot .cl-btn {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cl-row,
@@ -999,14 +1183,25 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0;
-  border-top: 1px dotted rgba(255, 255, 255, 0.22);
-  font-size: 11px;
-  color: #fff;
+  padding: 8px 12px;
+  border-top: 1px solid var(--v-ring);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--v-ink);
+}
+
+.cl-lbody > :first-child,
+.cl-lbody > .cl-cat:first-child > :first-child,
+.cl-group + .cl-item {
+  border-top: 0;
 }
 
 .cl-row {
   cursor: pointer;
+}
+
+.cl-row:hover {
+  background: #ffffff0a;
 }
 
 .cl-cat:not(.open) .cl-item {
@@ -1014,13 +1209,18 @@
 }
 
 .cl-item {
-  padding-left: 20px;
-  color: rgba(255, 255, 255, 0.85);
+  padding-left: 32px;
+  background: #ffffff05;
+  color: var(--v-ink2);
 }
 
 .cl-cat.muted .cl-row {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--v-muted);
   cursor: default;
+}
+
+.cl-cat.muted .cl-row:hover {
+  background: none;
 }
 
 .cl-name {
@@ -1032,44 +1232,54 @@
 }
 
 .cl-detail {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--v-muted);
 }
 
 .cl-tag {
   margin-left: 6px;
-  padding: 0 5px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.12);
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.75);
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--v-track);
+  font-weight: 500;
+  font-size: 10px;
+  color: var(--v-ink2);
 }
 
 .cl-size {
   flex: none;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--v-ink2);
+  white-space: nowrap;
 }
 
-/* Ticked is red, so it can't be mistaken for unticked (asked on the Mac). */
+.cl-cat.muted .cl-size {
+  color: var(--v-muted);
+}
+
+/* Ticked is the accent, with the check in on-accent. */
 .cl-tick {
   flex: none;
   display: grid;
   place-content: center;
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   margin: 0;
-  border: 1.5px solid rgba(255, 255, 255, 0.55);
-  border-radius: 3px;
+  border: 1.5px solid var(--v-muted);
+  border-radius: 4px;
   background: transparent;
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
 }
 
+.cl-tick:hover:not(:disabled):not(:checked) {
+  border-color: var(--v-ink2);
+}
+
 .cl-tick:checked {
-  border-color: #e8262e;
-  background: #e8262e;
+  border-color: var(--v-acc);
+  background: var(--v-acc);
 }
 
 .cl-tick:checked::after {
@@ -1077,9 +1287,14 @@
   width: 6px;
   height: 3px;
   margin-top: -2px;
-  border-left: 2px solid #fff;
-  border-bottom: 2px solid #fff;
+  border-left: 2px solid var(--v-on-acc);
+  border-bottom: 2px solid var(--v-on-acc);
   transform: rotate(-45deg);
+}
+
+.cl-tick:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
 }
 
 .cl-tick:disabled {
@@ -1092,11 +1307,17 @@
 
 .cl-never {
   display: none;
-  padding: 1px 6px;
+  flex: none;
+  padding: 1px 8px;
   border: 0;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--v-ink2);
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -1104,46 +1325,94 @@
   display: flex;
 }
 
-.cl-go,
-.cl-ghost {
-  padding: 6px 14px;
+.cl-never:hover {
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #ffffff2e;
+}
+
+.cl-never:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
+}
+
+/* Pill buttons: plain, the accent for the primary one, the danger pill for a
+   destructive confirm. */
+.cl-btn {
+  padding: 7px 14px;
   border: 0;
   border-radius: 999px;
-  font: 600 11px "Space Grotesk", -apple-system, sans-serif;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--v-ink2);
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.cl-go {
-  background: #fff;
-  color: #000;
+.cl-btn:hover {
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #ffffff2e;
 }
 
-.cl-go:disabled {
+.cl-btn:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
+}
+
+.cl-btn.primary {
+  background: var(--v-acc);
+  box-shadow: none;
+  color: var(--v-on-acc);
+}
+
+.cl-btn.primary:hover {
+  background: #d6f56e;
+  color: var(--v-on-acc);
+}
+
+.cl-btn.danger {
+  color: var(--v-danger);
+}
+
+.cl-btn.danger:hover {
+  color: var(--v-danger);
+  box-shadow: 0 0 0 1px #e5484d66;
+}
+
+.cl-btn:disabled {
   opacity: 0.35;
   cursor: default;
 }
 
-.cl-ghost {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.cl-btn:disabled:hover {
+  box-shadow: 0 0 0 1px var(--v-ring);
 }
 
-.cl-ghost:hover {
-  background: rgba(255, 255, 255, 0.16);
+.cl-btn.primary:disabled:hover {
+  background: var(--v-acc);
+  box-shadow: none;
 }
 
 /* The question, the progress and the result. */
 .cl-run {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
+  gap: 8px;
   height: 100%;
+  font-family: "Inter", -apple-system, sans-serif;
+}
+
+.cl-run .cl-card {
+  gap: 8px;
+  padding: 14px;
 }
 
 .cl-rtitle {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  color: var(--v-ink);
 }
 
 .cl-plan {
@@ -1153,7 +1422,15 @@
 }
 
 .cl-pline {
+  font-weight: 500;
   font-size: 12px;
+  color: var(--v-ink2);
+}
+
+.cl-pcount {
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--v-muted);
 }
 
 .cl-rbtns {
@@ -1163,37 +1440,70 @@
   align-self: flex-end;
 }
 
+.cl-pnum {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--v-ink);
+}
+
 .cl-meter {
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 4px;
+  border-radius: 2px;
+  background: var(--v-track);
   overflow: hidden;
 }
 
 .cl-meter-fill {
   display: block;
   height: 100%;
-  background: #fff;
+  border-radius: 2px;
+  background: var(--v-acc);
 }
 
 .cl-freed {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 22px;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--v-acc);
 }
 
 .cl-skips {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: none;
+  border-radius: 14px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-weight: 500;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--v-ink2);
 }
 
-.cl-done {
+.cl-skips:empty {
+  display: none;
+}
+
+.cl-skip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--v-ring);
+  overflow-wrap: anywhere;
+}
+
+.cl-skip:first-child {
+  border-top: 0;
+}
+
+.cl-done,
+.cl-stop {
   margin-top: auto;
   align-self: flex-end;
 }
@@ -1201,49 +1511,57 @@
 /* Clean uninstall: the search, app rows, and an app's folders. */
 .cl-searchbar {
   flex: none;
-  padding: 6px 0;
+  padding: 0 0 8px;
 }
 
 .cl-search {
   width: 100%;
   box-sizing: border-box;
-  padding: 6px 10px;
+  padding: 7px 12px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font: 12px "Space Grotesk", -apple-system, sans-serif;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  appearance: none;
+  -webkit-appearance: none;
+  color: var(--v-ink);
+  font: 500 12px "Inter", -apple-system, sans-serif;
   outline: none;
 }
 
 .cl-search::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--v-muted);
+}
+
+.cl-search:focus {
+  box-shadow: 0 0 0 1px var(--v-acc);
 }
 
 .cl-app {
   width: 100%;
-  border-left: 0;
   border-right: 0;
   border-bottom: 0;
+  border-left: 0;
   background: none;
+  font-family: inherit;
   text-align: left;
 }
 
-.cl-app:hover {
-  background: rgba(255, 255, 255, 0.05);
+.cl-app:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: -2px;
 }
 
 .cl-group {
-  padding: 8px 0 2px;
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--g2);
+  padding: 8px 12px 2px;
+  border-top: 1px solid var(--v-ring);
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--v-muted);
 }
 
-.cl-lfoot .cl-note-text {
-  margin-right: auto;
+.cl-lbody > .cl-cat:first-child > .cl-group:first-child {
+  border-top: 0;
 }
 
 /* The breakdown: a thin bar per row, and Show in Finder on hover. */
@@ -1251,8 +1569,8 @@
   cursor: pointer;
 }
 
-.cl-node:hover {
-  background: rgba(255, 255, 255, 0.04);
+.cl-node:not(.open-able) {
+  cursor: default;
 }
 
 .cl-nbar {
@@ -1260,27 +1578,45 @@
   width: 80px;
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--v-track);
   overflow: hidden;
 }
 
 .cl-nbar i {
   display: block;
   height: 100%;
-  background: rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+  background: var(--v-acc);
 }
 
 .cl-reveal {
   display: flex;
+  flex: none;
   opacity: 0.55;
-  padding: 1px 6px;
+  padding: 1px 8px;
   border: 0;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--v-ink2);
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.cl-node:hover .cl-reveal {
+.cl-node:hover .cl-reveal,
+.cl-reveal:focus-visible {
   opacity: 1;
+}
+
+.cl-reveal:hover {
+  color: var(--v-ink);
+  box-shadow: 0 0 0 1px #ffffff2e;
+}
+
+.cl-reveal:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
 }

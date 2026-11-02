@@ -32,13 +32,15 @@ function setup(over: Partial<CleanerOverview> = {}, parts: Promise<CleanerParts>
 const tick = () => new Promise(r => setTimeout(r, 0));
 const text = (box: HTMLElement, sel: string) => box.querySelector(sel)?.textContent ?? '';
 
-test('the bar has a segment per part plus free, in the bar colours', async () => {
+test('the bar has a segment per part plus free, sized by its bytes, coloured by CSS', async () => {
   const { box } = setup();
   await tick();
   const segs = [...box.querySelectorAll<HTMLElement>('.cl-seg')];
   expect(segs.map(s => s.dataset.key)).toEqual(['apps', 'documents', 'photos', 'cleanable', 'other', 'free']);
-  expect(segs[0].style.background).toBe('rgb(47, 124, 246)');
-  expect(segs[3].style.background).toBe('rgb(232, 38, 46)');
+  expect(segs[0].style.width).toBe(`${(51 / 256) * 100}%`);
+  expect(segs.every(s => s.style.background === '')).toBe(true);
+  const dots = [...box.querySelectorAll<HTMLElement>('.cl-dot')];
+  expect(dots.map(d => d.dataset.key)).toEqual(['apps', 'documents', 'photos', 'cleanable', 'other']);
 });
 
 test('the head, the big number and the legend', async () => {
@@ -47,7 +49,9 @@ test('the head, the big number and the legend', async () => {
   expect(text(box, '.cl-vol')).toBe('Macintosh HD');
   expect(text(box, '.cl-free')).toBe('Sisa 44 GB');
   expect(text(box, '.cl-of')).toBe('GB · terpakai dari 256 GB');
-  expect(box.querySelector('.cl-big svg')).not.toBeNull();
+  expect(text(box, '.cl-big')).toBe('212');
+  expect(box.querySelector('.cl-big svg')).toBeNull();
+  expect(box.querySelector('.cl-card .cl-bar')).not.toBeNull();
   const legend = [...box.querySelectorAll('.cl-leg')].map(l => l.textContent);
   expect(legend).toEqual(['App 51 GB', 'Dokumen 36 GB', 'Foto 26 GB', 'Bisa dibersihkan 31 GB', 'Lainnya 68 GB']);
 });
@@ -105,11 +109,17 @@ test('without Full Disk Access: unknown parts show "?", and the note opens its s
   expect(deps.bridge.openFullDiskAccessSettings).toHaveBeenCalled();
 });
 
-test('MODE COBA only in test mode', async () => {
+test('the test-mode pill only in test mode', async () => {
   const plain = setup();
   await tick();
   expect(plain.box.querySelector('.cl-test')).toBeNull();
   const test = setup({ testMode: true });
   await tick();
-  expect(text(test.box, '.cl-test')).toBe('MODE COBA');
+  expect(text(test.box, '.cl-test')).toBe('Mode coba');
+});
+
+test('no dot-matrix label class on the start view', async () => {
+  const { box } = setup({ testMode: true, fda: false });
+  await tick();
+  expect(box.querySelector('.lab')).toBeNull();
 });

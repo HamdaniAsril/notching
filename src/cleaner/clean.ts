@@ -63,13 +63,13 @@ export function mountClean(box: HTMLElement, deps: CleanDeps): CleanList {
   let loaded = false;
 
   const head = el(doc, 'div', 'cl-lhead');
-  const back = button(doc, 'lab cl-back', `‹ ${s.cleanTitle}`);
+  const back = button(doc, 'cl-back', `‹ ${s.cleanTitle}`);
   back.addEventListener('click', () => deps.back());
-  const sel = el(doc, 'span', 'lab cl-sel');
+  const sel = el(doc, 'span', 'cl-sel');
   head.append(back, sel);
   const body = el(doc, 'div', 'cl-lbody');
   const foot = el(doc, 'div', 'cl-lfoot');
-  const go = button(doc, 'cl-go');
+  const go = button(doc, 'cl-btn primary cl-go');
   go.addEventListener('click', () => {
     const ids = items.filter(i => ticked.has(i.id)).map(i => i.id);
     if (ids.length > 0) deps.clean(scanId, ids, selection(items, ticked));
@@ -143,7 +143,7 @@ export function mountClean(box: HTMLElement, deps: CleanDeps): CleanList {
     const name = el(doc, 'span', 'cl-name', i.label);
     if (i.detail) name.append(el(doc, 'span', 'cl-detail', ` · ${i.detail}`));
     if (i.inUse) name.append(el(doc, 'span', 'cl-tag', s.inUse));
-    const never = button(doc, 'lab cl-never', s.never);
+    const never = button(doc, 'cl-never', s.never);
     never.addEventListener('click', e => {
       e.stopPropagation();
       deps.bridge.cleanerExclude(i.id).then(() => {
@@ -171,7 +171,7 @@ export function mountClean(box: HTMLElement, deps: CleanDeps): CleanList {
       loaded = false;
       items = [];
       ticked = new Set();
-      body.replaceChildren(el(doc, 'span', 'lab cl-measuring', s.measuring));
+      body.replaceChildren(el(doc, 'span', 'cl-measuring', s.measuring));
       totals();
       deps.bridge.cleanerDeepScan().then(scan => {
         if (mine !== seq) return;
@@ -179,7 +179,7 @@ export function mountClean(box: HTMLElement, deps: CleanDeps): CleanList {
         loaded = true;
         items = scan.items;
         ticked = new Set(items.filter(i => i.ticked && !i.inUse).map(i => i.id));
-        if (items.length === 0) body.replaceChildren(el(doc, 'span', 'lab cl-measuring', s.empty));
+        if (items.length === 0) body.replaceChildren(el(doc, 'span', 'cl-measuring', s.empty));
         else draw();
       }, () => {});
     },

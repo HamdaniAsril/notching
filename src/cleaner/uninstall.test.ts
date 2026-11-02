@@ -113,3 +113,13 @@ test('back from an app goes to the list, and from the list to the start', async 
   box.querySelector<HTMLElement>('.cl-back')!.click();
   expect(deps.back).toHaveBeenCalled();
 });
+
+test('Volt look: no dot-matrix label class in the list or the detail', async () => {
+  const { box } = setup();
+  await tick();
+  expect(box.querySelector('.lab')).toBeNull();
+  await open(box, 'Spotify');
+  expect(box.querySelector('.lab')).toBeNull();
+  expect(box.querySelector('.cl-lhead .cl-sel')!.textContent).toBe('Spotify');
+  expect(go(box)!.classList.contains('primary')).toBe(true);
+});

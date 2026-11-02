@@ -85,3 +85,9 @@ test('nothing here removes anything: only back and reveal buttons', async () => 
   const labels = new Set([...box.querySelectorAll('button')].map(b => b.className.split(' ').find(c => c.startsWith('cl-'))));
   expect([...labels].sort()).toEqual(['cl-back', 'cl-reveal']);
 });
+
+test('Volt look: no dot-matrix label class', async () => {
+  const { box } = setup();
+  await tick();
+  expect(box.querySelector('.lab')).toBeNull();
+});
