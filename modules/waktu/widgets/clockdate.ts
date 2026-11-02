@@ -9,7 +9,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export function clockDateView(root: HTMLElement, lang: Lang, now: Date, city: string | null): HTMLElement {
   const zone = zoneLabel(lang, now);
   const w = el('div', 'wd wd-clockdate');
-  const top = el('div', 'top');
+  const top = el('div', 'wd-top');
   top.append(
     el('div', 'lab', city ? `${city.toUpperCase()} · ${zone}` : zone),
     el('div', 'lab', `${shortDay(now, lang)} ${pad(now.getDate())}.${pad(now.getMonth() + 1)}`),

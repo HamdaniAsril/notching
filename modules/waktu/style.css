@@ -21,13 +21,13 @@ body {
 }
 
 /* The date sits at the right end of the top line. */
-.wd-clockdate .top {
+.wd-clockdate .wd-top {
   display: flex;
   justify-content: space-between;
   gap: 12px;
 }
 
-.wd-clockdate .top .lab:first-child {
+.wd-clockdate .wd-top .lab:first-child {
   min-width: 0;
   display: block;
   overflow: hidden;

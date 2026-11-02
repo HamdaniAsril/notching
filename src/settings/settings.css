@@ -931,41 +931,23 @@ body > .ed-ghost {
   text-overflow: ellipsis;
 }
 
-.ed-slot /* Waktu samples: the top line, the dot time and the hour row as the widget draws them. */
-.ed-shot .top {
+.ed-slot .ed-line {
+  font-size: 15px;
+  line-height: 19px;
+}
+
+/* Waktu samples: the widget's own markup, in a grid slot or a picker card. The dots, the
+   dot time and the row come from kit.css. */
+.ed-slot .wd-top,
+.ed-shot .wd-top {
   display: flex;
   justify-content: space-between;
   gap: 12px;
 }
 
-.ed-shot .wd-big svg {
-  display: block;
-}
-
+.ed-slot .wd-row,
 .ed-shot .wd-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 7px;
   margin-top: auto;
-}
-
-.ed-shot .wd-row .d {
-  flex: none;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--g3);
-}
-
-.ed-shot .wd-row .d.lit {
-  background: #fff;
-}
-
-.ed-shot .wd-row .d.now {
-  width: 7px;
-  height: 7px;
-  background: #e8262e;
 }
 
 .ed-analog {
@@ -974,11 +956,6 @@ body > .ed-ghost {
 
 .ed-analog svg {
   display: block;
-}
-
-.ed-line {
-  font-size: 15px;
-  line-height: 19px;
 }
 
 .ed-slot .rm {
