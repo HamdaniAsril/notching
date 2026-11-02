@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test } from 'vitest';
-import { dotWidth } from '../../../src/kit/dots';
+import { dotWidth, fitPitch } from '../../../src/kit/dots';
 import en from '../locales/en.json';
 import id from '../locales/id.json';
 import { host, NOW } from './fixtures';
@@ -30,6 +30,7 @@ test('the last day of a leap year fits one column', () => {
   const root = host();
   renderYearDay(root, 'id', id).update(new Date(2028, 11, 31, 12, 0));
   const svg = root.querySelector('.wd-big svg.dm')!;
+  expect(svg.getAttribute('width')).toBe(String(dotWidth('366', fitPitch('366', 109))));
   expect(Number(svg.getAttribute('width'))).toBeLessThanOrEqual(109);
   expect(root.querySelector('.wd-yearday-left')!.textContent).toBe('SISA 0 HARI');
   expect(root.querySelectorAll('.wd-row .now')).toHaveLength(1);

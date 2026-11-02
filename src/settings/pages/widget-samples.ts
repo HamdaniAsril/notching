@@ -37,11 +37,11 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
     case 'waktu/analog':
       return [svgBox('ed-analog', analogSvg(AT, lang))];
     case 'waktu/calendar':
-      return [calendarView(lang, AT)];
+      return [calendarView(lang === 'en' ? en : id, lang, AT)];
     case 'waktu/yearday':
       return [yearDayView(document.body, AT, lang === 'en' ? en : id)];
     case 'waktu/weekstrip':
-      return [weekStripView(lang, AT)];
+      return [weekStripView(lang === 'en' ? en : id, lang, AT)];
     case 'sekitar/bigweather':
       return [bigWeatherView(document.body, lang === 'en' ? enSekitar : idSekitar, WEATHER, AT)];
     case 'sekitar/moon':

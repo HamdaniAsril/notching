@@ -4,6 +4,8 @@
   "dayOf": "Hari ke",
   "left": "Sisa {n} hari",
   "leftOne": "Sisa {n} hari",
+  "calendar": "Kalender",
+  "week": "Mgg",
   "widgets": {
     "clockdate": "Jam + tanggal",
     "analog": "Jam analog",

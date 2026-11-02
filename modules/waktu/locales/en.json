@@ -4,6 +4,8 @@
   "dayOf": "Day",
   "left": "{n} days left",
   "leftOne": "{n} day left",
+  "calendar": "Calendar",
+  "week": "Wk",
   "widgets": {
     "clockdate": "Clock + date",
     "analog": "Analog clock",

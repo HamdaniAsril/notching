@@ -69,7 +69,7 @@ body {
 }
 
 .wd-cal-month {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: "Space Grotesk", -apple-system, "Segoe UI", sans-serif;
   font-size: 22px;
   font-weight: 500;
   line-height: 26px;

@@ -50,13 +50,13 @@ async function start(): Promise<void> {
       break;
     }
     case 'calendar':
-      drawEveryMinute(renderCalendar(root, kit.lang));
+      drawEveryMinute(renderCalendar(root, kit.lang === 'en' ? en : id, kit.lang));
       break;
     case 'yearday':
       drawEveryMinute(renderYearDay(root, kit.lang, kit.lang === 'en' ? en : id));
       break;
     case 'weekstrip':
-      drawEveryMinute(renderWeekStrip(root, kit.lang));
+      drawEveryMinute(renderWeekStrip(root, kit.lang === 'en' ? en : id, kit.lang));
       break;
     default:
       root.replaceChildren();
