@@ -35,10 +35,19 @@ function chip(text: string, cls: string, onClick: () => void): HTMLButtonElement
   return b;
 }
 
+// "17.30" or "17:30": the hour and minute of `ms`, in the locale's format.
+const clockAt = (s: Strings, ms: number): string => {
+  const d = new Date(ms);
+  const two = (n: number) => String(n).padStart(2, '0');
+  return s.clock.replace('{h}', two(d.getHours())).replace('{m}', two(d.getMinutes()));
+};
+
 // The strip, or the Timer page (design 31 Oct, Timer §4–5, as the owner changed
 // them on the day): the ruler and the time, which takes typed minutes; Jeda/Lanjut
 // and Stop while a timer runs. The page's ruler is bigger and sits on top, with
-// the presets below it; the strip has no presets. `update` takes a reading from
+// the presets below it; the strip has no presets. The strip is in the Volt look: the
+// name over the clock time the timer would end at, the ruler, and the time left, in the
+// accent, under "Menit"; the page keeps its own. `update` takes a reading from
 // the core; `tick` moves the ruler and the time by this frame's clock between
 // readings. A drag or typing owns them until it ends, and the minutes just
 // started stay shown until the core answers.
@@ -55,7 +64,9 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   const px = big ? BIG_PX_PER_MINUTE : PX_PER_MINUTE;
 
   const red = el('i', 'rd tm-red');
-  const head = el('span', 'lab tm-lab', s.label);
+  const head = el('span', big ? 'lab tm-lab' : 'v-lab tm-lab', s.label);
+  const endClock = el('span', 'v-num tm-end');
+  const status = el('span', 'v-lab tm-status', s.ruler);
   const presets = el('div', 'tm-chips');
   const controls = el('div', 'tm-chips');
   const start = (m: number) => {
@@ -104,6 +115,7 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   // The ruler never leaves its row: moving it would drop a drag's pointer capture.
   const lead = el('span', 'tm-lead');
   const buttons = el('span', 'tm-buttons');
+  const right = el('span', 'tm-right');
   if (big) {
     const top = el('div', 'tm-row tm-top');
     top.append(ruler, time);
@@ -111,8 +123,9 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
     bottom.append(lead, buttons);
     root.replaceChildren(top, bottom);
   } else {
-    const row = el('div', 'tm-row');
-    row.append(lead, ruler, time, buttons);
+    const row = el('div', 'v-card tm-row tm-srow');
+    right.append(status, time);
+    row.append(lead, ruler, buttons, right);
     root.replaceChildren(row);
   }
 
@@ -120,8 +133,9 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   function build(state: TimerView['state']): void {
     built = state;
     root.classList.toggle('tm-live', state !== 'idle');
+    head.textContent = !big && state === 'paused' ? s.paused : s.label;
     if (state === 'idle') {
-      lead.replaceChildren(...(big ? [head, presets] : [head]));
+      lead.replaceChildren(...(big ? [head, presets] : [head, endClock]));
       buttons.replaceChildren();
       return;
     }
@@ -129,7 +143,7 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
       state === 'running' ? chip(s.pause, 'tm-chip', () => act.pause()) : chip(s.resume, 'tm-chip', () => act.resume()),
       chip(s.stop, 'tm-chip tm-ghost', () => act.stop()),
     );
-    lead.replaceChildren(red, head);
+    lead.replaceChildren(...(big ? [red, head] : [head, endClock]));
     buttons.replaceChildren(controls);
   }
 
@@ -140,6 +154,11 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
       lit = whole;
       ticks.forEach((t, i) => t.classList.toggle('tm-on', i + 1 <= whole));
       ruler.setAttribute('aria-valuenow', String(Math.max(1, Math.round(minutes))));
+    }
+    // The strip's clock time: when the minutes shown would end if they ran from now.
+    if (!big) {
+      const at = clockAt(s, lastNow + minutes * 60_000);
+      if (endClock.textContent !== at) endClock.textContent = at;
     }
     if (time.ownerDocument.activeElement === time) return;
     time.value = text;

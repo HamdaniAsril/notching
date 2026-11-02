@@ -1,43 +1,60 @@
-import { icon } from '../../src/kit/icons';
-import { big, el, small } from '../../src/kit/widget';
+import { lab, num } from '../../src/kit/volt';
+import { el } from '../../src/kit/widget';
 import { DRAG_PX, dragMinutes, formatLeft, MAX_MINUTES, MIN_MINUTES } from './ruler';
 import type { Actions, Strings, TimerView } from './view';
 
-// Minutes per pixel of drag, and the ruler's tick pitch: 2 px tick, 4 px gap.
+// Minutes per pixel of drag.
 const PX_PER_MINUTE = 6;
-const TICKS = 5;
+
+// The ring fills the 109 x 104 frame: 85 px across, a 2.5 px line.
+const SVG = 'http://www.w3.org/2000/svg';
+const W = 109;
+const H = 104;
+const R = 42.5;
 
 export type TileState =
   | { kind: 'idle'; minutes: number }
-  | { kind: 'live'; paused: boolean; text: string }; // text is "6:42"
+  // `minutes` is what is left, rounded; `done` is how much of the timer has run, 0 to 1.
+  | { kind: 'live'; paused: boolean; text: string; minutes: number; done: number }; // text is "6:42"
 
-// The five minutes around `minutes`, the middle one white; the ones past 1 and 60 are left out.
-function rulerView(minutes: number): HTMLElement {
-  const r = el('div', 'wd-tl-ruler');
-  for (let i = 0; i < TICKS; i++) {
-    const m = minutes + i - (TICKS >> 1);
-    const cls = i === TICKS >> 1 ? 'mid' : m < MIN_MINUTES || m > MAX_MINUTES ? 'off' : '';
-    r.append(el('i', cls));
-  }
-  return r;
+function svg<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string>): SVGElementTagNameMap[K] {
+  const e = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
 }
 
-// Idle: the name and an icon, the minutes, and the ruler. Live: the name (or Jeda), then the
-// minutes over the seconds. Also what the editor's sample draws.
-export function tileView(root: HTMLElement, s: Strings, st: TileState): HTMLElement {
-  const w = el('div', st.kind === 'live' && st.paused ? 'wd wd-tl paused' : 'wd wd-tl');
-  if (st.kind === 'idle') {
-    const head = el('div', 'wd-tl-head');
-    head.append(el('span', 'lab', s.label.toUpperCase()), icon('timer', 16));
-    const foot = el('div', 'wd-tl-foot');
-    foot.append(el('span', 'lab', s.ruler.toUpperCase()), rulerView(st.minutes));
-    w.append(head, big(root, String(st.minutes)), foot);
-    return w;
+// The ring: a track, and over it the arc of what has run, from the top clockwise. The arc is
+// the accent while the timer runs and a step dimmer while it waits; idle has none.
+function ringView(done: number | null, paused: boolean): SVGSVGElement {
+  const ring = svg('svg', { class: 'wd-tl-ring', viewBox: `0 0 ${W} ${H}`, 'aria-hidden': 'true' });
+  const at = { cx: String(W / 2), cy: String(H / 2), r: String(R), fill: 'none' };
+  ring.append(svg('circle', { ...at, class: 'wd-tl-track' }));
+  if (done !== null && done > 0) {
+    const arc = svg('circle', {
+      ...at,
+      class: paused ? 'wd-tl-arc' : 'v-acc wd-tl-arc',
+      pathLength: '100',
+      'stroke-dasharray': `${(Math.min(1, done) * 100).toFixed(2)} 100`,
+      transform: `rotate(-90 ${W / 2} ${H / 2})`,
+    });
+    ring.append(arc);
   }
-  const name = el('span', 'lab', (st.paused ? s.paused : s.label).toUpperCase());
-  if (!st.paused) name.prepend(el('i', 'rd'));
-  const [mm, ss] = st.text.split(':');
-  w.append(name, big(root, mm), small(`:${ss}`, 3));
+  return ring;
+}
+
+// Idle: an empty ring, the name, the minutes chosen and "Menit". Live: the ring with its arc,
+// the name (or Jeda), the minutes left and "menit lagi". Also what the editor's sample draws.
+export function tileView(_root: HTMLElement, s: Strings, st: TileState): HTMLElement {
+  const live = st.kind === 'live';
+  const paused = live && st.paused;
+  const w = el('div', paused ? 'v-card flush wd-tl paused' : 'v-card flush wd-tl');
+  const read = el('div', 'wd-tl-read');
+  read.append(
+    lab(paused ? s.paused : s.label),
+    num(String(st.minutes), 34, 'wd-tl-min'),
+    el('span', 'wd-tl-sub', live ? s.left : s.ruler),
+  );
+  w.append(ringView(live ? st.done : null, paused), read);
   return w;
 }
 
@@ -63,8 +80,10 @@ export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
 
   const minutes = () => chosen ?? view.minutes;
   const leftMs = () => view.state === 'running' ? (view.until ?? lastNow) - lastNow : view.left ?? 0;
-  // The minutes the ruler shows: the time left while a timer runs, rounded, never below 1.
+  // The minutes the tile shows: the time left while a timer runs, rounded, never below 1.
   const shownMinutes = () => view.state === 'idle' ? minutes() : Math.max(MIN_MINUTES, Math.round(leftMs() / 60_000));
+  // How much of the timer has run, by this frame's clock.
+  const done = () => Math.min(1, Math.max(0, 1 - leftMs() / (view.minutes * 60_000)));
   const editing = () => view.state === 'idle' || chosen !== null;
 
   function draw(): void {
@@ -77,7 +96,7 @@ export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
       button.replaceChildren(tileView(root, s, { kind: 'idle', minutes: minutes() }));
     } else {
       button.setAttribute('aria-label', `${view.state === 'paused' ? s.paused : s.label} ${text}`);
-      button.replaceChildren(tileView(root, s, { kind: 'live', paused: view.state === 'paused', text }));
+      button.replaceChildren(tileView(root, s, { kind: 'live', paused: view.state === 'paused', text, minutes: shownMinutes(), done: done() }));
     }
     button.classList.toggle('idle', editing());
   }

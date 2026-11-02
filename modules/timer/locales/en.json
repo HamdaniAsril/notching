@@ -8,6 +8,8 @@
   "stop": "Stop",
   "ruler": "Minutes",
   "start": "Click to start",
+  "left": "min left",
+  "clock": "{h}:{m}",
   "paused": "Paused",
   "widgets": {
     "strip": "Timer",

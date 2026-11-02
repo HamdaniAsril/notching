@@ -2242,56 +2242,59 @@ body > .ed-ghost {
 }
 
 /* Timer kecil: the same rules as modules/timer/style.css, scoped to the slot and the picker
-   card. The sample is the idle state: the name and icon, the minutes, the ruler. */
-.ed-slot .wd-tl,
-.ed-shot .wd-tl {
-  flex: 1;
-  min-height: 0;
+   card. The sample is the idle state: an empty ring with the name, the minutes and "Menit".
+   Flush, so the picture's padding goes (see :has(.v-card.flush) above). */
+:is(.ed-slot, .ed-shot) .wd-tl {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+}
+
+:is(.ed-slot, .ed-shot) .wd-tl-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+:is(.ed-slot, .ed-shot) .wd-tl-track,
+:is(.ed-slot, .ed-shot) .wd-tl-arc {
+  stroke-width: 2.5;
+}
+
+:is(.ed-slot, .ed-shot) .wd-tl-track {
+  stroke: var(--v-track);
+}
+
+:is(.ed-slot, .ed-shot) .wd-tl-arc {
+  stroke: currentColor;
+  stroke-linecap: round;
+  color: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot) .wd-tl-arc.v-acc {
+  color: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot) .wd-tl-read {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-
-.ed-slot .wd-tl-head,
-.ed-slot .wd-tl-foot,
-.ed-shot .wd-tl-head,
-.ed-shot .wd-tl-foot {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  gap: 1px;
+  max-width: 64px;
 }
 
-.ed-slot .wd-tl-foot,
-.ed-shot .wd-tl-foot {
-  margin-top: auto;
-}
-
-.ed-slot .wd-tl-ruler,
-.ed-shot .wd-tl-ruler {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 14px;
-}
-
-.ed-slot .wd-tl-ruler i,
-.ed-shot .wd-tl-ruler i {
-  width: 2px;
-  height: 8px;
-  border-radius: 1px;
-  background: var(--g3);
-}
-
-.ed-slot .wd-tl-ruler i.mid,
-.ed-shot .wd-tl-ruler i.mid {
-  height: 14px;
-  background: var(--w);
-}
-
-.ed-slot .wd-tl-ruler i.off,
-.ed-shot .wd-tl-ruler i.off {
-  visibility: hidden;
+:is(.ed-slot, .ed-shot) .wd-tl-sub {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 12px;
+  color: var(--v-ink2);
 }
 
 .ed-slot small {
@@ -2532,22 +2535,103 @@ body > .ed-ghost {
   gap: 10px;
 }
 
-/* The Timer strip's sample: label, an orange ruler, the time. */
-.ed-tm-ruler {
+/* The Timer strip's sample (widget-preview.ts), as modules/timer/style.css draws the strip: the
+   name over the end time, the ruler (faint ticks, ink at every five and up to the needle, numbers
+   every ten, the accent needle and knob at 30) and the time left under "Menit". The ruler's
+   ticks sit 8 px apart around its middle. */
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-left,
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-right {
+  flex: none;
+  min-width: 46px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-right {
+  align-items: flex-end;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm .v-lab {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm .v-num {
+  font-size: 20px;
+  line-height: 22px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-ruler {
+  position: relative;
   flex: 1;
-  align-self: stretch;
-  margin: 8px 0;
-  background:
-    linear-gradient(#fff, #fff) center / 2px 100% no-repeat,
-    repeating-linear-gradient(90deg, #ff6a1a 0 1.5px, transparent 1.5px 8px) center / 100% 9px no-repeat;
+  min-width: 0;
+  height: 40px;
+  overflow: hidden;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
 }
 
-.ed-tm-time {
-  font-family: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 13px;
-  color: var(--g2);
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-tick {
+  position: absolute;
+  top: 4px;
+  width: 2px;
+  height: 7px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--v-muted);
+  opacity: 0.5;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-tick.long,
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-tick.on {
+  background: var(--v-ink);
+  opacity: 1;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-tick.long {
+  height: 14px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-num {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-needle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 3px;
+  height: 20px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .ed-tm-needle::after {
+  content: "";
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--v-acc);
 }
 
 /* Izin: what macOS says about a permission, white once allowed. */

@@ -8,6 +8,8 @@
   "stop": "Stop",
   "ruler": "Menit",
   "start": "Klik untuk mulai",
+  "left": "menit lagi",
+  "clock": "{h}.{m}",
   "paused": "Jeda",
   "widgets": {
     "strip": "Timer",

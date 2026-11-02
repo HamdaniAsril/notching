@@ -35,6 +35,51 @@ test('the strip has no presets, only the ruler and a dim time', () => {
   expect(root.querySelector('.tm-lab')!.textContent).toBe('Timer');
 });
 
+// The clock time of NOW plus `ms`, "09.41" style, as the strip draws it.
+const clock = (ms: number) => {
+  const d = new Date(NOW + ms);
+  return `${String(d.getHours()).padStart(2, '0')}.${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+test('the strip in the Volt look: the name over the end time, the ruler, "Menit" over the time left', () => {
+  const { root } = mount(IDLE);
+  const row = root.firstElementChild!;
+  expect(row.classList.contains('v-card')).toBe(true);
+  expect([...row.children].map(c => c.className)).toEqual(['tm-lead', 'tm-ruler', 'tm-buttons', 'tm-right']);
+  const lead = row.querySelector('.tm-lead')!;
+  expect(lead.querySelector('.v-lab')!.textContent).toBe('Timer');
+  // Idle: when 5 minutes would end if they started now.
+  expect(lead.querySelector('.v-num')!.textContent).toBe(clock(5 * 60_000));
+  const right = row.querySelector('.tm-right')!;
+  expect(right.querySelector('.v-lab')!.textContent).toBe('Menit');
+  expect(right.querySelector('input.tm-time')).not.toBeNull();
+  expect(root.querySelector('.rd')).toBeNull();
+  expect(root.querySelector('.tm-mark')).not.toBeNull();
+});
+
+test('the strip\'s end time is the clock time the timer runs out; a drag previews it', () => {
+  const { root, pointer, view } = mount(RUNNING);
+  const end = () => root.querySelector('.tm-end')!.textContent;
+  expect(end()).toBe(clock(402_000));
+  view.tick(NOW + 60_000);
+  expect(end()).toBe(clock(402_000));
+  pointer('pointerdown', 100);
+  pointer('pointermove', 60);
+  // 5:42 left counts as 6, and 40 px to the left adds 5: 11 minutes from the frame's now.
+  expect(end()).toBe(clock(60_000 + 11 * 60_000));
+});
+
+test('the strip\'s name is Jeda while paused, and the page has no end time', () => {
+  const { root } = mount(PAUSED);
+  expect(root.querySelector('.tm-lab')!.textContent).toBe('Jeda');
+  expect(root.querySelector('.tm-end')).not.toBeNull();
+  const page = mount(PAUSED, true).root;
+  expect(page.querySelector('.tm-end')).toBeNull();
+  expect(page.querySelector('.tm-lab')!.textContent).toBe('Timer');
+  expect(page.querySelector('.tm-lab')!.classList.contains('lab')).toBe(true);
+  expect(page.querySelector('.v-card')).toBeNull();
+});
+
 test('the Timer page keeps the presets, and one starts at once', () => {
   const { act, button } = mount(IDLE, true);
   button('10m')!.click();
@@ -105,11 +150,12 @@ test('dragging while running restarts at the new value', () => {
   expect(act.start).toHaveBeenCalledWith(12);
 });
 
-test('running shows the red dot, the time left and Jeda/Stop', () => {
+test('running shows the time left and Jeda/Stop, with no red dot on the strip but one on the page', () => {
   const { root, act, button, time, view } = mount(RUNNING);
   expect(time().value).toBe('6:42');
   expect(time().classList.contains('tm-dim')).toBe(false);
-  expect(root.querySelector('.tm-red')).not.toBeNull();
+  expect(root.querySelector('.tm-red')).toBeNull();
+  expect(mount(RUNNING, true).root.querySelector('.tm-red')).not.toBeNull();
   expect(button('3m')).toBeUndefined();
   button('Jeda')!.click();
   expect(act.pause).toHaveBeenCalled();

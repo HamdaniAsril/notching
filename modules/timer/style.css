@@ -1,13 +1,22 @@
-/* The Timer strip and page (2026-10-31-timer-mockups/strip-ruler.html, choice A).
-   Classes start with tm- so they never meet the notch's own. */
+/* The Timer tile and strip in the Volt look (src/kit/volt.css), and the Timer page, which keeps
+   its own look. Classes start with tm- so they never meet the notch's own. The tile's and the
+   strip's rules are scoped to #tm.tm-tile and #tm.tm-strip, so none of them reaches the page. */
 #tm {
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
+/* volt.css sets the fonts and colour of the whole document; the page keeps kit.css's. */
+html:has(.tm-page),
+body:has(.tm-page) {
+  color: var(--w);
+  font-family: "Space Grotesk", -apple-system, "Segoe UI", sans-serif;
+}
+
 #tm.tm-strip {
-  height: 40px;
+  display: block;
+  height: 52px;
 }
 
 #tm.tm-page {
@@ -46,58 +55,215 @@
 }
 
 .wd-tl-btn:focus-visible {
-  outline: 1px solid var(--g2);
-  outline-offset: -1px;
-  border-radius: 8px;
+  outline: 1px solid var(--v-acc);
+  outline-offset: -3px;
+  border-radius: 14px;
 }
 
+/* A flush card: a ring 85 px across with its readout in the middle. The arc is the accent while
+   the timer runs and ink-2 while it waits; idle has no arc. */
 .wd-tl {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.wd-tl-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.wd-tl-track,
+.wd-tl-arc {
+  stroke-width: 2.5;
+}
+
+.wd-tl-track {
+  stroke: var(--v-track);
+}
+
+.wd-tl-arc {
+  stroke: currentColor;
+  stroke-linecap: round;
+  color: var(--v-ink2);
+}
+
+.wd-tl-arc.v-acc {
+  color: var(--v-acc);
+}
+
+.wd-tl-read {
+  position: relative;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  gap: 3px;
+  align-items: center;
+  gap: 1px;
+  max-width: 64px;
 }
 
-.wd-tl-head,
-.wd-tl-foot {
-  display: flex;
-  justify-content: space-between;
+.wd-tl-read .v-lab {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wd-tl-sub {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 12px;
+  color: var(--v-ink2);
+}
+
+/* The strip: the name over the clock time at the left, the ruler, the buttons while a timer
+   runs or waits, and the time left under "Menit" at the right. */
+#tm.tm-strip .tm-row {
+  height: 100%;
+  padding: 0 14px;
+  gap: 14px;
+  flex-direction: row;
   align-items: center;
+}
+
+#tm.tm-strip .tm-lead {
+  flex: none;
+  min-width: 46px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+#tm.tm-strip .tm-lab,
+#tm.tm-strip .tm-status {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+}
+
+#tm.tm-strip .tm-end {
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+#tm.tm-strip .tm-right {
+  flex: none;
+  min-width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+#tm.tm-strip .tm-time {
+  width: 52px;
+  padding: 0;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--v-acc);
+}
+
+#tm.tm-strip .tm-time:hover,
+#tm.tm-strip .tm-time:focus {
+  border-bottom-color: var(--v-faint);
+}
+
+#tm.tm-strip .tm-time.tm-dim {
+  color: var(--v-ink2);
+}
+
+#tm.tm-strip .tm-buttons,
+#tm.tm-strip .tm-chips {
   gap: 6px;
 }
 
-.wd-tl-foot {
-  margin-top: auto;
+#tm.tm-strip .tm-chip {
+  padding: 3px 8px;
+  background: var(--v-track);
+  color: var(--v-ink2);
+  font-family: "Inter", -apple-system, sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
-/* Five ticks, 2 px wide and 4 px apart, which is one minute of a drag; the middle one is white and taller. */
-.wd-tl-ruler {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 14px;
+#tm.tm-strip .tm-chip:first-child {
+  background: var(--v-acc);
+  color: var(--v-on-acc);
 }
 
-.wd-tl-ruler i {
+#tm.tm-strip .tm-chip.tm-ghost {
+  background: var(--v-track);
+  color: var(--v-muted);
+  box-shadow: none;
+}
+
+#tm.tm-strip .tm-chip:hover {
+  filter: brightness(1.15);
+}
+
+/* The ruler: faint ticks, ink at every five and at the minutes already passed, numbers every
+   ten, and the accent needle with its knob where the time is. */
+#tm.tm-strip .tm-ruler {
+  height: 40px;
+}
+
+#tm.tm-strip .tm-tick {
+  top: 4px;
   width: 2px;
-  height: 8px;
+  height: 7px;
+  margin-left: -1px;
   border-radius: 1px;
-  background: var(--g3);
+  background: var(--v-muted);
+  opacity: 0.5;
 }
 
-.wd-tl-ruler i.mid {
+#tm.tm-strip .tm-tick.tm-long,
+#tm.tm-strip .tm-tick.tm-on {
+  background: var(--v-ink);
+  opacity: 1;
+}
+
+#tm.tm-strip .tm-tick.tm-long {
   height: 14px;
-  background: var(--w);
 }
 
-.wd-tl-ruler i.off {
-  visibility: hidden;
+#tm.tm-strip .tm-num {
+  font-family: "Inter", -apple-system, sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
 }
 
-/* Paused: the same as running, a step dimmer. */
-.wd-tl.paused,
-.wd-tl.paused .wd-small {
-  color: var(--g1);
+#tm.tm-strip .tm-mark {
+  top: 0;
+  bottom: auto;
+  width: 3px;
+  height: 20px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--v-acc);
+}
+
+#tm.tm-strip .tm-mark::after {
+  content: "";
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--v-acc);
 }
 
 /* The page: a bigger ruler and time on top (owner, 31 Oct), buttons below. */

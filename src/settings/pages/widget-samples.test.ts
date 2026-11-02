@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
 import type { CatalogWidget } from '../../pages/layout';
+import { widgetSample } from './widget-preview';
 import { packSample } from './widget-samples';
 
 const widget = (ref: string, width = 1): CatalogWidget =>
@@ -117,15 +118,33 @@ test('Napas has its idle state as a sample', () => {
   expect(packSample(widget('fokus/breath'), 'en')![0].querySelector('.wd-br-detail')!.textContent).toBe('4 s · 5 rounds');
 });
 
-test('Timer kecil has its idle state as a sample', () => {
+test('Timer kecil has its idle state as a sample: an empty ring, the name, 25 and "Menit"', () => {
   const id = packSample(widget('timer/tile'), 'id')!;
   expect(id).toHaveLength(1);
-  expect(id[0].textContent).toContain('TIMER');
-  expect(id[0].textContent).toContain('MENIT');
-  expect(id[0].querySelector('.wd-big svg.dm')!.getAttribute('width')).toBe('66');
-  expect(id[0].querySelectorAll('.wd-tl-ruler i')).toHaveLength(5);
-  expect(id[0].querySelector('.wd-tl-head .ic svg')).not.toBeNull();
-  expect(packSample(widget('timer/tile'), 'en')![0].textContent).toContain('MINUTES');
+  expect(id[0].classList.contains('flush')).toBe(true);
+  expect(id[0].querySelector('.v-lab')!.textContent).toBe('Timer');
+  expect(id[0].querySelector('.v-num')!.textContent).toBe('25');
+  expect(id[0].querySelector('.wd-tl-sub')!.textContent).toBe('Menit');
+  expect(id[0].querySelector('svg.wd-tl-ring .wd-tl-track')).not.toBeNull();
+  expect(id[0].querySelector('.wd-tl-arc')).toBeNull();
+  expect(packSample(widget('timer/tile'), 'en')![0].querySelector('.wd-tl-sub')!.textContent).toBe('Minutes');
+});
+
+test('the Timer strip\'s picture is the Volt strip: name over end time, ruler, "Menit" over 30:00', () => {
+  const [id] = widgetSample(widget('timer/strip', 4), 'id');
+  expect(id.classList.contains('v-card')).toBe(true);
+  expect(id.querySelector('.ed-tm-left .v-lab')!.textContent).toBe('Timer');
+  expect(id.querySelector('.ed-tm-left .v-num')!.textContent).toBe('17.30');
+  expect(id.querySelectorAll('.ed-tm-tick')).toHaveLength(60);
+  expect(id.querySelectorAll('.ed-tm-tick.long')).toHaveLength(12);
+  expect(id.querySelectorAll('.ed-tm-tick.on')).toHaveLength(24);
+  expect([...id.querySelectorAll('.ed-tm-num')].map(n => n.textContent)).toEqual(['10', '20', '30', '40', '50', '60']);
+  expect(id.querySelector('.ed-tm-needle')).not.toBeNull();
+  expect(id.querySelector('.ed-tm-right .v-lab')!.textContent).toBe('Menit');
+  expect(id.querySelector('.ed-tm-right .v-num.v-acc')!.textContent).toBe('30:00');
+  const [en] = widgetSample(widget('timer/strip', 4), 'en');
+  expect(en.querySelector('.ed-tm-left .v-num')!.textContent).toBe('17:30');
+  expect(en.querySelector('.ed-tm-right .v-lab')!.textContent).toBe('Minutes');
 });
 
 test('other widgets are not a pack sample', () => {
