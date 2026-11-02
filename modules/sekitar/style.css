@@ -1,4 +1,6 @@
-/* Sekitar: each widget fills its frame, which the notch sizes to its columns and 104 px. */
+/* Sekitar in the Volt look (src/kit/volt.css): each widget is a .v-card that fills its frame,
+   which the notch sizes to its columns and 104 px, or 52 px for the strip. A frame is 109 px
+   wide for one column and 234 px for two; the card's 12 px padding leaves 85 and 210 by 80. */
 #card {
   height: 100%;
 }
@@ -9,141 +11,153 @@ body {
   overflow: hidden;
 }
 
-.wd {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  gap: 6px;
-}
-
-.wd-big {
-  min-height: 42px;
-}
-
-/* Cuaca besar: the city, the temperature and the sky at the left, the icon and the range at the right. */
+/* Cuaca besar: the city, the temperature at 54 px and the sky at the left; the sky's icon in the
+   accent over the high and low at the right. City 12, temperature 49 and sky 13 make 74 of 80. */
 .wd-bigweather {
   flex-direction: row;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
-.wd-bw-left {
+.wd-bw-main {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
 }
 
-.wd-bw-left .lab {
+.wd-bw-city {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.wd-bw-sky {
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--g1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.wd-bw-temp {
+  line-height: 0.9;
 }
 
-.wd-bw-right {
+.wd-bw-sky {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink2);
+}
+
+.wd-bw-side {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.wd-bw-icon {
+  display: flex;
+}
+
+.wd-bw-icon svg {
+  stroke-width: 1.75;
+}
+
+.wd-bw-range {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  white-space: nowrap;
 }
 
-.wd-bw-right .ic {
-  margin-bottom: auto;
+.wd-bw-high {
+  color: var(--v-ink2);
 }
 
-/* Bulan: the phase on top, the moon and the percent, the days to the next full or new moon. */
+.wd-bw-low {
+  color: var(--v-muted);
+}
+
+/* Bulan: the moon in its halo near the top, the phase and percent in Barlow and the days to the
+   next full or new moon, centred in the whole card. The moon is 52 px from 5, the title 14 from 73
+   and the sub 11 from 88, so all of it ends at 99 of 104. */
 .wd-moon {
-  justify-content: space-between;
-  gap: 4px;
+  align-items: center;
+  min-width: 0;
 }
 
-.wd-moon > .lab {
+.wd-moon-box {
+  flex: none;
+  margin-top: 5px;
+}
+
+.wd-moon-box svg {
   display: block;
+}
+
+.wd-moon-title,
+.wd-moon-sub {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 0 4px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
-.wd-moon-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.wd-moon-title {
+  margin-top: 16px;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 14px;
+  color: var(--v-ink);
 }
 
-.wd-moon-box,
-.wd-moon-disk {
-  display: block;
-  flex: none;
+.wd-moon-sub {
+  margin-top: 1px;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
 }
 
-.wd-moon-pct {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.wd-moon-pct .lab {
-  line-height: 12px;
-}
-
-.wd-moon-pct .wd-big {
-  min-height: 0;
-}
-
-/* The days may take two lines, the dot staying on the first. Stack at the big pitch: label 14,
-   number 42 + "%" 12, two lines 24 and two gaps of 4 make 100 px of the 104. */
-.wd-moon-foot {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  min-width: 0;
-}
-
-.wd-moon-foot .rd {
-  margin-top: 3px;
-}
-
-.wd-moon-foot .lab {
-  display: block;
-  min-width: 0;
-  white-space: normal;
-  line-height: 12px;
-}
-
-/* Matahari: the label and the time left on top, the arc of the day, the two times below. */
+/* Matahari: the label and the time left on top, the arc of the day, the two times below. Top 12,
+   arc 38 and times 16 make 66 of 80. */
 .wd-sun {
   justify-content: space-between;
-  gap: 4px;
+  min-width: 0;
 }
 
 .wd-sun-top {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 8px;
+  line-height: 12px;
 }
 
 .wd-sun-eta {
-  display: block;
   min-width: 0;
-}
-
-.wd-sun-n {
-  color: var(--w);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--v-muted);
 }
 
 .wd-sun-box {
   align-self: center;
   flex: none;
-  height: 40px;
+  height: 38px;
 }
 
 .wd-sun-box svg {
@@ -159,109 +173,163 @@ body {
 
 .wd-sun-side {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  gap: 4px;
 }
 
-.wd-sun-side:last-child {
-  align-items: flex-end;
+.wd-sun-side .v-lab {
+  font-size: 9px;
+  font-weight: 500;
 }
 
-.wd-sun-side .lab {
-  line-height: 12px;
-}
-
-/* Cuaca per jam: 40 px, two lines of 12 px with 4 between. Across 484 px: the label 54, the rain
-   at most 80, two gaps of 10 and eight cells of up to 41 (icon 12, gap 3, four characters at 6.4). */
+/* Cuaca per jam: the label over the temperature now at the left, eight cells in the middle (hour,
+   icon, temperature: 10, 12 and 11 px with 2 between, 37 of the 52), the rain or the day's range at
+   the right. Across 484 px: left 55, right at least 67, eight cells of 30 with 6 between. */
 .wd-hourly {
-  display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  height: 100%;
+  padding: 0 12px;
+  min-width: 0;
 }
 
 .wd-hr-left {
   flex: none;
-  width: 54px;
+  min-width: 55px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+}
+
+.wd-hr-left .v-lab {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
 }
 
 .wd-hr-cells {
-  flex: 1;
-  min-width: 0;
+  flex: none;
   display: flex;
-  justify-content: space-between;
+  gap: 6px;
 }
 
 .wd-hr-cell {
-  flex: none;
+  width: 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  color: var(--g1);
+  gap: 2px;
 }
 
-.wd-hr-cell.now {
-  color: var(--w);
-}
-
-.wd-hr-cell.now .ic {
-  color: var(--red);
-}
-
-.wd-hr-top {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.wd-hourly .lab {
-  line-height: 12px;
-}
-
-.wd-hr-t {
-  letter-spacing: 0.04em;
-}
-
-.wd-hr-t,
 .wd-hr-h {
-  color: inherit;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 10px;
+  color: var(--v-muted);
+}
+
+.wd-hr-cell.now .wd-hr-h {
+  font-weight: 600;
+  color: var(--v-ink);
+}
+
+.wd-hr-icon {
+  display: flex;
+  color: var(--v-ink2);
+}
+
+.wd-hr-icon.v-acc {
+  color: var(--v-acc);
+}
+
+.wd-hr-icon svg {
+  stroke-width: 1.75;
 }
 
 .wd-hr-right {
   flex: none;
-  min-width: 80px;
-  justify-content: flex-end;
+  min-width: 67px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  white-space: nowrap;
 }
 
-/* Udara: the label and the wind on top, the number in dots, the band (two lines at most) and the
-   six band dots. Stack: label 14, number 42, band 24, dots 7 and three gaps of 4 make 99 px of the 104. */
+.wd-hr-rain,
+.wd-hr-high {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 14px;
+}
+
+.wd-hr-high {
+  color: var(--v-ink);
+}
+
+.wd-hr-sub {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+.wd-hr-empty {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  color: var(--v-muted);
+}
+
+/* Udara: the label, the number at 45 px with "AQI" beside it, five segments and the advice. Label
+   12, number 41, and segments, a gap of 6 and advice 13 make 74 of 80. */
 .wd-air {
   justify-content: space-between;
+  min-width: 0;
+}
+
+.wd-air-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wd-air-value {
+  display: flex;
+  align-items: baseline;
   gap: 4px;
 }
 
-.wd-air-top {
+.wd-air-value .v-num {
+  line-height: 0.9;
+}
+
+.wd-air-unit {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--v-muted);
+}
+
+.wd-air-foot {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
-}
-
-.wd-air-top .ic {
-  color: var(--g2);
-}
-
-.wd-air .wd-big {
-  min-height: 0;
-}
-
-.wd-air-band {
-  display: block;
   min-width: 0;
-  white-space: normal;
-  line-height: 12px;
+}
+
+.wd-air-segs .v-seg {
+  border-radius: 2px;
+}
+
+.wd-air-advice {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink);
 }

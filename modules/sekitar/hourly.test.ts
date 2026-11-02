@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { isNight, rainAt, upcoming } from './hourly';
+import { isNight, isWet, rainAt, rainHours, upcoming } from './hourly';
 
 // Local times, so the test reads the same in any zone.
 const t = (d: number, h: number, m = 0) => new Date(2026, 9, d, h, m).getTime();
@@ -48,4 +48,22 @@ test('isNight follows the sun times, carried to the day of the hour', () => {
   expect(isNight(sun, t(28, 22))).toBe(true);
   expect(isNight(sun, t(28, 2))).toBe(true);
   expect(isNight(null, t(27, 22))).toBe(false);
+});
+
+test('rainHours counts the hours in a row from the start with 50 percent or more', () => {
+  const hours = day(h => (h === 16 || h === 17 ? 60 : h === 18 ? 49 : h === 20 ? 90 : 0));
+  expect(rainHours(hours, t(27, 16))).toBe(2);
+  expect(rainHours(hours, t(27, 17))).toBe(1);
+  expect(rainHours(day(h => (h >= 20 ? 80 : 0)), t(27, 20))).toBe(4);
+});
+
+test('rainHours is 0 when the start is not a wet hour of the data', () => {
+  expect(rainHours(day(() => 0), t(27, 16))).toBe(0);
+  expect(rainHours(day(() => 90), t(28, 3))).toBe(0);
+  expect(rainHours([], t(27, 16))).toBe(0);
+});
+
+test('isWet is 50 percent or more', () => {
+  expect(isWet({ at: 0, temp: 20, code: 61, rain: 50 })).toBe(true);
+  expect(isWet({ at: 0, temp: 20, code: 61, rain: 49 })).toBe(false);
 });

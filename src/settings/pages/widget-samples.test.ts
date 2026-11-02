@@ -38,35 +38,52 @@ test('Kalender, Hari ke- and Minggu ini have samples', () => {
 test('Cuaca besar and Bulan have samples', () => {
   const wx = packSample(widget('sekitar/bigweather', 2), 'id')!;
   expect(wx).toHaveLength(1);
-  expect(wx[0].querySelector('svg.dm')).not.toBeNull();
-  expect(wx[0].textContent).toContain('Jakarta');
-  expect(wx[0].textContent).toContain('T 33°');
-  expect(wx[0].querySelector('.ic svg')).not.toBeNull();
+  expect(wx[0].classList.contains('v-card')).toBe(true);
+  expect(wx[0].querySelector('.v-num')!.textContent).toBe('31°');
+  expect(wx[0].querySelector('.wd-bw-city')!.textContent).toBe('Jakarta');
+  expect(wx[0].querySelector('.wd-bw-sky')!.textContent).toBe('Berawan');
+  expect(wx[0].querySelector('.wd-bw-high')!.textContent).toBe('Tertinggi 33°');
+  expect(wx[0].querySelector('.v-acc .ic svg')).not.toBeNull();
   const moon = packSample(widget('sekitar/moon'), 'en')!;
   expect(moon).toHaveLength(1);
-  expect(moon[0].querySelector('.lab')!.textContent).toBe('GIBBOUS');
+  expect(moon[0].classList.contains('flush')).toBe(true);
+  expect(moon[0].querySelector('.wd-moon-title')!.textContent).toBe('Gibbous 80%');
+  expect(moon[0].querySelector('.wd-moon-sub')!.textContent).toBe('New in 10 days');
   expect(moon[0].querySelector('svg.wd-moon-disk')).not.toBeNull();
-  expect(moon[0].querySelector('.wd-big svg.dm')).not.toBeNull();
 });
 
 test('Cuaca per jam has a sample with the rainy afternoon', () => {
   const hr = packSample(widget('sekitar/hourly', 4), 'id')!;
   expect(hr).toHaveLength(1);
+  expect(hr[0].classList.contains('v-card')).toBe(true);
   expect(hr[0].querySelectorAll('.wd-hr-cell')).toHaveLength(8);
-  expect(hr[0].querySelector('.wd-hr-left .lab')!.textContent).toBe('PER JAM');
-  expect(hr[0].querySelector('.wd-hr-right')!.textContent).toBe('HUJAN 15.00');
+  expect(hr[0].querySelector('.wd-hr-left .v-lab')!.textContent).toBe('Per jam');
+  expect(hr[0].querySelector('.wd-hr-cell.now .wd-hr-h')!.textContent).toBe('Kini');
+  expect(hr[0].querySelector('.wd-hr-rain')!.textContent).toBe('Hujan 15.00');
+  expect(hr[0].querySelector('.wd-hr-sub')!.textContent).toBe('Selama 4 jam');
   const en = packSample(widget('sekitar/hourly', 4), 'en')!;
-  expect(en[0].querySelector('.wd-hr-right')!.textContent).toBe('RAIN 3 PM');
+  expect(en[0].querySelector('.wd-hr-rain')!.textContent).toBe('Rain 15:00');
+  expect(en[0].querySelector('.wd-hr-sub')!.textContent).toBe('For 4 h');
 });
 
 test('Matahari has a sample', () => {
   const sun = packSample(widget('sekitar/sun', 2), 'id')!;
   expect(sun).toHaveLength(1);
-  expect(sun[0].querySelector('.lab')!.textContent).toBe('MATAHARI');
-  expect(sun[0].textContent).toContain('8J 13M');
-  expect(sun[0].textContent).toContain('LAGI');
+  expect(sun[0].classList.contains('v-card')).toBe(true);
+  expect(sun[0].querySelector('.wd-sun-top .v-lab')!.textContent).toBe('Matahari');
+  expect(sun[0].querySelector('.wd-sun-eta')!.textContent).toBe('Terbenam 8 j 13 m lagi');
   expect(sun[0].querySelector('svg.wd-sun-arc')).not.toBeNull();
-  expect(sun[0].querySelectorAll('.wd-sun-foot svg.dm')).toHaveLength(2);
+  expect([...sun[0].querySelectorAll('.wd-sun-foot .v-num')].map(n => n.textContent)).toEqual(['05.28', '17.45']);
+});
+
+test('Udara has a sample', () => {
+  const air = packSample(widget('sekitar/air'), 'id')!;
+  expect(air).toHaveLength(1);
+  expect(air[0].classList.contains('v-card')).toBe(true);
+  expect(air[0].querySelector('.wd-air-label')!.textContent).toBe('Kualitas udara');
+  expect(air[0].querySelector('.v-num')!.textContent).toBe('42');
+  expect(air[0].querySelectorAll('.v-seg.on')).toHaveLength(1);
+  expect(air[0].querySelector('.wd-air-advice')!.textContent).toBe('Baik untuk lari');
 });
 
 test('Pekan ini and Berikutnya have samples', () => {

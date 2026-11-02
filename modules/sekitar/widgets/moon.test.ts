@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test } from 'vitest';
-import { dotWidth } from '../../../src/kit/dots';
 import { host } from '../../home/widgets/fixtures';
 import en from '../locales/en.json';
 import id from '../locales/id.json';
@@ -13,33 +12,42 @@ const NEW = new Date(Date.UTC(2026, 10, 9, 7, 2));
 const DAY = 24 * 3_600_000;
 const WANING = new Date(Date.UTC(2026, 10, 2, 12, 0));
 
-test('at full moon the number is 100 and fits beside the moon', () => {
+test('the card is flush and holds the moon, the phase with its percent and the days to the next', () => {
+  const root = host();
+  renderMoon(root, id, 'id').update(new Date(Date.UTC(2026, 10, 21, 12, 0)));
+  const card = root.querySelector('.wd-moon')!;
+  expect(card.classList.contains('v-card')).toBe(true);
+  expect(card.classList.contains('flush')).toBe(true);
+  expect(card.querySelector('svg.wd-moon-disk')).not.toBeNull();
+  expect(card.querySelector('.wd-moon-title')!.textContent).toMatch(/^Cembung \d+%$/);
+  expect(card.querySelector('.wd-moon-sub')!.textContent).toBe('Purnama 3 hari lagi');
+  expect(card.querySelector('svg.dm')).toBeNull();
+  expect(card.querySelector('.rd')).toBeNull();
+});
+
+test('at full moon the title is 100% and the sub says today', () => {
   const root = host();
   renderMoon(root, id, 'id').update(FULL);
-  const svg = root.querySelector('.wd-big svg.dm')!;
-  const w = Number(svg.getAttribute('width'));
-  expect(w).toBeLessThanOrEqual(109 - 40);
-  // 100 does not fit at 6, 5 is still too wide, so it is 4.
-  expect(w).toBe(dotWidth('100', 4));
-  expect(root.querySelector('.lab')!.textContent).toBe('PURNAMA');
-  expect(root.textContent).toContain('Hari ini');
+  expect(root.querySelector('.wd-moon-title')!.textContent).toBe('Purnama 100%');
+  expect(root.querySelector('.wd-moon-sub')!.textContent).toBe('Hari ini');
 });
 
-test('a smaller number keeps the big pitch', () => {
+test('English names the phase and counts the days', () => {
   const root = host();
   renderMoon(root, en, 'en').update(WANING);
-  const lit = root.querySelector('.wd-big svg.dm')!;
-  expect(lit.getAttribute('width')).toBe(String(dotWidth('43', 6)));
-  expect(root.querySelector('.lab')!.textContent).toBe('HALF');
-  expect(root.textContent).toContain('New in 7 days');
+  expect(root.querySelector('.wd-moon-title')!.textContent).toBe('Half 43%');
+  expect(root.querySelector('.wd-moon-sub')!.textContent).toBe('New in 7 days');
 });
 
-test('the moon is a disk with a lit part, mirrored when waning', () => {
+test('the moon has a halo, a dark disk and a lit part, mirrored when waning', () => {
   const waxing = host();
   renderMoon(waxing, id, 'id').update(new Date(Date.UTC(2026, 10, 15, 12, 0)));
   const waning = host();
   renderMoon(waning, id, 'id').update(WANING);
-  expect(waxing.querySelector('svg.wd-moon-disk')!.getAttribute('width')).toBe('34');
+  const svg = waxing.querySelector('svg.wd-moon-disk')!;
+  expect(svg.getAttribute('width')).toBe('52');
+  expect(svg.querySelectorAll('circle')).toHaveLength(2);
+  expect(svg.querySelector('path')!.getAttribute('style')).toContain('--v-ink');
   expect(waxing.querySelector('svg.wd-moon-disk g')!.getAttribute('transform')).toBeNull();
   expect(waning.querySelector('svg.wd-moon-disk g')!.getAttribute('transform')).toContain('scale(-1');
 });
@@ -48,36 +56,24 @@ test('the footer counts to the sooner of full and new', () => {
   const root = host();
   const w = renderMoon(root, id, 'id');
   w.update(new Date(Date.UTC(2026, 10, 12, 12, 0)));
-  expect(root.textContent).toContain('Purnama 12 hari');
+  expect(root.querySelector('.wd-moon-sub')!.textContent).toBe('Purnama 12 hari lagi');
   w.update(NEW);
-  expect(root.textContent).toContain('Hari ini');
-  expect(root.querySelector('.rd')).not.toBeNull();
+  expect(root.querySelector('.wd-moon-sub')!.textContent).toBe('Hari ini');
 });
 
 test('a single day reads in the singular in English', () => {
   const root = host();
   const w = renderMoon(root, en, 'en');
   w.update(new Date(NEW.getTime() - DAY));
-  expect(root.querySelector('.wd-moon-foot .lab')!.textContent).toBe('New in 1 day');
+  expect(root.querySelector('.wd-moon-sub')!.textContent).toBe('New in 1 day');
   w.update(new Date(FULL.getTime() - DAY));
-  expect(root.querySelector('.wd-moon-foot .lab')!.textContent).toBe('Full in 1 day');
+  expect(root.querySelector('.wd-moon-sub')!.textContent).toBe('Full in 1 day');
   renderMoon(root, id, 'id').update(new Date(NEW.getTime() - DAY));
-  expect(root.querySelector('.wd-moon-foot .lab')!.textContent).toBe('Bulan baru 1 hari');
+  expect(root.querySelector('.wd-moon-sub')!.textContent).toBe('Baru 1 hari lagi');
 });
 
-test('the longest footer is whole text, and may wrap', async () => {
+test('the longest sub is the new-moon one in Indonesian', () => {
   const root = host();
-  renderMoon(root, id, 'id').update(new Date(Date.UTC(2026, 10, 12, 12, 0)));
-  expect(root.querySelector('.wd-moon-foot .lab')!.textContent).toBe('Purnama 12 hari');
   renderMoon(root, id, 'id').update(new Date(Date.UTC(2026, 10, 27, 12, 0)));
-  expect(root.querySelector('.wd-moon-foot .lab')!.textContent).toBe('Bulan baru 11 hari');
-  // The module's CSS lets the footer label wrap: no ellipsis, no nowrap. Vitest blanks a
-  // stylesheet imported as text, so the file is read from disk (vitest runs from the repo root).
-  // @ts-expect-error no @types/node in this project
-  const { readFileSync } = await import('node:fs');
-  const css: string = readFileSync('modules/sekitar/style.css', 'utf8');
-  const rule = /\.wd-moon-foot \.lab \{([^}]*)\}/.exec(css)![1];
-  expect(rule).toContain('white-space: normal');
-  expect(rule).not.toContain('nowrap');
-  expect(rule).not.toContain('ellipsis');
+  expect(root.querySelector('.wd-moon-sub')!.textContent).toBe('Baru 11 hari lagi');
 });

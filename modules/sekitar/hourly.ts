@@ -12,11 +12,24 @@ export function upcoming(hours: Hour[], nowMs: number, n = 8): Hour[] {
   return hours.filter(h => h.at > nowMs - HOUR_MS).slice(0, n);
 }
 
+// Whether an hour has a 50 percent chance of rain or more.
+export const isWet = (h: Hour): boolean => h.rain >= RAIN_AT;
+
 // The start of the first hour in the next 12 hours with a 50 percent chance of rain or more,
 // the current one included; null when there is none.
 export function rainAt(hours: Hour[], nowMs: number): number | null {
-  const wet = hours.find(h => h.at > nowMs - HOUR_MS && h.at <= nowMs + RAIN_WITHIN_MS && h.rain >= RAIN_AT);
+  const wet = hours.find(h => h.at > nowMs - HOUR_MS && h.at <= nowMs + RAIN_WITHIN_MS && isWet(h));
   return wet ? wet.at : null;
+}
+
+// How many hours in a row, from the hour starting at `startMs`, are wet; 0 when that hour is not
+// in the data or not wet.
+export function rainHours(hours: Hour[], startMs: number): number {
+  const from = hours.findIndex(h => h.at === startMs);
+  if (from < 0) return 0;
+  let n = 0;
+  while (from + n < hours.length && isWet(hours[from + n])) n++;
+  return n;
 }
 
 // Whether the sun is down at `atMs`. The sun times are today's: an hour of another day is judged

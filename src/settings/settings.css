@@ -1628,286 +1628,335 @@ body > .ed-ghost {
   color: var(--v-muted);
 }
 
-/* Cuaca besar and Bulan: the same rules as modules/sekitar/style.css, scoped to the slot and
-   the picker card. */
-.ed-slot .wd-bigweather,
-.ed-shot .wd-bigweather {
-  flex: 1;
-  min-height: 0;
-  display: flex;
+/* Sekitar (Cuaca besar, Bulan, Matahari, Udara, Cuaca per jam): the same rules as
+   modules/sekitar/style.css, scoped to the slot, the picture and the strip. The picture's own
+   padding stands for the card's, and the strip's is 0 12px. */
+
+/* Cuaca besar: the city, the temperature at 54 px and the sky at the left; the sky's icon in the
+   accent over the high and low at the right. City 12, temperature 49 and sky 13 make 74 of 80. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bigweather {
   flex-direction: row;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
-.ed-slot .wd-bw-left,
-.ed-shot .wd-bw-left {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-main {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
 }
 
-.ed-slot .wd-bw-sky,
-.ed-shot .wd-bw-sky {
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--g1);
-  white-space: nowrap;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-city {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.ed-slot .wd-bw-right,
-.ed-shot .wd-bw-right {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-temp {
+  line-height: 0.9;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-sky {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-side {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-icon {
+  display: flex;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-icon svg {
+  stroke-width: 1.75;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-range {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  white-space: nowrap;
 }
 
-.ed-slot .wd-bw-right .ic,
-.ed-shot .wd-bw-right .ic {
-  margin-bottom: auto;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-high {
+  color: var(--v-ink2);
 }
 
-.ed-slot .wd-moon,
-.ed-shot .wd-moon {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 4px;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-bw-low {
+  color: var(--v-muted);
 }
 
-.ed-slot .wd-moon-row,
-.ed-shot .wd-moon-row {
-  display: flex;
+/* Bulan: the moon in its halo near the top, the phase and percent in Barlow and the days to the
+   next full or new moon, centred in the whole card. The moon is 52 px from 5, the title 14 from 73
+   and the sub 11 from 88, so all of it ends at 99 of 104. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-moon {
   align-items: center;
-  gap: 6px;
+  min-width: 0;
 }
 
-.ed-slot .wd-moon-box,
-.ed-slot .wd-moon-disk,
-.ed-shot .wd-moon-box,
-.ed-shot .wd-moon-disk {
-  display: block;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-moon-box {
   flex: none;
+  margin-top: 5px;
 }
 
-.ed-slot .wd-moon-pct,
-.ed-shot .wd-moon-pct {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.ed-slot .wd-moon-pct .lab,
-.ed-shot .wd-moon-pct .lab {
-  line-height: 12px;
-}
-
-.ed-slot .wd-moon-foot,
-.ed-shot .wd-moon-foot {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  min-width: 0;
-}
-
-.ed-slot .wd-moon-foot .rd,
-.ed-shot .wd-moon-foot .rd {
-  margin-top: 3px;
-}
-
-/* The days wrap rather than end in an ellipsis. */
-.ed-slot .wd-moon-foot .lab,
-.ed-shot .wd-moon-foot .lab {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  line-height: 12px;
-}
-
-/* Matahari: the same rules as modules/sekitar/style.css, scoped to the slot and the picker card. */
-.ed-slot .wd-sun,
-.ed-shot .wd-sun {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-.ed-slot .wd-sun-top,
-.ed-shot .wd-sun-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.ed-slot .wd-sun-eta,
-.ed-shot .wd-sun-eta {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-moon-box svg {
   display: block;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-moon-title,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-moon-sub {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-moon-title {
+  margin-top: 16px;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 14px;
+  color: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-moon-sub {
+  margin-top: 1px;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+/* Matahari: the label and the time left on top, the arc of the day, the two times below. Top 12,
+   arc 38 and times 16 make 66 of 80. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-sun {
+  justify-content: space-between;
   min-width: 0;
 }
 
-.ed-slot .wd-sun-n,
-.ed-shot .wd-sun-n {
-  color: var(--w);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-sun-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  line-height: 12px;
 }
 
-.ed-slot .wd-sun-box,
-.ed-shot .wd-sun-box {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-sun-eta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-sun-box {
   align-self: center;
   flex: none;
-  height: 40px;
+  height: 38px;
 }
 
-.ed-slot .wd-sun-box svg,
-.ed-shot .wd-sun-box svg {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-sun-box svg {
   display: block;
 }
 
-.ed-slot .wd-sun-foot,
-.ed-shot .wd-sun-foot {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-sun-foot {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 8px;
 }
 
-.ed-slot .wd-sun-side,
-.ed-shot .wd-sun-side {
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-sun-side {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-sun-side .v-lab {
+  font-size: 9px;
+  font-weight: 500;
+}
+
+/* Cuaca per jam: the label over the temperature now at the left, eight cells in the middle (hour,
+   icon, temperature: 10, 12 and 11 px with 2 between, 37 of the 52), the rain or the day's range at
+   the right. Across 484 px: left 55, right at least 67, eight cells of 30 with 6 between. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hourly {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-left {
+  flex: none;
+  min-width: 55px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.ed-slot .wd-sun-side:last-child,
-.ed-shot .wd-sun-side:last-child {
-  align-items: flex-end;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-left .v-lab {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
 }
 
-.ed-slot .wd-sun-side .lab,
-.ed-shot .wd-sun-side .lab {
-  line-height: 12px;
-}
-
-/* Udara: the same rules as modules/sekitar/style.css, scoped to the slot and the picker card. */
-.ed-slot .wd-air,
-.ed-shot .wd-air {
-  flex: 1;
-  min-height: 0;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-cells {
+  flex: none;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-.ed-slot .wd-air-top,
-.ed-shot .wd-air-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 6px;
 }
 
-.ed-slot .wd-air-top .ic,
-.ed-shot .wd-air-top .ic {
-  color: var(--g2);
-}
-
-/* The band wraps rather than ending in an ellipsis. */
-.ed-slot .wd-air-band,
-.ed-shot .wd-air-band {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  line-height: 12px;
-}
-
-/* Cuaca per jam: the same rules as modules/sekitar/style.css, scoped to the slot and the picker card. */
-.ed-strip .wd-hourly,
-.ed-shot .wd-hourly {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 100%;
-}
-
-.ed-strip .wd-hr-left,
-.ed-shot .wd-hr-left {
-  flex: none;
-  width: 54px;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-cell {
+  width: 30px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 2px;
 }
 
-.ed-strip .wd-hr-cells,
-.ed-shot .wd-hr-cells {
-  flex: 1;
-  min-width: 0;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-h {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 10px;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-cell.now .wd-hr-h {
+  font-weight: 600;
+  color: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-icon {
   display: flex;
+  color: var(--v-ink2);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-icon.v-acc {
+  color: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-icon svg {
+  stroke-width: 1.75;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-right {
+  flex: none;
+  min-width: 67px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-rain,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-high {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 14px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-high {
+  color: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-sub {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-hr-empty {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  color: var(--v-muted);
+}
+
+/* Udara: the label, the number at 45 px with "AQI" beside it, five segments and the advice. Label
+   12, number 41, and segments, a gap of 6 and advice 13 make 74 of 80. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-air {
   justify-content: space-between;
+  min-width: 0;
 }
 
-.ed-strip .wd-hr-cell,
-.ed-shot .wd-hr-cell {
-  flex: none;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-air-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-air-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-air-value .v-num {
+  line-height: 0.9;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-air-unit {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-air-foot {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: var(--g1);
+  gap: 6px;
+  min-width: 0;
 }
 
-.ed-strip .wd-hr-cell.now,
-.ed-shot .wd-hr-cell.now {
-  color: var(--w);
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-air-segs .v-seg {
+  border-radius: 2px;
 }
 
-.ed-strip .wd-hr-cell.now .ic,
-.ed-shot .wd-hr-cell.now .ic {
-  color: var(--red);
-}
-
-.ed-strip .wd-hr-top,
-.ed-shot .wd-hr-top {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.ed-strip .wd-hourly .lab,
-.ed-shot .wd-hourly .lab {
-  display: flex;
-  line-height: 12px;
-}
-
-.ed-strip .wd-hr-t,
-.ed-shot .wd-hr-t {
-  letter-spacing: 0.04em;
-}
-
-.ed-strip .wd-hr-t,
-.ed-shot .wd-hr-t,
-.ed-strip .wd-hr-h,
-.ed-shot .wd-hr-h {
-  color: inherit;
-}
-
-.ed-strip .wd-hr-right,
-.ed-shot .wd-hr-right {
-  flex: none;
-  min-width: 80px;
-  justify-content: flex-end;
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-air-advice {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 13px;
+  color: var(--v-ink);
 }
 
 /* Pekan ini and Berikutnya: the same rules as modules/rencana/style.css, scoped to the slot

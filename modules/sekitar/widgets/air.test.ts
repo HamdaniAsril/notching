@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test } from 'vitest';
-import { dotWidth } from '../../../src/kit/dots';
 import { host, SNAP } from '../../home/widgets/fixtures';
 import en from '../locales/en.json';
 import id from '../locales/id.json';
@@ -10,6 +9,7 @@ afterEach(() => { document.body.innerHTML = ''; });
 
 const withAir = (aqi: number) => ({ ...SNAP, air: { aqi, fetchedAt: 0 } });
 const NOW = new Date(2026, 9, 27, 12, 0);
+const lit = (root: HTMLElement) => [...root.querySelectorAll('.v-seg')].map(s => s.classList.contains('on'));
 
 test('the US AQI bands', () => {
   expect([0, 42, 50].map(aqiBand)).toEqual([0, 0, 0]);
@@ -20,40 +20,50 @@ test('the US AQI bands', () => {
   expect([301, 500].map(aqiBand)).toEqual([5, 5]);
 });
 
-test('42 reads Baik, in dots at the big pitch, with the first dot red', () => {
+test('42 reads the label, the number with AQI, one lit segment of five and the advice', () => {
   const root = host();
   renderAir(root, id, 'id').update(withAir(42), NOW);
-  expect(root.querySelector('svg.dm')!.getAttribute('width')).toBe(String(dotWidth('42', 6)));
-  expect(root.querySelector('.lab')!.textContent).toBe('UDARA · AQI');
-  expect(root.textContent).toContain('Baik');
-  expect(root.querySelector('.ic svg')).not.toBeNull();
-  const dots = [...root.querySelectorAll('.wd-row .d')];
-  expect(dots).toHaveLength(6);
-  expect(dots.map(d => d.className)).toEqual(['d now', 'd', 'd', 'd', 'd', 'd']);
+  expect(root.querySelector('.wd-air')!.classList.contains('v-card')).toBe(true);
+  expect(root.querySelector('.wd-air-label')!.textContent).toBe('Kualitas udara');
+  const n = root.querySelector<HTMLElement>('.v-num')!;
+  expect(n.textContent).toBe('42');
+  expect(n.style.fontSize).toBe('45px');
+  expect(root.querySelector('.wd-air-unit')!.textContent).toBe('AQI');
+  expect(root.querySelectorAll('.v-seg')).toHaveLength(5);
+  expect(lit(root)).toEqual([true, false, false, false, false]);
+  expect(root.querySelector('.wd-air-advice')!.textContent).toBe('Baik untuk lari');
+  expect(root.querySelector('svg.dm')).toBeNull();
 });
 
-test('a worse band lights the dots below it', () => {
+test('a worse band lights more segments and changes the advice', () => {
   const root = host();
   renderAir(root, en, 'en').update(withAir(151), NOW);
-  expect(root.querySelector('.lab')!.textContent).toBe('AIR · AQI');
-  expect(root.textContent).toContain('Unhealthy');
-  expect([...root.querySelectorAll('.wd-row .d')].map(d => d.className)).toEqual(['d lit', 'd lit', 'd lit', 'd now', 'd', 'd']);
+  expect(root.querySelector('.wd-air-label')!.textContent).toBe('Air quality');
+  expect(lit(root)).toEqual([true, true, true, true, false]);
+  expect(root.querySelector('.wd-air-advice')!.textContent).toBe('Wear a mask');
   renderAir(root, id, 'id').update(withAir(480), NOW);
-  expect(root.textContent).toContain('Berbahaya');
-  expect([...root.querySelectorAll('.wd-row .d')].map(d => d.className)).toEqual(['d lit', 'd lit', 'd lit', 'd lit', 'd lit', 'd now']);
+  expect(lit(root)).toEqual([true, true, true, true, true]);
+  expect(root.querySelector('.wd-air-advice')!.textContent).toBe('Tetap di dalam');
 });
 
-test('500 fits the one-column frame', () => {
+test('every band has advice in both languages, and the segments grow with the band', () => {
+  expect(id.airAdvice).toHaveLength(6);
+  expect(en.airAdvice).toHaveLength(6);
+  expect(id.airAdvice[0]).toBe('Baik untuk lari');
+  expect(en.airAdvice[0]).toBe('Good for a run');
+  const root = host();
+  const w = renderAir(root, id, 'id');
+  const counts = [30, 80, 120, 180, 250, 400].map(aqi => {
+    w.update(withAir(aqi), NOW);
+    return lit(root).filter(Boolean).length;
+  });
+  expect(counts).toEqual([1, 2, 3, 4, 5, 5]);
+});
+
+test('500 is drawn in the number at the same size', () => {
   const root = host();
   renderAir(root, id, 'id').update(withAir(500), NOW);
-  expect(Number(root.querySelector('svg.dm')!.getAttribute('width'))).toBeLessThanOrEqual(109);
-});
-
-test('every band has a label in both languages', () => {
-  expect(id.airBands).toHaveLength(6);
-  expect(en.airBands).toHaveLength(6);
-  expect(en.airBands[2]).toBe('Unhealthy for some');
-  expect(id.airBands[2]).toBe('Tidak sehat bagi sebagian');
+  expect(root.querySelector('.v-num')!.textContent).toBe('500');
 });
 
 test('without air a dash, without a city the hint', () => {
@@ -61,36 +71,8 @@ test('without air a dash, without a city the hint', () => {
   const w = renderAir(root, id, 'id');
   w.update({ ...SNAP, air: null }, NOW);
   expect(root.textContent).toContain('—');
-  expect(root.querySelector('svg.dm')).toBeNull();
+  expect(root.querySelector('.v-num')).toBeNull();
+  expect(root.querySelector('.v-seg')).toBeNull();
   w.update({ ...SNAP, place: null, air: null }, NOW);
   expect(root.textContent).toBe('Isi kota di Pengaturan');
-});
-
-test('the band label may wrap to two lines and nothing is cut off', async () => {
-  // @ts-expect-error no @types/node in this project
-  const { readFileSync } = await import('node:fs');
-  const css: string = readFileSync('modules/sekitar/style.css', 'utf8');
-  const rule = /\.wd-air-band \{([^}]*)\}/.exec(css)![1];
-  expect(rule).toContain('white-space: normal');
-  expect(rule).not.toContain('nowrap');
-  expect(rule).not.toContain('ellipsis');
-});
-
-test('the longest band, 101 to 150, is rendered whole in a label that may wrap', async () => {
-  // @ts-expect-error no @types/node in this project
-  const { readFileSync } = await import('node:fs');
-  const css: string = readFileSync('modules/sekitar/style.css', 'utf8');
-  // .lab is nowrap and ellipsised in kit.css only where a rule says so; this label's own rule wraps.
-  const rule = /\.wd-air-band \{([^}]*)\}/.exec(css)![1];
-  for (const [strings, lang, text] of [[id, 'id', 'Tidak sehat bagi sebagian'], [en, 'en', 'Unhealthy for some']] as const) {
-    const root = host();
-    renderAir(root, strings, lang).update(withAir(120), NOW);
-    const label = root.querySelector<HTMLElement>('.wd-air-band')!;
-    expect(label.textContent).toBe(text);
-    expect(label.classList.contains('lab')).toBe(true);
-    expect(label.style.whiteSpace).not.toBe('nowrap');
-    expect(label.style.textOverflow).not.toBe('ellipsis');
-    expect(rule).toContain('white-space: normal');
-    expect(rule).not.toMatch(/nowrap|ellipsis|overflow/);
-  }
 });

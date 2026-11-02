@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { afterEach, expect, test } from 'vitest';
-import { dotWidth } from '../../../src/kit/dots';
 import { host, SNAP } from '../../home/widgets/fixtures';
 import en from '../locales/en.json';
 import id from '../locales/id.json';
@@ -10,23 +9,29 @@ afterEach(() => { document.body.innerHTML = ''; });
 
 const NOON = new Date(2026, 9, 27, 12, 0);
 
-test('the city, the temperature in dots, the sky and the range', () => {
+test('the city, the big temperature, the sky, the icon in the accent and the range', () => {
   const root = host();
   renderBigWeather(root, id, 'id').update(SNAP, NOON);
-  expect(root.querySelector('svg.dm')!.getAttribute('width')).toBe(String(dotWidth('31°', 6)));
-  expect(root.textContent).toContain('Jakarta');
-  expect(root.textContent).toContain('Berawan');
-  expect(root.textContent).toContain('T 33°');
-  expect(root.textContent).toContain('R 25°');
-  expect(root.querySelector('.ic svg')).not.toBeNull();
+  expect(root.querySelector('.wd-bigweather')!.classList.contains('v-card')).toBe(true);
+  expect(root.querySelector('.wd-bw-city')!.textContent).toBe('Jakarta');
+  const temp = root.querySelector<HTMLElement>('.v-num')!;
+  expect(temp.textContent).toBe('31°');
+  expect(temp.style.fontSize).toBe('54px');
+  expect(root.querySelector('.wd-bw-sky')!.textContent).toBe('Berawan');
+  const icon = root.querySelector('.wd-bw-icon')!;
+  expect(icon.classList.contains('v-acc')).toBe(true);
+  expect(icon.querySelector('.ic svg')).not.toBeNull();
+  expect(root.querySelector('.wd-bw-high')!.textContent).toBe('Tertinggi 33°');
+  expect(root.querySelector('.wd-bw-low')!.textContent).toBe('Terendah 25°');
+  expect(root.querySelector('svg.dm')).toBeNull();
 });
 
-test('English names the range H and L', () => {
+test('English names the range High and Low', () => {
   const root = host();
   renderBigWeather(root, en, 'en').update(SNAP, NOON);
-  expect(root.textContent).toContain('Cloudy');
-  expect(root.textContent).toContain('H 33°');
-  expect(root.textContent).toContain('L 25°');
+  expect(root.querySelector('.wd-bw-sky')!.textContent).toBe('Cloudy');
+  expect(root.querySelector('.wd-bw-high')!.textContent).toBe('High 33°');
+  expect(root.querySelector('.wd-bw-low')!.textContent).toBe('Low 25°');
 });
 
 test('without sun times the icon is a moon from 18.00 to 06.00 and a sun by day', () => {
@@ -61,12 +66,20 @@ test('without a city it asks for one', () => {
   const root = host();
   renderBigWeather(root, id, 'id').update({ ...SNAP, place: null, weather: null }, NOON);
   expect(root.textContent).toBe(id.noPlace);
-  expect(root.querySelector('svg.dm')).toBeNull();
+  expect(root.querySelector('.v-num')).toBeNull();
 });
 
 test('a city without weather shows a dash', () => {
   const root = host();
   renderBigWeather(root, id, 'id').update({ ...SNAP, weather: null }, NOON);
-  expect([...root.querySelectorAll('.lab')].map(l => l.textContent)).toEqual(['Jakarta', '—']);
-  expect(root.querySelector('svg.dm')).toBeNull();
+  expect(root.querySelector('.wd-bw-city')!.textContent).toBe('Jakarta');
+  expect(root.querySelector('.wd-bw-sky')!.textContent).toBe('—');
+  expect(root.querySelector('.v-num')).toBeNull();
+  expect(root.querySelector('.ic')).toBeNull();
+});
+
+test('a cold city keeps its sign', () => {
+  const root = host();
+  renderBigWeather(root, en, 'en').update({ ...SNAP, weather: { ...SNAP.weather!, temp: -12.2 } }, NOON);
+  expect(root.querySelector('.v-num')!.textContent).toBe('-12°');
 });
