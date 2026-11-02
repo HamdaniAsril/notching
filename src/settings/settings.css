@@ -720,8 +720,7 @@ body > .ed-ghost {
   --g3: rgba(255, 255, 255, 0.16);
 }
 
-.ed-ghost.ed-slot .ed-remove,
-.ed-ghost.ed-slot::before {
+.ed-ghost.ed-slot .ed-remove {
   display: none;
 }
 
@@ -897,26 +896,19 @@ body > .ed-ghost {
   min-width: 0;
   height: 104px;
   box-sizing: border-box;
-  border-radius: 8px;
+  border-radius: 17px;
 }
 
-/* The dotted line in the gap before every column but the first, as in the notch. */
-.ed-slot:not([data-col="0"])::before,
-.ed-empty:not([data-col="0"])::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -9.5px;
-  width: 3px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) center top / 3px 5px repeat-y;
-}
-
+/* Each widget on a black card, as the notch draws it (Volt §4); the sample
+   inside has the widget's own 12 px padding. */
 .ed-slot {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 2px;
+  padding: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
   cursor: grab;
   touch-action: none;
 }
@@ -1793,8 +1785,8 @@ body > .ed-ghost {
 
 .ed-remove {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 6px;
+  right: 6px;
   width: 18px;
   height: 18px;
   border: 0;
@@ -1896,16 +1888,17 @@ body > .ed-ghost {
   color: var(--g2);
 }
 
-/* The picture: black like the notch, white text and dots, at the widget's size. */
+/* The picture: the widget's black card at its notch size (Volt §4), with the
+   widget's own 12 px padding, shrunk by the same fixed amount. */
 .ed-shot {
   zoom: 0.75;
-  width: 129px;
-  height: 124px;
+  width: 109px;
+  height: 104px;
   box-sizing: border-box;
-  padding: 10px;
-  border-radius: 13px;
+  padding: 12px;
+  border-radius: 17px;
   background: #000;
-  box-shadow: inset 0 0 0 1.3px var(--line);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
   color: #fff;
   text-align: left;
   --w: #fff;
@@ -1921,8 +1914,7 @@ body > .ed-ghost {
 
 /* Two cells and the gap between them, at the same scale. */
 .ed-shot[data-width="2"] {
-  width: 274px;
-  padding-inline: 20px;
+  width: 234px;
 }
 
 .ed-widget:hover:not([aria-disabled="true"]) .ed-shot {
@@ -1985,31 +1977,27 @@ body > .ed-ghost {
   cursor: grab;
 }
 
-/* The strip under the row (design 31 Oct, Timer §3): a dotted line across the
-   row, then one 40 px place. Not a slot: drags and column marks pass it by. */
-.ed-strip-line {
-  grid-row: 2;
-  grid-column: 1 / -1;
-  height: 3px;
-  margin: 8.5px 0;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left center / 5px 3px repeat-x;
-}
-
+/* The strip under the row (design 31 Oct, Timer §3; Volt §3): one 52 px card,
+   16 px under the row. Not a slot: drags and column marks pass it by. */
 .ed-strip,
 .ed-strip-empty {
   position: relative;
-  grid-row: 3;
+  grid-row: 2;
   grid-column: 1 / -1;
-  height: 40px;
+  height: 52px;
+  margin-top: 16px;
   box-sizing: border-box;
-  border-radius: 8px;
+  border-radius: 17px;
 }
 
 .ed-strip {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 2px;
+  padding: 0 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .ed-strip:hover {
@@ -2041,8 +2029,8 @@ body > .ed-ghost {
 }
 
 /* A strip widget's card: a whole line of the list, however many cells it has
-   (spanning 4 would add a narrow column to a 3-cell list), strip-high, at the
-   same 0.75. */
+   (spanning 4 would add a narrow column to a 3-cell list), 52 px high like the
+   strip, at the same 0.75. */
 .ed-widget[data-width="4"] {
   grid-column: 1 / -1;
   align-items: stretch;
@@ -2050,8 +2038,8 @@ body > .ed-ghost {
 
 .ed-shot[data-width="4"] {
   width: auto;
-  height: 64px;
-  padding-inline: 20px;
+  height: 52px;
+  padding-block: 0;
   flex-direction: row;
   align-items: center;
   gap: 10px;

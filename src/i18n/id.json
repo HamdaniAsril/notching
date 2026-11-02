@@ -1,6 +1,7 @@
 {
   "home": "Beranda",
   "modules": "Modul",
+  "pageN": "Halaman {n}",
   "pageEmpty": "Halaman ini masih kosong. Tambah widget di Pengaturan.",
   "noModules": "Belum ada modul yang menyala.",
   "loadFailed": "Gagal dimuat.",

@@ -12,13 +12,16 @@ const STR = hostStrings('id');
 
 afterEach(() => { document.body.innerHTML = ''; });
 
-function mount() {
+// A notch like the browser preview's; `null`: a screen without one.
+const NOTCH = { width: 164, height: 32 };
+
+function mount(notch: { width: number; height: number } | null = NOTCH) {
   const content = document.createElement('div');
   document.body.append(content);
   const bridge = fakeBridge();
   const frames = mountFrameHost({ bridge, setTimer: timers.setTimer, onKey: vi.fn(), onExpand: vi.fn(), onCollapse: vi.fn(), onLamp: vi.fn() }, document);
   const deps = {
-    frames, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onAction: vi.fn(), onBack: vi.fn(),
+    frames, notch, moduleUrl: bridge.moduleUrl, onOpenModule: vi.fn(), onAction: vi.fn(), onBack: vi.fn(),
     shelf: { startDrag: vi.fn(), remove: vi.fn(), clear: vi.fn() },
     shot: fakeShotDeps(),
     cleaner: { bridge, now: () => 0, resize: vi.fn() },
@@ -50,7 +53,7 @@ test('the shelf page keeps its view, and its selection, between renders', () => 
 
 const slots = (c: HTMLElement) => [...c.querySelectorAll<HTMLElement>('.pg-slot')];
 
-test('a custom page lays its widgets in four columns with dotted gaps', () => {
+test('a custom page lays its widgets in four columns', () => {
   const { content, show } = mount();
   show(TEST_STATE);
   expect(slots(content).map(s => [s.dataset.col, s.dataset.width])).toEqual([['0', '1'], ['1', '1'], ['2', '2']]);
@@ -65,15 +68,16 @@ test('a widget whose source is gone leaves its columns empty', () => {
   expect(slots(content).map(s => s.dataset.col)).toEqual(['0', '1']);
 });
 
-test('a strip sits under the row behind a dotted line, and a full view hides it', () => {
+test('a 52 px strip sits right under the row, with no dotted line, and a full view hides it', () => {
   const { content, pv, show } = mount();
   const s = { ...TEST_STATE, pages: [{ ...BERANDA, strip: 'timer/strip' }], modules: [...TEST_STATE.modules, timerInfo()] };
   show(s);
-  expect(content.querySelector('.pg-page > .pg-strip-line')).not.toBeNull();
-  const strip = content.querySelector<HTMLElement>('.pg-page > .pg-strip')!;
+  expect(content.querySelector('.pg-strip-line')).toBeNull();
+  const strip = content.querySelector<HTMLElement>('.pg-page > .pg-row + .pg-strip')!;
   expect(strip.dataset.key).toBe('home/strip/timer/strip');
+  expect(strip.style.height).toBe('52px');
   const frame = strip.querySelector('iframe')!;
-  expect([frame.style.height, frame.getAttribute('src')]).toEqual(['40px', 'mod://timer/index.html']);
+  expect([frame.style.height, frame.getAttribute('src')]).toEqual(['52px', 'mod://timer/index.html']);
   pv.expand(slots(content)[2].dataset.key!);
   expect(content.querySelector('.pg-page')!.classList.contains('full')).toBe(true);
   pv.collapse();
@@ -125,6 +129,80 @@ test('a taller full view stretches its row and frame, and collapsing puts them b
   expect([row().style.height, frame().style.height]).toEqual(['193px', '193px']);
   pv.collapse();
   expect([row().style.height, frame().style.height]).toEqual(['104px', '104px']);
+});
+
+const head = (c: HTMLElement) => c.querySelector<HTMLElement>('.pg-head');
+const headText = (c: HTMLElement) =>
+  [head(c)!.querySelector('.pg-head-name')!.textContent, head(c)!.querySelector('.pg-head-count')!.textContent];
+const UNNAMED: Page = { id: 'p2', name: null, icon: 'dot', widgets: [{ widget: 'home/clock', col: 0, width: 1 }] };
+const KERJA: Page = { id: 'p3', name: 'Kerja', icon: 'briefcase', widgets: [] };
+
+test('a widget page heads with its name and its place among the widget pages', () => {
+  const { content, show } = mount();
+  const s = { ...TEST_STATE, pages: [BERANDA, UNNAMED, KERJA] };
+  show(s, 'p2');
+  expect(headText(content)).toEqual(['Halaman 2', '2 / 3']);
+  show(s, 'home');
+  expect(headText(content)).toEqual(['Beranda', '1 / 3']);
+  // An empty page has its head too.
+  show(s, 'p3');
+  expect(headText(content)).toEqual(['Kerja', '3 / 3']);
+  expect(content.querySelector('.pg-empty')).not.toBeNull();
+});
+
+test('a page name is text, never markup', () => {
+  const { content, show } = mount();
+  show({ ...TEST_STATE, pages: [BERANDA, { ...KERJA, name: '<b>x</b>' }] }, 'p3');
+  expect(content.querySelector('b')).toBeNull();
+  expect(headText(content)[0]).toBe('<b>x</b>');
+});
+
+test('the head follows a page added elsewhere, and the frames stay', () => {
+  const { content, show } = mount();
+  show({ ...TEST_STATE, pages: [BERANDA] });
+  const first = content.querySelector('iframe');
+  expect(headText(content)).toEqual(['Beranda', '1 / 1']);
+  show({ ...TEST_STATE, pages: [BERANDA, KERJA] });
+  expect(content.querySelector('iframe')).toBe(first);
+  expect(headText(content)).toEqual(['Beranda', '1 / 2']);
+});
+
+test('beside a notch the head sits in the camera row, as the notice ears do', () => {
+  const { content, show } = mount();
+  show(TEST_STATE);
+  const h = head(content)!;
+  expect(h.classList.contains('cam')).toBe(true);
+  expect([h.style.height, h.style.lineHeight]).toEqual(['32px', '32px']);
+  expect(h.style.getPropertyValue('--notch-w')).toBe('164px');
+});
+
+test('without a notch the head is a row above the widgets, and a full view leaves it room', () => {
+  const { content, pv, show } = mount(null);
+  show(TEST_STATE);
+  const h = head(content)!;
+  expect(h.classList.contains('cam')).toBe(false);
+  expect(content.querySelector('.pg-page > .pg-head:first-child + .pg-row')).not.toBeNull();
+  const key = 'home/2/home/reminders';
+  const row = () => content.querySelector<HTMLElement>('.pg-row')!;
+  // The page's height (route.ts viewSize) holds the head row: 26 px of it is not the widgets'.
+  pv.expand(key, 219);
+  expect(row().style.height).toBe('193px');
+  pv.collapse();
+  expect(row().style.height).toBe('104px');
+});
+
+test('only widget pages have a head', () => {
+  const { content, pv, show } = mount();
+  show(TEST_STATE, 'modules');
+  expect(head(content)).toBeNull();
+  show(TEST_STATE, 'module:system-stat');
+  expect(head(content)).toBeNull();
+  pv.show({ kind: 'shelf', key: 'shelf', shelf: { items: [shelfItem(1)] }, dropping: false }, TEST_STATE, STR);
+  expect(head(content)).toBeNull();
+  pv.show({ kind: 'shot', mode: 'list', key: 'screenshot', shots: [shot(1)] }, TEST_STATE, STR);
+  expect(head(content)).toBeNull();
+  pv.show({ kind: 'cleaner', key: 'cleaner', screen: 'home', note: false }, TEST_STATE, STR);
+  expect(head(content)).toBeNull();
 });
 
 test('expanding a frame of another page does nothing', () => {

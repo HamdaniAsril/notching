@@ -325,7 +325,8 @@ const stripCard = (root: HTMLElement, ref = 'timer/strip') => key(root, `pageEdi
 test('the strip area says Strip when empty and a strip card fills it', async () => {
   const { root, bridge } = await edit('p1', WITH_TIMER);
   expect(root.querySelector('.ed-row .ed-strip-empty')!.textContent).toBe('Strip');
-  expect(root.querySelector('.ed-row .ed-strip-line')).not.toBeNull();
+  // No dotted line between the row and the strip (design 2 Nov, Volt §4).
+  expect(root.querySelector('.ed-row .ed-strip-line')).toBeNull();
   expect(stripCard(root).dataset.width).toBe('4');
   stripCard(root).click();
   expect(bridge.setPage).toHaveBeenCalledWith('p1', 'Kerja', 'briefcase', [at('home/clock', 0)], 'timer/strip');

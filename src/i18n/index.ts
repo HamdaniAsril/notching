@@ -6,6 +6,7 @@ import id from './id.json';
 export interface HostStrings {
   home: string; // Beranda's name
   modules: string;
+  pageN: string; // a widget page with no name of its own: {n}, its place
   pageEmpty: string;
   noModules: string;
   loadFailed: string;

@@ -250,7 +250,7 @@ function preview(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidge
     empty.style.gridColumn = `${c + 1}`;
     row.append(empty);
   }
-  row.append(el('div', 'ed-strip-line'), stripArea(ctx, page, catalog, save));
+  row.append(stripArea(ctx, page, catalog, save));
   return row;
 }
 

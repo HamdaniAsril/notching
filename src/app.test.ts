@@ -186,23 +186,54 @@ test('a full view covers the page and Kembali brings the row back', async () => 
   expect(root.querySelector('.pg-row.full')).toBeNull();
 });
 
+// The fake screen has no notch: a widget page's head is a row of 16 px and a 10 px gap.
+const HEAD_ROW = 26;
+
 test('a full view that asks for room makes the panel taller until it closes', async () => {
   const { app, r, frames, pick, bridge } = await start();
   open(app, r);
   const reminders = () => frames().find(f => f.title === 'Reminder')!;
   fromFrame(reminders(), { type: 'notching:expand', height: 193 });
-  expect(app.controller.card.height).toBe(193);
+  expect(app.controller.card.height).toBe(193 + HEAD_ROW);
+  expect(reminders().style.height).toBe('193px');
   bridge.emitModuleState({ ...TEST_STATE });
-  expect(app.controller.card.height).toBe(193);
+  expect(app.controller.card.height).toBe(193 + HEAD_ROW);
   fromFrame(reminders(), { type: 'notching:collapse' });
-  expect(app.controller.card.height).toBe(104);
+  expect(app.controller.card.height).toBe(104 + HEAD_ROW);
   fromFrame(reminders(), { type: 'notching:expand', height: 193 });
   pick('home');
-  expect(app.controller.card.height).toBe(104);
+  expect(app.controller.card.height).toBe(104 + HEAD_ROW);
   fromFrame(reminders(), { type: 'notching:expand', height: 193 });
   close(app, r);
   open(app, r);
+  expect(app.controller.card.height).toBe(104 + HEAD_ROW);
+});
+
+test('beside a notch the head sits in the camera row and the page is no taller', async () => {
+  const root = document.createElement('div');
+  document.body.append(root);
+  const bridge = fakeBridge({ ...TEST_STATE, pages: [BERANDA, P1] });
+  bridge.screenInfo.mockResolvedValue({ label: 'test', hasNotch: true, notchWidth: 164, notchHeight: 32 });
+  const r = fakeRaf();
+  const app = await startApp(root, bridge, { raf: r.raf, caf: r.caf, setTimer: timers.setTimer });
+  open(app, r);
   expect(app.controller.card.height).toBe(104);
+  const head = root.querySelector<HTMLElement>('.notch-content .pg-head')!;
+  expect(head.classList.contains('cam')).toBe(true);
+  expect(head.textContent).toBe('Beranda1 / 2');
+});
+
+test('without a notch the head is a row in the page, and only widget pages have one', async () => {
+  const { app, r, root, pick } = await start({ ...TEST_STATE, pages: [BERANDA, P1] });
+  open(app, r);
+  expect(app.controller.card.height).toBe(104 + HEAD_ROW);
+  pick('p1');
+  const head = root.querySelector<HTMLElement>('.notch-content .pg-head')!;
+  expect(head.classList.contains('cam')).toBe(false);
+  expect(head.textContent).toBe('Kerja2 / 2');
+  pick('modules');
+  expect(root.querySelector('.pg-head')).toBeNull();
+  expect(app.controller.card.height).toBe(64);
 });
 
 test('picking the open page again closes its full view', async () => {

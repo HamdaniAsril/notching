@@ -413,3 +413,27 @@ test('the status hides while the panel is open and starts no frame loop', () => 
   r.runAll(1);
   expect(shown(root, '.st-tab')).toBe(false);
 });
+
+test('the page head in the camera row is hidden while a notice shows in the ears', () => {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  document.body.append(root);
+  const c = ctl({ width: 164, height: 32 });
+  const v = mountNotch(root, c, deps(r));
+  const head = document.createElement('div');
+  head.className = 'pg-head cam';
+  v.content.append(head);
+  v.setNotice({ icon: null, title: 'Kirim', detail: '14.00', glow: false });
+  c.notify(3500);
+  v.kick();
+  r.runAll(120);
+  expect(root.querySelector('.notch-notice')!.classList.contains('show')).toBe(true);
+  expect(head.closest('.notch-content.show')).toBeNull();
+  timers.advance(3640);
+  r.runAll(600);
+  c.click();
+  v.kick();
+  r.runAll(600);
+  expect(root.querySelector('.notch-notice')!.classList.contains('show')).toBe(false);
+  expect(head.closest('.notch-content.show')).not.toBeNull();
+});

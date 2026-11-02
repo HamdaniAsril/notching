@@ -1,6 +1,7 @@
 {
   "home": "Home",
   "modules": "Modules",
+  "pageN": "Page {n}",
   "pageEmpty": "This page is empty. Add widgets in Settings.",
   "noModules": "No module is on.",
   "loadFailed": "Didn't load.",

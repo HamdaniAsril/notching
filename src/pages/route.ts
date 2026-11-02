@@ -1,5 +1,5 @@
 import type { ShelfState, Shot } from '../bridge';
-import type { HostStrings } from '../i18n';
+import { fill, type HostStrings } from '../i18n';
 import { hasPage, isModule, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import type { CardSize } from '../notch/controller';
 import { type CatalogWidget, stripSlot, widgetCatalog } from './layout';
@@ -14,9 +14,13 @@ export const FULL_PAGE_MAX = 240;
 // one too; the panel is as tall as the rows. `width`: 4 tiles, their gaps and
 // the panel's 18 px sides.
 export const MODULES_GRID = { columns: 4, gap: 6, tile: 64, tileWidth: 76, width: 358, empty: 56 } as const;
-// A page's strip (design 31 Oct, Timer §3): a dotted line, then the strip.
-export const STRIP_GAP = 20;
-export const STRIP_HEIGHT = 40;
+// A page's strip (design 31 Oct, Timer §3; Volt §3): 16 px under the row.
+export const STRIP_GAP = 16;
+export const STRIP_HEIGHT = 52;
+// A widget page's head (Volt §4): in the camera row beside a notch; on a screen
+// without one, a 16 px row above the widgets with a 10 px gap, which the page
+// grows by.
+export const HEAD_ROW = { height: 16, gap: 10 } as const;
 
 // Titipan's shelf (design 1 Nov §4, titipan-tempat.html A): a head line, then 6
 // tiles a row; past 3 rows the grid scrolls. While a drag is over the notch it is
@@ -97,11 +101,12 @@ export function pickPage(s: ModuleState, current: string | null, panelOpen: bool
 
 // `fullHeight`: what a widget's full view asked for, kept between the page's own
 // height and FULL_PAGE_MAX. A strip there to show makes the page taller.
-export function viewSize(v: PageView, fullHeight?: number): CardSize {
+// `headRow`: the screen has no notch, so a widget page's head takes a row in it.
+export function viewSize(v: PageView, fullHeight?: number, headRow = false): CardSize {
   if (v.kind === 'custom') {
     const height = CUSTOM_PAGE.height + (v.strip ? STRIP_GAP + STRIP_HEIGHT : 0);
-    if (fullHeight === undefined) return { ...CUSTOM_PAGE, height };
-    return { ...CUSTOM_PAGE, height: Math.round(Math.min(FULL_PAGE_MAX, Math.max(height, fullHeight))) };
+    const body = fullHeight === undefined ? height : Math.round(Math.min(FULL_PAGE_MAX, Math.max(height, fullHeight)));
+    return { ...CUSTOM_PAGE, height: body + (headRow ? HEAD_ROW.height + HEAD_ROW.gap : 0) };
   }
   if (v.kind === 'module') return { width: v.module.card!.width, height: BACK_BAR + v.module.card!.height };
   if (v.kind === 'shot') {
@@ -139,6 +144,15 @@ export function shotListHeight(shots: number, notes: number): number {
 
 export function pageName(p: Page, strings: HostStrings): string {
   return p.name ?? strings.home;
+}
+
+// A widget page's head (Volt §4): its name, and "n / N" among the widget pages.
+// Beranda keeps its own name; any other page without one is "Halaman n".
+export function pageHead(s: ModuleState, p: Page, strings: HostStrings): { name: string; count: string } {
+  const at = s.pages.findIndex(x => x.id === p.id);
+  const n = at < 0 ? 1 : at + 1;
+  const name = p.name?.trim() ? p.name : p.id === 'home' ? strings.home : fill(strings.pageN, { n });
+  return { name, count: `${n} / ${Math.max(n, s.pages.length)}` };
 }
 
 // Where a click on a notice leads (design 30 Oct §10): the first page holding

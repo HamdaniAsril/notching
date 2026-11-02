@@ -2,14 +2,18 @@ import type { HostStrings } from '../i18n';
 import type { ModuleInfo, ModuleState } from '../modules/types';
 import type { FrameHost, FrameSpec } from '../pages/frames';
 import { slots, widgetCatalog } from '../pages/layout';
-import { CUSTOM_PAGE, MODULES_GRID, type PageView, STRIP_HEIGHT } from '../pages/route';
+import { CUSTOM_PAGE, HEAD_ROW, MODULES_GRID, pageHead, type PageView, STRIP_HEIGHT } from '../pages/route';
 import { type CleanerDeps, type CleanerView, mountCleaner } from '../cleaner/view';
 import { mountShelfView, type ShelfView, type ShelfViewDeps } from '../shelf/view';
 import { mountShotList, type ShotList, type ShotListDeps } from '../shot/list';
 import { mountShotResult, type ShotResult } from '../shot/result';
+import type { NotchSize } from './shape';
 
 export interface PageViewDeps {
   frames: FrameHost;
+  // The screen's notch: a widget page's head sits in the camera row beside it.
+  // Null: the head is a row above the widgets (route.ts HEAD_ROW).
+  notch: NotchSize | null;
   moduleUrl: (id: string, file: string) => string;
   onOpenModule: (id: string) => void;
   onAction: (m: ModuleInfo) => void; // a tile that runs an action instead of opening a page
@@ -22,7 +26,7 @@ export interface PageViewDeps {
 export interface PageViewHost {
   show(v: PageView, s: ModuleState, strings: HostStrings): void;
   readonly full: string | null; // the frame covering the whole page, if any
-  expand(key: string, height?: number): void; // height: the page's, while it is full
+  expand(key: string, height?: number): void; // height: the page's (route.ts viewSize), while it is full
   collapse(): void;
   clear(): void;
 }
@@ -36,7 +40,7 @@ function el<K extends keyof HTMLElementTagNameMap>(doc: Document, tag: K, cls = 
   return e;
 }
 
-// The row and the full frame follow the page's height (route.ts viewSize).
+// The row and the full frame follow the widgets' height.
 function setHeight(row: HTMLElement, slot: HTMLElement | undefined, height: number): void {
   row.style.height = `${height}px`;
   const frame = slot?.querySelector<HTMLElement>('iframe');
@@ -50,7 +54,8 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
   let shown = '';
   let full: string | null = null;
   let row: HTMLElement | null = null;
-  let page: HTMLElement | null = null; // the row and the strip under it, when there is one
+  let page: HTMLElement | null = null; // the head, the row and the strip under it, when there is one
+  let head: HTMLElement | null = null;
   let slotKeys: string[] = [];
   // Titipan's shelf: kept between renders so its selection lasts.
   let shelf: { view: ShelfView; box: HTMLElement; lang: string } | null = null;
@@ -133,12 +138,42 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     full = null;
     row = null;
     page = null;
+    head = null;
     slotKeys = [];
+  }
+
+  // Beside a notch the head takes no room of the page's own.
+  const headRoom = deps.notch ? 0 : HEAD_ROW.height + HEAD_ROW.gap;
+
+  // A widget page's head (Volt §4): its name and "n / N". Beside a notch it sits
+  // in the camera row, the name ending and the count starting 12 px from the
+  // notch, as the notice ears do (view.ts); else it is the page's first row.
+  function pageHeadRow(): HTMLElement {
+    const h = el(doc, 'div', deps.notch ? 'pg-head cam' : 'pg-head');
+    if (deps.notch) {
+      h.style.height = h.style.lineHeight = `${deps.notch.height}px`;
+      h.style.setProperty('--notch-w', `${deps.notch.width}px`);
+    }
+    h.append(el(doc, 'span', 'pg-head-name'), el(doc, 'span', 'pg-head-count'));
+    return h;
+  }
+
+  function fillHead(v: Extract<PageView, { kind: 'custom' }>, s: ModuleState, strings: HostStrings): void {
+    if (!head) return;
+    const { name, count } = pageHead(s, v.page, strings);
+    head.firstElementChild!.textContent = name;
+    head.lastElementChild!.textContent = count;
   }
 
   function custom(v: Extract<PageView, { kind: 'custom' }>, s: ModuleState, strings: HostStrings): HTMLElement {
     const present = slots(v.page, widgetCatalog(s)).filter(x => x.widget);
-    if (present.length === 0 && !v.strip) return el(doc, 'div', 'pg-empty lab', strings.pageEmpty);
+    head = pageHeadRow();
+    page = el(doc, 'div', 'pg-page');
+    page.append(head);
+    if (present.length === 0 && !v.strip) {
+      page.append(el(doc, 'div', 'pg-empty lab', strings.pageEmpty));
+      return page;
+    }
     const r = el(doc, 'div', 'pg-row');
     r.style.height = `${CUSTOM_PAGE.height}px`;
     const specs: FrameSpec[] = present.map(({ placement, widget }) => ({
@@ -161,12 +196,13 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     });
     row = r;
     slotKeys = specs.map(x => x.key);
-    if (!strip) return r;
+    page.append(r);
+    if (!strip) return page;
     const box = el(doc, 'div', 'pg-strip');
     box.dataset.key = strip.key;
+    box.style.height = `${STRIP_HEIGHT}px`;
     box.append(deps.frames.frame(strip, s.lang, strings));
-    page = el(doc, 'div', 'pg-page');
-    page.append(r, el(doc, 'div', 'pg-strip-line'), box);
+    page.append(box);
     return page;
   }
 
@@ -237,16 +273,19 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
         return;
       }
       dropShot();
-      // The same page with the same widgets keeps its frames (and a full view).
+      // The same page with the same widgets keeps its frames (and a full view);
+      // its head follows the pages around it.
       const sig = JSON.stringify([v, s.lang, v.kind === 'custom' ? slots(v.page, widgetCatalog(s)) : null]);
-      if (sig === shown) return;
-      shown = sig;
-      reset();
-      const body = v.kind === 'custom' ? custom(v, s, strings) : v.kind === 'modules' ? modules(v, strings) : module(v, s, strings);
-      content.replaceChildren(body);
+      if (sig !== shown) {
+        shown = sig;
+        reset();
+        const body = v.kind === 'custom' ? custom(v, s, strings) : v.kind === 'modules' ? modules(v, strings) : module(v, s, strings);
+        content.replaceChildren(body);
+      }
+      if (v.kind === 'custom') fillHead(v, s, strings);
     },
     get full() { return full; },
-    expand(key, height = CUSTOM_PAGE.height) {
+    expand(key, height = CUSTOM_PAGE.height + headRoom) {
       if (!row || !slotKeys.includes(key) || full === key) return;
       if (full) this.collapse();
       full = key;
@@ -254,7 +293,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
       page?.classList.add('full');
       const slot = [...row.querySelectorAll<HTMLElement>('.pg-slot')].find(x => x.dataset.key === key);
       slot?.classList.add('full');
-      setHeight(row, slot, height);
+      setHeight(row, slot, height - headRoom);
       deps.frames.setFull(key, true);
     },
     collapse() {

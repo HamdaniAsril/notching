@@ -3,7 +3,9 @@ import { hostStrings } from '../i18n';
 import type { ModuleState, Page } from '../modules/types';
 import { BERANDA, homeWidgets, moduleInfo, TEST_STATE, timerInfo } from '../notch/test-helpers';
 import { shot } from '../shot/test-helpers';
-import { CLEANER, CLEANER_KEY, type PageView, missedTargets, noticeTarget, pageModules, pageName, pickPage, resolvePage, SHELF, SHOT, viewSize } from './route';
+import {
+  CLEANER, CLEANER_KEY, type PageView, missedTargets, noticeTarget, pageHead, pageModules, pageName, pickPage, resolvePage, SHELF, SHOT, viewSize,
+} from './route';
 
 const P1: Page = { id: 'p1', name: 'Kerja', icon: 'briefcase', widgets: [{ widget: 'home/reminders', col: 0, width: 2 }] };
 const state = (over: Partial<ModuleState> = {}): ModuleState => ({ ...TEST_STATE, ...over });
@@ -66,12 +68,36 @@ test('the Modul page holds modules with an action, which have no page of their o
 test('a page with a strip is taller, unless the strip is away', () => {
   const page: Page = { ...BERANDA, strip: 'timer/strip' };
   const on = state({ pages: [page], modules: [homeWidgets(), timerInfo()] });
-  expect(viewSize(pickPage(on, null, false))).toEqual({ width: 520, height: 164 });
-  expect(viewSize(pickPage(on, null, false), 120)).toEqual({ width: 520, height: 164 });
+  // The row, 16 px, then the 52 px strip (design 2 Nov, Volt §3).
+  expect(viewSize(pickPage(on, null, false))).toEqual({ width: 520, height: 172 });
+  expect(viewSize(pickPage(on, null, false), 120)).toEqual({ width: 520, height: 172 });
   expect(viewSize(pickPage(on, null, false), 200)).toEqual({ width: 520, height: 200 });
   const off = state({ pages: [page], modules: [homeWidgets(), timerInfo({ enabled: false })] });
   expect(viewSize(pickPage(off, null, false))).toEqual({ width: 520, height: 104 });
-  expect(viewSize(resolvePage(on, 'home')!)).toEqual({ width: 520, height: 164 });
+  expect(viewSize(resolvePage(on, 'home')!)).toEqual({ width: 520, height: 172 });
+});
+
+test('without a notch, a widget page is taller by its head row: 16 px and a 10 px gap', () => {
+  const home = pickPage(state(), null, false);
+  expect(viewSize(home, undefined, true)).toEqual({ width: 520, height: 130 });
+  expect(viewSize(home, 193, true)).toEqual({ width: 520, height: 219 });
+  expect(viewSize(home, 999, true)).toEqual({ width: 520, height: 266 });
+  const on = state({ pages: [{ ...BERANDA, strip: 'timer/strip' }], modules: [homeWidgets(), timerInfo()] });
+  expect(viewSize(pickPage(on, null, false), undefined, true)).toEqual({ width: 520, height: 198 });
+  // Other pages have no head.
+  expect(viewSize(resolvePage(state(), 'module:system-stat')!, undefined, true)).toEqual({ width: 400, height: 104 });
+  expect(viewSize(resolvePage(state(), 'modules')!, undefined, true)).toEqual({ width: 358, height: 64 });
+});
+
+test('the page head names the page and counts it among the widget pages', () => {
+  const unnamed: Page = { id: 'p2', name: null, icon: 'dot', widgets: [] };
+  const s = state({ pages: [BERANDA, unnamed, P1] });
+  const strs = hostStrings('id');
+  expect(pageHead(s, unnamed, strs)).toEqual({ name: 'Halaman 2', count: '2 / 3' });
+  expect(pageHead(s, unnamed, hostStrings('en'))).toEqual({ name: 'Page 2', count: '2 / 3' });
+  expect(pageHead(s, P1, strs)).toEqual({ name: 'Kerja', count: '3 / 3' });
+  // Beranda's name is its own, as in the pill.
+  expect(pageHead(s, BERANDA, strs)).toEqual({ name: 'Beranda', count: '1 / 3' });
 });
 
 test('a notice from a strip widget opens the page holding the strip', () => {

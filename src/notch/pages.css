@@ -2,30 +2,96 @@
    (page-layout.html, choice C), the Modul page's tiles (modules-page.html,
    choice A), or a module's page under a back bar. */
 
+/* The page head's face (Volt §4); the widgets bring their own fonts. */
+@import '@fontsource/inter/latin-600.css';
+
 .pg-frame {
   height: 100%;
 }
 
-/* One row, 4 equal columns; a dotted line in the gap before every widget but the first. */
+/* A widget page's head (Volt §4): the name in ink, then a lime dot and "n / N"
+   muted. Without a notch: a row above the widgets (route.ts HEAD_ROW). */
+.pg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 16px;
+  margin-bottom: 10px;
+  font-family: "Inter", -apple-system, sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.pg-head-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f3f5f0;
+}
+
+.pg-head-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  color: #8c9187;
+}
+
+.pg-head-count::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c8f04a;
+}
+
+/* Beside a notch: in the camera row over the panel's top padding, the name
+   ending and the count starting 12 px from the notch, like the notice ears.
+   page-view.ts sets the height and --notch-w. */
+.pg-head.cam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+}
+
+.pg-head.cam .pg-head-name,
+.pg-head.cam .pg-head-count {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.pg-head.cam .pg-head-name {
+  right: calc(50% + var(--notch-w) / 2 + 12px);
+  left: 18px;
+  text-align: right;
+}
+
+.pg-head.cam .pg-head-count {
+  left: calc(50% + var(--notch-w) / 2 + 12px);
+}
+
+/* One row, 4 equal columns. */
 .pg-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: 16px;
 }
 
-.pg-slot {
+/* Each widget sits on a black card (Volt §4); its own page stays transparent. */
+.pg-slot,
+.pg-strip {
   position: relative;
   min-width: 0;
-}
-
-.pg-slot + .pg-slot::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -9.5px;
-  width: 3px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) center top / 3px 5px repeat-y;
+  overflow: hidden;
+  border-radius: 17px;
+  background: #000;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* A full view: one widget covers the page; the others wait, frames and all. */
@@ -38,23 +104,12 @@
   grid-column: 1 / -1 !important;
 }
 
-.pg-row.full .pg-slot.full::before {
-  display: none;
-}
-
-/* A page's strip (design 31 Oct, Timer §3): under the row, behind a dotted
-   line across it, in the 20 px between them. A full view hides both. */
-.pg-strip-line {
-  height: 3px;
-  margin: 8.5px 0;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0.9px, transparent 1.3px) left center / 5px 3px repeat-x;
-}
-
+/* A page's strip (design 31 Oct, Timer §3; Volt §3): 16 px under the row, as
+   tall as page-view.ts sets it (route.ts STRIP_HEIGHT). A full view hides it. */
 .pg-strip {
-  height: 40px;
+  margin-top: 16px;
 }
 
-.pg-page.full .pg-strip-line,
 .pg-page.full .pg-strip {
   display: none;
 }

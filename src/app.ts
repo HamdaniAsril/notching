@@ -69,10 +69,12 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   let showing: Notice | null = null;
   doc.documentElement.lang = state.lang;
 
+  // Without a notch a widget page's head takes a row of the page (route.ts HEAD_ROW).
+  const headRow = !info.hasNotch;
   const controller = new NotchController({
     notch: info.hasNotch ? { width: info.notchWidth, height: info.notchHeight } : null,
     config: clampConfig(state.notch),
-    card: viewSize(page),
+    card: viewSize(page, undefined, headRow),
     setTimer: env.setTimer,
   });
   const wiring = connect(controller, bridge, () => view.kick());
@@ -102,6 +104,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   }, doc);
   const pages = mountPageView(view.content, {
     frames,
+    notch: controller.notch,
     moduleUrl: bridge.moduleUrl,
     onOpenModule: id => go(`module:${id}`),
     // The panel closes first: the action may dim the screens (Keyboard Cleaning Mode).
@@ -353,7 +356,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
 
   // The page's size, widened by the lamp's wings while it is lit there.
   function sized(v: PageView, full?: number): CardSize {
-    const size = viewSize(v, full);
+    const size = viewSize(v, full, headRow);
     return lamp?.key === v.key ? { ...size, width: size.width + 2 * LAMP_WING } : size;
   }
 
@@ -387,7 +390,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
 
   // A full view may ask for a taller page; the panel springs back when it ends.
   function expand(key: string, height?: number): void {
-    const size = viewSize(page, height);
+    const size = viewSize(page, height, headRow);
     pages.expand(key, size.height);
     if (pages.full !== key) return;
     fullHeight = height;
@@ -399,7 +402,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     pages.collapse();
     if (fullHeight === undefined) return;
     fullHeight = undefined;
-    controller.setCard(viewSize(page));
+    controller.setCard(viewSize(page, undefined, headRow));
     view.kick();
   }
 
