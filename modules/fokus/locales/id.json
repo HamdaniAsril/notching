@@ -1,0 +1,15 @@
+{
+  "name": "Fokus",
+  "description": "Napas dan fokus kerja",
+  "phases": {
+    "in": "TARIK",
+    "hold": "TAHAN",
+    "out": "BUANG"
+  },
+  "tap": "Klik untuk mulai",
+  "sec": "dtk",
+  "done": "Selesai",
+  "widgets": {
+    "breath": "Napas"
+  }
+}

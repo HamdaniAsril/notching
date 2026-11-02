@@ -16,6 +16,9 @@ import enRencana from '../../../modules/rencana/locales/en.json';
 import idRencana from '../../../modules/rencana/locales/id.json';
 import { nextView } from '../../../modules/rencana/widgets/next';
 import { weekView } from '../../../modules/rencana/widgets/week';
+import enFokus from '../../../modules/fokus/locales/en.json';
+import idFokus from '../../../modules/fokus/locales/id.json';
+import { breathView } from '../../../modules/fokus/widgets/breath';
 import type { Reminder } from '../../../modules/home/types';
 import { svgBox } from '../../kit/widget';
 
@@ -63,6 +66,11 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
       return [weekView(lang === 'en' ? enRencana : idRencana, lang, REMINDERS, AT)];
     case 'rencana/next':
       return [nextView(lang === 'en' ? enRencana : idRencana, lang, REMINDERS, AT)];
+    case 'fokus/breath': {
+      // The idle state: a sample is static.
+      const strings = lang === 'en' ? enFokus : idFokus;
+      return [breathView(strings, strings.tap)];
+    }
     default:
       return null;
   }

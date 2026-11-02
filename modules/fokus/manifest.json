@@ -1,0 +1,10 @@
+{
+  "id": "fokus",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "permissions": [],
+  "capabilities": [],
+  "widgets": [
+    { "id": "breath", "entry": "index.html", "width": 1, "kind": "work" }
+  ]
+}

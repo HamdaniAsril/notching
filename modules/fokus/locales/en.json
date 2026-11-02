@@ -1,0 +1,15 @@
+{
+  "name": "Focus",
+  "description": "Breathing and focus",
+  "phases": {
+    "in": "IN",
+    "hold": "HOLD",
+    "out": "OUT"
+  },
+  "tap": "Click to start",
+  "sec": "s",
+  "done": "Done",
+  "widgets": {
+    "breath": "Breathe"
+  }
+}

@@ -58,6 +58,16 @@ test('Pekan ini and Berikutnya have samples', () => {
   expect(next[0].querySelector('.wd-nx-foot svg.dm')).not.toBeNull();
 });
 
+test('Napas has its idle state as a sample', () => {
+  const id = packSample(widget('fokus/breath'), 'id')!;
+  expect(id).toHaveLength(1);
+  expect(id[0].querySelector('.lab')!.textContent).toBe('NAPAS');
+  expect(id[0].textContent).toContain('Klik untuk mulai');
+  expect(id[0].querySelectorAll('.wd-br-ring')).toHaveLength(2);
+  expect(id[0].querySelector('.wd-br-core')).not.toBeNull();
+  expect(packSample(widget('fokus/breath'), 'en')![0].textContent).toContain('BREATHE');
+});
+
 test('other widgets are not a pack sample', () => {
   expect(packSample(widget('home/date'), 'id')).toBeNull();
 });

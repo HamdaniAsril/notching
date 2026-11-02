@@ -1,0 +1,106 @@
+/* Fokus: each widget fills its frame, which the notch sizes to its columns and 104 px. */
+#card {
+  height: 100%;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.wd {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 3px;
+}
+
+/* Napas: the whole frame is one button. */
+.wd-br-btn {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.wd-br-btn:focus {
+  outline: none;
+}
+
+.wd-br-btn:focus-visible {
+  outline: 1px solid var(--g2);
+  outline-offset: -1px;
+  border-radius: 8px;
+}
+
+.wd-br-head,
+.wd-br-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.wd-br-rings {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex: none;
+  align-self: center;
+}
+
+.wd-br-ring,
+.wd-br-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  box-sizing: border-box;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.wd-br-ring {
+  border: 1px solid var(--g3);
+}
+
+.wd-br-core {
+  background: var(--w);
+}
+
+.wd-br-rings .rd {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  margin-left: -3px;
+}
+
+/* The hint is longer than a column is wide in Indonesian, so it wraps and stays whole. */
+.wd-br-note {
+  display: block;
+  margin-top: auto;
+  text-align: center;
+  white-space: normal;
+  line-height: 11px;
+}
+
+.wd-br-foot {
+  margin-top: auto;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.wd-br-phase {
+  color: var(--w);
+}
+
+.wd-br-left {
+  min-width: 15px;
+}
