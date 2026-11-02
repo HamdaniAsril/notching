@@ -43,6 +43,7 @@ test('each kind has a show and a sound switch', async () => {
   expect(key(root, 'channel.home.prayer.on').getAttribute('aria-label')).toBe('Tampil');
   expect(key(root, 'channel.home.prayer.sound').getAttribute('aria-label')).toBe('Suara');
   expect(root.querySelector('.kinds-head')!.textContent).toBe('TampilSuara');
+  expect(root.querySelector('.kinds-head')!.className).toBe('kinds-head');
   key(root, 'channel.home.prayer.on').click();
   expect(bridge.setChannel).toHaveBeenCalledWith('home', 'prayer', { on: true, sound: false });
   key(root, 'channel.home.reminder.sound').click();

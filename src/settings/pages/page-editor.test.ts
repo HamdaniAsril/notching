@@ -110,6 +110,8 @@ test('a missing widget shows as switched off', async () => {
   const slot = root.querySelector<HTMLElement>('.ed-slot.off')!;
   expect(slot.dataset.col).toBe('3');
   expect(slot.textContent).toContain('Modul dimatikan');
+  expect(slot.querySelector('.ed-off-name')!.textContent).toBe('timer/timer');
+  expect(slot.querySelector('.lab')).toBeNull();
 });
 
 test('renaming saves on Enter, not when unchanged', async () => {
@@ -172,9 +174,11 @@ test('the icon popup closes with Escape or a click elsewhere', async () => {
 test('deleting takes a second click', async () => {
   const { root, bridge, app } = await edit('p1');
   const del = key(root, 'pageEdit.delete')!;
+  expect(del.className).toBe('btn danger');
   del.click();
   expect(bridge.deletePage).not.toHaveBeenCalled();
   expect(del.textContent).toBe('Yakin? Klik lagi');
+  expect(del.className).toBe('btn danger confirm');
   del.click();
   expect(bridge.deletePage).toHaveBeenCalledWith('p1');
   await settle();
@@ -368,6 +372,8 @@ test('a strip whose module is off keeps its place, marked off', async () => {
   const strip = root.querySelector<HTMLElement>('.ed-row .ed-strip')!;
   expect(strip.classList.contains('off')).toBe(true);
   expect(strip.textContent).toContain('Modul dimatikan');
+  expect(strip.querySelector('.ed-off-name')).not.toBeNull();
+  expect(strip.querySelector('.lab')).toBeNull();
 });
 
 test('the echo of its own save with a null strip leaves the editor as it is', async () => {

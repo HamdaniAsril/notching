@@ -39,7 +39,7 @@ export const notificationsPage: PageRender = ctx => {
     page.append(note(s.none));
     return page;
   }
-  const columns = el('div', 'kinds-head mono');
+  const columns = el('div', 'kinds-head');
   columns.append(el('span', undefined, s.show), el('span', undefined, s.sound));
   page.append(columns, group(...kinds));
   return page;

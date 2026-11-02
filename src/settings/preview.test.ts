@@ -36,6 +36,13 @@ test('a new config reshapes the lens', () => {
   preview.destroy();
 });
 
+test('the panel shows its label in Inter, not the old dot-matrix label', () => {
+  const { box, preview } = setup();
+  expect(box.querySelector('.preview-label')!.textContent).toBe('Pratinjau');
+  expect(box.querySelector('.lab')).toBeNull();
+  preview.destroy();
+});
+
 test('destroy leaves nothing behind', () => {
   const { box, r, preview } = setup();
   preview.destroy();

@@ -145,6 +145,7 @@ export const modulePage: PageRender = (ctx, route) => {
     ctx.save(key, pending);
     pending.then(() => ctx.go({ page: 'modules' }), () => {});
   });
+  uninstall.classList.add('danger');
   ctx.onCleanup(() => cancel?.());
 
   const foot = el('div', 'foot');

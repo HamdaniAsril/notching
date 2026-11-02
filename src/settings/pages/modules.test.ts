@@ -56,8 +56,11 @@ test('a row opens its module page; its switch does not', async () => {
 test('uninstalling asks once more, then returns to the list', async () => {
   const { root, app, bridge } = await mountForTest(STATE);
   app.go({ page: 'module', id: 'home' });
+  const uninstall = root.querySelector('[data-key="module.home.uninstall"]')!;
+  expect(uninstall.className).toBe('btn danger');
   click(root, 'module.home.uninstall');
   expect(root.querySelector('[data-key="module.home.uninstall"]')!.textContent).toBe('Yakin? Klik lagi');
+  expect(uninstall.className).toBe('btn danger confirm');
   expect(bridge.uninstallModule).not.toHaveBeenCalled();
   click(root, 'module.home.uninstall');
   expect(bridge.uninstallModule).toHaveBeenCalledWith('home');

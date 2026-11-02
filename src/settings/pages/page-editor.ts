@@ -151,6 +151,7 @@ function deleteButton(ctx: PageContext, id: string): HTMLElement {
     ctx.save(`page.${id}`, pending);
     pending.then(() => ctx.go({ page: 'pages' }), () => {});
   });
+  del.classList.add('danger');
   ctx.onCleanup(() => cancel?.());
   const foot = el('div', 'foot');
   foot.append(el('span'), del);
@@ -226,7 +227,7 @@ function preview(ctx: PageContext, page: Page, catalog: Map<string, CatalogWidge
     slot.setAttribute('aria-label', name);
     slot.title = name;
     if (widget) slot.append(...widgetSample(widget, ctx.lang));
-    else slot.append(el('div', 'lab', name), el('small', undefined, s.sourceOff));
+    else slot.append(el('div', 'ed-off-name', name), el('small', undefined, s.sourceOff));
     const remove = el('button', 'ed-remove', '×');
     remove.type = 'button';
     remove.dataset.key = `pageEdit.remove.${placement.widget}`;
@@ -267,7 +268,7 @@ function stripArea(ctx: PageContext, page: Page, catalog: Map<string, CatalogWid
   strip.setAttribute('aria-label', name);
   strip.title = name;
   if (widget) strip.append(...widgetSample(widget, ctx.lang));
-  else strip.append(el('div', 'lab', name), el('small', undefined, s.sourceOff));
+  else strip.append(el('div', 'ed-off-name', name), el('small', undefined, s.sourceOff));
   const remove = el('button', 'ed-remove', '×');
   remove.type = 'button';
   remove.dataset.key = `pageEdit.remove.${placement.widget}`;

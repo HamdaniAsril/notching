@@ -38,7 +38,7 @@ export function mountPreview(box: HTMLElement, config: NotchConfig, env: Setting
   });
   view.setPill([], null, label);
   const text = doc.createElement('div');
-  text.className = 'lab';
+  text.className = 'preview-label';
   text.textContent = label;
   view.content.append(text);
   view.kick();

@@ -77,7 +77,7 @@ export const aboutPage: PageRender = ctx => {
   page.append(
     head({ title: ctx.strings.sections.about }),
     el('div', 'app-name', s.name),
-    group(row({ key: 'about.version', label: s.version, control: el('span', 'mono', ctx.info.version) })),
+    group(row({ key: 'about.version', label: s.version, control: el('span', 'version', ctx.info.version) })),
     note(s.trust),
     note(s.later),
   );

@@ -105,3 +105,11 @@ test('full disk access row shows for cleaner and its state', async () => {
   await settle();
   expect(row(root, 'permission.cleaner.full-disk-access')!.textContent).toContain('Diizinkan');
 });
+
+test('Tentang shows the version in the text font, not the old mono one', async () => {
+  const { root, app } = await mountForTest();
+  app.go({ page: 'about' });
+  const version = root.querySelector('[data-row="about.version"] .version')!;
+  expect(version.textContent).toBe(TEST_INFO.version);
+  expect(root.querySelector('.mono')).toBeNull();
+});
