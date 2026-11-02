@@ -1,6 +1,6 @@
 {
   "name": "Sekitar",
-  "description": "Cuaca, bulan, dan matahari",
+  "description": "Cuaca, udara, bulan, dan matahari",
   "noPlace": "Isi kota di Pengaturan",
   "weatherKinds": {
     "clear": "Cerah",
@@ -13,7 +13,6 @@
     "snow": "Salju",
     "storm": "Badai petir"
   },
-  "moon": "BULAN",
   "moonPhases": {
     "new": "BARU",
     "crescent": "SABIT",
@@ -40,7 +39,7 @@
   "airBands": ["Baik", "Sedang", "Tidak sehat bagi sebagian", "Tidak sehat", "Sangat tidak sehat", "Berbahaya"],
   "widgets": {
     "bigweather": "Cuaca besar",
-    "moon": "BULAN",
+    "moon": "Bulan",
     "sun": "Matahari",
     "hourly": "Cuaca per jam",
     "air": "Udara"

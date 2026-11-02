@@ -4,7 +4,6 @@ import { COLUMN_PX, el, svgBox } from '../../../src/kit/widget';
 import { moonInfo, type MoonInfo, type MoonPhase } from '../moon';
 
 export interface MoonStrings {
-  moon: string;
   moonPhases: Record<MoonPhase, string>;
   fullIn: string; // "Purnama {n} hari"
   fullInOne: string; // the same for one day
@@ -51,7 +50,7 @@ export function moonView(root: HTMLElement, strings: MoonStrings, now: Date): HT
   const text = soon === 0 ? strings.today : template.replace('{n}', String(soon));
   const foot = el('div', 'wd-moon-foot');
   foot.append(el('i', 'rd'), el('div', 'lab', text));
-  w.append(el('div', 'lab', `${strings.moon} · ${strings.moonPhases[m.phase]}`), row, foot);
+  w.append(el('div', 'lab', strings.moonPhases[m.phase]), row, foot);
   return w;
 }
 

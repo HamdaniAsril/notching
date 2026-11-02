@@ -17,19 +17,19 @@ body {
 }
 
 /* Pekan ini: the month and week on top, seven day columns, the next reminder at the bottom. */
-.wd-wk-head,
+.wd-pk-head,
 .wd-nx-top {
   display: flex;
   justify-content: space-between;
   gap: 12px;
 }
 
-.wd-wk-days {
+.wd-pk-days {
   display: flex;
   justify-content: space-between;
 }
 
-.wd-wk-day {
+.wd-pk-day {
   width: 22px;
   display: flex;
   flex-direction: column;
@@ -38,15 +38,15 @@ body {
   color: var(--g1);
 }
 
-.wd-wk-day .lab {
+.wd-pk-day .lab {
   line-height: 12px;
 }
 
-.wd-wk-day .wd-small {
+.wd-pk-day .wd-small {
   color: inherit;
 }
 
-.wd-wk-num {
+.wd-pk-num {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -55,32 +55,32 @@ body {
   justify-content: center;
 }
 
-.wd-wk-day.today {
+.wd-pk-day.today {
   color: var(--w);
 }
 
-.wd-wk-day.today .wd-wk-num {
+.wd-pk-day.today .wd-pk-num {
   background: var(--w);
   color: #000;
 }
 
-.wd-wk-dot {
+.wd-pk-dot {
   width: 3px;
   height: 3px;
   border-radius: 50%;
   background: var(--g1);
 }
 
-.wd-wk-day.today .wd-wk-dot {
+.wd-pk-day.today .wd-pk-dot {
   background: var(--w);
 }
 
-.wd-wk-foot {
+.wd-pk-foot {
   margin-top: auto;
   min-width: 0;
 }
 
-.wd-wk-title {
+.wd-pk-title {
   font-size: 12px;
   line-height: 16px;
   color: var(--w);
@@ -89,7 +89,7 @@ body {
   text-overflow: ellipsis;
 }
 
-.wd-wk-title.empty {
+.wd-pk-title.empty {
   color: var(--g2);
 }
 

@@ -40,7 +40,7 @@ test('Cuaca besar and Bulan have samples', () => {
   expect(wx[0].querySelector('.ic svg')).not.toBeNull();
   const moon = packSample(widget('sekitar/moon'), 'en')!;
   expect(moon).toHaveLength(1);
-  expect(moon[0].querySelector('.lab')!.textContent).toBe('MOON · GIBBOUS');
+  expect(moon[0].querySelector('.lab')!.textContent).toBe('GIBBOUS');
   expect(moon[0].querySelector('svg.wd-moon-disk')).not.toBeNull();
   expect(moon[0].querySelector('.wd-big svg.dm')).not.toBeNull();
 });
@@ -68,10 +68,10 @@ test('Matahari has a sample', () => {
 test('Pekan ini and Berikutnya have samples', () => {
   const week = packSample(widget('rencana/week', 2), 'id')!;
   expect(week).toHaveLength(1);
-  expect(week[0].querySelectorAll('.wd-wk-day')).toHaveLength(7);
-  expect(week[0].querySelector('.wd-wk-day.today')!.textContent).toContain('J');
-  expect(week[0].querySelectorAll('.wd-wk-day.has')).toHaveLength(2);
-  expect(week[0].querySelector('.wd-wk-title')!.textContent).toBe('Kirim invoice');
+  expect(week[0].querySelectorAll('.wd-pk-day')).toHaveLength(7);
+  expect(week[0].querySelector('.wd-pk-day.today')!.textContent).toContain('J');
+  expect(week[0].querySelectorAll('.wd-pk-day.has')).toHaveLength(2);
+  expect(week[0].querySelector('.wd-pk-title')!.textContent).toBe('Kirim invoice');
   const next = packSample(widget('rencana/next', 2), 'en')!;
   expect(next).toHaveLength(1);
   expect(next[0].querySelector('.wd-nx-top')!.textContent).toBe('UP NEXT4 H');

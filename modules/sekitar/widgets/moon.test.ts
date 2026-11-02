@@ -21,7 +21,7 @@ test('at full moon the number is 100 and fits beside the moon', () => {
   expect(w).toBeLessThanOrEqual(109 - 40);
   // 100 does not fit at 6, 5 is still too wide, so it is 4.
   expect(w).toBe(dotWidth('100', 4));
-  expect(root.querySelector('.lab')!.textContent).toBe('BULAN · PURNAMA');
+  expect(root.querySelector('.lab')!.textContent).toBe('PURNAMA');
   expect(root.textContent).toContain('Hari ini');
 });
 
@@ -30,7 +30,7 @@ test('a smaller number keeps the big pitch', () => {
   renderMoon(root, en, 'en').update(WANING);
   const lit = root.querySelector('.wd-big svg.dm')!;
   expect(lit.getAttribute('width')).toBe(String(dotWidth('43', 6)));
-  expect(root.querySelector('.lab')!.textContent).toBe('MOON · HALF');
+  expect(root.querySelector('.lab')!.textContent).toBe('HALF');
   expect(root.textContent).toContain('New in 7 days');
 });
 

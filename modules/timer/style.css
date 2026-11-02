@@ -95,7 +95,8 @@
 }
 
 /* Paused: the same as running, a step dimmer. */
-.wd-tl.paused {
+.wd-tl.paused,
+.wd-tl.paused .wd-small {
   color: var(--g1);
 }
 

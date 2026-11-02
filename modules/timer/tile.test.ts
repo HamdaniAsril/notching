@@ -48,6 +48,32 @@ test('idle: the ticks past 1 and 60 are left out', () => {
   expect(ticks(25)).toEqual([false, false, false, false, false]);
 });
 
+test('only the primary button presses: a right-button down and up does nothing', () => {
+  for (const v of [IDLE, RUNNING, PAUSED]) {
+    const m = mount(v);
+    for (const type of ['pointerdown', 'pointerup']) {
+      m.button.dispatchEvent(new MouseEvent(type, { button: 2, bubbles: true }));
+    }
+    expect(m.act.start).not.toHaveBeenCalled();
+    expect(m.act.pause).not.toHaveBeenCalled();
+    expect(m.act.resume).not.toHaveBeenCalled();
+    // The primary button still works after it.
+    m.click();
+    expect(m.act.start.mock.calls.length + m.act.pause.mock.calls.length + m.act.resume.mock.calls.length).toBe(1);
+  }
+});
+
+test('paused: the seconds are dimmed like the minutes', async () => {
+  // The module's CSS is read from disk: vitest blanks a stylesheet imported as text.
+  // @ts-expect-error no @types/node in this project
+  const { readFileSync } = await import('node:fs');
+  const css: string = readFileSync('modules/timer/style.css', 'utf8');
+  const rule = /\.wd-tl\.paused \.wd-small[^{]*\{([^}]*)\}/.exec(css)![1];
+  expect(rule).toContain('color: var(--g1)');
+  const m = mount(PAUSED);
+  expect(m.root.querySelector('.wd-tl.paused .wd-small')).not.toBeNull();
+});
+
 test('idle: a click with no move starts the minutes shown', () => {
   const m = mount(IDLE);
   m.click();

@@ -1,6 +1,6 @@
 {
   "name": "Around",
-  "description": "Weather, moon and sun",
+  "description": "Weather, air, moon and sun",
   "noPlace": "Set a city in Settings",
   "weatherKinds": {
     "clear": "Clear",
@@ -13,7 +13,6 @@
     "snow": "Snow",
     "storm": "Thunderstorm"
   },
-  "moon": "MOON",
   "moonPhases": {
     "new": "NEW",
     "crescent": "CRESCENT",
@@ -40,7 +39,7 @@
   "airBands": ["Good", "Moderate", "Unhealthy for some", "Unhealthy", "Very unhealthy", "Hazardous"],
   "widgets": {
     "bigweather": "Weather, large",
-    "moon": "MOON",
+    "moon": "Moon",
     "sun": "Sun",
     "hourly": "Hourly weather",
     "air": "Air"

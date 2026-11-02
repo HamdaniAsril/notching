@@ -26,6 +26,8 @@ pub struct Home {
     /// When the weather was last asked for, so a failing network is retried
     /// only every few minutes.
     pub last_try: Option<i64>,
+    /// The same for the air, which retries on its own clock.
+    pub air_last_try: Option<i64>,
     weather_path: PathBuf,
     air_path: PathBuf,
 }
@@ -39,6 +41,7 @@ impl Home {
             weather: weather::load_cache(&weather_path),
             air: weather::load_air(&air_path),
             last_try: None,
+            air_last_try: None,
             weather_path,
             air_path,
         }
@@ -83,35 +86,48 @@ pub fn current_snapshot(app: &AppHandle) -> HomeSnapshot {
     snapshot(&settings, &mut home, chrono::Local::now())
 }
 
-/// Fetches the weather for the chosen city when it is due (weather::should_fetch).
-/// Blocking, and no lock is held while the request is out.
+/// Fetches the weather and the air for the chosen city, each when it is due (weather::should_fetch,
+/// should_fetch_air). Blocking, and no lock is held while a request is out. The air never fails the
+/// refresh: a failure is logged and the old air stays.
 pub fn refresh_weather(app: &AppHandle) -> Result<(), String> {
     let Some(place) = app.state::<CoreState>().0.lock().unwrap().home().place.clone() else { return Ok(()) };
+    let forecast = refresh_forecast(app, &place);
+    refresh_air(app, &place);
+    forecast
+}
+
+fn refresh_forecast(app: &AppHandle, place: &Place) -> Result<(), String> {
     let now = chrono::Utc::now().timestamp_millis();
     {
         let home = app.state::<HomeState>();
         let mut home = home.0.lock().unwrap();
-        if !weather::should_fetch(home.weather.as_ref(), &place, home.last_try, now) {
+        if !weather::should_fetch(home.weather.as_ref(), place, home.last_try, now) {
             return Ok(());
         }
         home.last_try = Some(now);
     }
-    let json = weather::fetch(weather::Endpoint::Forecast, &weather::forecast_query(&place))?;
-    let fresh = weather::parse_forecast(&json, &place, chrono::Utc::now().timestamp_millis())?;
+    let json = weather::fetch(weather::Endpoint::Forecast, &weather::forecast_query(place))?;
+    let fresh = weather::parse_forecast(&json, place, chrono::Utc::now().timestamp_millis())?;
     let home = app.state::<HomeState>();
     let mut home = home.0.lock().unwrap();
     if let Err(e) = weather::save_cache(&home.weather_path, &fresh) {
         eprintln!("notching: saving the weather failed: {e}");
     }
     home.weather = Some(fresh);
-    drop(home);
-    refresh_air(app, &place);
     Ok(())
 }
 
-// The air for the same city, fetched right after a forecast. It never fails the refresh: a
-// failure is logged and the old air stays, and is shown only while it is for the same place.
+// Shown only while it is for the same place (Air::is_for).
 fn refresh_air(app: &AppHandle, place: &Place) {
+    let now = chrono::Utc::now().timestamp_millis();
+    {
+        let home = app.state::<HomeState>();
+        let mut home = home.0.lock().unwrap();
+        if !weather::should_fetch_air(home.air.as_ref(), place, home.air_last_try, now) {
+            return;
+        }
+        home.air_last_try = Some(now);
+    }
     let fetched = weather::fetch(weather::Endpoint::Air, &weather::air_query(place))
         .and_then(|json| weather::parse_air(&json, place, chrono::Utc::now().timestamp_millis()));
     let fresh = match fetched {

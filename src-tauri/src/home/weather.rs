@@ -158,7 +158,8 @@ pub fn parse_places(json: &str) -> Result<Vec<Place>, String> {
         .unwrap_or_default())
 }
 
-// The hours that have all four values; a gap drops that hour, not the forecast.
+// The hours that have a time, temperature and code; a gap drops that hour, not the forecast. A
+// missing rain chance reads as 0 so a forecast without it still has hours (no hours counts as due).
 fn parse_hours(v: &Value) -> Vec<Hour> {
     let h = &v["hourly"];
     let Some(times) = h["time"].as_array() else { return vec![] };
@@ -170,7 +171,7 @@ fn parse_hours(v: &Value) -> Vec<Hour> {
                 at: t.as_i64()? * 1000,
                 temp: h["temperature_2m"][i].as_f64()?,
                 code: h["weather_code"][i].as_f64()? as u32,
-                rain: h["precipitation_probability"][i].as_f64()?.round().clamp(0.0, 100.0) as u32,
+                rain: h["precipitation_probability"][i].as_f64().unwrap_or(0.0).round().clamp(0.0, 100.0) as u32,
             })
         })
         .take(MAX_HOURS)
@@ -210,6 +211,13 @@ pub fn same_place(w: &Weather, place: &Place) -> bool {
 /// from before the hourly strip), but never sooner than 5 minutes after the last try.
 pub fn should_fetch(cached: Option<&Weather>, place: &Place, last_try: Option<i64>, now_ms: i64) -> bool {
     let wanted = cached.is_none_or(|w| !same_place(w, place) || now_ms - w.fetched_at >= FRESH_MS || w.hourly.is_empty());
+    wanted && last_try.is_none_or(|t| now_ms - t >= RETRY_MS)
+}
+
+/// The same rule for the air: nothing for this place or 30 minutes old is due, but never sooner
+/// than 5 minutes after the last try.
+pub fn should_fetch_air(cached: Option<&Air>, place: &Place, last_try: Option<i64>, now_ms: i64) -> bool {
+    let wanted = cached.is_none_or(|a| !a.is_for(place) || now_ms - a.fetched_at >= FRESH_MS);
     wanted && last_try.is_none_or(|t| now_ms - t >= RETRY_MS)
 }
 
@@ -407,11 +415,11 @@ mod tests {
     }
 
     #[test]
-    fn an_hour_with_a_gap_is_skipped_and_at_most_48_are_kept() {
+    fn an_hour_missing_temp_or_code_is_skipped_and_at_most_48_are_kept() {
         let json = r#"{"current":{"temperature_2m":26.3,"weather_code":3},
             "daily":{"temperature_2m_max":[31.4],"temperature_2m_min":[24.7]},
             "hourly":{"time":[3600,7200,10800],"temperature_2m":[20.0,null,22.0],
-                      "weather_code":[1,2,3],"precipitation_probability":[0,0,null]}}"#;
+                      "weather_code":[1,2,null],"precipitation_probability":[0,0,0]}}"#;
         let w = parse_forecast(json, &jakarta(), 0).unwrap();
         assert_eq!(w.hourly, vec![Hour { at: 3_600_000, temp: 20.0, code: 1, rain: 0 }]);
 
@@ -428,6 +436,25 @@ mod tests {
         let w = parse_forecast(&long, &jakarta(), 0).unwrap();
         assert_eq!(w.hourly.len(), 48);
         assert_eq!(w.hourly[47].at, (1_793_239_200 + 3600 * 47) * 1000);
+    }
+
+    #[test]
+    fn a_missing_rain_chance_reads_as_zero_so_the_hours_stay() {
+        // A null or absent precipitation_probability must not empty the strip, or should_fetch
+        // (which treats no hours as due) would refetch every five minutes.
+        let null = r#"{"current":{"temperature_2m":26.3,"weather_code":3},
+            "daily":{"temperature_2m_max":[31.4],"temperature_2m_min":[24.7]},
+            "hourly":{"time":[3600,7200],"temperature_2m":[20.0,21.0],
+                      "weather_code":[1,2],"precipitation_probability":[null,55]}}"#;
+        let w = parse_forecast(null, &jakarta(), 0).unwrap();
+        assert_eq!(
+            w.hourly,
+            vec![Hour { at: 3_600_000, temp: 20.0, code: 1, rain: 0 }, Hour { at: 7_200_000, temp: 21.0, code: 2, rain: 55 }]
+        );
+        let absent = r#"{"current":{"temperature_2m":26.3,"weather_code":3},
+            "daily":{"temperature_2m_max":[31.4],"temperature_2m_min":[24.7]},
+            "hourly":{"time":[3600],"temperature_2m":[20.0],"weather_code":[1]}}"#;
+        assert_eq!(parse_forecast(absent, &jakarta(), 0).unwrap().hourly.len(), 1);
     }
 
     #[test]
@@ -486,6 +513,22 @@ mod tests {
         assert!(should_fetch(Some(&fresh), &bandung, None, now));
         assert!(!should_fetch(Some(&old), &jakarta(), Some(now - 60_000), now));
         assert!(should_fetch(Some(&old), &jakarta(), Some(now - RETRY_MS), now));
+    }
+
+    #[test]
+    fn the_air_is_fetched_when_missing_stale_or_for_another_place_but_not_too_often() {
+        let now = 10_000_000_000;
+        let fresh = Air { aqi: 42, fetched_at: now - 60_000, latitude: -6.21, longitude: 106.85 };
+        let bandung = Place { name: "Bandung".into(), latitude: -6.9175, longitude: 107.6191, ..jakarta() };
+        assert!(should_fetch_air(None, &jakarta(), None, now));
+        assert!(!should_fetch_air(Some(&fresh), &jakarta(), None, now));
+        let old = Air { fetched_at: now - FRESH_MS, ..fresh.clone() };
+        assert!(should_fetch_air(Some(&old), &jakarta(), None, now));
+        assert!(should_fetch_air(Some(&fresh), &bandung, None, now));
+        // A failed try waits five minutes, whatever is cached.
+        assert!(!should_fetch_air(None, &jakarta(), Some(now - 60_000), now));
+        assert!(!should_fetch_air(Some(&old), &jakarta(), Some(now - 60_000), now));
+        assert!(should_fetch_air(Some(&old), &jakarta(), Some(now - RETRY_MS), now));
     }
 
     #[test]

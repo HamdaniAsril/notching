@@ -1423,23 +1423,23 @@ body > .ed-ghost {
   gap: 6px;
 }
 
-.ed-slot .wd-wk-head,
+.ed-slot .wd-pk-head,
 .ed-slot .wd-nx-top,
-.ed-shot .wd-wk-head,
+.ed-shot .wd-pk-head,
 .ed-shot .wd-nx-top {
   display: flex;
   justify-content: space-between;
   gap: 12px;
 }
 
-.ed-slot .wd-wk-days,
-.ed-shot .wd-wk-days {
+.ed-slot .wd-pk-days,
+.ed-shot .wd-pk-days {
   display: flex;
   justify-content: space-between;
 }
 
-.ed-slot .wd-wk-day,
-.ed-shot .wd-wk-day {
+.ed-slot .wd-pk-day,
+.ed-shot .wd-pk-day {
   width: 22px;
   display: flex;
   flex-direction: column;
@@ -1448,18 +1448,18 @@ body > .ed-ghost {
   color: var(--g1);
 }
 
-.ed-slot .wd-wk-day .lab,
-.ed-shot .wd-wk-day .lab {
+.ed-slot .wd-pk-day .lab,
+.ed-shot .wd-pk-day .lab {
   line-height: 12px;
 }
 
-.ed-slot .wd-wk-day .wd-small,
-.ed-shot .wd-wk-day .wd-small {
+.ed-slot .wd-pk-day .wd-small,
+.ed-shot .wd-pk-day .wd-small {
   color: inherit;
 }
 
-.ed-slot .wd-wk-num,
-.ed-shot .wd-wk-num {
+.ed-slot .wd-pk-num,
+.ed-shot .wd-pk-num {
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -1468,38 +1468,38 @@ body > .ed-ghost {
   justify-content: center;
 }
 
-.ed-slot .wd-wk-day.today,
-.ed-shot .wd-wk-day.today {
+.ed-slot .wd-pk-day.today,
+.ed-shot .wd-pk-day.today {
   color: var(--w);
 }
 
-.ed-slot .wd-wk-day.today .wd-wk-num,
-.ed-shot .wd-wk-day.today .wd-wk-num {
+.ed-slot .wd-pk-day.today .wd-pk-num,
+.ed-shot .wd-pk-day.today .wd-pk-num {
   background: var(--w);
   color: #000;
 }
 
-.ed-slot .wd-wk-dot,
-.ed-shot .wd-wk-dot {
+.ed-slot .wd-pk-dot,
+.ed-shot .wd-pk-dot {
   width: 3px;
   height: 3px;
   border-radius: 50%;
   background: var(--g1);
 }
 
-.ed-slot .wd-wk-day.today .wd-wk-dot,
-.ed-shot .wd-wk-day.today .wd-wk-dot {
+.ed-slot .wd-pk-day.today .wd-pk-dot,
+.ed-shot .wd-pk-day.today .wd-pk-dot {
   background: var(--w);
 }
 
-.ed-slot .wd-wk-foot,
-.ed-shot .wd-wk-foot {
+.ed-slot .wd-pk-foot,
+.ed-shot .wd-pk-foot {
   margin-top: auto;
   min-width: 0;
 }
 
-.ed-slot .wd-wk-title,
-.ed-shot .wd-wk-title {
+.ed-slot .wd-pk-title,
+.ed-shot .wd-pk-title {
   font-size: 12px;
   line-height: 16px;
   color: var(--w);
@@ -1508,8 +1508,8 @@ body > .ed-ghost {
   text-overflow: ellipsis;
 }
 
-.ed-slot .wd-wk-title.empty,
-.ed-shot .wd-wk-title.empty {
+.ed-slot .wd-pk-title.empty,
+.ed-shot .wd-pk-title.empty {
   color: var(--g2);
 }
 

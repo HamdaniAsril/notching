@@ -23,7 +23,11 @@ pub async fn search_places(app: AppHandle, query: String) -> Result<Vec<Place>, 
 #[tauri::command]
 pub fn set_place(app: AppHandle, core: State<CoreState>, home: State<HomeState>, place: Option<Place>) -> Result<(), String> {
     change(&app, &core, |c| c.set_place(place))?;
-    home.0.lock().unwrap().last_try = None;
+    {
+        let mut home = home.0.lock().unwrap();
+        home.last_try = None;
+        home.air_last_try = None;
+    }
     emit_settings(&app);
     super::schedule::poke(&app);
     Ok(())

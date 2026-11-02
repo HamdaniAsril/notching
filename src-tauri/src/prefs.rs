@@ -2,6 +2,7 @@
 //! capability). The file is named by the calling module, never by its arguments.
 
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use crate::modules::manifest::is_module_id;
 
@@ -10,13 +11,16 @@ pub const PREFS_MAX: usize = 16 * 1024;
 
 pub struct Prefs {
     dir: PathBuf,
+    /// Held across a write: the temporary file is shared per module, so two writers
+    /// at once would clobber it. A read needs no lock, the rename is atomic.
+    lock: Mutex<()>,
 }
 
 pub struct PrefsState(pub Prefs);
 
 impl Prefs {
     pub fn new(dir: PathBuf) -> Self {
-        Prefs { dir }
+        Prefs { dir, lock: Mutex::new(()) }
     }
 
     /// `{}` when the file is missing, unreadable or not an object. A module id that
@@ -44,6 +48,7 @@ impl Prefs {
         if text.len() > PREFS_MAX {
             return Err("prefs too large".to_string());
         }
+        let _guard = self.lock.lock().unwrap_or_else(|e| e.into_inner());
         crate::home::write_atomic(&self.dir.join(format!("{module}.json")), &text).map_err(|e| e.to_string())
     }
 }
@@ -100,6 +105,28 @@ mod tests {
             assert!(p.write("paket", &v).is_err());
         }
         assert_eq!(p.read("paket"), serde_json::json!({}));
+    }
+
+    #[test]
+    fn concurrent_writes_leave_one_whole_object() {
+        let (_d, p) = prefs();
+        let p = std::sync::Arc::new(p);
+        let threads: Vec<_> = (0..16)
+            .map(|i| {
+                let p = p.clone();
+                std::thread::spawn(move || {
+                    for j in 0..25 {
+                        p.write("paket", &serde_json::json!({ "n": i * 100 + j })).unwrap();
+                    }
+                })
+            })
+            .collect();
+        for t in threads {
+            t.join().unwrap();
+        }
+        let got = p.read("paket");
+        let n = got["n"].as_i64().expect("a written object, not {}");
+        assert!((0..16).any(|i| n == i * 100 + 24), "the last write of some thread: {n}");
     }
 
     #[test]

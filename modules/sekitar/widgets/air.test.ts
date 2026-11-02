@@ -75,3 +75,22 @@ test('the band label may wrap to two lines and nothing is cut off', async () => 
   expect(rule).not.toContain('nowrap');
   expect(rule).not.toContain('ellipsis');
 });
+
+test('the longest band, 101 to 150, is rendered whole in a label that may wrap', async () => {
+  // @ts-expect-error no @types/node in this project
+  const { readFileSync } = await import('node:fs');
+  const css: string = readFileSync('modules/sekitar/style.css', 'utf8');
+  // .lab is nowrap and ellipsised in kit.css only where a rule says so; this label's own rule wraps.
+  const rule = /\.wd-air-band \{([^}]*)\}/.exec(css)![1];
+  for (const [strings, lang, text] of [[id, 'id', 'Tidak sehat bagi sebagian'], [en, 'en', 'Unhealthy for some']] as const) {
+    const root = host();
+    renderAir(root, strings, lang).update(withAir(120), NOW);
+    const label = root.querySelector<HTMLElement>('.wd-air-band')!;
+    expect(label.textContent).toBe(text);
+    expect(label.classList.contains('lab')).toBe(true);
+    expect(label.style.whiteSpace).not.toBe('nowrap');
+    expect(label.style.textOverflow).not.toBe('ellipsis');
+    expect(rule).toContain('white-space: normal');
+    expect(rule).not.toMatch(/nowrap|ellipsis|overflow/);
+  }
+});

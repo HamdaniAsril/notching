@@ -87,6 +87,7 @@ export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
   };
 
   button.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return; // a right click opens no timer
     const id = (e as PointerEvent).pointerId;
     if (id !== undefined) button.setPointerCapture?.(id);
     drag = { x: e.clientX, base: minutes(), moved: false };
