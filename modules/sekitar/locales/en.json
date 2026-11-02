@@ -13,21 +13,23 @@
     "snow": "Snow",
     "storm": "Thunderstorm"
   },
-  "moon": "Moon",
+  "moon": "MOON",
   "moonPhases": {
-    "new": "New",
-    "crescent": "Crescent",
-    "quarter": "Half",
-    "gibbous": "Gibbous",
-    "full": "Full"
+    "new": "NEW",
+    "crescent": "CRESCENT",
+    "quarter": "HALF",
+    "gibbous": "GIBBOUS",
+    "full": "FULL"
   },
   "fullIn": "Full in {n} days",
+  "fullInOne": "Full in {n} day",
   "newIn": "New in {n} days",
+  "newInOne": "New in {n} day",
   "today": "Today",
   "high": "H",
   "low": "L",
   "widgets": {
     "bigweather": "Weather, large",
-    "moon": "Moon"
+    "moon": "MOON"
   }
 }

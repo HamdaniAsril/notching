@@ -7,7 +7,9 @@ export interface MoonStrings {
   moon: string;
   moonPhases: Record<MoonPhase, string>;
   fullIn: string; // "Purnama {n} hari"
+  fullInOne: string; // the same for one day
   newIn: string;
+  newInOne: string;
   today: string;
 }
 
@@ -43,7 +45,10 @@ export function moonView(root: HTMLElement, strings: MoonStrings, now: Date): HT
   pct.append(percent(root, m.lit), el('div', 'lab', '%'));
   row.append(svgBox('wd-moon-box', moonSvg(m)), pct);
   const soon = Math.min(m.toFull, m.toNew);
-  const text = soon === 0 ? strings.today : (m.toFull <= m.toNew ? strings.fullIn : strings.newIn).replace('{n}', String(soon));
+  const full = m.toFull <= m.toNew;
+  const one = soon === 1;
+  const template = full ? (one ? strings.fullInOne : strings.fullIn) : (one ? strings.newInOne : strings.newIn);
+  const text = soon === 0 ? strings.today : template.replace('{n}', String(soon));
   const foot = el('div', 'wd-moon-foot');
   foot.append(el('i', 'rd'), el('div', 'lab', text));
   w.append(el('div', 'lab', `${strings.moon} · ${strings.moonPhases[m.phase]}`), row, foot);

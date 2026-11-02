@@ -64,6 +64,7 @@ body {
 /* Bulan: the phase on top, the moon and the percent, the days to the next full or new moon. */
 .wd-moon {
   justify-content: space-between;
+  gap: 4px;
 }
 
 .wd-moon > .lab {
@@ -88,23 +89,32 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+}
+
+.wd-moon-pct .lab {
+  line-height: 12px;
 }
 
 .wd-moon-pct .wd-big {
   min-height: 0;
 }
 
+/* The days may take two lines, the dot staying on the first. Stack at the big pitch: label 14,
+   number 42 + "%" 12, two lines 24 and two gaps of 4 make 100 px of the 104. */
 .wd-moon-foot {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   min-width: 0;
+}
+
+.wd-moon-foot .rd {
+  margin-top: 3px;
 }
 
 .wd-moon-foot .lab {
   display: block;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 12px;
 }

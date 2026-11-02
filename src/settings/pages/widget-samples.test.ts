@@ -40,7 +40,7 @@ test('Cuaca besar and Bulan have samples', () => {
   expect(wx[0].querySelector('.ic svg')).not.toBeNull();
   const moon = packSample(widget('sekitar/moon'), 'en')!;
   expect(moon).toHaveLength(1);
-  expect(moon[0].querySelector('.lab')!.textContent).toBe('Moon · Gibbous');
+  expect(moon[0].querySelector('.lab')!.textContent).toBe('MOON · GIBBOUS');
   expect(moon[0].querySelector('svg.wd-moon-disk')).not.toBeNull();
   expect(moon[0].querySelector('.wd-big svg.dm')).not.toBeNull();
 });

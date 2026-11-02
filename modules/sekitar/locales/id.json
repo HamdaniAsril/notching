@@ -13,21 +13,23 @@
     "snow": "Salju",
     "storm": "Badai petir"
   },
-  "moon": "Bulan",
+  "moon": "BULAN",
   "moonPhases": {
-    "new": "Baru",
-    "crescent": "Sabit",
-    "quarter": "Separuh",
-    "gibbous": "Cembung",
-    "full": "Purnama"
+    "new": "BARU",
+    "crescent": "SABIT",
+    "quarter": "SEPARUH",
+    "gibbous": "CEMBUNG",
+    "full": "PURNAMA"
   },
   "fullIn": "Purnama {n} hari",
+  "fullInOne": "Purnama {n} hari",
   "newIn": "Bulan baru {n} hari",
+  "newInOne": "Bulan baru {n} hari",
   "today": "Hari ini",
   "high": "T",
   "low": "R",
   "widgets": {
     "bigweather": "Cuaca besar",
-    "moon": "Bulan"
+    "moon": "BULAN"
   }
 }

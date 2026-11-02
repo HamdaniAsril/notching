@@ -1179,7 +1179,7 @@ body > .ed-ghost {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
 }
 
 .ed-slot .wd-moon-row,
@@ -1202,15 +1202,33 @@ body > .ed-ghost {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+}
+
+.ed-slot .wd-moon-pct .lab,
+.ed-shot .wd-moon-pct .lab {
+  line-height: 12px;
 }
 
 .ed-slot .wd-moon-foot,
 .ed-shot .wd-moon-foot {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   min-width: 0;
+}
+
+.ed-slot .wd-moon-foot .rd,
+.ed-shot .wd-moon-foot .rd {
+  margin-top: 3px;
+}
+
+/* The days wrap rather than end in an ellipsis. */
+.ed-slot .wd-moon-foot .lab,
+.ed-shot .wd-moon-foot .lab {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 12px;
 }
 
 /* Pekan ini and Berikutnya: the same rules as modules/rencana/style.css, scoped to the slot
