@@ -5,7 +5,7 @@ import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
 import type { ShotKeys } from '../bridge';
 import { shotKeys } from '../shot/test-helpers';
-import type { LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo } from './types';
+import type { LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress } from './types';
 
 export const TEST_INFO: SettingsInfo = {
   language: 'auto',
@@ -58,6 +58,9 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     openAccessibility: vi.fn(async () => {}),
     openScreenRecordingSettings: vi.fn(async () => {}),
     shotKeys: vi.fn(async (): Promise<ShotKeys> => shotKeys()),
+    shotSetKey: vi.fn(async (_which: 'screen' | 'pick', _key: ShotKeyPress): Promise<ShotKeys> => shotKeys()),
+    shotResetKeys: vi.fn(async (): Promise<ShotKeys> => shotKeys()),
+    shotKeysHold: vi.fn(async (_hold: boolean) => {}),
     openKeyboardShortcuts: vi.fn(async () => {}),
     openFullDiskAccessSettings: vi.fn(async () => {}),
     cleanerExclusions: vi.fn(async (): Promise<{ home: string; paths: string[] }> => ({ home: '/Users/a', paths: [] })),

@@ -3423,8 +3423,25 @@ body > .ed-ghost.page-row {
   margin-top: 28px;
 }
 
-/* Screenshot's page: which of ⌘⇧3 and ⌘⇧4 do not reach Notching, with a way to fix it. */
-.shot-keys .btn {
+/* Screenshot's page: its two keys, each a key box that records new ones when
+   clicked (in the accent while it listens), then System Settings and the way
+   back to ⌘⇧3 and ⌘⇧4 under them. */
+.shot-keys .btn.keycap {
+  flex: none;
+  min-width: 72px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.shot-keys .btn.keycap.recording {
+  box-shadow: inset 0 0 0 1.5px var(--acc);
+  color: var(--g1);
+}
+
+.shot-keys-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 10px;
 }
 

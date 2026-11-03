@@ -43,6 +43,10 @@ export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'module
 
 export type Route = { page: SectionId } | { page: 'module'; id: string } | { page: 'add' } | { page: 'pageEdit'; id: string };
 
+// A key pressed while Screenshot's key is recorded: its place on the keyboard
+// (KeyboardEvent.code) and the modifiers held.
+export interface ShotKeyPress { code: string; cmd: boolean; ctrl: boolean; alt: boolean; shift: boolean }
+
 // What the settings window needs from the native side.
 export interface SettingsBridge {
   moduleState(): Promise<ModuleState>;
@@ -75,7 +79,10 @@ export interface SettingsBridge {
   setStatusShown(module: string, on: boolean): Promise<void>;
   openAccessibility(): Promise<void>; // System Settings › Privacy & Security › Accessibility
   openScreenRecordingSettings(): Promise<void>; // System Settings › Privacy & Security › Screen Recording
-  shotKeys(): Promise<ShotKeys>; // how ⌘⇧3 and ⌘⇧4 stand, for Screenshot's page
+  shotKeys(): Promise<ShotKeys>; // how the two keys stand, for Screenshot's page
+  shotSetKey(which: 'screen' | 'pick', key: ShotKeyPress): Promise<ShotKeys>; // rejects with 'invalid' or 'duplicate'
+  shotResetKeys(): Promise<ShotKeys>; // back to ⌘⇧3 and ⌘⇧4
+  shotKeysHold(hold: boolean): Promise<void>; // Notching's keys let go while one is recorded
   openKeyboardShortcuts(): Promise<void>; // System Settings › Keyboard › Keyboard Shortcuts › Screenshots
   openFullDiskAccessSettings(): Promise<void>; // System Settings › Privacy & Security › Full Disk Access
   cleanerExclusions(): Promise<{ home: string; paths: string[] }>; // Cleaner's never-clean list; rejects when unreadable
