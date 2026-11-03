@@ -200,7 +200,7 @@
 .mods-tile.on,
 .mods-tile.on:hover {
   color: var(--v-ink);
-  box-shadow: 0 0 0 1px #c8f04a66;
+  box-shadow: 0 0 0 1px rgba(var(--v-acc-rgb), 0.4);
 }
 
 .mods-tile.on .mods-name {
@@ -264,7 +264,7 @@
   --v-ink: #000;
   --v-ink2: rgba(0, 0, 0, 0.68);
   --v-muted: rgba(0, 0, 0, 0.45);
-  --v-acc: #4c6b12;
+  --v-acc: var(--v-acc-deep);
   --v-ring: #0000001a;
   color: #000;
 }
@@ -593,7 +593,7 @@
 }
 
 .shot-btn.primary:hover {
-  background: #d6f56e;
+  background: var(--v-acc-hi);
   color: var(--v-on-acc);
   box-shadow: none;
 }
@@ -955,7 +955,7 @@
    take; Apps is the accent at half strength. */
 .cl-seg[data-key="apps"],
 .cl-dot[data-key="apps"] {
-  background: #c8f04a80;
+  background: rgba(var(--v-acc-rgb), 0.5);
 }
 
 .cl-seg[data-key="documents"],
@@ -1374,7 +1374,7 @@
 }
 
 .cl-btn.primary:hover {
-  background: #d6f56e;
+  background: var(--v-acc-hi);
   color: var(--v-on-acc);
 }
 

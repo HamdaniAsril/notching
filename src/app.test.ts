@@ -128,6 +128,20 @@ test('the frames go away once the panel has closed', async () => {
   expect(frame()).toBeNull();
 });
 
+test('the page and its frames follow the accent', async () => {
+  const { app, r, bridge, frame } = await start({ ...TEST_STATE, accent: '#ff6fa8' });
+  const root = document.documentElement;
+  expect(root.style.getPropertyValue('--v-acc')).toBe('#ff6fa8');
+  open(app, r);
+  const f = frame()!;
+  const posted: unknown[] = [];
+  f.contentWindow!.postMessage = ((m: unknown) => { posted.push(m); }) as Window['postMessage'];
+  bridge.emitModuleState({ ...TEST_STATE, accent: '#3ee6c4' });
+  expect(root.style.getPropertyValue('--v-acc')).toBe('#3ee6c4');
+  expect(posted).toContainEqual({ type: 'notching:accent', accent: '#3ee6c4' });
+  expect(frame()).toBe(f);
+});
+
 test('a language change reloads the frames in the new language', async () => {
   const { root, app, r, bridge, frame } = await start();
   open(app, r);

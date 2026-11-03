@@ -134,6 +134,8 @@ export const TEST_STATE: ModuleState = {
   notifications: { glow: true, seconds: 3.5 },
   missed: [],
   sampleStatus: false,
+  accent: '#c8f04a',
+  accentCustom: null,
 };
 
 // Bridge whose methods are mocks; emit* plays the native side's events.

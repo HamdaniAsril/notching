@@ -117,10 +117,10 @@ const BAR_REST = [0.5, 0.8, 1, 0.7, 0.45];
 const MU_GAP = 8;
 // Paused, the music stays this long, so a short pause does not flicker.
 export const MUSIC_LINGER_MS = 3000;
-// Volt's accent (--v-acc) and its deep shade (--v-acc-deep): the bars, and the
-// cover of a track without artwork.
-const ACC = '#C8F04A';
-const ACC_DEEP = '#4C6B12';
+// Volt's accent and its deep shade, as the page's CSS variables so they follow
+// the accent picked in Tampilan: the bars, and the cover of a track without artwork.
+const ACC = 'var(--v-acc)';
+const ACC_DEEP = 'var(--v-acc-deep)';
 
 // The G2 glow from notif-v1.html: a gradient running round the notice's rim.
 const GLOW_STOPS = ['#ff6ec4', '#7873f5', '#4adede', '#ffd166'];
@@ -199,7 +199,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   [ACC, ACC_DEEP].forEach((color, i) => {
     const stop = doc.createElementNS(SVG_NS, 'stop');
     stop.setAttribute('offset', String(i));
-    stop.setAttribute('stop-color', color);
+    stop.style.setProperty('stop-color', color);
     muFill.append(stop);
   });
   const muClip = doc.createElementNS(SVG_NS, 'clipPath');
@@ -215,7 +215,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   dot.setAttribute('class', 'missed-dot');
   dot.setAttribute('r', '3');
   dot.setAttribute('cx', String(notch ? -notch.width / 2 - MISSED_TAB / 2 + 2 : 0));
-  dot.setAttribute('fill', '#C8F04A');
+  dot.style.setProperty('fill', ACC);
   dot.setAttribute('display', 'none');
   const tab = doc.createElementNS(SVG_NS, 'path');
   tab.setAttribute('class', 'missed-tab');
@@ -256,7 +256,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     bar.setAttribute('class', 'mu-bar');
     bar.setAttribute('width', String(BAR_W));
     bar.setAttribute('rx', String(BAR_W / 2));
-    bar.setAttribute('fill', ACC);
+    bar.style.setProperty('fill', ACC);
     bar.style.setProperty('--mu-t', `${BAR_BEATS[i]}s`);
     bar.style.setProperty('--mu-d', `${BAR_DELAYS[i]}s`);
     bar.style.setProperty('--mu-rest', String(BAR_REST[i]));

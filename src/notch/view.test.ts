@@ -236,7 +236,7 @@ test('the missed dot is the accent, inside the notch widened to the left, or und
   expect([b.getAttribute('cx'), b.getAttribute('cy')]).toEqual(['0', '9']);
   expect(under.querySelector('.missed-tab')).toBeNull();
   for (const d of [a, b]) {
-    expect([d.getAttribute('fill'), d.getAttribute('stroke')]).toEqual(['#C8F04A', null]);
+    expect([(d as SVGElement).style.getPropertyValue('fill'), d.getAttribute('fill'), d.getAttribute('stroke')]).toEqual(['var(--v-acc)', null, null]);
   }
 });
 
@@ -466,7 +466,7 @@ test('while music plays the cover sits left of the notch and five lime bars righ
   expect(root.querySelector('.mu-tab')!.getAttribute('d')).toMatch(/^M -139\.00 0 /);
   // Five bars 2 px wide with 2 px between, centred in a 24 px box 6 px from the edge.
   expect(bars(root).map(b => b.getAttribute('x'))).toEqual(['104', '108', '112', '116', '120']);
-  expect(bars(root).every(b => b.getAttribute('width') === '2' && b.getAttribute('fill') === '#C8F04A')).toBe(true);
+  expect(bars(root).every(b => b.getAttribute('width') === '2' && (b as SVGElement).style.getPropertyValue('fill') === 'var(--v-acc)')).toBe(true);
   expect(attrs(bars(root)[0], 'y', 'height')).toEqual(['9', '14']);
   // Each bar on its own beat, 0.9–1.3 s.
   const beats = bars(root).map(b => parseFloat((b as SVGElement).style.getPropertyValue('--mu-t')));
@@ -477,14 +477,14 @@ test('while music plays the cover sits left of the notch and five lime bars righ
   expect(shown(root, '.st-items')).toBe(false);
 });
 
-test('a track without artwork gets the lime gradient', () => {
+test('a track without artwork gets the accent gradient', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
   v.setMedia({ ...PLAYING, art: null });
   expect(root.querySelector('.mu-art')!.getAttribute('display')).toBe('none');
   const fill = root.querySelector('.mu-art-bg')!.getAttribute('fill')!.match(/^url\(#(.+)\)$/)![1];
-  const stops = [...root.querySelectorAll(`[id="${fill}"] stop`)].map(s => s.getAttribute('stop-color'));
-  expect(stops).toEqual(['#C8F04A', '#4C6B12']);
+  const stops = [...root.querySelectorAll<SVGStopElement>(`[id="${fill}"] stop`)].map(s => s.style.getPropertyValue('stop-color'));
+  expect(stops).toEqual(['var(--v-acc)', 'var(--v-acc-deep)']);
   v.setMedia(PLAYING);
   expect(root.querySelector('.mu-art')!.getAttribute('display')).toBe('inline');
 });
