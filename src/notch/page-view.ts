@@ -2,7 +2,7 @@ import type { HostStrings } from '../i18n';
 import type { ModuleInfo, ModuleState } from '../modules/types';
 import type { FrameHost, FrameSpec } from '../pages/frames';
 import { slots, widgetCatalog } from '../pages/layout';
-import { CUSTOM_PAGE, HEAD_ROW, MODULES_GRID, pageHead, type PageView, STRIP_HEIGHT } from '../pages/route';
+import { CUSTOM_PAGE, HEAD_ROW, MODULES_GRID, pageHead, type PageView, STRIP_HEIGHT, viewSize } from '../pages/route';
 import { type CleanerDeps, type CleanerView, mountCleaner } from '../cleaner/view';
 import { mountShelfView, type ShelfView, type ShelfViewDeps } from '../shelf/view';
 import { mountShotList, type ShotList, type ShotListDeps } from '../shot/list';
@@ -74,7 +74,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     cleaner.box.remove();
   }
 
-  function showCleaner(s: ModuleState): void {
+  function showCleaner(v: Extract<PageView, { kind: 'cleaner' }>, s: ModuleState): void {
     deps.frames.keep([]);
     if (cleaner && cleaner.lang !== s.lang) {
       cleaner.view.destroy();
@@ -84,6 +84,9 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
       const box = el(doc, 'div', 'cl');
       cleaner = { box, lang: s.lang, view: mountCleaner(box, { ...deps.cleaner, lang: s.lang, back: deps.onBack }) };
     }
+    // The card area has no height, so a list's own card could grow past the panel;
+    // held to the panel's, it scrolls. The start view is measured as drawn.
+    cleaner.box.style.height = v.screen === 'list' ? `${viewSize(v).height}px` : '';
     if (content.contains(cleaner.box)) return;
     content.replaceChildren(cleaner.box);
     cleaner.view.shown();
@@ -258,7 +261,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
         reset();
         dropShelf();
         dropShot();
-        showCleaner(s);
+        showCleaner(v, s);
         return;
       }
       hideCleaner();

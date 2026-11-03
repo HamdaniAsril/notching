@@ -3,7 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { hostStrings } from '../i18n';
 import type { ModuleState, Page } from '../modules/types';
 import { mountFrameHost } from '../pages/frames';
-import { pickPage, resolvePage } from '../pages/route';
+import { pickPage, resolvePage, viewSize } from '../pages/route';
 import { fakeShotDeps, shot } from '../shot/test-helpers';
 import { mountPageView } from './page-view';
 import { BERANDA, fakeBridge, moduleInfo, TEST_STATE, timerInfo, timers } from './test-helpers';
@@ -305,4 +305,28 @@ test('a screenshot page keeps its view between renders and goes with the page', 
   expect(content.querySelector('.shot')).toBeNull();
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', metaKey: true }));
   expect(deps.shot.shotCopy).not.toHaveBeenCalled();
+});
+
+// The notch's card area has no height of its own, so Cleaner's lists are held to the
+// panel by the page: without it the list of apps grew past the panel and never scrolled.
+test("Cleaner's lists are as tall as the panel and scroll inside it; the start view keeps its own height", async () => {
+  const { content, pv } = mount();
+  const cleaner = (screen: 'home' | 'list') => ({ kind: 'cleaner' as const, key: 'cleaner' as const, screen, note: false });
+  pv.show(cleaner('list'), TEST_STATE, STR);
+  const box = content.querySelector<HTMLElement>('.cl')!;
+  expect(box.style.height).toBe(`${viewSize(cleaner('list')).height}px`);
+  pv.show(cleaner('home'), TEST_STATE, STR);
+  expect(box.style.height).toBe('');
+  pv.show(cleaner('list'), TEST_STATE, STR);
+  expect(box.style.height).toBe(`${viewSize(cleaner('list')).height}px`);
+
+  // Down the chain each box takes the height above it, and the list's card is the one that scrolls.
+  // Read from disk: vitest blanks a stylesheet imported as text.
+  // @ts-expect-error: the app has no Node types; vitest runs in Node.
+  const { readFileSync } = await import('node:fs');
+  const pagesCss: string = readFileSync('src/notch/pages.css', 'utf8');
+  const rule = (sel: string) => pagesCss.match(new RegExp(`(?:^|\\n)${sel.replace('.', '\\.')}[^{]*\\{([^}]*)\\}`))?.[1] ?? '';
+  expect(rule('.cl,')).toContain('height: 100%');
+  expect(rule('.cl-list')).toMatch(/height: 100%[\s\S]*min-height: 0/);
+  expect(rule('.cl-lbody')).toMatch(/min-height: 0[\s\S]*overflow-y: auto/);
 });

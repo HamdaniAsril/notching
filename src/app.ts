@@ -141,6 +141,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
         cleanerScreen = { screen, note, height };
         if (page.kind !== 'cleaner') return;
         usePage(cleanerPage());
+        // A list is held to the panel's height (page-view.ts), so the page hears of the change.
+        showPage();
         view.kick();
       },
     },

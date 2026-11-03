@@ -9,7 +9,8 @@ const GB = 1e9;
 const MB = 1e6;
 
 // Cleaner in a normal browser (`npm run dev`): made-up numbers, nothing removed.
-// ?fda=0 shows the start view without Full Disk Access; ?test=1 shows the test-mode pill.
+// ?fda=0 shows the start view without Full Disk Access; ?test=1 shows the test-mode pill;
+// ?apps=<n> adds n made-up apps to Clean uninstall's list.
 export function fakeCleaner(params: URLSearchParams): CleanerFake {
   const subs = new Set<(e: CleanerEvent) => void>();
   const fda = params.get('fda') !== '0';
@@ -29,6 +30,8 @@ export function fakeCleaner(params: URLSearchParams): CleanerFake {
     { id: 100, name: 'Xcode', bundleId: 'com.apple.dt.Xcode', bytes: 12 * GB, refused: false, running: false },
     { id: 101, name: 'Spotify', bundleId: 'com.spotify.client', bytes: 1.2 * GB, refused: false, running: params.get('running') === '1' },
     { id: 102, name: 'GlobalProtect', bundleId: 'com.paloaltonetworks.GlobalProtect', bytes: 90 * MB, refused: true, running: false },
+    ...Array.from({ length: Number(params.get('apps') ?? 0) }, (_, i) => (
+      { id: 110 + i, name: `Coba ${i + 1}`, bundleId: `id.coba.app${i + 1}`, bytes: (60 - i) * MB, refused: false, running: false })),
   ];
   const emit = (e: CleanerEvent) => subs.forEach(cb => cb(e));
   return {

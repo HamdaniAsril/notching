@@ -855,6 +855,18 @@ test('a start view drawn taller than 188 makes the panel taller', async () => {
   }
 });
 
+test("Clean uninstall's list is held to the panel's height, and the start view lets go of it", async () => {
+  const s = await openCleaner();
+  const box = s.root.querySelector<HTMLElement>('.cl')!;
+  expect(box.style.height).toBe('');
+  s.root.querySelectorAll<HTMLElement>('.cl-tile')[1].click();
+  expect(s.app.controller.card).toEqual({ width: 520, height: 440 });
+  expect(box.style.height).toBe('440px');
+  await new Promise(r => setTimeout(r, 0));
+  s.root.querySelector<HTMLElement>('.cl-lhead .cl-back')!.click();
+  expect(box.style.height).toBe('');
+});
+
 test('closed and opened again within 10 minutes, Cleaner is still there; later it is not', async () => {
   vi.useFakeTimers({ toFake: ['Date'] });
   try {
