@@ -31,6 +31,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     onSettings: vi.fn((cb: (s: SettingsInfo) => void) => { infoSubs.add(cb); return () => { infoSubs.delete(cb); }; }),
     setLanguage: vi.fn(async (_language: LanguageChoice) => {}),
     setNotchConfig: vi.fn(async (_config: NotchConfig) => {}),
+    setAccent: vi.fn(async (_accent: string, _custom: string | null) => {}),
     setScreen: vi.fn(async (_name: string | null) => {}),
     setLaunchAtLogin: vi.fn(async (_on: boolean) => {}),
     openLoginItems: vi.fn(async () => {}),

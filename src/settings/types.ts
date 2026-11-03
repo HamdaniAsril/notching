@@ -51,6 +51,7 @@ export interface SettingsBridge {
   onSettings(cb: (s: SettingsInfo) => void): () => void;
   setLanguage(language: LanguageChoice): Promise<void>;
   setNotchConfig(config: NotchConfig): Promise<void>;
+  setAccent(accent: string, custom: string | null): Promise<void>; // custom null keeps the last custom colour
   setScreen(name: string | null): Promise<void>;
   setLaunchAtLogin(on: boolean): Promise<void>;
   openLoginItems(): Promise<void>;

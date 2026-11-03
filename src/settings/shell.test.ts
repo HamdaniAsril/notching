@@ -98,3 +98,11 @@ test('a failed save says so next to the setting', async () => {
   await settle();
   expect(root.querySelector('[data-row="general.language"]')!.textContent).toContain('Gagal menyimpan. Coba lagi.');
 });
+
+test('the window follows the accent', async () => {
+  const { bridge } = await mountForTest({ ...TEST_STATE, accent: '#b18cff' });
+  const root = document.documentElement;
+  expect(root.style.getPropertyValue('--v-acc')).toBe('#b18cff');
+  bridge.emitModuleState({ ...TEST_STATE, accent: '#3ee6c4' });
+  expect(root.style.getPropertyValue('--v-acc')).toBe('#3ee6c4');
+});

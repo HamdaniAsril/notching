@@ -30,6 +30,7 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
       ['home.prayerNotice', s.home.prayerNotice, k.channels],
     ],
     look: [
+      ['look.accent', s.look.accent, k.accent],
       ['look.bounce', s.look.bounce, k.bounce],
       ['look.speed', s.look.speed, k.speed],
       ['look.dropDepth', s.look.dropDepth, k.dropDepth],

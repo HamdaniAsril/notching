@@ -64,6 +64,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
       });
     },
     setNotchConfig: async notch => setState({ ...state, notch }),
+    setAccent: async (accent, custom) => setState({ ...state, accent, accentCustom: custom ?? state.accentCustom }),
     setScreen: async screen => setInfo({ ...info, screen }),
     setLaunchAtLogin: async on => setInfo({ ...info, login: on ? 'on' : 'off' }),
     openLoginItems: async () => console.info('openLoginItems'),

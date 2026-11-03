@@ -2,6 +2,7 @@
 import { expect, test } from 'vitest';
 import { CONFIG_RANGES, DEFAULT_CONFIG } from '../../notch/config';
 import { TEST_STATE } from '../../notch/test-helpers';
+import { accentPalette } from '../../kit/accent';
 import { mountForTest } from '../test-helpers';
 
 const sliders = (root: HTMLElement) => [...root.querySelectorAll<HTMLInputElement>('input[data-key^="look."]')];
@@ -66,4 +67,60 @@ test('holding an arrow key never jumps back or drops a step', async () => {
   expect(bounce().value).toBe('52');
   slide(bounce(), '53', 'change');
   expect(bridge.setNotchConfig).toHaveBeenLastCalledWith({ ...DEFAULT_CONFIG, bounce: 53 });
+});
+
+const swatch = (root: HTMLElement, name: string) =>
+  root.querySelector<HTMLElement>(`[data-row="look.accent"] [role="radio"][aria-label="${name}"]`)!;
+const checked = (root: HTMLElement) =>
+  root.querySelector('[data-row="look.accent"] [aria-checked="true"]')!.getAttribute('aria-label');
+
+test('a swatch saves the accent at once and keeps the custom colour', async () => {
+  const { root, app, bridge } = await mountForTest();
+  app.go({ page: 'look' });
+  expect(checked(root)).toBe('Lime');
+  swatch(root, 'Mango').click();
+  expect(bridge.setAccent).toHaveBeenCalledWith('#ff8a3d', null);
+});
+
+test('a saved custom colour shows as the custom swatch', async () => {
+  const { root, app } = await mountForTest({ ...TEST_STATE, accent: '#123456', accentCustom: '#123456' });
+  app.go({ page: 'look' });
+  expect(checked(root)).toBe('Warna sendiri');
+});
+
+test('back on a preset, the custom swatch remembers its colour', async () => {
+  const { root, app } = await mountForTest({ ...TEST_STATE, accent: '#c8f04a', accentCustom: '#123456' });
+  app.go({ page: 'look' });
+  expect(checked(root)).toBe('Lime');
+  expect(swatch(root, 'Warna sendiri').style.getPropertyValue('--sw')).toBe(accentPalette('#123456').acc);
+});
+
+test('a custom colour repaints while moving and saves on release', async () => {
+  const { root, app, bridge } = await mountForTest();
+  app.go({ page: 'look' });
+  const input = root.querySelector<HTMLInputElement>('[data-row="look.accent"] input[type="color"]')!;
+  input.value = '#224466';
+  input.dispatchEvent(new Event('input'));
+  expect(bridge.setAccent).not.toHaveBeenCalled();
+  expect(document.documentElement.style.getPropertyValue('--v-acc')).toBe(accentPalette('#224466').acc);
+  input.dispatchEvent(new Event('change'));
+  expect(bridge.setAccent).toHaveBeenCalledWith('#224466', '#224466');
+});
+
+test('the accent echo does not rebuild the page', async () => {
+  const { root, app, bridge } = await mountForTest();
+  app.go({ page: 'look' });
+  const before = swatch(root, 'Sky');
+  before.click();
+  bridge.emitModuleState({ ...TEST_STATE, accent: '#5ac8fa' });
+  expect(swatch(root, 'Sky')).toBe(before);
+  expect(checked(root)).toBe('Sky');
+});
+
+test('reset brings back Lime too', async () => {
+  const { root, app, bridge } = await mountForTest({ ...TEST_STATE, accent: '#ff8a3d' });
+  app.go({ page: 'look' });
+  root.querySelector<HTMLElement>('[data-key="look.reset"]')!.click();
+  expect(bridge.setNotchConfig).toHaveBeenCalledWith(DEFAULT_CONFIG);
+  expect(bridge.setAccent).toHaveBeenCalledWith('#c8f04a', null);
 });

@@ -82,6 +82,95 @@ export function choice<T extends string>(key: string, options: { value: T; label
   return group;
 }
 
+export interface SwatchOption { value: string; name: string; color: string }
+export interface SwatchCustom {
+  name: string;
+  color: string | null; // the last custom colour, or none yet
+  onInput(hex: string): void; // while the picker moves
+  onChange(hex: string): void; // on release, or when the custom swatch is picked again
+}
+
+// Colour dots as one radio group (Warna aksen, design 3 Nov §6): names only as
+// a tooltip and for screen readers; the last dot opens the system colour picker.
+// The dots mark the pick themselves, since the page is not rebuilt for its echo.
+export function swatches(o: {
+  key: string; label: string; options: SwatchOption[]; value: string | null; custom: SwatchCustom;
+  onPick(hex: string): void;
+}): HTMLElement & { mark(value: string | null): void } {
+  const group = el('div', 'swatches');
+  group.setAttribute('role', 'radiogroup');
+  group.setAttribute('aria-label', o.label);
+  const dot = (key: string, name: string, color: string | null) => {
+    const b = el('button', 'swatch');
+    b.type = 'button';
+    b.dataset.key = key;
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-label', name);
+    b.title = name;
+    if (color) b.style.setProperty('--sw', color);
+    return b;
+  };
+  const presets = o.options.map(option => dot(`${o.key}.${option.value}`, option.name, option.color));
+  const custom = dot(`${o.key}.custom`, o.custom.name, o.custom.color);
+  custom.classList.add('custom');
+  const input = el('input', 'swatch-input');
+  input.type = 'color';
+  input.tabIndex = -1;
+  input.setAttribute('aria-hidden', 'true');
+  input.value = o.custom.color ?? o.options[0]?.color ?? '#000000';
+  const all = [...presets, custom];
+
+  function mark(value: string | null): void {
+    const at = o.options.findIndex(option => option.value === value);
+    all.forEach((b, i) => {
+      const on = at === -1 ? b === custom : i === at;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+  }
+
+  function pick(i: number): void {
+    if (all[i] === custom) {
+      const color = custom.style.getPropertyValue('--sw');
+      if (color) {
+        mark(null);
+        o.custom.onChange(input.value);
+      }
+      return;
+    }
+    mark(o.options[i].value);
+    o.onPick(o.options[i].value);
+  }
+
+  presets.forEach((b, i) => b.addEventListener('click', () => pick(i)));
+  custom.addEventListener('click', () => {
+    if (custom.getAttribute('aria-checked') !== 'true') pick(all.length - 1);
+    input.click();
+  });
+  input.addEventListener('input', () => {
+    custom.style.setProperty('--sw', input.value);
+    mark(null);
+    o.custom.onInput(input.value);
+  });
+  input.addEventListener('change', () => {
+    mark(null);
+    o.custom.onChange(input.value);
+  });
+  group.addEventListener('keydown', e => {
+    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+    const from = all.indexOf(e.target as HTMLButtonElement);
+    if (!step || from === -1) return;
+    e.preventDefault();
+    const to = (from + step + all.length) % all.length;
+    all[to].focus();
+    pick(to);
+  });
+  group.append(...all, input);
+  mark(o.value);
+  return Object.assign(row({ key: o.key, label: o.label, control: group }), { mark });
+}
+
 export function select(key: string, options: { value: string; label: string }[], value: string,
   onChange: (v: string) => void): HTMLElement {
   const s = el('select', 'select');

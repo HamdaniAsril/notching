@@ -1,5 +1,6 @@
 import { CONFIG_RANGES, DEFAULT_CONFIG, type NotchConfig } from '../../notch/config';
-import { button, el, group, head, slider } from '../controls';
+import { ACCENT_PRESETS, accentPalette, applyAccent, DEFAULT_ACCENT } from '../../kit/accent';
+import { button, el, group, head, slider, swatches } from '../controls';
 import { mountPreview } from '../preview';
 import type { PageRender } from '../types';
 
@@ -36,16 +37,43 @@ export const lookPage: PageRender = ctx => {
     });
   });
 
+  // Warna aksen (design 3 Nov): a dot saves at once; the custom colour repaints
+  // this window while the picker moves and is saved on release.
+  const root = box.ownerDocument.documentElement;
+  const saved = ctx.state.accentCustom;
+  const accent = swatches({
+    key: 'look.accent',
+    label: s.accent,
+    options: ACCENT_PRESETS.map(p => ({ value: p.hex, name: p.name, color: p.hex })),
+    value: ctx.state.accent,
+    custom: {
+      name: s.accentCustom,
+      color: saved ? accentPalette(saved).acc : null,
+      onInput: hex => applyAccent(root, hex),
+      onChange: hex => {
+        applyAccent(root, hex);
+        ctx.save('look.accent', ctx.bridge.setAccent(hex, hex));
+      },
+    },
+    onPick: hex => {
+      applyAccent(root, hex);
+      ctx.save('look.accent', ctx.bridge.setAccent(hex, null));
+    },
+  });
+
   const reset = button('look.reset', s.reset, () => {
     local = { ...DEFAULT_CONFIG };
     preview.setConfig(local);
     ctx.save('look.reset', ctx.bridge.setNotchConfig(local));
+    accent.mark(DEFAULT_ACCENT);
+    applyAccent(root, DEFAULT_ACCENT);
+    ctx.save('look.reset', ctx.bridge.setAccent(DEFAULT_ACCENT, null));
   });
   const foot = el('div', 'foot');
   foot.append(el('span'), reset);
 
   const page = el('div');
   page.append(head({ title: ctx.strings.sections.look }), box, el('small', 'preview-hint', s.previewHint),
-    group(...rows), foot);
+    group(accent), group(...rows), foot);
   return page;
 };
