@@ -60,7 +60,7 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
     const mods = page === 'modules'
       ? modules.filter(m => isModule(m) || inCatalog(m)).map(m => (isModule(m) && m.installed
         ? entry(`module.${m.id}`, m.name, where, { page: 'module', id: m.id }, m.description)
-        : entry(`catalog.${m.id}`, m.name, where, { page: 'catalog' }, m.description)))
+        : entry(`catalog.${m.id}`, m.name, where, { page: 'catalog', id: m.id }, m.description)))
       : [];
     // Screenshot's keys, on its own page (design 3 Nov tombol §6).
     if (page === 'modules' && modules.some(m => m.id === 'screenshot' && m.installed)) {

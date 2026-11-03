@@ -92,10 +92,13 @@ function card(ctx: PageContext, m: ModuleInfo): HTMLElement {
 
 // The Katalog (design 4 Nov): every built-in module and widget package but
 // Beranda's, in the app's order, modules first, each with Pasang or Copot.
-export const catalogPage: PageRender = ctx => {
+export const catalogPage: PageRender = (ctx, route) => {
   const s = ctx.strings.catalog;
   const all = ctx.state.modules.filter(inCatalog);
   const ordered = [...all.filter(isModule), ...all.filter(m => !isModule(m))];
+  // Opened for one card (a search result): a filter that hides it gives way.
+  const wanted = route.page === 'catalog' && route.id ? all.find(m => m.id === route.id) : undefined;
+  if (wanted && filter !== (isModule(wanted) ? 'module' : 'widgets')) filter = 'all';
   const page = el('div');
   page.append(back(ctx), head({ title: s.title, sub: s.sub }));
 

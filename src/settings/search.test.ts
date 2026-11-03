@@ -32,12 +32,12 @@ test("Screenshot's keys are found by key words, in both languages", () => {
 
 test('an uninstalled module leads to its card in the Katalog', () =>
   expect(search(idx([moduleInfo('mirror', { name: 'Cermin', installed: false, enabled: false })]), 'cermin')[0])
-    .toMatchObject({ key: 'catalog.mirror', route: { page: 'catalog' } }));
+    .toMatchObject({ key: 'catalog.mirror', route: { page: 'catalog', id: 'mirror' } }));
 
 test('a widget package leads to its card in the Katalog; Beranda\'s is not one', () => {
   const waktu = moduleInfo('waktu', { name: 'Waktu', description: 'Jam dan kalender', entry: null, card: null,
     widgets: [{ id: 'analog', name: 'Analog', entry: 'index.html', width: 1, kind: 'time' }] });
-  expect(search(idx([homeWidgets(), waktu]), 'kalender')[0]).toMatchObject({ key: 'catalog.waktu', route: { page: 'catalog' } });
+  expect(search(idx([homeWidgets(), waktu]), 'kalender')[0]).toMatchObject({ key: 'catalog.waktu', route: { page: 'catalog', id: 'waktu' } });
   expect(idx([homeWidgets(), waktu]).map(e => e.key)).not.toContain('catalog.home');
 });
 

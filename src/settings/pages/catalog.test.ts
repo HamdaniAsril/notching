@@ -145,6 +145,18 @@ test('a search for a package opens the Katalog with its card marked', async () =
   input.value = 'musik';
   input.dispatchEvent(new Event('input'));
   root.querySelector<HTMLElement>('.result')!.click();
-  expect(app.route).toEqual({ page: 'catalog' });
+  expect(app.route).toEqual({ page: 'catalog', id: 'musik' });
   expect(card(root, 'musik').classList.contains('found')).toBe(true);
+});
+
+test('a search result is shown even when the filter would hide it', async () => {
+  const { root, app } = await open();
+  key(root, 'catalog.filter.module').click();
+  app.go({ page: 'modules' });
+  const input = root.querySelector<HTMLInputElement>('input.search')!;
+  input.value = 'musik';
+  input.dispatchEvent(new Event('input'));
+  root.querySelector<HTMLElement>('.result')!.click();
+  expect(card(root, 'musik').classList.contains('found')).toBe(true);
+  expect(key(root, 'catalog.filter.all').getAttribute('aria-pressed')).toBe('true');
 });

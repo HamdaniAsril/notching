@@ -99,7 +99,7 @@ impl ModuleStore {
     pub fn sync(&self, settings: &Settings) -> Vec<StoreError> {
         let mut errors = Vec::new();
         for id in self.catalog() {
-            let result = if settings.uninstalled_modules.contains(&id) {
+            let result = if removed(settings, &id) {
                 remove_dir(&self.active_dir.join(&id))
             } else {
                 self.copy_in(&id)
@@ -132,7 +132,7 @@ impl ModuleStore {
                 let short_name = text["shortName"].as_str().unwrap_or(&name).to_string();
                 let description = text["description"].as_str().unwrap_or("").to_string();
                 let module = manifest.is_module();
-                let installed = !settings.uninstalled_modules.contains(&id);
+                let installed = !removed(settings, &id);
                 let enabled = installed && (!module || !settings.disabled_modules.contains(&id));
                 let icon_svg = std::fs::read_to_string(dir.join(&manifest.icon)).unwrap_or_default();
                 let size = package_size(&dir);
@@ -256,6 +256,11 @@ impl ModuleStore {
         remove_dir(&target)?;
         std::fs::rename(&tmp, &target).map_err(io)
     }
+}
+
+// Uninstalled in the settings. Beranda's package never is, whatever the file says.
+fn removed(settings: &Settings, id: &str) -> bool {
+    id != CORE_PACKAGE && settings.uninstalled_modules.iter().any(|m| m == id)
 }
 
 fn locale_text(dir: &Path, lang: Lang) -> Option<serde_json::Value> {
@@ -552,10 +557,18 @@ mod tests {
         let bundle = d.path().join("bundle");
         std::fs::write(bundle.join("index.json"), r#"["a","b","w","home"]"#).unwrap();
         copy_dir(&bundle.join("w"), &bundle.join("home")).unwrap();
+        let manifest = std::fs::read_to_string(bundle.join("home/manifest.json")).unwrap();
+        std::fs::write(bundle.join("home/manifest.json"), manifest.replace(r#""id":"w""#, r#""id":"home""#)).unwrap();
         let mut s = Settings::default();
         assert_eq!(store.uninstall("home", &mut s), Err(StoreError::Core("home".into())));
         assert_eq!(store.reinstall("home", &mut s), Err(StoreError::Core("home".into())));
         assert!(s.uninstalled_modules.is_empty());
+        // Even a settings file that lists it keeps it installed.
+        let s = Settings { uninstalled_modules: vec!["home".into()], ..Default::default() };
+        assert!(store.sync(&s).is_empty());
+        assert!(d.path().join("active/home/index.html").exists());
+        let home = store.list(&s, Lang::Id).into_iter().find(|e| e.manifest.id == "home").unwrap();
+        assert!(home.installed && home.enabled);
     }
 
     #[test]
