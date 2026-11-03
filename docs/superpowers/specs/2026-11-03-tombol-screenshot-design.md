@@ -54,7 +54,8 @@ Pemilik membenarkan sebabnya. Orang yang baru memasang Notching menekan ⌘⇧3,
 ## 5. Pilihan "Matikan bawaan Mac"
 
 - Panel menutup, lalu **Pengaturan Sistem terbuka di pengaturan pintasan Screenshot**, yaitu Keyboard → Pintasan Keyboard → Screenshot.
-  - macOS mungkin tidak mengizinkan app lain membuka langsung sampai bagian Screenshot. Kalau begitu, Notching membuka sedekat mungkin, yaitu Keyboard → Pintasan Keyboard. Seberapa dalam yang bisa dibuka diperiksa di Mac pemilik.
+  - macOS tidak mengizinkan app lain membuka langsung sampai bagian Screenshot. Di file pengaturan Keyboard milik macOS, bagian itu bernama `screenshots`, tapi tidak ada alamat untuk membukanya. Jadi Notching membuka jendela Pintasan Keyboard (diperiksa di Mac pemilik, 3 November 2026).
+  - Begitu jendela itu terbuka, notch menampilkan petunjuk "Pilih Screenshot di kiri, lalu matikan ⌘⇧3 dan ⌘⇧4". Petunjuk ini hanya menyebut tombol yang masih direbut Mac (permintaan pemilik, 3 November 2026).
 - **Setelah itu Notching memperhatikan pintasan Mac selama 10 menit (keputusan penulis).** Begitu semua tombol yang tadinya direbut Mac sudah bebas, notch menampilkan notifikasi biasa: "⌘⇧3 dan ⌘⇧4 sekarang untuk Notching".
 - Keterangan "masih dipakai screenshot bawaan Mac" di halaman Screenshot dan di Pengaturan hilang sendiri, seperti sekarang.
 - Kalau orang itu tidak jadi mematikannya, tidak ada pesan tambahan. Notifikasi kecil pada pembukaan berikutnya tetap mengingatkan.
@@ -108,7 +109,16 @@ Kata-kata pastinya ditentukan pembuat, kira-kira:
 - **Merekam tombol:** jendela Pengaturan membaca tombol fisik (`KeyboardEvent.code`) supaya hasilnya tidak berubah karena tata letak keyboard, lalu memetakannya ke kode tombol macOS. Merekam meminta app inti melepas tombol, lalu memasangnya lagi saat selesai.
 - **Memperhatikan setelah pilihan "Matikan bawaan Mac":** satu thread membaca pintasan Mac setiap 2 detik selama paling lama 10 menit.
 
-## 9. Diserahkan ke pembuat
+## 9. Uji di Mac pemilik (3 November 2026)
+
+Dicoba dengan build dari `main` setelah digabung. Hasilnya dicocokkan dengan log app dan `settings.json`.
+
+- **Peringatan muncul sekali:** lulus. Peringatan muncul setelah pintasan bawaan Mac dinyalakan lagi dan `shotNotice` dihapus. Log: `first-use notice on notch-0` lalu `first-use notice shown`. Saat pintasan Mac mati, cek pertama mencatat `free at the first check`, dan peringatan tidak muncul.
+- **Pakai tombol sendiri:** lulus. Pengaturan terbuka di Modul → Screenshot. ⌘⇧F terekam dan tersimpan (`shotKeys.screen` kode 3). ⌘⇧4 saat merekam baris lain ditolak dengan "Already used". "Kembalikan" mengembalikan ⌘⇧3/⌘⇧4 di `settings.json`, walaupun log tidak mencatat langkah itu.
+- **Matikan bawaan Mac:** lulus. Pengaturan Sistem terbuka di jendela Pintasan Keyboard, belum di bagian Screenshot (lihat §5). Setelah ⇧⌘3 dan ⇧⌘4 dimatikan, log mencatat `the Mac let go of screenshot keys ⌘⇧3 and ⌘⇧4`, dan notch memberi tahu.
+- **Belum dicoba:** memotret dengan tombol sendiri, karena build tes butuh izin Perekaman Layar diberikan ulang.
+
+## 10. Diserahkan ke pembuat
 
 - Ukuran pasti panel peringatan dan kotak tombol.
 - Bentuk pesan dan nama perintah baru.
