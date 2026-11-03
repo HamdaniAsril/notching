@@ -30,7 +30,9 @@
       "minimumSystemVersion": "13.0"
     },
     "resources": {
-      "../dist-modules/": "modules/"
+      "../dist-modules/": "modules/",
+      "media/np.pl": "media/np.pl",
+      "media/build/libnotching-media.dylib": "media/libnotching-media.dylib"
     }
   }
 }

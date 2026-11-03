@@ -27,6 +27,8 @@ pub enum Call {
     ShelfOpen,
     ScreenshotOpen,
     CleanerOpen,
+    MediaNow,
+    MediaCommand,
     PrefsRead,
     PrefsWrite,
 }
@@ -88,6 +90,8 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Shelf, "open") => Ok(Call::ShelfOpen),
         (Capability::Screenshot, "open") => Ok(Call::ScreenshotOpen),
         (Capability::Cleaner, "open") => Ok(Call::CleanerOpen),
+        (Capability::Media, "now") => Ok(Call::MediaNow),
+        (Capability::Media, "command") => Ok(Call::MediaCommand),
         (Capability::Prefs, "read") => Ok(Call::PrefsRead),
         (Capability::Prefs, "write") => Ok(Call::PrefsWrite),
         _ => Err(CallError::UnknownMethod(method.to_string())),
@@ -259,6 +263,21 @@ mod tests {
             authorize(Some(&quiet), "timer", "notify", "post"),
             Err(CallError::NotDeclared { module: "timer".into(), capability: "notify".into() })
         );
+    }
+
+    #[test]
+    fn media_needs_its_capability() {
+        let m = entry("musik", &[Capability::Media], true);
+        assert_eq!(authorize(Some(&m), "musik", "media", "now"), Ok(Call::MediaNow));
+        assert_eq!(authorize(Some(&m), "musik", "media", "command"), Ok(Call::MediaCommand));
+        assert_eq!(authorize(Some(&m), "musik", "media", "seek"), Err(CallError::UnknownMethod("seek".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        for method in ["now", "command"] {
+            assert_eq!(
+                authorize(Some(&t), "timer", "media", method),
+                Err(CallError::NotDeclared { module: "timer".into(), capability: "media".into() })
+            );
+        }
     }
 
     #[test]

@@ -47,8 +47,10 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
         crate::shelf_service::module_gone(&app, &id);
         crate::shot_service::module_gone(&app, &id);
         crate::cleaner_service::module_gone(&app, &id);
+        crate::media_service::module_gone(&app, &id);
     } else {
         crate::shot_hotkey::module_on(&app, &id);
+        crate::media_service::module_on(&app, &id);
     }
     crate::status::publish(&app);
     Ok(())
@@ -64,6 +66,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     crate::shelf_service::module_gone(&app, &id);
     crate::shot_service::module_gone(&app, &id);
     crate::cleaner_service::module_gone(&app, &id);
+    crate::media_service::module_gone(&app, &id);
     crate::shot_service::uninstalled(&app, &id);
     crate::status::publish(&app);
     Ok(())
@@ -73,6 +76,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
 pub fn reinstall_module(app: AppHandle, core: State<CoreState>, id: String) -> Result<(), String> {
     change(&app, &core, |c| c.reinstall(&id))?;
     crate::shot_hotkey::module_on(&app, &id);
+    crate::media_service::module_on(&app, &id);
     crate::status::publish(&app);
     Ok(())
 }
@@ -162,6 +166,11 @@ pub async fn module_call(
         Call::ScreenshotOpen => Ok(serde_json::Value::Null),
         // Cleaner's pages are drawn by the notch, which opens them itself.
         Call::CleanerOpen => Ok(serde_json::Value::Null),
+        Call::MediaNow => serde_json::to_value(crate::media_service::now(&app)),
+        Call::MediaCommand => {
+            let command = crate::media_service::parse_command(args.as_ref())?;
+            Ok(crate::media_service::send(&app, command)?)
+        }
         // Always the calling module's own file: the id never comes from args.
         Call::PrefsRead => Ok(app.state::<PrefsState>().0.read(&module_id)),
         Call::PrefsWrite => {

@@ -44,6 +44,8 @@ mod lamp_service;
 #[cfg(target_os = "macos")]
 mod login_item;
 #[cfg(target_os = "macos")]
+mod media_service;
+#[cfg(target_os = "macos")]
 mod notify;
 #[cfg(target_os = "macos")]
 mod overlay;
@@ -227,6 +229,7 @@ pub fn run() {
             timer_service::start(app.handle().clone());
             keyclean_service::start(app.handle().clone());
             lamp_service::start(app.handle());
+            media_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());
@@ -243,6 +246,7 @@ pub fn run() {
                 shelf_service::quitting(app);
                 shot_service::quitting(app);
                 cleaner_service::quitting(app);
+                media_service::quitting(app);
             }
             _ => {}
         });

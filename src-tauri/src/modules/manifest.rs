@@ -42,6 +42,10 @@ pub enum Capability {
     /// Cleaner's tile opens Deep clean and Clean uninstall, drawn by the notch (design 1 Nov).
     #[serde(rename = "cleaner")]
     Cleaner,
+    /// macOS Now Playing and its play, pause and skip, through the system perl
+    /// (Musik, design 3 Nov §2).
+    #[serde(rename = "media")]
+    Media,
     /// The package's own small settings, one JSON object kept by the notch.
     #[serde(rename = "prefs")]
     Prefs,
