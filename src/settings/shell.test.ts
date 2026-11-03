@@ -1,7 +1,26 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
 import { moduleInfo, TEST_STATE } from '../notch/test-helpers';
+import { parseRoute } from './shell';
 import { h1, mountForTest, settle, TEST_INFO } from './test-helpers';
+
+test('a route from the notch reads as a page, or nothing', () => {
+  expect(parseRoute('module:screenshot')).toEqual({ page: 'module', id: 'screenshot' });
+  expect(parseRoute('modules')).toEqual({ page: 'modules' });
+  expect(parseRoute('general')).toEqual({ page: 'general' });
+  expect(parseRoute('module:')).toBeNull();
+  expect(parseRoute('nope')).toBeNull();
+  expect(parseRoute(null)).toBeNull();
+});
+
+test('Settings opens at the page it is asked for, and moves when asked again', async () => {
+  const { app, bridge } = await mountForTest(TEST_STATE, TEST_INFO, { page: 'module', id: 'home' });
+  expect(app.route).toEqual({ page: 'module', id: 'home' });
+  bridge.emitGo('modules');
+  expect(app.route).toEqual({ page: 'modules' });
+  bridge.emitGo('nope');
+  expect(app.route).toEqual({ page: 'modules' });
+});
 
 const navLabels = (root: HTMLElement) => [...root.querySelectorAll('.nav .label')].map(n => n.textContent);
 const searchBox = (root: HTMLElement) => root.querySelector<HTMLInputElement>('input.search')!;

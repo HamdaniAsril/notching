@@ -49,6 +49,7 @@ export interface SettingsBridge {
   onModuleState(cb: (s: ModuleState) => void): () => void;
   settings(): Promise<SettingsInfo>;
   onSettings(cb: (s: SettingsInfo) => void): () => void;
+  onGo(cb: (route: string) => void): () => void; // a page asked for while open (parseRoute)
   setLanguage(language: LanguageChoice): Promise<void>;
   setNotchConfig(config: NotchConfig): Promise<void>;
   setAccent(accent: string, custom: string | null): Promise<void>; // custom null keeps the last custom colour

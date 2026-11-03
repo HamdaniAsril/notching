@@ -4,7 +4,7 @@ import type { NotchConfig } from '../notch/config';
 import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
 import type { ShotKeys } from '../bridge';
-import type { LanguageChoice, Place, PrayerMethod, SettingsBridge, SettingsInfo } from './types';
+import type { LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo } from './types';
 
 export const TEST_INFO: SettingsInfo = {
   language: 'auto',
@@ -22,6 +22,7 @@ export const TEST_INFO: SettingsInfo = {
 export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initialInfo: SettingsInfo = TEST_INFO) {
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();
+  const goSubs = new Set<(route: string) => void>();
   let state = initialState;
   let info = initialInfo;
   const bridge = {
@@ -29,6 +30,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     onModuleState: vi.fn((cb: (s: ModuleState) => void) => { stateSubs.add(cb); return () => { stateSubs.delete(cb); }; }),
     settings: vi.fn(async () => info),
     onSettings: vi.fn((cb: (s: SettingsInfo) => void) => { infoSubs.add(cb); return () => { infoSubs.delete(cb); }; }),
+    onGo: vi.fn((cb: (route: string) => void) => { goSubs.add(cb); return () => { goSubs.delete(cb); }; }),
     setLanguage: vi.fn(async (_language: LanguageChoice) => {}),
     setNotchConfig: vi.fn(async (_config: NotchConfig) => {}),
     setAccent: vi.fn(async (_accent: string, _custom: string | null) => {}),
@@ -62,6 +64,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     cleanerOpenLog: vi.fn(async () => {}),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
+    emitGo: (route: string) => goSubs.forEach(cb => cb(route)),
   };
   return bridge satisfies SettingsBridge;
 }
@@ -74,12 +77,12 @@ afterEach(() => {
   document.documentElement.lang = '';
 });
 
-export async function mountForTest(state: ModuleState = TEST_STATE, info: SettingsInfo = TEST_INFO) {
+export async function mountForTest(state: ModuleState = TEST_STATE, info: SettingsInfo = TEST_INFO, start?: Route) {
   const root = document.createElement('div');
   document.body.append(root);
   const bridge = fakeSettingsBridge(state, info);
   const r = fakeRaf();
-  const app = await mountSettings(root, bridge, { raf: r.raf, caf: r.caf, setTimer: timers.setTimer });
+  const app = await mountSettings(root, bridge, { raf: r.raf, caf: r.caf, setTimer: timers.setTimer }, start);
   mounted.push(app);
   return { root, bridge, app, r };
 }

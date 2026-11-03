@@ -52,6 +52,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     onModuleState: cb => { stateSubs.add(cb); return () => stateSubs.delete(cb); },
     settings: async () => info,
     onSettings: cb => { infoSubs.add(cb); return () => infoSubs.delete(cb); },
+    onGo: () => () => {},
     setLanguage: async (language: LanguageChoice) => {
       const lang: Lang = language === 'auto' ? deviceLang : language;
       // Names follow the language; on/off and installed stay as they were.

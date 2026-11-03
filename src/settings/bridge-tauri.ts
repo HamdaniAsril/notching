@@ -12,6 +12,7 @@ export function tauriSettingsBridge(): SettingsBridge {
     onModuleState: cb => syncUnlisten(listen<ModuleState>('notching://module-state', e => cb(e.payload))),
     settings: () => invoke<SettingsInfo>('get_settings'),
     onSettings: cb => syncUnlisten(listen<SettingsInfo>('notching://settings', e => cb(e.payload))),
+    onGo: cb => syncUnlisten(listen<string>('notching://settings-go', e => cb(e.payload))),
     setLanguage: language => invoke('set_language', { language }),
     setNotchConfig: config => invoke('set_notch_config', { config }),
     setAccent: (accent, custom) => invoke('set_accent', { accent, custom }),

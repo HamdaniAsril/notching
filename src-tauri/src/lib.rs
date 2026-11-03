@@ -126,6 +126,7 @@ pub fn run() {
             module_commands::reinstall_module,
             module_commands::module_call,
             settings_window::open_settings,
+            settings_window::open_settings_at,
             settings_window::get_settings,
             settings_window::set_language,
             settings_window::set_notch_config,
