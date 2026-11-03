@@ -44,11 +44,16 @@ pub struct ModuleEntry {
     pub widgets: Vec<WidgetEntry>,
 }
 
+/// Beranda's package: its widgets and notices are always there (design 4 Nov §3).
+pub const CORE_PACKAGE: &str = "home";
+
 #[derive(Debug, PartialEq)]
 pub enum StoreError {
     UnknownModule(String),
-    /// A widget package: it cannot be switched off, uninstalled or reinstalled.
+    /// A widget package: it cannot be switched off.
     NotAModule(String),
+    /// Beranda's package: it cannot be uninstalled.
+    Core(String),
     Io(String),
 }
 
@@ -57,6 +62,7 @@ impl std::fmt::Display for StoreError {
         match self {
             StoreError::UnknownModule(id) => write!(f, "unknown module {id}"),
             StoreError::NotAModule(id) => write!(f, "{id} is not a module"),
+            StoreError::Core(id) => write!(f, "{id} cannot be uninstalled"),
             StoreError::Io(e) => write!(f, "{e}"),
         }
     }
@@ -88,13 +94,12 @@ impl ModuleStore {
             .unwrap_or_default()
     }
 
-    /// Replaces the active copy of every installed module with the bundle's, so
-    /// modules update with the app (spec 6), and removes uninstalled ones. Widget
-    /// packages are always installed.
+    /// Replaces the active copy of every installed package with the bundle's, so
+    /// packages update with the app (spec 6), and removes uninstalled ones.
     pub fn sync(&self, settings: &Settings) -> Vec<StoreError> {
         let mut errors = Vec::new();
         for id in self.catalog() {
-            let result = if settings.uninstalled_modules.contains(&id) && self.is_module(&id) {
+            let result = if settings.uninstalled_modules.contains(&id) {
                 remove_dir(&self.active_dir.join(&id))
             } else {
                 self.copy_in(&id)
@@ -127,8 +132,8 @@ impl ModuleStore {
                 let short_name = text["shortName"].as_str().unwrap_or(&name).to_string();
                 let description = text["description"].as_str().unwrap_or("").to_string();
                 let module = manifest.is_module();
-                let installed = !module || !settings.uninstalled_modules.contains(&id);
-                let enabled = !module || (installed && !settings.disabled_modules.contains(&id));
+                let installed = !settings.uninstalled_modules.contains(&id);
+                let enabled = installed && (!module || !settings.disabled_modules.contains(&id));
                 let icon_svg = std::fs::read_to_string(dir.join(&manifest.icon)).unwrap_or_default();
                 let size = package_size(&dir);
                 let channels = manifest
@@ -185,9 +190,10 @@ impl ModuleStore {
         Ok(())
     }
 
-    /// Deletes the active copy; the original stays in the bundle.
+    /// Deletes the active copy of a module or widget package; the original stays
+    /// in the bundle.
     pub fn uninstall(&self, id: &str, settings: &mut Settings) -> Result<(), StoreError> {
-        self.module_only(id)?;
+        self.removable(id)?;
         remove_dir(&self.active_dir.join(id))?;
         if !settings.uninstalled_modules.iter().any(|m| m == id) {
             settings.uninstalled_modules.push(id.to_string());
@@ -195,9 +201,9 @@ impl ModuleStore {
         Ok(())
     }
 
-    /// Copies the module back from the bundle and switches it on.
+    /// Copies the package back from the bundle and switches it on.
     pub fn reinstall(&self, id: &str, settings: &mut Settings) -> Result<(), StoreError> {
-        self.module_only(id)?;
+        self.removable(id)?;
         self.copy_in(id)?;
         settings.uninstalled_modules.retain(|m| m != id);
         settings.disabled_modules.retain(|m| m != id);
@@ -211,6 +217,16 @@ impl ModuleStore {
             Ok(())
         } else {
             Err(StoreError::NotAModule(id.to_string()))
+        }
+    }
+
+    // A catalog package other than Beranda's.
+    fn removable(&self, id: &str) -> Result<(), StoreError> {
+        self.known(id)?;
+        if id == CORE_PACKAGE {
+            Err(StoreError::Core(id.to_string()))
+        } else {
+            Ok(())
         }
     }
 
@@ -469,9 +485,9 @@ mod tests {
     }
 
     #[test]
-    fn widget_packages_are_always_on() {
+    fn installed_widget_packages_are_always_on() {
         let (d, store) = setup();
-        let s = Settings { disabled_modules: vec!["w".into()], uninstalled_modules: vec!["w".into()], ..Default::default() };
+        let s = Settings { disabled_modules: vec!["w".into()], ..Default::default() };
         let w = store.list(&s, Lang::Id).into_iter().find(|e| e.manifest.id == "w").unwrap();
         assert!(w.installed && w.enabled);
         store.sync(&s);
@@ -512,9 +528,43 @@ mod tests {
         let (_d, store) = setup();
         let mut s = Settings::default();
         assert_eq!(store.set_enabled("w", false, &mut s), Err(StoreError::NotAModule("w".into())));
-        assert_eq!(store.uninstall("w", &mut s), Err(StoreError::NotAModule("w".into())));
-        assert_eq!(store.reinstall("w", &mut s), Err(StoreError::NotAModule("w".into())));
-        assert!(s.disabled_modules.is_empty() && s.uninstalled_modules.is_empty());
+        assert!(s.disabled_modules.is_empty());
+    }
+
+    #[test]
+    fn a_widget_package_can_be_uninstalled_and_reinstalled() {
+        let (d, store) = setup();
+        let mut s = Settings::default();
+        assert!(store.sync(&s).is_empty());
+        let w = |s: &Settings| store.list(s, Lang::Id).into_iter().find(|e| e.manifest.id == "w").unwrap();
+        assert_eq!(store.uninstall("w", &mut s), Ok(()));
+        assert!(!d.path().join("active/w").exists());
+        assert_eq!(s.uninstalled_modules, ["w"]);
+        assert!(!w(&s).installed && !w(&s).enabled);
+        assert_eq!(store.reinstall("w", &mut s), Ok(()));
+        assert!(d.path().join("active/w/index.html").exists());
+        assert!(w(&s).installed && w(&s).enabled);
+    }
+
+    #[test]
+    fn the_core_package_stays() {
+        let (d, store) = setup();
+        let bundle = d.path().join("bundle");
+        std::fs::write(bundle.join("index.json"), r#"["a","b","w","home"]"#).unwrap();
+        copy_dir(&bundle.join("w"), &bundle.join("home")).unwrap();
+        let mut s = Settings::default();
+        assert_eq!(store.uninstall("home", &mut s), Err(StoreError::Core("home".into())));
+        assert_eq!(store.reinstall("home", &mut s), Err(StoreError::Core("home".into())));
+        assert!(s.uninstalled_modules.is_empty());
+    }
+
+    #[test]
+    fn sync_removes_an_uninstalled_widget_package() {
+        let (d, store) = setup();
+        assert!(store.sync(&Settings::default()).is_empty());
+        let s = Settings { uninstalled_modules: vec!["w".into()], ..Default::default() };
+        assert!(store.sync(&s).is_empty());
+        assert!(!d.path().join("active/w").exists());
     }
 
     #[test]

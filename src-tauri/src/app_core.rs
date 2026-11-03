@@ -779,6 +779,18 @@ mod tests {
     }
 
     #[test]
+    fn an_uninstalled_widget_package_has_no_widths() {
+        let d = setup();
+        let mut core = open(&d, None);
+        assert_eq!(core.widget_width("w/one"), Some(1));
+        core.uninstall("w").unwrap();
+        assert_eq!(core.widget_width("w/one"), None);
+        assert!(!core.servable("w"));
+        core.reinstall("w").unwrap();
+        assert_eq!(core.widget_width("w/one"), Some(1));
+    }
+
+    #[test]
     fn a_language_choice_renames_the_modules_and_survives_a_restart() {
         let d = setup();
         let mut core = open(&d, Some("en-US"));
