@@ -12,7 +12,8 @@ body {
 }
 
 /* Cuaca besar: the city, the temperature at 54 px and the sky at the left; the sky's icon in the
-   accent over the high and low at the right. City 12, temperature 49 and sky 13 make 74 of 80. */
+   accent at 40 px (design 64) over the high and low at the right. City 12, temperature 49 and sky
+   13 make 74 of 80 on the left; the icon and the range make 62 of 80 on the right. */
 .wd-bigweather {
   flex-direction: row;
   justify-content: space-between;

@@ -16,7 +16,7 @@ test('every icon is a 24 px Lucide svg in currentColor', () => {
     expect(svg).toContain('stroke="currentColor"');
     expect(svg.endsWith('</svg>')).toBe(true);
   }
-  expect(Object.keys(ICONS)).toHaveLength(12);
+  expect(Object.keys(ICONS)).toHaveLength(13);
 });
 
 test('icon() sizes the svg inside an i.ic', () => {

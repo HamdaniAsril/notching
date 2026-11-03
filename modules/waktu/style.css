@@ -33,8 +33,8 @@ body {
   gap: 8px;
 }
 
-/* Jam + tanggal: the city and date on top, the time with its seconds, the day bar. The time
-   is 52 px, the seconds 17 px on the same baseline. */
+/* Jam + tanggal: the city and date on top, the time with its seconds, the day bar. The time is
+   Barlow 800 at 62 px (design 100) and the seconds 20 px (design 32) on the same baseline. */
 .wd-clockdate {
   justify-content: space-between;
   min-width: 0;
@@ -57,8 +57,14 @@ body {
   gap: 5px;
 }
 
+.wd-clock-no {
+  font-family: "Barlow", "Arial Narrow", sans-serif;
+  font-weight: 800;
+}
+
 .wd-time .v-num:first-child {
-  line-height: 0.9;
+  line-height: 0.85;
+  letter-spacing: 1px;
 }
 
 .wd-day {
@@ -151,7 +157,8 @@ body {
   font-weight: 600;
 }
 
-/* Hari ke-: the number is 50 px in the accent, the bar and the days left sit under it. */
+/* Hari ke-: the number is 50 px in the accent and centred, the bar runs the full width with the
+   days left centred under it. */
 .wd-yearday {
   justify-content: space-between;
 }
@@ -162,6 +169,7 @@ body {
 
 .wd-day-no {
   line-height: 0.9;
+  text-align: center;
 }
 
 .wd-foot {
@@ -172,6 +180,7 @@ body {
 
 .wd-yearday-left {
   line-height: 11px;
+  text-align: center;
   color: var(--v-ink2);
 }
 

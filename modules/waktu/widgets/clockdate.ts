@@ -12,7 +12,7 @@ const two = (n: number) => String(n).padStart(2, '0');
 const cap = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
 
 // The widget's content for `now`: the city and "Sab, 31 Okt" over the time with the seconds
-// small in the accent, and a bar of the day gone. Also what the editor's sample draws.
+// beside it in the accent, both in Barlow 800, and a bar of the day gone. Also what the editor's sample draws.
 export function clockDateView(_root: HTMLElement, lang: Lang, now: Date, city: string | null): HTMLElement {
   const w = el('div', 'v-card wd-clockdate');
   const top = el('div', 'wd-top');
@@ -22,7 +22,7 @@ export function clockDateView(_root: HTMLElement, lang: Lang, now: Date, city: s
   );
 
   const time = el('div', 'wd-time');
-  time.append(num(clockText(now.getHours(), now.getMinutes(), lang), 52), num(two(now.getSeconds()), 17, 'v-acc wd-sec'));
+  time.append(num(clockText(now.getHours(), now.getMinutes(), lang), 62, 'wd-clock-no'), num(two(now.getSeconds()), 20, 'v-acc wd-clock-no wd-sec'));
 
   const gone = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400;
   const day = el('div', 'wd-day');

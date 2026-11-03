@@ -18,7 +18,7 @@ const isNight = (s: HomeSnapshot, now: Date): boolean =>
   s.sun ? !sunState(s.sun, now.getTime()).day : now.getHours() < 6 || now.getHours() >= 18;
 
 // The widget's content: the city, the temperature at 54 px and the sky at the left; the sky's
-// icon in the accent over the high and low at the right. Also what the editor's sample draws.
+// icon in the accent at 40 px over the high and low at the right. Also what the editor's sample draws.
 export function bigWeatherView(_root: HTMLElement, strings: BigWeatherStrings, s: HomeSnapshot, now: Date): HTMLElement {
   const w = el('div', 'v-card wd-bigweather');
   if (!s.place) {
@@ -36,7 +36,7 @@ export function bigWeatherView(_root: HTMLElement, strings: BigWeatherStrings, s
   main.append(num(degrees(w0.temp), 54, 'wd-bw-temp'), el('span', 'wd-bw-sky', strings.weatherKinds[weatherKey(w0.code)]));
   const side = el('div', 'wd-bw-side');
   const ic = el('span', 'v-acc wd-bw-icon');
-  ic.append(icon(weatherIcon(w0.code, isNight(s, now)), 20));
+  ic.append(icon(weatherIcon(w0.code, isNight(s, now)), 40));
   const range = el('div', 'wd-bw-range');
   range.append(el('span', 'wd-bw-high', `${strings.high} ${degrees(w0.max)}`), el('span', 'wd-bw-low', `${strings.low} ${degrees(w0.min)}`));
   side.append(ic, range);

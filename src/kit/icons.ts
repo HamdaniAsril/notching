@@ -3,7 +3,7 @@ import { weatherKey } from '../../modules/home/format';
 
 export type IconName =
   | 'sun' | 'moon' | 'cloud' | 'cloud-sun' | 'cloud-moon' | 'cloud-rain'
-  | 'cloud-drizzle' | 'cloud-snow' | 'cloud-lightning' | 'cloud-fog' | 'wind' | 'timer';
+  | 'cloud-drizzle' | 'cloud-snow' | 'cloud-lightning' | 'cloud-fog' | 'wind' | 'timer' | 'mosque';
 
 const svg = (body: string) =>
   '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
@@ -20,6 +20,8 @@ export const ICONS: Record<IconName, string> = {
   'cloud-lightning': svg('<path d="M6 16.326A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 .5 8.973"/><path d="m13 12-3 5h4l-3 5"/>'),
   'cloud-fog': svg('<path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 17H7"/><path d="M17 21H9"/>'),
   wind: svg('<path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/>'),
+  // Not in Lucide: an onion dome on a short base with a door, a finial on top.
+  mosque: svg('<path d="M12 2v2"/><path d="M7 13c-4-2.5-2-6.5 5-9 7 2.5 9 6.5 5 9"/><path d="M5 13h14"/><path d="M6 13v8h12v-8"/><path d="M10 21v-3a2 2 0 0 1 4 0v3"/>'),
   timer: svg('<line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/>'),
 };
 

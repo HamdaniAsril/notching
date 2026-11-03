@@ -11,9 +11,10 @@ body {
   overflow: hidden;
 }
 
-/* Tanggal: the day name and an accent dot, the date at 57 px, the month and year in Barlow. */
+/* Tanggal: the day name and an accent dot on top; the date at 64 px (design 112) and the month
+   and year at 10 px in Barlow sit centred, both ways, in the 68 px below the row. */
 .hm-date {
-  justify-content: space-between;
+  justify-content: flex-start;
   min-width: 0;
 }
 
@@ -39,8 +40,25 @@ body {
   background: var(--v-acc);
 }
 
+.hm-date-top {
+  height: 12px;
+  flex: none;
+}
+
+.hm-date-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+}
+
 .hm-date-no {
-  line-height: 0.9;
+  line-height: 0.8;
+  letter-spacing: -2px;
 }
 
 .hm-date-month {
@@ -48,14 +66,17 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
-  font-size: 11px;
+  max-width: 100%;
+  font-size: 10px;
   font-weight: 500;
-  line-height: 13px;
+  line-height: 12px;
+  letter-spacing: 0.2px;
   color: var(--v-ink2);
 }
 
-/* Jam tumpuk: the hour over the minutes at 42 px (two lines of 38.6 px), the part of the day
-   top right and the zone bottom right. */
+/* Jam tumpuk: the hour over the minutes in Barlow 800 at 42 px (design 86), spread over the 80 px
+   height, the part of the day top right and the zone bottom right. 42 px is as big as the two
+   digits can be with "malam" or "GMT+7" still beside them in 85 px. */
 .hm-clock {
   flex-direction: row;
   justify-content: space-between;
@@ -64,10 +85,18 @@ body {
 
 .hm-clock-stack {
   flex: none;
+  margin-right: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .hm-clock-no {
-  line-height: 0.92;
+  font-family: "Barlow", "Arial Narrow", sans-serif;
+  font-weight: 800;
+  line-height: 0.8;
+  letter-spacing: 2px;
+  margin-right: -2px;
 }
 
 .hm-clock-meta {
@@ -75,11 +104,18 @@ body {
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-end;
+  flex: 1 1 0;
   min-width: 0;
   font-size: 9px;
   font-weight: 500;
   line-height: 11px;
   white-space: nowrap;
+}
+
+.hm-clock-meta span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hm-clock-part {
@@ -90,8 +126,9 @@ body {
   color: var(--v-ink2);
 }
 
-/* Waktu sholat: the label, the prayer's name and time (14 and 30 px), five segments and what is
-   left. A passed prayer's segment is dimmer than a coming one's but not the accent. */
+/* Waktu sholat: the label, the prayer's name with a 17 px mosque dome at its right, the time at
+   36 px (design 58), five segments and what is left, centred. A passed prayer's segment is dimmer
+   than a coming one's but not the accent. */
 .hm-prayer {
   justify-content: space-between;
   min-width: 0;
@@ -111,11 +148,32 @@ body {
   gap: 1px;
 }
 
+.hm-pr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
 .hm-pr-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
   font-size: 14px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 17px;
+}
+
+.hm-pr-dome {
+  flex: none;
+  display: flex;
+}
+
+.hm-pr-time {
+  line-height: 0.9;
 }
 
 .hm-pr-foot {
@@ -140,6 +198,7 @@ body {
   font-size: 9px;
   font-weight: 500;
   line-height: 11px;
+  text-align: center;
   color: var(--v-muted);
 }
 

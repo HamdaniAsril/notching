@@ -1215,10 +1215,11 @@ body > .ed-ghost.page-row {
    modules/home/style.css, scoped to the slot, the picture and the strip. Only the row view is
    drawn here, so the full reminder list has no rules. */
 
-/* Tanggal: the day name and an accent dot, the date at 57 px, the month and year in Barlow. */
+/* Tanggal: the day name and an accent dot on top; the date at 64 px (design 112) and the month
+   and year at 10 px in Barlow sit centred, both ways, in the 68 px below the row. */
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-date {
-  justify-content: space-between;
+  justify-content: flex-start;
   min-width: 0;
 }
 
@@ -1244,8 +1245,25 @@ body > .ed-ghost.page-row {
   background: var(--v-acc);
 }
 
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-date-top {
+  height: 12px;
+  flex: none;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-date-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+}
+
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-date-no {
-  line-height: 0.9;
+  line-height: 0.8;
+  letter-spacing: -2px;
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-date-month {
@@ -1253,14 +1271,17 @@ body > .ed-ghost.page-row {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
-  font-size: 11px;
+  max-width: 100%;
+  font-size: 10px;
   font-weight: 500;
-  line-height: 13px;
+  line-height: 12px;
+  letter-spacing: 0.2px;
   color: var(--v-ink2);
 }
 
-/* Jam tumpuk: the hour over the minutes at 42 px (two lines of 38.6 px), the part of the day
-   top right and the zone bottom right. */
+/* Jam tumpuk: the hour over the minutes in Barlow 800 at 42 px (design 86), spread over the 80 px
+   height, the part of the day top right and the zone bottom right. 42 px is as big as the two
+   digits can be with "malam" or "GMT+7" still beside them in 85 px. */
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-clock {
   flex-direction: row;
@@ -1270,10 +1291,18 @@ body > .ed-ghost.page-row {
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-stack {
   flex: none;
+  margin-right: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-no {
-  line-height: 0.92;
+  font-family: "Barlow", "Arial Narrow", sans-serif;
+  font-weight: 800;
+  line-height: 0.8;
+  letter-spacing: 2px;
+  margin-right: -2px;
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-meta {
@@ -1281,11 +1310,18 @@ body > .ed-ghost.page-row {
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-end;
+  flex: 1 1 0;
   min-width: 0;
   font-size: 9px;
   font-weight: 500;
   line-height: 11px;
   white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-meta span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-part {
@@ -1296,8 +1332,9 @@ body > .ed-ghost.page-row {
   color: var(--v-ink2);
 }
 
-/* Waktu sholat: the label, the prayer's name and time (14 and 30 px), five segments and what is
-   left. A passed prayer's segment is dimmer than a coming one's but not the accent. */
+/* Waktu sholat: the label, the prayer's name with a 17 px mosque dome at its right, the time at
+   36 px (design 58), five segments and what is left, centred. A passed prayer's segment is dimmer
+   than a coming one's but not the accent. */
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-prayer {
   justify-content: space-between;
@@ -1318,11 +1355,32 @@ body > .ed-ghost.page-row {
   gap: 1px;
 }
 
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
   font-size: 14px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 17px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-dome {
+  flex: none;
+  display: flex;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-time {
+  line-height: 0.9;
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-pr-foot {
@@ -1347,6 +1405,7 @@ body > .ed-ghost.page-row {
   font-size: 9px;
   font-weight: 500;
   line-height: 11px;
+  text-align: center;
   color: var(--v-muted);
 }
 
@@ -1541,8 +1600,8 @@ body > .ed-ghost.page-row {
   gap: 8px;
 }
 
-/* Jam + tanggal: the city and date on top, the time with its seconds, the day bar. The time
-   is 52 px, the seconds 17 px on the same baseline. */
+/* Jam + tanggal: the city and date on top, the time with its seconds, the day bar. The time is
+   Barlow 800 at 62 px (design 100) and the seconds 20 px (design 32) on the same baseline. */
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-clockdate {
   justify-content: space-between;
   min-width: 0;
@@ -1565,8 +1624,14 @@ body > .ed-ghost.page-row {
   gap: 5px;
 }
 
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-clock-no {
+  font-family: "Barlow", "Arial Narrow", sans-serif;
+  font-weight: 800;
+}
+
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-time .v-num:first-child {
-  line-height: 0.9;
+  line-height: 0.85;
+  letter-spacing: 1px;
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-day {
@@ -1659,7 +1724,8 @@ body > .ed-ghost.page-row {
   font-weight: 600;
 }
 
-/* Hari ke-: the number is 50 px in the accent, the bar and the days left sit under it. */
+/* Hari ke-: the number is 50 px in the accent and centred, the bar runs the full width with the
+   days left centred under it. */
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-yearday {
   justify-content: space-between;
 }
@@ -1670,6 +1736,7 @@ body > .ed-ghost.page-row {
 
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-day-no {
   line-height: 0.9;
+  text-align: center;
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-foot {
@@ -1680,6 +1747,7 @@ body > .ed-ghost.page-row {
 
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-yearday-left {
   line-height: 11px;
+  text-align: center;
   color: var(--v-ink2);
 }
 
@@ -1823,7 +1891,8 @@ body > .ed-ghost.page-row {
    padding stands for the card's, and the strip's is 0 12px. */
 
 /* Cuaca besar: the city, the temperature at 54 px and the sky at the left; the sky's icon in the
-   accent over the high and low at the right. City 12, temperature 49 and sky 13 make 74 of 80. */
+   accent at 40 px (design 64) over the high and low at the right. City 12, temperature 49 and sky
+   13 make 74 of 80 on the left; the icon and the range make 62 of 80 on the right. */
 
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-bigweather {
   flex-direction: row;

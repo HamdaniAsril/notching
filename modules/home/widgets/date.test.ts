@@ -13,8 +13,12 @@ test('the date shows the day name with the accent dot, the big date and the mont
   expect(root.querySelector('.hm-date-top .hm-dot')).not.toBeNull();
   const day = root.querySelector<HTMLElement>('.v-num')!;
   expect(day.textContent).toBe('27');
-  expect(day.style.fontSize).toBe('57px');
+  expect(day.style.fontSize).toBe('64px');
   expect(root.querySelector('.hm-date-month')!.textContent).toBe('Oktober 2026');
+  // The date and the month are one centred block under the day row, not spread to the card's ends.
+  const body = root.querySelector('.hm-date-body')!;
+  expect([...body.children].map(c => c.className)).toEqual(['v-num hm-date-no', 'hm-date-month']);
+  expect(root.querySelector('.hm-date')!.children[0].classList.contains('hm-date-top')).toBe(true);
   expect(root.querySelectorAll('svg, .rd, .lab')).toHaveLength(0);
 });
 

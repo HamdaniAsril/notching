@@ -18,6 +18,8 @@ test('the clock stacks the hour in white over the minutes in the accent', () => 
   expect(nums.map(n => n.textContent)).toEqual(['09', '05']);
   expect(nums.map(n => n.classList.contains('v-acc'))).toEqual([false, true]);
   expect(nums.map(n => n.style.fontSize)).toEqual(['42px', '42px']);
+  // Barlow 800 (hm-clock-no), not the condensed number face.
+  expect(nums.every(n => n.classList.contains('hm-clock-no'))).toBe(true);
   expect(root.querySelectorAll('svg')).toHaveLength(0);
 });
 

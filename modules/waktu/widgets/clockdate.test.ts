@@ -16,8 +16,10 @@ test('the top line has the city and the short date; below it the time, the secon
   expect(nums.map(n => n.textContent)).toEqual(['09.41', '30']);
   expect(nums[0].classList.contains('v-acc')).toBe(false);
   expect(nums[1].classList.contains('v-acc')).toBe(true);
-  expect((nums[0] as HTMLElement).style.fontSize).toBe('52px');
-  expect((nums[1] as HTMLElement).style.fontSize).toBe('17px');
+  expect((nums[0] as HTMLElement).style.fontSize).toBe('62px');
+  expect((nums[1] as HTMLElement).style.fontSize).toBe('20px');
+  // Both are Barlow 800 (the wd-clock-no class), not the condensed number face.
+  expect(nums.every(n => n.classList.contains('wd-clock-no'))).toBe(true);
 });
 
 test('the day bar is the part of the day gone, with the percent beside it', () => {

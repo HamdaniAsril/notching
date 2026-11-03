@@ -21,6 +21,7 @@ test('the city, the big temperature, the sky, the icon in the accent and the ran
   const icon = root.querySelector('.wd-bw-icon')!;
   expect(icon.classList.contains('v-acc')).toBe(true);
   expect(icon.querySelector('.ic svg')).not.toBeNull();
+  expect(icon.querySelector('.ic svg')!.getAttribute('width')).toBe('40');
   expect(root.querySelector('.wd-bw-high')!.textContent).toBe('Tertinggi 33°');
   expect(root.querySelector('.wd-bw-low')!.textContent).toBe('Terendah 25°');
   expect(root.querySelector('svg.dm')).toBeNull();

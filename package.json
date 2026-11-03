@@ -12,6 +12,7 @@
     "build:modules": "node scripts/build-modules.mjs"
   },
   "dependencies": {
+    "@fontsource/barlow": "^5.3.0",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
     "@tauri-apps/api": "^2"

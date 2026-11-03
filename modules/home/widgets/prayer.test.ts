@@ -20,7 +20,7 @@ test('the next prayer shows its name in the accent, its time and what is left', 
   expect(name.classList.contains('v-acc')).toBe(true);
   const time = root.querySelector<HTMLElement>('.hm-pr-next .v-num')!;
   expect(time.textContent).toBe('11.40');
-  expect(time.style.fontSize).toBe('30px');
+  expect(time.style.fontSize).toBe('36px');
   expect(root.querySelector('.hm-pr-left')!.textContent).toBe('1 j 22 m lagi');
 });
 
@@ -30,7 +30,18 @@ test('five segments, the next prayer\'s in the accent and the earlier ones marke
   expect(lit(root)).toEqual([false, true, false, false, false]);
   const segs = [...root.querySelectorAll('.hm-pr-segs .v-seg')];
   expect(segs.map(s => s.classList.contains('past'))).toEqual([true, false, false, false, false]);
-  expect(root.querySelectorAll('svg')).toHaveLength(0);
+});
+
+test('a mosque dome in the accent sits at the right of the prayer name, 17 px', () => {
+  const root = host();
+  renderPrayer(root, id, 'id').update(SNAP, NOW);
+  const row = root.querySelector('.hm-pr-row')!;
+  expect([...row.children].map(c => c.className)).toEqual(['v-acc hm-pr-name', 'v-acc hm-pr-dome']);
+  const svg = row.querySelectorAll('.hm-pr-dome svg');
+  expect(svg).toHaveLength(1);
+  expect(svg[0].getAttribute('width')).toBe('17');
+  expect(svg[0].getAttribute('stroke')).toBe('currentColor');
+  expect(root.querySelectorAll('svg')).toHaveLength(1);
 });
 
 test('the segment follows the next prayer through the day', () => {
@@ -62,4 +73,5 @@ test('without a city it asks for one', () => {
   renderPrayer(root, id, 'id').update({ ...SNAP, place: null, prayer: null }, NOW);
   expect(root.textContent).toContain('Atur kota di Pengaturan');
   expect(root.querySelector('.v-segs')).toBeNull();
+  expect(root.querySelector('svg')).toBeNull();
 });
