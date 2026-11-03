@@ -111,7 +111,7 @@ body {
 }
 
 .ed-btn.ed-pri:hover {
-  background: #d6f56e;
+  background: var(--v-acc-hi);
   color: var(--v-on-acc);
 }
 

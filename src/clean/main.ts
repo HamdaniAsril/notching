@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { cleanStrings } from '../i18n';
+import { followCoreAccent } from '../kit/accent-tauri';
 import type { Lang } from '../kit/protocol';
 import { renderClean } from './view';
 
@@ -30,6 +31,7 @@ async function start(): Promise<void> {
     show({ on: true, presses: Number(q.get('presses') ?? 0), lang: q.get('lang') === 'en' ? 'en' : 'id' });
     return;
   }
+  void followCoreAccent();
   await listen<CleanState>('notching://clean', e => show(e.payload));
   show(await invoke<CleanState>('get_clean_state'));
 }

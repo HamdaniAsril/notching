@@ -17,7 +17,7 @@ const { start } = await import('./main');
 test('a pick panel hears its own state only, then asks for it', async () => {
   document.body.innerHTML = '<div id="pick-root"></div>';
   await start();
-  expect(windowListen.mock.calls.map(c => (c as unknown[])[0])).toEqual(['notching://pick']);
+  expect(windowListen.mock.calls.map(c => (c as unknown[])[0])).toEqual(['notching://module-state', 'notching://pick']);
   expect(globalListen).not.toHaveBeenCalled();
   expect(invoke).toHaveBeenCalledWith('shot_pick_state');
 });
