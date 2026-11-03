@@ -6,6 +6,8 @@ import type { PageRender } from '../types';
 
 // The four sliders (spec 4.3): the preview follows every move, the real notch
 // follows on release, when the value is saved.
+const CUSTOM_SAVE_MS = 300;
+
 export const lookPage: PageRender = ctx => {
   const s = ctx.strings.look;
   let local: NotchConfig = { ...ctx.state.notch };
@@ -41,6 +43,10 @@ export const lookPage: PageRender = ctx => {
   // this window while the picker moves and is saved on release.
   const root = box.ownerDocument.documentElement;
   const saved = ctx.state.accentCustom;
+  let pending: ReturnType<typeof setTimeout> | undefined;
+  const cancelSave = () => clearTimeout(pending);
+  ctx.onCleanup(cancelSave);
+  const saveCustom = (hex: string) => ctx.save('look.accent', ctx.bridge.setAccent(hex, hex));
   const accent = swatches({
     key: 'look.accent',
     label: s.accent,
@@ -48,11 +54,19 @@ export const lookPage: PageRender = ctx => {
     value: ctx.state.accent,
     custom: {
       name: s.accentCustom,
-      color: saved ? accentPalette(saved).acc : null,
-      onInput: hex => applyAccent(root, hex),
-      onChange: hex => {
+      color: saved,
+      shown: hex => accentPalette(hex).acc,
+      // Saved soon after the picker stops too: WebKit may fire change only when
+      // the colour panel closes, which can be after Pengaturan is gone.
+      onInput: hex => {
         applyAccent(root, hex);
-        ctx.save('look.accent', ctx.bridge.setAccent(hex, hex));
+        cancelSave();
+        pending = setTimeout(() => saveCustom(hex), CUSTOM_SAVE_MS);
+      },
+      onChange: hex => {
+        cancelSave();
+        applyAccent(root, hex);
+        saveCustom(hex);
       },
     },
     onPick: hex => {

@@ -210,10 +210,14 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   // The Look page already shows the values it just saved; rebuilding it for their
   // echo would put a slider back one step while an arrow key is held down, or
   // take the colour picker away from under the pointer.
-  const look = (s: ModuleState) => ({ ...s, notch: null, accent: null, accentCustom: null });
+  // Nor does it show the live fields, which change while a module runs.
+  const look = (s: ModuleState) => ({
+    ...s, notch: null, accent: null, accentCustom: null, missed: null, lastPage: null, sampleStatus: null,
+    modules: s.modules.map(m => ({ ...m, activity: null })),
+  });
   const onlyLookChanged = (a: ModuleState, b: ModuleState) => JSON.stringify(look(a)) === JSON.stringify(look(b));
   const offState = bridge.onModuleState(next => {
-    applyAccent(doc.documentElement, next.accent);
+    if (next.accent !== state.accent) applyAccent(doc.documentElement, next.accent);
     const quiet = !searchInput.value.trim();
     const echo = (route.page === 'look' && quiet && onlyLookChanged(state, next))
       || (route.page === 'pageEdit' && quiet && isOwnEcho(state, next, route.id));

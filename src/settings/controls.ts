@@ -85,7 +85,8 @@ export function choice<T extends string>(key: string, options: { value: T; label
 export interface SwatchOption { value: string; name: string; color: string }
 export interface SwatchCustom {
   name: string;
-  color: string | null; // the last custom colour, or none yet
+  color: string | null; // the last custom colour as picked, or none yet
+  shown?: (hex: string) => string; // how the dot draws a picked colour
   onInput(hex: string): void; // while the picker moves
   onChange(hex: string): void; // on release, or when the custom swatch is picked again
 }
@@ -111,7 +112,8 @@ export function swatches(o: {
     return b;
   };
   const presets = o.options.map(option => dot(`${o.key}.${option.value}`, option.name, option.color));
-  const custom = dot(`${o.key}.custom`, o.custom.name, o.custom.color);
+  const shown = o.custom.shown ?? ((hex: string) => hex);
+  const custom = dot(`${o.key}.custom`, o.custom.name, o.custom.color && shown(o.custom.color));
   custom.classList.add('custom');
   const input = el('input', 'swatch-input');
   input.type = 'color';
@@ -149,7 +151,7 @@ export function swatches(o: {
     input.click();
   });
   input.addEventListener('input', () => {
-    custom.style.setProperty('--sw', input.value);
+    custom.style.setProperty('--sw', shown(input.value));
     mark(null);
     o.custom.onInput(input.value);
   });

@@ -67,3 +67,11 @@ test('applyAccent writes the variables on the root', () => {
     expect(root.style.getPropertyValue(name)).not.toBe('');
   }
 });
+
+test('dark picks keep their colour while they are lightened', () => {
+  expect(hsl(accentPalette('#000000').acc).s).toBeGreaterThanOrEqual(0.44);
+  expect(hsl(accentPalette('#3a0000').acc).s).toBeGreaterThanOrEqual(0.44);
+  const [r, g, b] = [1, 3, 5].map(i => parseInt(accentPalette('#1a237e').acc.slice(i, i + 2), 16));
+  expect(b).toBeGreaterThan(r);
+  expect(b).toBeGreaterThan(g);
+});

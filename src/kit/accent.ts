@@ -91,12 +91,19 @@ function fromHsl(h: number, s: number, l: number): Rgb {
 
 // A white or grey pick gets some colour; a dark one is lightened until it reads
 // on the black notch (owner, 3 Nov: "diam diam menerangkan sedikit").
+// Lightening raises the HSL lightness and keeps the hue and the saturation, so a
+// near-black pick stays a colour instead of fading to grey.
 function readable(c: Rgb): Rgb {
   const [h, s, l] = toHsl(c);
-  const base = (s < MIN_SATURATION || l > MAX_LIGHTNESS
-    ? fromHsl(h, Math.max(s, MIN_SATURATION), Math.min(l, MAX_LIGHTNESS)) : c).map(Math.round) as Rgb;
-  let out = base;
-  for (let t = 0.04; ratio(out, BLACK) < MIN_ON_BLACK && t <= 1; t += 0.04) out = mix(base, WHITE, t).map(Math.round) as Rgb;
+  if (s >= MIN_SATURATION && l <= MAX_LIGHTNESS && ratio(c, BLACK) >= MIN_ON_BLACK) return c;
+  const sat = Math.max(s, MIN_SATURATION);
+  let light = Math.min(l, MAX_LIGHTNESS);
+  const at = (v: number) => fromHsl(h, sat, v).map(Math.round) as Rgb;
+  let out = at(light);
+  while (ratio(out, BLACK) < MIN_ON_BLACK && light < 1) {
+    light = Math.min(1, light + 0.02);
+    out = at(light);
+  }
   return out;
 }
 
