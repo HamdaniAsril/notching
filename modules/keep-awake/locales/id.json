@@ -1,7 +1,7 @@
 {
   "name": "Keep awake",
   "shortName": "Awake",
-  "description": "Mac tetap menyala",
+  "description": "Komputer tetap menyala",
   "off": "Mati",
   "startFor": "Nyalakan selama",
   "hour1": "1 jam",
@@ -20,7 +20,7 @@
   "notice": {
     "done": {
       "title": "Keep awake selesai",
-      "detail": "Mac kembali tidur seperti biasa"
+      "detail": "Komputer kembali tidur seperti biasa"
     }
   }
 }

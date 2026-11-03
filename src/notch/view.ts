@@ -1,3 +1,4 @@
+import { hasMod } from '../kit/platform';
 import { EAR_W, NOTICE_PILL, type NotchController, type Phase } from './controller';
 import { type Beside, containsPoint, OVERLAY_SIZE, type Rect, hitRects } from './hit';
 import { lensPath, notchPath, notchTabPath, panelFade, panelPath, topPillPath } from './shape';
@@ -713,7 +714,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     if (e.key === 'Escape') {
       c.escape();
       kick();
-    } else if (e.metaKey && e.key.toLowerCase() === 'q' && c.phase === 'open') {
+    } else if (hasMod(e) && e.key.toLowerCase() === 'q' && c.phase === 'open') {
       e.preventDefault();
       deps.onQuit();
     }

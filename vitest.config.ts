@@ -7,5 +7,6 @@ process.env.TZ = "Asia/Jakarta";
 export default defineConfig({
   test: {
     include: ["src/**/*.test.ts", "modules/**/*.test.ts"],
+    setupFiles: ["./vitest.setup.ts"],
   },
 });

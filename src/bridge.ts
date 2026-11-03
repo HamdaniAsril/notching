@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { schemeUrl } from './kit/platform';
 import type { ModuleState } from './modules/types';
 import type { Rect } from './notch/hit';
 
@@ -206,8 +207,8 @@ export function tauriBridge(): Bridge {
     onModuleState: cb => syncUnlisten(listen<ModuleState>('notching://module-state', e => cb(e.payload))),
     setLastPage: page => invoke('set_last_page', { page }),
     moduleCall: (moduleId, capability, method, args) => invoke('module_call', { moduleId, capability, method, args }),
-    // macOS form of a custom protocol URL; Windows will need http://notchmod.localhost/.
-    moduleUrl: (id, file) => `notchmod://localhost/${id}/${file}`,
+    // schemeUrl picks the custom protocol form for the OS (Windows: http://notchmod.localhost/).
+    moduleUrl: (id, file) => schemeUrl('notchmod', `${id}/${file}`),
     moduleSandbox: 'allow-scripts',
     openSettings: () => invoke('open_settings'),
     // Sent to the overlay on the screen under the cursor only.

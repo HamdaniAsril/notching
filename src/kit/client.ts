@@ -1,3 +1,4 @@
+import { hasMod } from './platform';
 import { type FrameMessage, isHostMessage, type Lang } from './protocol';
 
 // What a module sees of the notch.
@@ -61,7 +62,7 @@ export function connectKit(win: Window = window): Promise<Kit> {
     win.document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         post({ type: 'notching:key', key: 'Escape' });
-      } else if (e.metaKey && e.key.toLowerCase() === 'q') {
+      } else if (hasMod(e) && e.key.toLowerCase() === 'q') {
         e.preventDefault();
         post({ type: 'notching:key', key: 'Quit' });
       }

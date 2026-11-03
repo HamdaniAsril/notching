@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { connectKit } from './client';
 import { frameWindow, hostSays } from './test-helpers';
 
@@ -78,4 +78,21 @@ test('a module frame has no widget', async () => {
   const p = connectKit(win);
   hostSays(win, { type: 'notching:init', moduleId: 'system-stat', lang: 'id' });
   expect((await p).widget).toBeNull();
+});
+
+test('off the Mac Ctrl+Q is passed to the host', async () => {
+  vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (X11; Linux x86_64)', platform: '' });
+  try {
+    const { win, posted } = frameWindow();
+    const p = connectKit(win);
+    hostSays(win, { type: 'notching:init', moduleId: 'm', lang: 'id' });
+    await p;
+    const Key = (win as typeof window).KeyboardEvent;
+    win.document.dispatchEvent(new Key('keydown', { key: 'q', metaKey: true }));
+    expect(posted).not.toContainEqual({ type: 'notching:key', key: 'Quit' });
+    win.document.dispatchEvent(new Key('keydown', { key: 'q', ctrlKey: true }));
+    expect(posted).toContainEqual({ type: 'notching:key', key: 'Quit' });
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

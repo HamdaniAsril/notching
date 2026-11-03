@@ -1,5 +1,6 @@
 import type { ShelfItem, ShelfState } from '../bridge';
 import { fill, type HostStrings } from '../i18n';
+import { hasMod } from '../kit/platform';
 import { presses } from '../notch/presses';
 
 const NAME_MAX = 12;
@@ -65,7 +66,7 @@ export function mountShelfView(box: HTMLElement, deps: ShelfViewDeps): ShelfView
     if (e.shiftKey && anchor !== null && order.includes(anchor)) {
       const [a, b] = [order.indexOf(anchor), order.indexOf(id)].sort((x, y) => x - y);
       selected = new Set(order.slice(a, b + 1));
-    } else if (e.metaKey) {
+    } else if (hasMod(e)) {
       if (selected.has(id)) selected.delete(id);
       else selected.add(id);
       anchor = id;

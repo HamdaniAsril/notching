@@ -40,7 +40,7 @@ test('open at login follows the system state', async () => {
   const sw2 = off.root.querySelector<HTMLButtonElement>('[data-key="general.login"]')!;
   expect(sw2.disabled).toBe(true);
   expect(off.root.querySelector('[data-row="general.login"]')!.textContent)
-    .toContain('Hanya bisa diatur dari Notching.app yang terpasang.');
+    .toContain('Hanya bisa diatur dari Notching yang terpasang.');
 
   const ask = await mountForTest(undefined, { ...TEST_INFO, login: 'needsApproval' });
   ask.root.querySelector<HTMLElement>('[data-key="general.loginOpen"]')!.click();

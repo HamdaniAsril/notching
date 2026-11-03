@@ -1,7 +1,7 @@
 {
   "name": "Keep awake",
   "shortName": "Awake",
-  "description": "Keeps your Mac awake",
+  "description": "Keeps your computer awake",
   "off": "Off",
   "startFor": "Keep on for",
   "hour1": "1 hr",
@@ -20,7 +20,7 @@
   "notice": {
     "done": {
       "title": "Keep awake ended",
-      "detail": "Your Mac sleeps as usual again"
+      "detail": "Your computer sleeps as usual again"
     }
   }
 }

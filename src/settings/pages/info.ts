@@ -57,7 +57,7 @@ export const permissionsPage: PageRender = ctx => {
       states.push({ state, p });
       return row({ key: `permission.${m.id}.${p.id}`, label: `${m.name} · ${p.label(s)}`, hint: p.hint(s), control: state });
     });
-    page.append(group(...rows), button(p.openKey, s.open, () => void p.open(ctx.bridge)));
+    page.append(group(...rows), button(p.openKey, s.open, () => void p.open(ctx.bridge).catch(() => {})));
   }
   show(ctx.info);
   let stop = () => {};

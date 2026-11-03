@@ -49,3 +49,12 @@ test('broadcasts are heard app-wide', () => {
   ]);
   expect(windowListen).not.toHaveBeenCalled();
 });
+
+test('module urls follow the OS custom-scheme form', () => {
+  const b = tauriBridge();
+  vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: '' });
+  expect(b.moduleUrl('timer', 'index.html')).toBe('notchmod://localhost/timer/index.html');
+  vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: '' });
+  expect(b.moduleUrl('timer', 'index.html')).toBe('http://notchmod.localhost/timer/index.html');
+  vi.unstubAllGlobals();
+});

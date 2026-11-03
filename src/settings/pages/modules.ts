@@ -18,7 +18,7 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
   ctx.bridge.shotKeys().then(keys => {
     const taken = keyNotices(keys, s);
     if (taken.mac) {
-      box.append(note(taken.mac), button('module.screenshot.keys', s.openSettings, () => void ctx.bridge.openKeyboardShortcuts()));
+      box.append(note(taken.mac), button('module.screenshot.keys', s.openSettings, () => void ctx.bridge.openKeyboardShortcuts().catch(() => {})));
     }
     if (taken.other) box.append(note(taken.other));
   }, () => {});
@@ -47,7 +47,7 @@ function cleanerSettings(ctx: PageContext): HTMLElement {
     }, () => list.replaceChildren(note(s.exclusionsBroken)));
   };
   show();
-  box.append(head({ title: s.exclusions }), list, button('module.cleaner.log', s.openLog, () => void ctx.bridge.cleanerOpenLog()));
+  box.append(head({ title: s.exclusions }), list, button('module.cleaner.log', s.openLog, () => void ctx.bridge.cleanerOpenLog().catch(() => {})));
   return box;
 }
 
