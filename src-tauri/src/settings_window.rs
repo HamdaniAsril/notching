@@ -171,10 +171,11 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
 
     let handle = app.clone();
     settings.on_window_event(move |event| {
-        if let WindowEvent::Destroyed = event
-            && !keep_regular(false, handle.get_webview_window(EDITOR_LABEL).is_some())
-        {
-            let _ = handle.set_activation_policy(ActivationPolicy::Accessory);
+        if let WindowEvent::Destroyed = event {
+            crate::shot_hotkey::settings_closed(&handle);
+            if !keep_regular(false, handle.get_webview_window(EDITOR_LABEL).is_some()) {
+                let _ = handle.set_activation_policy(ActivationPolicy::Accessory);
+            }
         }
     });
 
