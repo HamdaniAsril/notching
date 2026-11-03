@@ -42,7 +42,7 @@ export interface SettingsInfo {
 
 export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'permissions' | 'about';
 
-export type Route = { page: SectionId } | { page: 'module'; id: string } | { page: 'add' } | { page: 'pageEdit'; id: string };
+export type Route = { page: SectionId } | { page: 'module'; id: string } | { page: 'catalog' } | { page: 'pageEdit'; id: string };
 
 // A key pressed while Screenshot's key is recorded: its place on the keyboard
 // (KeyboardEvent.code) and the modifiers held.

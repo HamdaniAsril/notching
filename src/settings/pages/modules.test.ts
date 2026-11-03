@@ -87,24 +87,6 @@ test('a module page whose module is gone falls back to the list', async () => {
   expect(h1(root)).toBe('Modul');
 });
 
-test('Add module lists uninstalled built-ins and adds them back', async () => {
-  const { root, app, bridge } = await mountForTest(without('home'));
-  app.go({ page: 'modules' });
-  click(root, 'modules.add');
-  expect(h1(root)).toBe('Tambah modul');
-  expect([...root.querySelectorAll('.module .label')].map(e => e.textContent)).toEqual(['Beranda']);
-  click(root, 'add.home');
-  expect(bridge.reinstallModule).toHaveBeenCalledWith('home');
-  await settle();
-  expect(app.route).toEqual({ page: 'modules' });
-});
-
-test('Add module with nothing to add says so', async () => {
-  const { root, app } = await mountForTest(STATE);
-  app.go({ page: 'add' });
-  expect(root.querySelector('.pane')!.textContent).toContain('Semua modul bawaan sudah terpasang.');
-});
-
 test('a search for a module name opens its page', async () => {
   const { root } = await mountForTest(STATE);
   const input = root.querySelector<HTMLInputElement>('input.search')!;
@@ -128,8 +110,6 @@ test('the widget package is not listed as a module', async () => {
   app.go({ page: 'modules' });
   expect([...root.querySelectorAll('.module .label')].map(e => e.textContent)).toEqual(['System stat']);
   expect(root.querySelector('.head .sub')!.textContent).toBe('1 terpasang · 140 KB');
-  app.go({ page: 'add' });
-  expect(root.querySelector('.module')).toBeNull();
 });
 
 test('a module with a status gets a status switch', async () => {

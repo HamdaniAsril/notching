@@ -3535,3 +3535,134 @@ body > .ed-ghost.page-row {
   opacity: 0;
   pointer-events: none;
 }
+
+/* Katalog (design 4 Nov §5): two columns of cards, one when the pane is narrow.
+   A card is a group card: icon, name and kind on top, what it is and brings in
+   the middle, version, size and its button at the foot. */
+.cat-filter {
+  margin-top: 14px;
+}
+
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.cat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--ring);
+  transition: background-color 1.2s;
+}
+
+.cat-card.found {
+  background-color: var(--acc-soft);
+  transition: none;
+}
+
+.cat-top {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.cat-top .glyph,
+.cat-top .icon-grid {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--fg);
+}
+
+.cat-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-kind {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--g2);
+}
+
+.cat-desc,
+.cat-what {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--g1);
+}
+
+.cat-what {
+  color: var(--g2);
+}
+
+/* A package's widgets, as the page editor draws them, smaller still. */
+.cat-peek {
+  display: flex;
+  gap: 6px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cat-peek .ed-shot {
+  zoom: 0.5;
+  flex: none;
+}
+
+.cat-peek .ed-shot[data-width="4"] {
+  width: 480px;
+}
+
+.cat-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.cat-foot .size {
+  flex: 1;
+  font-size: 11px;
+  color: var(--g2);
+}
+
+.cat-on {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--acc);
+}
+
+.cat-on::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--acc);
+}
+
+/* The editor's way to the Katalog, under its widget list. */
+.ed-more {
+  margin-top: 16px;
+}

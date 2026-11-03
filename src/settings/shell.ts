@@ -7,7 +7,8 @@ import { generalPage } from './pages/general';
 import { aboutPage, permissionsPage } from './pages/info';
 import { notificationsPage } from './pages/notifications';
 import { lookPage } from './pages/look';
-import { addPage, modulePage, modulesPage } from './pages/modules';
+import { catalogPage } from './pages/catalog';
+import { modulePage, modulesPage } from './pages/modules';
 import { isOwnEcho, pageEditor } from './pages/page-editor';
 import { pagesPage, waitingFor } from './pages/pages';
 import { isModule } from '../modules/types';
@@ -30,7 +31,7 @@ export const PAGES: Partial<Record<Route['page'], PageRender>> = {
   pageEdit: pageEditor,
   modules: modulesPage,
   module: modulePage,
-  add: addPage,
+  catalog: catalogPage,
   permissions: permissionsPage,
   about: aboutPage,
 };
@@ -108,7 +109,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
 
   function section(): SectionId {
     if (route.page === 'pageEdit') return 'pages';
-    return route.page === 'module' || route.page === 'add' ? 'modules' : route.page;
+    return route.page === 'module' || route.page === 'catalog' ? 'modules' : route.page;
   }
 
   function find(selector: string): HTMLElement | null {

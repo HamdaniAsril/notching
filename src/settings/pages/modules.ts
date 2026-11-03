@@ -204,7 +204,7 @@ function moduleRow(ctx: PageContext, m: ModuleInfo, ...controls: HTMLElement[]):
   return r;
 }
 
-function back(ctx: PageContext): HTMLElement {
+export function back(ctx: PageContext): HTMLElement {
   const b = el('button', 'back');
   b.type = 'button';
   b.dataset.key = 'module.back';
@@ -221,7 +221,7 @@ export const modulesPage: PageRender = ctx => {
   page.append(head({
     title: ctx.strings.sections.modules,
     sub: fill(s.summary, { n: installed.length, size: formatBytes(total, ctx.lang) }),
-    side: button('modules.add', s.add, () => ctx.go({ page: 'add' }), true),
+    side: button('modules.catalog', s.catalog, () => ctx.go({ page: 'catalog' }), true),
   }));
   if (installed.length === 0) {
     page.append(note(s.none));
@@ -288,25 +288,5 @@ export const modulePage: PageRender = (ctx, route) => {
   if (own) page.append(own(ctx));
   else if (!status) page.append(note(s.noSettings));
   page.append(foot, el('p', 'note small', s.uninstallNote));
-  return page;
-};
-
-export const addPage: PageRender = ctx => {
-  const s = ctx.strings.modules;
-  const missing = ctx.state.modules.filter(m => !m.installed && isModule(m));
-  const page = el('div');
-  page.append(back(ctx), head({ title: s.addTitle, sub: s.addSub }));
-  if (missing.length === 0) {
-    page.append(note(s.addNone));
-    return page;
-  }
-  page.append(group(...missing.map(m => {
-    const key = `add.${m.id}`;
-    return moduleRow(ctx, m, button(key, s.addOne, () => {
-      const pending = ctx.bridge.reinstallModule(m.id);
-      ctx.save(key, pending);
-      pending.then(() => ctx.go({ page: 'modules' }), () => {});
-    }));
-  })));
   return page;
 };

@@ -90,3 +90,10 @@ export interface ModuleState {
   accent: string; // "#rrggbb", the Volt accent picked in Tampilan
   accentCustom: string | null; // the last custom colour, kept while a preset is chosen
 }
+
+// Beranda's package: always installed, so the Katalog leaves it out (design 4 Nov §3).
+export const CORE_PACKAGE = 'home';
+
+// What the Katalog offers: every module and widget package but Beranda's.
+export const inCatalog = (m: ModuleInfo): boolean =>
+  m.id !== CORE_PACKAGE && (isModule(m) || m.widgets.length > 0);
