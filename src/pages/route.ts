@@ -1,4 +1,4 @@
-import type { ShelfState, Shot } from '../bridge';
+import type { ShelfState, Shot, ShotSetup } from '../bridge';
 import { fill, type HostStrings } from '../i18n';
 import { hasPage, isModule, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import type { CardSize } from '../notch/controller';
@@ -31,10 +31,11 @@ export const SHOT_KEY = 'screenshot';
 // Screenshot's pages (design 1 Nov §5, §6; notch-hasil.html, halaman-screenshot.html
 // v2). The result: its picture beside the buttons. The list: a head line, any
 // notices (a line each), up to 3 rows of 5 tiles with their times, then the
-// take buttons 12 px under them.
+// take buttons 12 px under them. The first-use notice (design 3 Nov tombol §4): its
+// label, title, line and buttons.
 export const SHOT = {
-  resultWidth: 420, resultHeight: 172, listWidth: 560, columns: 5, gap: 8, tileH: 62, label: 14, head: 22, buttons: 40,
-  emptyH: 72, note: 24,
+  resultWidth: 420, resultHeight: 172, setupWidth: 420, setupHeight: 132, listWidth: 560, columns: 5, gap: 8, tileH: 62,
+  label: 14, head: 22, buttons: 40, emptyH: 72, note: 24,
 } as const;
 const SHOT_ROWS = 3;
 
@@ -46,8 +47,12 @@ const SHOT_TAKE_GAP = 12;
 
 const MODULE_PREFIX = 'module:';
 
-// Screenshot's two notch views: the result of a capture, and the history list.
-export type ShotTarget = { kind: 'shot'; mode: 'result'; id: number } | { kind: 'shot'; mode: 'list' };
+// Screenshot's notch views: the result of a capture, the history list, and the
+// first-use notice about its keys.
+export type ShotTarget =
+  | { kind: 'shot'; mode: 'result'; id: number }
+  | { kind: 'shot'; mode: 'list' }
+  | { kind: 'shot'; mode: 'setup'; setup: ShotSetup };
 
 // What the panel shows, keyed like lastPage: a page id, 'modules' or 'module:<id>'.
 // `strip`: the page's strip widget when it is there to show.
@@ -111,6 +116,7 @@ export function viewSize(v: PageView, fullHeight?: number, headRow = false): Car
   if (v.kind === 'module') return { width: v.module.card!.width, height: BACK_BAR + v.module.card!.height };
   if (v.kind === 'shot') {
     if (v.mode === 'result') return { width: SHOT.resultWidth, height: SHOT.resultHeight };
+    if (v.mode === 'setup') return { width: SHOT.setupWidth, height: SHOT.setupHeight };
     return { width: SHOT.listWidth, height: shotListHeight(v.shots.length, v.notes ?? 0) };
   }
   if (v.kind === 'cleaner') {

@@ -3,7 +3,7 @@ import { fill, hostStrings, type HostStrings } from '../i18n';
 import { SHOT } from '../pages/route';
 import { presses } from '../notch/presses';
 import { button, COPY_ICON, DELETE_ICON, el, image, openEditor, SAVE_ICON, SAVED_ICON, saves, type ShotDeps } from './common';
-import { keyNotices } from './keys';
+import { DEFAULT_LABELS, keyNotices } from './keys';
 
 export interface ShotListDeps extends ShotDeps {
   back(): void; // "‹ Modul"
@@ -45,6 +45,8 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
   let shots: Shot[] = [];
   let built = '';
   let gone = false;
+  // The keys' labels, ⌘⇧3 and ⌘⇧4 until the core says (design 3 Nov tombol §6).
+  let labels = DEFAULT_LABELS;
 
   const count = el(doc, 'span', 'pg-title shot-count');
   const head = el(doc, 'div', 'pg-back shot-head');
@@ -54,21 +56,33 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
   const notes = el(doc, 'div', 'shot-notes');
   const body = el(doc, 'div', 'shot-body');
   const take = el(doc, 'div', 'shot-take');
+  const hints = {
+    screen: el(doc, 'span', 'shot-key'),
+    window: el(doc, 'span', 'shot-key'),
+    area: el(doc, 'span', 'shot-key'),
+  };
   take.append(
-    taker(SCREEN_ICON, s.kinds.screen, s.hints.screen, () => deps.shotTakeScreen()),
-    taker(WINDOW_ICON, s.kinds.window, s.hints.window, () => deps.shotPick('window')),
-    taker(AREA_ICON, s.kinds.area, s.hints.area, () => deps.shotPick('area')),
+    taker(SCREEN_ICON, s.kinds.screen, hints.screen, () => deps.shotTakeScreen()),
+    taker(WINDOW_ICON, s.kinds.window, hints.window, () => deps.shotPick('window')),
+    taker(AREA_ICON, s.kinds.area, hints.area, () => deps.shotPick('area')),
   );
+  showHints();
   const wrap = el(doc, 'div', 'shot-list');
   wrap.append(head, notes, body, take);
   box.replaceChildren(wrap);
 
-  function taker(icon: string, label: string, hint: string, run: () => Promise<void>): HTMLButtonElement {
+  function taker(icon: string, label: string, hint: HTMLElement, run: () => Promise<void>): HTMLButtonElement {
     const b = button(doc, 'shot-tbtn');
     b.innerHTML = icon;
-    b.append(label, el(doc, 'span', 'shot-key', hint));
+    b.append(label, hint);
     b.addEventListener('click', () => void deps.close().then(run).catch(() => {}));
     return b;
+  }
+
+  function showHints(): void {
+    hints.screen.textContent = fill(s.hints.screen, { key: labels.screen });
+    hints.window.textContent = fill(s.hints.window, { key: labels.pick });
+    hints.area.textContent = fill(s.hints.area, { key: labels.pick });
   }
 
   function note(text: string, open?: () => Promise<void>): HTMLElement {
@@ -85,10 +99,17 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
   // What may stop a capture: no permission, or keys the Mac or another app holds (§4, §8).
   void Promise.all([deps.shotPermission().catch(() => true), deps.shotKeys().catch(() => null)]).then(([allowed, keys]) => {
     if (gone) return;
+    if (keys && JSON.stringify(keys.labels) !== JSON.stringify(labels)) {
+      labels = keys.labels;
+      showHints();
+      built = '';
+      show();
+    }
     const lines: HTMLElement[] = [];
     if (!allowed) lines.push(note(s.permission, deps.openScreenRecordingSettings));
-    const taken = keys ? keyNotices(keys, s) : { mac: null, other: null };
+    const taken = keys ? keyNotices(keys, s) : { mac: null, shortcut: null, other: null };
     if (taken.mac) lines.push(note(taken.mac, deps.openKeyboardShortcuts));
+    if (taken.shortcut) lines.push(note(taken.shortcut, deps.openKeyboardShortcuts));
     if (taken.other) lines.push(note(taken.other));
     notes.replaceChildren(...lines);
     deps.onNotes(lines.length);
@@ -134,7 +155,7 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
     built = sig;
     count.textContent = fill(s.title, { n: sorted.length });
     if (sorted.length === 0) {
-      body.replaceChildren(el(doc, 'div', 'shot-empty', s.empty));
+      body.replaceChildren(el(doc, 'div', 'shot-empty', fill(s.empty, labels)));
       return;
     }
     const grid = el(doc, 'div', 'shot-grid');

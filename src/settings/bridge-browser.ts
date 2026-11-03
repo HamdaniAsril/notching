@@ -98,7 +98,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setStatusShown: async (id, on) => setModule(id, { statusShown: on }),
     openAccessibility: async () => {},
     openScreenRecordingSettings: async () => console.info('openScreenRecordingSettings'),
-    shotKeys: async () => { const k = params.get('keys') === 'mac' ? 'mac' : 'ok'; return { screen: k, pick: k }; }, // ?keys=mac
+    shotKeys: async () => { const k = params.get('keys') === 'mac' ? 'mac' : 'ok'; return { screen: k, pick: k, labels: { screen: '⌘⇧3', pick: '⌘⇧4' }, custom: false }; }, // ?keys=mac
     openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
     openFullDiskAccessSettings: async () => console.info('openFullDiskAccessSettings'),
     cleanerExclusions: async () => ({ home: '/Users/a', paths: ['/Users/a/Library/Caches/com.spotify.client'] }),

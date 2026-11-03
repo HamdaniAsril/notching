@@ -686,6 +686,19 @@ test('a screenshot taken while closed opens the panel on its result', async () =
   expect(bridge.setLastPage).not.toHaveBeenCalledWith('screenshot');
 });
 
+test('the first-use notice opens the panel on it; a capture then takes its place', async () => {
+  const { app, r, root, bridge } = await startShot();
+  bridge.emitShotSetup({ holder: 'mac', keys: '⌘⇧3 dan ⌘⇧4' });
+  expect(app.controller.phase).toBe('open');
+  r.runAll(60);
+  expect(root.querySelector('.shot-setup-title')!.textContent).toBe('⌘⇧3 dan ⌘⇧4 masih dipakai Mac');
+  expect(app.controller.card).toEqual({ width: 420, height: 132 });
+  expect(bridge.setLastPage).not.toHaveBeenCalledWith('screenshot');
+  taken(bridge, 2);
+  expect(onResult(root)).toBe(true);
+  expect(root.querySelector('.shot-setup-title')).toBeNull();
+});
+
 test('a screenshot taken while open switches the page', async () => {
   const { app, r, root, bridge } = await startShot();
   open(app, r);

@@ -7,6 +7,7 @@ import { type CleanerDeps, type CleanerView, mountCleaner } from '../cleaner/vie
 import { mountShelfView, type ShelfView, type ShelfViewDeps } from '../shelf/view';
 import { mountShotList, type ShotList, type ShotListDeps } from '../shot/list';
 import { mountShotResult, type ShotResult } from '../shot/result';
+import { mountShotSetup } from '../shot/setup';
 import type { NotchSize } from './shape';
 
 export interface PageViewDeps {
@@ -106,6 +107,10 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
         render: p => { if (p.mode === 'result') view.render(p.id, p.shots.find(x => x.id === p.id)); },
         destroy: () => view.destroy(),
       };
+    }
+    if (v.mode === 'setup') {
+      const view = mountShotSetup(box, shotDeps);
+      return { render: p => { if (p.mode === 'setup') view.render(p.setup); }, destroy: () => view.destroy() };
     }
     const view: ShotList = mountShotList(box, shotDeps);
     return { render: p => view.render(p.shots), destroy: () => view.destroy() };

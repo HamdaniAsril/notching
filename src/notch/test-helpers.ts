@@ -1,5 +1,5 @@
 import { beforeEach, vi } from 'vitest';
-import type { Bridge, CleanerApp, CleanerEvent, CleanerItem, CleanerNode, CleanerScan, LiveStatus, MediaSummary, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys } from '../bridge';
+import type { Bridge, CleanerApp, CleanerEvent, CleanerItem, CleanerNode, CleanerScan, LiveStatus, MediaSummary, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys, ShotSetup } from '../bridge';
 import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
@@ -151,6 +151,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
   const shotSubs = new Set<(e: ShotEvent) => void>();
   const shotsSubs = new Set<(list: Shot[]) => void>();
   const shotDragSubs = new Set<(e: ShotDrag) => void>();
+  const setupSubs = new Set<(e: ShotSetup) => void>();
   const cleanerSubs = new Set<(e: CleanerEvent) => void>();
   const mediaSubs = new Set<(m: MediaSummary) => void>();
   let state = initial;
@@ -189,9 +190,12 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     shotTakeScreen: vi.fn(async () => {}),
     shotPick: vi.fn(async (_mode: 'window' | 'area') => {}),
     shotStartDrag: vi.fn(async (_id: number) => {}),
-    shotKeys: vi.fn(async (): Promise<ShotKeys> => ({ screen: 'ok', pick: 'ok' })),
+    shotKeys: vi.fn(async (): Promise<ShotKeys> => ({ screen: 'ok', pick: 'ok', labels: { screen: '⌘⇧3', pick: '⌘⇧4' }, custom: false })),
     shotPermission: vi.fn(async () => true),
     openKeyboardShortcuts: vi.fn(async () => {}),
+    shotTurnOffMac: vi.fn(async () => {}),
+    openShotKeySettings: vi.fn(async () => {}),
+    onShotSetup: vi.fn((cb: (e: ShotSetup) => void) => { setupSubs.add(cb); return () => { setupSubs.delete(cb); }; }),
     openScreenRecordingSettings: vi.fn(async () => {}),
     openEditor: vi.fn(async (_id: number) => {}),
     onShot: vi.fn((cb: (e: ShotEvent) => void) => { shotSubs.add(cb); return () => { shotSubs.delete(cb); }; }),
@@ -218,6 +222,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     emitShot: (e: ShotEvent) => shotSubs.forEach(cb => cb(e)),
     emitShots: (list: Shot[]) => shotsSubs.forEach(cb => cb(list)),
     emitShotDrag: (e: ShotDrag) => shotDragSubs.forEach(cb => cb(e)),
+    emitShotSetup: (e: ShotSetup) => setupSubs.forEach(cb => cb(e)),
     emitShelf: (s: ShelfState) => shelfSubs.forEach(cb => cb(s)),
     emitShelfDrop: (e: ShelfDrop) => dropSubs.forEach(cb => cb(e)),
     emitShelfDrag: (e: ShelfDrag) => dragSubs.forEach(cb => cb(e)),

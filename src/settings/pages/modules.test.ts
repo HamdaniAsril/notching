@@ -2,6 +2,7 @@
 import { expect, test } from 'vitest';
 import type { ModuleState } from '../../modules/types';
 import { homeWidgets, moduleInfo, TEST_STATE, timers } from '../../notch/test-helpers';
+import { shotKeys } from '../../shot/test-helpers';
 import { h1, mountForTest, settle } from '../test-helpers';
 
 const STATE: ModuleState = {
@@ -150,7 +151,7 @@ const notice = (root: HTMLElement) => root.querySelector<HTMLElement>('.shot-key
 
 test('screenshot page shows the Mac key notice with the System Settings button', async () => {
   const { root, app, bridge } = await mountForTest(WITH_SHOT);
-  bridge.shotKeys.mockResolvedValue({ screen: 'mac', pick: 'mac' });
+  bridge.shotKeys.mockResolvedValue(shotKeys('mac', 'mac'));
   app.go({ page: 'module', id: 'screenshot' });
   await settle();
   expect(notice(root)!.textContent).toContain('⌘⇧3 dan ⌘⇧4 masih dipakai screenshot bawaan Mac');
@@ -163,7 +164,7 @@ test('screenshot page shows the Mac key notice with the System Settings button',
 
 test('a key held by another app has its line and no button', async () => {
   const { root, app, bridge } = await mountForTest(WITH_SHOT);
-  bridge.shotKeys.mockResolvedValue({ screen: 'ok', pick: 'other' });
+  bridge.shotKeys.mockResolvedValue(shotKeys('ok', 'other'));
   app.go({ page: 'module', id: 'screenshot' });
   await settle();
   expect(notice(root)!.textContent).toBe('⌘⇧4 dipakai app lain');
@@ -172,7 +173,7 @@ test('a key held by another app has its line and no button', async () => {
 
 test('the Mac line comes first, then the other app line', async () => {
   const { root, app, bridge } = await mountForTest(WITH_SHOT);
-  bridge.shotKeys.mockResolvedValue({ screen: 'mac', pick: 'other' });
+  bridge.shotKeys.mockResolvedValue(shotKeys('mac', 'other'));
   app.go({ page: 'module', id: 'screenshot' });
   await settle();
   expect([...root.querySelectorAll('.shot-keys .note')].map(p => p.textContent)).toEqual([
@@ -186,7 +187,7 @@ test('keys that are ours, or a module that is off, show no notice', async () => 
   await settle();
   expect(bridge.shotKeys).toHaveBeenCalled();
   expect(notice(root)!.textContent).toBe('');
-  bridge.shotKeys.mockResolvedValue({ screen: 'off', pick: 'off' });
+  bridge.shotKeys.mockResolvedValue(shotKeys('off', 'off'));
   app.go({ page: 'modules' });
   app.go({ page: 'module', id: 'screenshot' });
   await settle();
@@ -195,7 +196,7 @@ test('keys that are ours, or a module that is off, show no notice', async () => 
 
 test('the notice follows the language', async () => {
   const { root, app, bridge } = await mountForTest({ ...WITH_SHOT, lang: 'en' });
-  bridge.shotKeys.mockResolvedValue({ screen: 'other', pick: 'other' });
+  bridge.shotKeys.mockResolvedValue(shotKeys('other', 'other'));
   app.go({ page: 'module', id: 'screenshot' });
   await settle();
   expect(notice(root)!.textContent).toBe('⌘⇧3 and ⌘⇧4 are taken by another app');

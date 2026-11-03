@@ -79,12 +79,17 @@ export interface Shot {
 
 // A capture landed on this screen, or a screenshot left the history (to every window).
 export type ShotEvent = { phase: 'taken' | 'gone'; id: number };
-// A screenshot's key: ours, still the Mac's own, held by another app, or the module is off.
-export type KeyState = 'ok' | 'mac' | 'other' | 'off';
+// A screenshot's key: ours, still the Mac's own screenshots', another Mac shortcut's,
+// held by another app, or the module is off.
+export type KeyState = 'ok' | 'mac' | 'shortcut' | 'other' | 'off';
 export interface ShotKeys {
-  screen: KeyState; // ⌘⇧3
-  pick: KeyState; // ⌘⇧4
+  screen: KeyState; // ⌘⇧3 until changed
+  pick: KeyState; // ⌘⇧4 until changed
+  labels: { screen: string; pick: string }; // "⌘⇧3", "⌃⇧S"
+  custom: boolean; // not ⌘⇧3 and ⌘⇧4
 }
+// Screenshot's first-use notice (design 3 Nov tombol §4): who holds the keys, and which.
+export type ShotSetup = { holder: 'mac' | 'other'; keys: string };
 // A screenshot dragged out of this panel left it, or the drag ended (shelf_drag.rs).
 export type ShotDrag = { phase: 'left' | 'end' };
 
@@ -127,9 +132,12 @@ export interface Bridge {
   shotKeys(): Promise<ShotKeys>;
   shotPermission(): Promise<boolean>;
   openKeyboardShortcuts(): Promise<void>;
+  shotTurnOffMac(): Promise<void>; // System Settings, then the core watches until the Mac lets go
+  openShotKeySettings(): Promise<void>; // Settings › Modul › Screenshot
   openScreenRecordingSettings(): Promise<void>;
   openEditor(id: number): Promise<void>;
   onShot(cb: (e: ShotEvent) => void): () => void;
+  onShotSetup(cb: (e: ShotSetup) => void): () => void;
   onShots(cb: (list: Shot[]) => void): () => void;
   onShotDrag(cb: (e: ShotDrag) => void): () => void;
   shotReady(): Promise<void>; // this overlay hears notices now: the launch key notice can go out
@@ -239,11 +247,15 @@ export function tauriBridge(): Bridge {
     shotKeys: () => invoke<ShotKeys>('shot_keys'),
     shotPermission: () => invoke<boolean>('shot_permission'),
     openKeyboardShortcuts: () => invoke('open_keyboard_shortcuts'),
+    shotTurnOffMac: () => invoke('shot_turn_off_mac'),
+    openShotKeySettings: () => invoke('open_settings_at', { route: 'module:screenshot' }),
     openScreenRecordingSettings: () => invoke('open_screen_recording_settings'),
     // The editor window's command comes with the editor (plan 11, task 7).
     openEditor: id => invoke('open_editor', { id }),
     // `taken` to this overlay only, `gone` to every window: each checks the id.
     onShot: cb => syncUnlisten(win.listen<ShotEvent>('notching://shot', e => cb(e.payload))),
+    // To the overlay under the cursor only, once ever.
+    onShotSetup: cb => syncUnlisten(win.listen<ShotSetup>('notching://shot-setup', e => cb(e.payload))),
     // Broadcast to every window: one history for every screen.
     onShots: cb => syncUnlisten(listen<Shot[]>('notching://shots', e => cb(e.payload))),
     // Sent to this overlay only.

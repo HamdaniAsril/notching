@@ -30,6 +30,9 @@ export interface HostStrings {
     macKeys: string;
     otherKeys: string;
     otherKeysMany: string; // two keys at once: "are taken" in English
+    shortcutKeys: string; // keys another of the Mac's shortcuts holds
+    // The first-use notice (design 3 Nov tombol §4); the titles take {keys}.
+    setup: { label: string; macTitle: string; otherTitle: string; macText: string; otherText: string; turnOff: string; own: string };
     and: string; // between two keys
     permission: string;
     openSettings: string;

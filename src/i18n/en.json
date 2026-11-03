@@ -24,9 +24,9 @@
       "area": "Area"
     },
     "hints": {
-      "screen": "⌘⇧3",
-      "window": "⌘⇧4 + click",
-      "area": "⌘⇧4 + drag"
+      "screen": "{key}",
+      "window": "{key} + click",
+      "area": "{key} + drag"
     },
     "edit": "Click to edit",
     "copied": "Copied to clipboard",
@@ -37,10 +37,20 @@
     "copyFailed": "Couldn't copy",
     "delete": "Delete",
     "title": "Screenshot · {n}",
-    "empty": "Press ⌘⇧3 or ⌘⇧4 for your first screenshot",
+    "empty": "Press {screen} or {pick} for your first screenshot",
     "macKeys": "{keys} still taken by the Mac's own screenshots",
     "otherKeys": "{key} is taken by another app",
     "otherKeysMany": "{key} are taken by another app",
+    "shortcutKeys": "{keys} taken by a Mac shortcut",
+    "setup": {
+      "label": "Screenshot",
+      "macTitle": "{keys} still taken by the Mac",
+      "otherTitle": "{keys} taken by another app",
+      "macText": "Turn off the Mac's own screenshots, or give Notching keys of its own.",
+      "otherText": "Pick other keys for Notching.",
+      "turnOff": "Turn off the Mac's",
+      "own": "Use my own keys"
+    },
     "and": " and ",
     "permission": "Screenshot needs Screen Recording access",
     "openSettings": "Open System Settings",

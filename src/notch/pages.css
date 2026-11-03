@@ -607,6 +607,34 @@
   box-shadow: 0 0 0 1px #e5484d66;
 }
 
+/* The first-use notice (design 3 Nov tombol §4): the label, which keys, one line,
+   then the ways out in a row at the bottom. */
+.shot-setup {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.shot-setup-title {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--v-ink);
+}
+
+.shot-setup-text {
+  margin-top: 4px;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--v-ink2);
+}
+
+.shot-setup .shot-btns {
+  flex-direction: row;
+  margin-top: auto;
+}
+
 .shot-btn:focus-visible,
 .shot-tbtn:focus-visible,
 .shot-note-btn:focus-visible,
