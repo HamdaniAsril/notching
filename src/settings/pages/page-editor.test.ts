@@ -248,8 +248,8 @@ test('a card draws the widget at its notch size, the same as in the preview', as
   const card = widgetButton(root, 'Jam').querySelector<HTMLElement>('.ed-shot')!;
   const slot = root.querySelector<HTMLElement>('.ed-slot[aria-label="Jam"]')!;
   const size = (e: HTMLElement) => e.querySelector<HTMLElement>('.hm-clock .v-num')!.style.fontSize;
-  expect(size(card)).toBe('42px');
-  expect(size(slot)).toBe('42px');
+  expect(size(card)).toBe('48px');
+  expect(size(slot)).toBe('48px');
   expect(card.dataset.width).toBe('1');
   expect(widgetButton(root, 'Reminder').querySelector<HTMLElement>('.ed-shot')!.dataset.width).toBe('2');
 });
