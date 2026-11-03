@@ -1,0 +1,12 @@
+{
+  "id": "musik",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "permissions": [],
+  "capabilities": ["media"],
+  "widgets": [
+    { "id": "player", "entry": "index.html", "width": 2, "kind": "work" },
+    { "id": "strip", "entry": "index.html", "width": 4, "kind": "work" },
+    { "id": "mini", "entry": "index.html", "width": 1, "kind": "work" }
+  ]
+}

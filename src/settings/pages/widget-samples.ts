@@ -33,6 +33,12 @@ import idFokus from '../../../modules/fokus/locales/id.json';
 import { breathView } from '../../../modules/fokus/widgets/breath';
 import { workdayView } from '../../../modules/fokus/widgets/workday';
 import { DEFAULT_WORK } from '../../../modules/fokus/work';
+import enMusik from '../../../modules/musik/locales/en.json';
+import idMusik from '../../../modules/musik/locales/id.json';
+import type { NowView } from '../../../modules/musik/now';
+import { miniView } from '../../../modules/musik/widgets/mini';
+import { playerView } from '../../../modules/musik/widgets/player';
+import { stripView } from '../../../modules/musik/widgets/strip';
 import enTimer from '../../../modules/timer/locales/en.json';
 import idTimer from '../../../modules/timer/locales/id.json';
 import { tileView } from '../../../modules/timer/tile';
@@ -90,6 +96,10 @@ const REMINDERS: Reminder[] = [
   { id: 3, title: 'Rapat tim', day: '2026-10-31', at: at(31, 9, 0), done: false, notified: false },
 ];
 
+// What the Musik samples show: "Jalan Braga" by Kolektif Senja, 2:14 of 3:48, playing, with no
+// artwork (the accent tile), as in the design.
+const MUSIK: NowView = { empty: false, playing: true, title: 'Jalan Braga', artist: 'Kolektif Senja', art: null, position: 134, duration: 228 };
+
 // The sample for a widget of the home and the packs, or null for one that is not.
 export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
   switch (w.ref) {
@@ -141,6 +151,12 @@ export function packSample(w: CatalogWidget, lang: Lang): HTMLElement[] | null {
     case 'timer/tile':
       // Idle with the 25 minutes of the last preset: a sample is static.
       return [tileView(document.body, lang === 'en' ? enTimer : idTimer, { kind: 'idle', minutes: 25 })];
+    case 'musik/player':
+      return [playerView(lang === 'en' ? enMusik : idMusik, lang, MUSIK)];
+    case 'musik/strip':
+      return [stripView(lang === 'en' ? enMusik : idMusik, lang, MUSIK)];
+    case 'musik/mini':
+      return [miniView(lang === 'en' ? enMusik : idMusik, lang, MUSIK)];
     default:
       return null;
   }

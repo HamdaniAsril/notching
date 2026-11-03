@@ -3,7 +3,8 @@ import { weatherKey } from '../../modules/home/format';
 
 export type IconName =
   | 'sun' | 'moon' | 'cloud' | 'cloud-sun' | 'cloud-moon' | 'cloud-rain'
-  | 'cloud-drizzle' | 'cloud-snow' | 'cloud-lightning' | 'cloud-fog' | 'wind' | 'timer' | 'mosque';
+  | 'cloud-drizzle' | 'cloud-snow' | 'cloud-lightning' | 'cloud-fog' | 'wind' | 'timer' | 'mosque'
+  | 'music' | 'play' | 'pause' | 'skip-back' | 'skip-forward';
 
 const svg = (body: string) =>
   '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + body + '</svg>';
@@ -22,6 +23,11 @@ export const ICONS: Record<IconName, string> = {
   wind: svg('<path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/>'),
   // Not in Lucide: an onion dome on a short base with a door, a finial on top.
   mosque: svg('<path d="M12 2v2"/><path d="M7 13c-4-2.5-2-6.5 5-9 7 2.5 9 6.5 5 9"/><path d="M5 13h14"/><path d="M6 13v8h12v-8"/><path d="M10 21v-3a2 2 0 0 1 4 0v3"/>'),
+  music: svg('<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'),
+  play: svg('<polygon points="6 3 20 12 6 21 6 3"/>'),
+  pause: svg('<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>'),
+  'skip-back': svg('<polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/>'),
+  'skip-forward': svg('<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/>'),
   timer: svg('<line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/>'),
 };
 

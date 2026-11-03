@@ -2552,6 +2552,451 @@ body > .ed-ghost.page-row {
   color: var(--v-ink2);
 }
 
+/* Musik, Musik strip and Musik kecil: the same rules as modules/musik/style.css, scoped to the slot,
+   the picker card and the strip. A sample is the widget's own markup, drawn once with a static
+   track (widget-samples.ts); the buttons are there but nothing is wired to them. */
+
+/* The accent tile of a track with no picture: the first word of the title in Barlow at the
+   bottom left; and the dim tile with a note when nothing plays. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-cover {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--v-acc), var(--v-acc-deep));
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-cover.tile {
+  display: flex;
+  align-items: flex-end;
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  color: var(--v-on-acc);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-cover.art {
+  background: var(--v-track);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-cover.art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-cover.none {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--v-track);
+  color: var(--v-faint);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-title,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-artist {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-title {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  color: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-artist {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 10px;
+  color: var(--v-muted);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .empty .wd-mu-title {
+  color: var(--v-dim);
+}
+
+/* "Tidak ada yang diputar" in the one-column disc and the strip's text column is a little smaller,
+   so it fits whole. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-mini.empty .wd-mu-title,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip.empty .wd-mu-title {
+  font-size: 12px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-line {
+  height: 2px;
+  background: var(--v-track);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-cur,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-dur {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 10px;
+  color: var(--v-muted);
+  white-space: nowrap;
+}
+
+/* The three buttons: skip icons in ink-2, the play button a filled circle. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--v-ink2);
+  font: inherit;
+  cursor: pointer;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn:focus {
+  outline: none;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn:focus-visible {
+  outline: 1px solid var(--v-acc);
+  outline-offset: 1px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn svg {
+  stroke-width: 1.75;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn.play {
+  background: var(--v-ink);
+  color: var(--v-on-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn.play svg {
+  fill: currentColor;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn.play.acc {
+  background: var(--v-acc);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-ctrl {
+  display: flex;
+  align-items: center;
+}
+
+/* Musik, two columns: the cover 80 px (design 136, radius 8) and 10 beside it; the info column
+   is 80 high in three fixed parts, 42 for the text, 14 for the line and its times, 20 for the
+   controls, the 4 px left over spread between them. The text part wraps by column: label, title and artist stack from the bottom up, and
+   when a two-line title leaves no room the label is the one that wraps out of sight. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-player {
+  flex-direction: row;
+  gap: 10px;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-player .wd-mu-cover {
+  width: 80px;
+  height: 80px;
+  border-radius: 5px;
+  font-size: 19px;
+  line-height: 19px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-player .wd-mu-cover.tile {
+  padding: 7px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-top {
+  flex: none;
+  height: 42px;
+  display: flex;
+  flex-direction: column-reverse;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  overflow: hidden;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-top > * {
+  width: 100%;
+  flex: none;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-top .wd-mu-artist {
+  order: 1;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-top .wd-mu-title {
+  order: 2;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-top .wd-mu-label {
+  order: 3;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-label {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 11px;
+  white-space: nowrap;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-player .wd-mu-title {
+  font-size: 14px;
+  line-height: 16px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-prog {
+  flex: none;
+  height: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-times {
+  display: flex;
+  justify-content: space-between;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-player .wd-mu-ctrl {
+  flex: none;
+  height: 20px;
+  justify-content: space-between;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-player .wd-mu-btn.play {
+  width: 20px;
+  height: 20px;
+}
+
+/* Musik strip: the cover 34 px (design 56, radius 12), the title over the artist beside it,
+   the line with a time at each end filling what is left, and the controls at the right. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip {
+  flex-direction: row;
+  align-items: center;
+  gap: 15px;
+  padding: 0 12px 0 9px;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-id {
+  flex: none;
+  width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip .wd-mu-cover {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  font-size: 11px;
+  line-height: 11px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip .wd-mu-cover.tile {
+  padding: 4px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-text {
+  flex: 1;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip .wd-mu-title {
+  font-size: 14px;
+  line-height: 16px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip .wd-mu-prog {
+  flex: 1;
+  height: auto;
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip .wd-mu-prog .wd-mu-line {
+  flex: 1;
+  margin: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip .wd-mu-ctrl {
+  flex: none;
+  gap: 10px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip .wd-mu-btn.play {
+  width: 25px;
+  height: 25px;
+}
+
+/* Musik kecil: a disc 44 px (design 80) with two grooves, the label (22 px) and the hole, the
+   controls over it; then the title, the artist and a 60 px line, all centred. 44 + 2 + 16 + 10 +
+   4 + 2 make 78 of 80. */
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-mini {
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-disc {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2a2a2a 0%, #141414 60%, #222222 100%);
+  box-shadow: 0 0 0 1px var(--v-ring);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-groove,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-hub,
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  box-sizing: border-box;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-groove.one {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-groove.two {
+  width: 31px;
+  height: 31px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-hub {
+  width: 22px;
+  height: 22px;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--v-acc), var(--v-acc-deep));
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-hub.none {
+  background: var(--v-track);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-hub img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-hole {
+  width: 2px;
+  height: 2px;
+  background: #000;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-disc .wd-mu-ctrl {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  gap: 3px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-disc .wd-mu-btn {
+  width: 11px;
+  height: 16px;
+  border-radius: 0;
+  color: var(--v-ink);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-disc .wd-mu-btn.play {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-disc .wd-mu-btn.play:disabled {
+  background: none;
+  color: var(--v-dim);
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-disc .wd-mu-btn.play:disabled svg {
+  fill: none;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-mini .wd-mu-text {
+  flex: none;
+  align-self: stretch;
+  margin-top: 2px;
+  text-align: center;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-mini .wd-mu-title {
+  font-size: 14px;
+  line-height: 16px;
+}
+
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-mini .wd-mu-line {
+  flex: none;
+  width: 60px;
+  margin-top: 4px;
+}
+
+/* The strip card's own padding stands in for the widget's: the container has it. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-strip {
+  padding: 0;
+}
+
+/* A sample's buttons are a picture: the slot is dragged, not pressed. */
+:is(.ed-slot, .ed-shot, .ed-strip) .wd-mu-btn {
+  cursor: inherit;
+  pointer-events: none;
+}
+
 .ed-slot small {
   color: var(--g2);
   font-size: 10.5px;

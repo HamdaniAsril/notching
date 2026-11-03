@@ -2,6 +2,7 @@ import type { Bridge, LiveStatus, Notice, Shot, ShotEvent } from './bridge';
 import { fakeAwake } from './bridge-browser-awake';
 import { fakeCleaner } from './bridge-browser-cleaner';
 import { fakeHome } from './bridge-browser-home';
+import { fakeMedia } from './bridge-browser-media';
 import { fakePrefs } from './bridge-browser-prefs';
 import { fakeTimer } from './bridge-browser-timer';
 import index from '../modules/index.json';
@@ -103,7 +104,8 @@ function fakeShot(id: number, takenMs: number): Shot {
 // `?demo=1` adds a test page and `?page=p1` opens a page, `?strip=1` puts the
 // Timer strip on Beranda, `?shots=<n>` starts Screenshot's history with n made-up
 // shots (its take buttons add one and show the result; `?keys=mac` and `?access=0`
-// show its notices); the
+// show its notices), `?media=off` has nothing playing, `?media=art` gives the
+// track a picture and `?media=long` very long names; the
 // widgets' own switches are in bridge-browser-home.ts. Pointer and clicks come
 // from localPointer().
 export function browserBridge(root: HTMLElement): Bridge {
@@ -127,6 +129,7 @@ export function browserBridge(root: HTMLElement): Bridge {
   const homeCall = fakeHome(params);
   const awakeCall = fakeAwake();
   const timerCall = fakeTimer();
+  const mediaCall = fakeMedia(params.get('media'));
   const prefsCall = fakePrefs();
   const stateSubs = new Set<(s: ModuleState) => void>();
   const HOUR = 3600_000;
@@ -180,6 +183,7 @@ export function browserBridge(root: HTMLElement): Bridge {
       if (capability === 'home.data' || capability === 'reminders') return homeCall(capability, method, args);
       if (capability === 'awake') return awakeCall(method, args);
       if (capability === 'timer') return timerCall(method, args);
+      if (capability === 'media') return mediaCall(method, args);
       // Keyboard Cleaning Mode locks nothing in a browser.
       if (capability === 'keyclean') return null;
       // A browser cannot change the screen's brightness; the lamp is only the panel's light.

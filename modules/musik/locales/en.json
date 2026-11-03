@@ -1,0 +1,15 @@
+{
+  "name": "Music",
+  "description": "What is playing, with its controls",
+  "nowPlaying": "Now playing",
+  "nothing": "Nothing playing",
+  "prev": "Previous",
+  "next": "Next",
+  "play": "Play",
+  "pause": "Pause",
+  "widgets": {
+    "player": "Music",
+    "strip": "Music strip",
+    "mini": "Music mini"
+  }
+}

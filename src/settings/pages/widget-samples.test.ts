@@ -216,3 +216,23 @@ test('Reminder has a sample with one of four done and three rows', () => {
   expect(en[0].querySelector('.hm-rem-done')!.textContent).toBe('1 of 4 done');
   expect(en[0].querySelector('.rm .t')!.textContent).toBe('Send invoice');
 });
+
+test('the Musik widgets have samples with "Jalan Braga" at 2.14 of 3.48', () => {
+  const player = packSample(widget('musik/player', 2), 'id')!;
+  expect(player).toHaveLength(1);
+  expect(player[0].classList.contains('v-card')).toBe(true);
+  expect(player[0].querySelector('.wd-mu-label')!.textContent).toBe('Sedang diputar');
+  expect(player[0].querySelector('.wd-mu-title')!.textContent).toBe('Jalan Braga');
+  expect(player[0].querySelector('.wd-mu-artist')!.textContent).toBe('Kolektif Senja');
+  expect(player[0].querySelector('.wd-mu-cur')!.textContent).toBe('2.14');
+  expect(player[0].querySelector('.wd-mu-dur')!.textContent).toBe('3.48');
+  expect(player[0].querySelector('.wd-mu-cover.tile')!.textContent).toBe('Jalan');
+  const strip = packSample(widget('musik/strip', 4), 'en')!;
+  expect(strip[0].classList.contains('wd-mu-strip')).toBe(true);
+  expect(strip[0].querySelector('.wd-mu-cur')!.textContent).toBe('2:14');
+  expect(strip[0].querySelector('.wd-mu-btn.play.acc')).not.toBeNull();
+  const mini = packSample(widget('musik/mini'), 'id')!;
+  expect(mini[0].classList.contains('wd-mu-mini')).toBe(true);
+  expect(mini[0].querySelector('.wd-mu-title')!.textContent).toBe('Jalan Braga');
+  expect(mini[0].querySelectorAll('.wd-mu-disc [data-cmd]')).toHaveLength(3);
+});

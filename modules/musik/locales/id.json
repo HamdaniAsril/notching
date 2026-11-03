@@ -1,0 +1,15 @@
+{
+  "name": "Musik",
+  "description": "Lagu yang sedang diputar, dengan tombolnya",
+  "nowPlaying": "Sedang diputar",
+  "nothing": "Tidak ada yang diputar",
+  "prev": "Sebelumnya",
+  "next": "Berikutnya",
+  "play": "Putar",
+  "pause": "Jeda",
+  "widgets": {
+    "player": "Musik",
+    "strip": "Musik strip",
+    "mini": "Musik kecil"
+  }
+}
