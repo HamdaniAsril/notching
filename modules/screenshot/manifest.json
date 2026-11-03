@@ -1,6 +1,7 @@
 {
   "id": "screenshot",
   "version": "1.0.0",
+  "platforms": ["macos"],
   "icon": "icon.svg",
   "permissions": ["screen-recording"],
   "capabilities": ["screenshot", "notify"],

@@ -1,16 +1,24 @@
 //! Notifications from Notching's own modules (spec 4.4): the Notifikasi page's
 //! switches, delivery to the screen under the cursor, and the missed-notice dots.
+//! Off macOS there is no sound, idle time or full-screen check: a notice never
+//! leaves a missed dot there.
 
+#[cfg(target_os = "macos")]
 use objc2::MainThreadMarker;
+#[cfg(target_os = "macos")]
 use objc2_app_kit::{NSEvent, NSScreen, NSSound};
+#[cfg(target_os = "macos")]
 use objc2_core_graphics::{
     kCGNullWindowID, CGEventSource, CGEventSourceStateID, CGEventType, CGWindowListCopyWindowInfo, CGWindowListOption,
 };
+#[cfg(target_os = "macos")]
 use objc2_foundation::{NSArray, NSDictionary, NSNumber, NSString};
 use tauri::{AppHandle, Emitter, EventTarget, Manager, State};
 
 use crate::app_core::CoreState;
-use crate::geometry::{screen_under, to_cg, Rect};
+#[cfg(target_os = "macos")]
+use crate::geometry::to_cg;
+use crate::geometry::{screen_under, Rect};
 use crate::module_commands::{change, MODULE_STATE_EVENT};
 use crate::overlay::Overlays;
 use crate::settings::ChannelPref;
@@ -18,7 +26,9 @@ use crate::settings::ChannelPref;
 /// Sent to the overlay on the screen under the cursor.
 pub const NOTICE_EVENT: &str = "notching://notice";
 /// Away this long, a notice also leaves a missed dot (spec 4.4).
+#[cfg(target_os = "macos")]
 pub const IDLE_SECS: f64 = 120.0;
+#[cfg(target_os = "macos")]
 pub const SOUND: &str = "Glass";
 pub const TITLE_MAX: usize = 60;
 pub const DETAIL_MAX: usize = 40;
@@ -49,6 +59,7 @@ pub fn clip(text: &str, max: usize) -> String {
 }
 
 /// An on-screen window, in CoreGraphics coordinates (origin top-left).
+#[cfg(target_os = "macos")]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct WindowBox {
     /// kCGWindowNumber, what `screencapture -l` takes.
@@ -63,6 +74,7 @@ pub struct WindowBox {
 /// full-screen window starts under the strip, like a maximised one, so it counts
 /// only in a Space without the Dock's desktop window (layer 20), which full-screen
 /// Spaces lack.
+#[cfg(target_os = "macos")]
 pub fn covers_screen(windows: &[WindowBox], screen_cg: Rect, top_inset: f64, own_pid: i32) -> bool {
     let near = |a: f64, b: f64, by: f64| (a - b).abs() <= by;
     let spans = |b: &Rect| {
@@ -156,6 +168,7 @@ pub fn send_sample_notice(app: AppHandle, title: String, detail: String) {
 }
 
 // Each overlay window: its label, its screen's frame and the notch's height there.
+#[cfg(target_os = "macos")]
 fn overlays(app: &AppHandle) -> Vec<(String, Rect, f64)> {
     app.state::<Overlays>()
         .0
@@ -166,6 +179,7 @@ fn overlays(app: &AppHandle) -> Vec<(String, Rect, f64)> {
         .collect()
 }
 
+#[cfg(target_os = "macos")]
 fn under_cursor(overlays: &[(String, Rect, f64)]) -> (Vec<(String, Rect)>, Option<String>) {
     let mut screens: Vec<(String, Rect)> = overlays.iter().map(|(l, f, _)| (l.clone(), *f)).collect();
     screens.sort_by(|a, b| a.0.cmp(&b.0));
@@ -175,10 +189,45 @@ fn under_cursor(overlays: &[(String, Rect, f64)]) -> (Vec<(String, Rect)>, Optio
 }
 
 /// The overlay window of the screen under the cursor. Call on the main thread.
+#[cfg(target_os = "macos")]
 pub fn cursor_screen(app: &AppHandle) -> Option<String> {
     under_cursor(&overlays(app)).1
 }
 
+/// The overlay window of the monitor under the cursor, in physical pixels, or
+/// the first one when the cursor is on none.
+#[cfg(not(target_os = "macos"))]
+pub fn cursor_screen(app: &AppHandle) -> Option<String> {
+    let monitors = app.available_monitors().unwrap_or_default();
+    let frame = |name: &str| {
+        monitors.iter().find(|m| m.name().is_some_and(|n| n == name)).map(|m| {
+            let (p, s) = (m.position(), m.size());
+            Rect { x: p.x as f64, y: p.y as f64, w: s.width as f64, h: s.height as f64 }
+        })
+    };
+    let mut screens: Vec<(String, Rect)> = app
+        .state::<Overlays>()
+        .0
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|(label, e)| (label.clone(), frame(&e.monitor_name).unwrap_or(Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 })))
+        .collect();
+    screens.sort_by(|a, b| a.0.cmp(&b.0));
+    let (x, y) = app.cursor_position().map_or((f64::NAN, f64::NAN), |p| (p.x, p.y));
+    screen_under(&screens, x, y)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn deliver(app: &AppHandle, dto: NoticeDto, _sound: bool) {
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        let Some(label) = cursor_screen(&handle) else { return };
+        let _ = handle.emit_to(EventTarget::webview_window(&label), NOTICE_EVENT, dto);
+    });
+}
+
+#[cfg(target_os = "macos")]
 fn deliver(app: &AppHandle, dto: NoticeDto, sound: bool) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
@@ -209,6 +258,7 @@ fn deliver(app: &AppHandle, dto: NoticeDto, sound: bool) {
 }
 
 // Seconds since the last key press, click or mouse move anywhere. Needs no permission.
+#[cfg(target_os = "macos")]
 fn idle_seconds() -> f64 {
     // kCGAnyInputEventType
     CGEventSource::seconds_since_last_event_type(CGEventSourceStateID::CombinedSessionState, CGEventType(u32::MAX))
@@ -216,6 +266,7 @@ fn idle_seconds() -> f64 {
 
 // The on-screen windows of every app: owner, layer and bounds only, which need no
 // Screen Recording permission.
+#[cfg(target_os = "macos")]
 pub(crate) fn window_list() -> Vec<WindowBox> {
     let options = CGWindowListOption::OptionOnScreenOnly | CGWindowListOption::ExcludeDesktopElements;
     let Some(cf) = CGWindowListCopyWindowInfo(options, kCGNullWindowID) else { return Vec::new() };
@@ -243,6 +294,7 @@ pub(crate) fn window_list() -> Vec<WindowBox> {
         .collect()
 }
 
+#[cfg(target_os = "macos")]
 fn play_sound() {
     if let Some(sound) = NSSound::soundNamed(&NSString::from_str(SOUND)) {
         sound.play();
@@ -262,6 +314,7 @@ mod tests {
         assert_eq!(clip("abc", 3), "abc");
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn a_full_screen_app_covers_the_screen() {
         let screen = Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 };
@@ -277,6 +330,7 @@ mod tests {
     // the notch strip, at y 33 with a 32 pt safe area, and its Space has no Dock
     // desktop window (layer 20). A maximised window in a normal Space has the same
     // bounds, but the Dock's desktop window is there.
+    #[cfg(target_os = "macos")]
     #[test]
     fn a_full_screen_app_under_the_notch_strip_counts() {
         let screen = Rect { x: 0.0, y: 0.0, w: 1470.0, h: 956.0 };

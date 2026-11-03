@@ -1,15 +1,18 @@
 //! The settings window (spec 8): a normal window, not a panel, opened from the ⋯
-//! icon in the pill, and the settings commands it uses.
+//! icon in the pill, and the settings commands it uses. Off macOS it is a plain
+//! decorated window with no frosted glass and no Dock icon to manage.
 
 use tauri::webview::PageLoadEvent;
+#[cfg(target_os = "macos")]
 use tauri::window::{Effect, EffectState, EffectsBuilder};
-use tauri::{
-    ActivationPolicy, AppHandle, Emitter, Manager, State, TitleBarStyle, WebviewUrl, WebviewWindow,
-    WebviewWindowBuilder, WindowEvent,
-};
+#[cfg(target_os = "macos")]
+use tauri::{ActivationPolicy, TitleBarStyle, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use crate::app_core::CoreState;
+#[cfg(target_os = "macos")]
 use crate::editor_window::{keep_regular, EDITOR_LABEL};
+#[cfg(target_os = "macos")]
 use crate::geometry::centered_origin;
 use crate::module_commands::change;
 use crate::overlay::{ConnectedScreens, Overlays};
@@ -26,6 +29,8 @@ pub const SETTINGS_SIZE: (f64, f64) = (680.0, 600.0);
 static OPENING: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Open at login, as macOS reports it. Same values as LoginItem in src/settings/types.ts.
+// PORT(C): drop the allow once login_item builds off macOS.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LoginItem {
@@ -54,6 +59,7 @@ pub struct SettingsDto {
 }
 
 // One lock at a time, so this is safe to call from anywhere.
+#[cfg(target_os = "macos")]
 pub fn settings_dto(app: &AppHandle) -> SettingsDto {
     let (language, screen, home) = {
         let core = app.state::<CoreState>();
@@ -71,6 +77,29 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         accessibility: crate::keyclean_tap::trusted(false),
         screen_recording: crate::shot_service::screen_access(),
         full_disk_access: crate::cleaner_service::full_disk_access(app),
+    }
+}
+
+// The features behind the three permissions are macOS-only.
+#[cfg(not(target_os = "macos"))]
+pub fn settings_dto(app: &AppHandle) -> SettingsDto {
+    let (language, screen, home) = {
+        let core = app.state::<CoreState>();
+        let core = core.0.lock().unwrap();
+        (core.language(), core.screen().map(String::from), core.home().clone())
+    };
+    let screens = app.state::<ConnectedScreens>().0.lock().unwrap().clone();
+    SettingsDto {
+        language,
+        screen,
+        screens,
+        // PORT(C): crate::login_item::state() once login_item builds here.
+        login: LoginItem::Unavailable,
+        version: app.package_info().version.to_string(),
+        home,
+        accessibility: false,
+        screen_recording: false,
+        full_disk_access: false,
     }
 }
 
@@ -114,6 +143,7 @@ pub fn set_screen(app: AppHandle, core: State<CoreState>, name: Option<String>) 
 /// whose ⋯ was clicked. While it (or Screenshot's editor) exists the app has a
 /// Dock icon and is in Cmd+Tab (owner's decision, 28 Oct 2026). Async: creating a window from a
 /// synchronous command can deadlock.
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
     let _opening = OPENING.lock().unwrap_or_else(|e| e.into_inner());
@@ -183,6 +213,52 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
             ns_window.setFrameOrigin(objc2_foundation::NSPoint::new(x, y));
         })
         .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Brings the one settings window forward, or creates it centred on the monitor
+/// whose ⋯ was clicked. Async: creating a window from a synchronous command can
+/// deadlock.
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    let _opening = OPENING.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(existing) = app.get_webview_window(SETTINGS_LABEL) {
+        let _ = existing.unminimize();
+        existing.show().map_err(|e| e.to_string())?;
+        return existing.set_focus().map_err(|e| e.to_string());
+    }
+
+    let monitor_name = app.state::<Overlays>().0.lock().unwrap().get(window.label()).map(|e| e.monitor_name.clone());
+    let monitor = monitor_name.and_then(|name| {
+        app.available_monitors().ok()?.into_iter().find(|m| m.name().is_some_and(|n| *n == name))
+    });
+    let (w, h) = SETTINGS_SIZE;
+    let mut builder = WebviewWindowBuilder::new(&app, SETTINGS_LABEL, WebviewUrl::App("settings.html".into()))
+        .title("Notching")
+        .inner_size(w, h)
+        .min_inner_size(600.0, 480.0)
+        .visible(false)
+        .on_page_load(|w, payload| {
+            if payload.event() == PageLoadEvent::Finished {
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        });
+    if monitor.is_none() {
+        builder = builder.center();
+    }
+    let settings = builder.build().map_err(|e| e.to_string())?;
+
+    // Physical pixels: monitors side by side may differ in scale.
+    if let Some(m) = monitor {
+        let (pos, size, scale) = (m.position(), m.size(), m.scale_factor());
+        let outer = settings.outer_size().map_err(|e| e.to_string())?;
+        let (ow, oh) = (outer.width.max((w * scale) as u32), outer.height.max((h * scale) as u32));
+        let x = pos.x + (size.width as i32 - ow as i32) / 2;
+        let y = pos.y + (size.height as i32 - oh as i32) / 2;
+        settings.set_position(tauri::PhysicalPosition::new(x, y)).map_err(|e| e.to_string())?;
     }
     Ok(())
 }

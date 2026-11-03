@@ -1,38 +1,45 @@
 mod app_core;
+mod commands;
+// Keep awake's timing; its service is macOS-only until package C ports it.
+// PORT(C): drop the allow once awake_service builds everywhere.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 mod awake;
-mod cleaner_apps;
-mod cleaner_rules;
-mod cleaner_run;
-#[cfg(all(test, target_os = "macos"))]
-mod cleaner_sample_test;
-mod cleaner_scan;
+// Partly used by the macOS overlay and pointer code only.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 mod geometry;
 mod home;
 mod locale;
 mod module_commands;
 mod modules;
+mod notify;
 mod page_commands;
 mod pages;
 mod prefs;
 mod settings;
-mod shelf;
-mod shot;
+mod settings_window;
 mod status;
 mod system_stats;
-mod keyclean;
-mod lamp;
 mod timer;
+mod timer_service;
 
+// Shelf (Titipan), Screenshot, Cleaner, Keyboard Cleaning Mode, Music and the
+// lamp exist on macOS only; their modules say so in manifest.json.
 #[cfg(target_os = "macos")]
-mod awake_hold;
+mod cleaner_apps;
 #[cfg(target_os = "macos")]
-mod awake_service;
+mod cleaner_rules;
+#[cfg(target_os = "macos")]
+mod cleaner_run;
+#[cfg(all(test, target_os = "macos"))]
+mod cleaner_sample_test;
+#[cfg(target_os = "macos")]
+mod cleaner_scan;
 #[cfg(target_os = "macos")]
 mod cleaner_service;
 #[cfg(target_os = "macos")]
-mod commands;
-#[cfg(target_os = "macos")]
 mod editor_window;
+#[cfg(target_os = "macos")]
+mod keyclean;
 #[cfg(target_os = "macos")]
 mod keyclean_dim;
 #[cfg(target_os = "macos")]
@@ -40,13 +47,29 @@ mod keyclean_service;
 #[cfg(target_os = "macos")]
 mod keyclean_tap;
 #[cfg(target_os = "macos")]
-mod lamp_service;
+mod lamp;
 #[cfg(target_os = "macos")]
-mod login_item;
+mod lamp_service;
 #[cfg(target_os = "macos")]
 mod media_service;
 #[cfg(target_os = "macos")]
-mod notify;
+mod shelf;
+#[cfg(target_os = "macos")]
+mod shelf_drag;
+#[cfg(target_os = "macos")]
+mod shelf_drop;
+#[cfg(target_os = "macos")]
+mod shelf_service;
+#[cfg(target_os = "macos")]
+mod shot;
+#[cfg(target_os = "macos")]
+mod shot_hotkey;
+#[cfg(target_os = "macos")]
+mod shot_pick;
+#[cfg(target_os = "macos")]
+mod shot_service;
+
+// The notch itself: panels over the notch, their sensors and the screens.
 #[cfg(target_os = "macos")]
 mod overlay;
 #[cfg(target_os = "macos")]
@@ -55,22 +78,25 @@ mod pointer;
 mod screens;
 #[cfg(target_os = "macos")]
 mod sensor;
+
+// PORT(C): ungate once package C's Windows and Linux backends are in.
 #[cfg(target_os = "macos")]
-mod settings_window;
+mod awake_hold;
 #[cfg(target_os = "macos")]
-mod shelf_drag;
+mod awake_service;
 #[cfg(target_os = "macos")]
-mod shelf_drop;
-#[cfg(target_os = "macos")]
-mod shelf_service;
-#[cfg(target_os = "macos")]
-mod shot_hotkey;
-#[cfg(target_os = "macos")]
-mod shot_pick;
-#[cfg(target_os = "macos")]
-mod shot_service;
-#[cfg(target_os = "macos")]
-mod timer_service;
+mod login_item;
+
+// Windows and Linux: one window at the top centre of each screen.
+#[cfg(not(target_os = "macos"))]
+mod desktop;
+#[cfg(not(target_os = "macos"))]
+use desktop::overlay;
+
+#[cfg(not(target_os = "macos"))]
+pub fn run() {
+    desktop::run()
+}
 
 #[cfg(target_os = "macos")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

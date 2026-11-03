@@ -1,6 +1,7 @@
 {
   "id": "keyboard-clean",
   "version": "1.0.0",
+  "platforms": ["macos"],
   "icon": "icon.svg",
   "permissions": ["accessibility"],
   "capabilities": ["keyclean", "status", "notify"],

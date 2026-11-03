@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "hardenedRuntime": true,
+      "entitlements": "./Entitlements.plist"
+    },
+    "resources": {
+      "media/np.pl": "media/np.pl",
+      "media/build/libnotching-media.dylib": "media/libnotching-media.dylib"
+    }
+  }
+}
