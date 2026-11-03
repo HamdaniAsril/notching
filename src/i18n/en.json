@@ -309,7 +309,9 @@
       "missing": "Not allowed yet",
       "open": "Open System Settings",
       "fullDiskAccess": "Full Disk Access",
-      "fullDiskAccessHint": "To read caches, the Trash and iPhone backups."
+      "fullDiskAccessHint": "To read caches, the Trash and iPhone backups.",
+      "camera": "Camera",
+      "cameraHint": "To show the camera in Mirror."
     },
     "about": {
       "name": "Notching",

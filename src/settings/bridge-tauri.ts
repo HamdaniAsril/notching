@@ -44,6 +44,7 @@ export function tauriSettingsBridge(): SettingsBridge {
     shotKeysHold: hold => invoke('shot_keys_hold', { hold }),
     openKeyboardShortcuts: () => invoke('open_keyboard_shortcuts'),
     openFullDiskAccessSettings: () => invoke('open_full_disk_access_settings'),
+    openCameraSettings: () => invoke('open_camera_settings'),
     cleanerExclusions: () => invoke<{ home: string; paths: string[] }>('cleaner_exclusions'),
     cleanerUnexclude: path => invoke('cleaner_unexclude', { path }),
     cleanerOpenLog: () => invoke('cleaner_open_log'),

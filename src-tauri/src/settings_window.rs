@@ -53,6 +53,8 @@ pub struct SettingsDto {
     pub screen_recording: bool,
     /// macOS lets Notching read every folder (Cleaner).
     pub full_disk_access: bool,
+    /// macOS lets Notching use the camera (Cermin).
+    pub camera: bool,
 }
 
 // One lock at a time, so this is safe to call from anywhere.
@@ -73,6 +75,7 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         accessibility: crate::keyclean_tap::trusted(false),
         screen_recording: crate::shot_service::screen_access(),
         full_disk_access: crate::cleaner_service::full_disk_access(app),
+        camera: crate::camera_access::camera_access(),
     }
 }
 
@@ -246,9 +249,12 @@ mod tests {
             accessibility: true,
             screen_recording: false,
             full_disk_access: false,
+            camera: true,
         };
         let json = serde_json::to_value(&dto).unwrap();
         assert_eq!(json["accessibility"], true);
         assert_eq!(json["screenRecording"], false);
+        assert_eq!(json["fullDiskAccess"], false);
+        assert_eq!(json["camera"], true);
     }
 }

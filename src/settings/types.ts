@@ -37,6 +37,7 @@ export interface SettingsInfo {
   accessibility: boolean; // macOS lets Notching lock the keyboard (Keyboard Cleaning Mode)
   screenRecording: boolean; // macOS lets Notching capture the screen (Screenshot)
   fullDiskAccess: boolean; // macOS lets Notching read every folder (Cleaner)
+  camera: boolean; // macOS lets Notching use the camera (Cermin)
 }
 
 export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'permissions' | 'about';
@@ -85,6 +86,7 @@ export interface SettingsBridge {
   shotKeysHold(hold: boolean): Promise<void>; // Notching's keys let go while one is recorded
   openKeyboardShortcuts(): Promise<void>; // System Settings › Keyboard › Keyboard Shortcuts › Screenshots
   openFullDiskAccessSettings(): Promise<void>; // System Settings › Privacy & Security › Full Disk Access
+  openCameraSettings(): Promise<void>; // System Settings › Privacy & Security › Camera
   cleanerExclusions(): Promise<{ home: string; paths: string[] }>; // Cleaner's never-clean list; rejects when unreadable
   cleanerUnexclude(path: string): Promise<void>;
   cleanerOpenLog(): Promise<void>; // shows cleaner.log in Finder

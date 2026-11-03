@@ -3404,23 +3404,42 @@ body > .ed-ghost.page-row {
 
 /* Izin: what macOS says about a permission, in the accent once allowed. */
 .perm-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11.5px;
   font-weight: 500;
   color: var(--g2);
   white-space: nowrap;
 }
 
+/* A hollow ring until macOS allows it, then a filled accent dot. */
+.perm-dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  box-sizing: border-box;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--g2);
+}
+
 .perm-state.on {
   color: var(--acc);
 }
 
-/* One button under each permission's rows, and a gap before the next permission. */
-.perms .grp + .btn {
-  margin-top: 14px;
+.perm-state.on .perm-dot {
+  background: var(--acc);
+  box-shadow: none;
 }
 
-.perms .btn + .grp {
-  margin-top: 28px;
+/* The state and its button stay at the row's end: a long hint wraps, not them. */
+.perms .row > .t {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.perms .row > .ctl {
+  margin-left: auto;
 }
 
 /* Screenshot's page: its two keys, each a key box that records new ones when

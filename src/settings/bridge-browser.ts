@@ -15,7 +15,8 @@ const PLACES = [city('Jakarta', 'Jakarta', -6.21462, 106.84513), city('Bandung',
 // Stand-in for the native side in a normal browser (`npm run dev`, /settings.html).
 // Everything lives in memory; `?lang=en` starts in English. Screens and cities
 // are made up; searching for "gagal" fails, to show the error. Page changes go
-// to a notch open in another tab over PAGES_CHANNEL.
+// to a notch open in another tab over PAGES_CHANNEL. On Izin, `?access=0`, `?fda=0` and
+// `?camera=0` show Screen Recording, Full Disk Access and the camera not allowed yet.
 export const PAGES_CHANNEL = 'notching-pages';
 
 export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
@@ -33,6 +34,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     accessibility: false,
     screenRecording: params.get('access') !== '0',
     fullDiskAccess: params.get('fda') !== '0',
+    camera: params.get('camera') !== '0',
   };
   let state: ModuleState = {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
@@ -116,6 +118,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     shotKeysHold: async hold => console.info('shotKeysHold', hold),
     openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
     openFullDiskAccessSettings: async () => console.info('openFullDiskAccessSettings'),
+    openCameraSettings: async () => console.info('openCameraSettings'),
     cleanerExclusions: async () => ({ home: '/Users/a', paths: ['/Users/a/Library/Caches/com.spotify.client'] }),
     cleanerUnexclude: async path => console.info('cleanerUnexclude', path),
     cleanerOpenLog: async () => console.info('cleanerOpenLog'),

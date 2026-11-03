@@ -29,6 +29,8 @@ mod awake_hold;
 #[cfg(target_os = "macos")]
 mod awake_service;
 #[cfg(target_os = "macos")]
+mod camera_access;
+#[cfg(target_os = "macos")]
 mod cleaner_service;
 #[cfg(target_os = "macos")]
 mod commands;
@@ -192,6 +194,7 @@ pub fn run() {
             cleaner_service::cleaner_seen,
             cleaner_service::cleaner_open_log,
             cleaner_service::open_full_disk_access_settings,
+            camera_access::open_camera_settings,
         ])
         // A file drag can reach an overlay's webview before its sensor (the panel
         // already catches the mouse): that opens the drop zone too (Titipan).

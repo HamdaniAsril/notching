@@ -309,7 +309,9 @@
       "missing": "Belum diizinkan",
       "open": "Buka Pengaturan Sistem",
       "fullDiskAccess": "Full Disk Access",
-      "fullDiskAccessHint": "Untuk membaca cache, Tempat Sampah, dan cadangan iPhone."
+      "fullDiskAccessHint": "Untuk membaca cache, Tempat Sampah, dan cadangan iPhone.",
+      "camera": "Kamera",
+      "cameraHint": "Untuk menampilkan kamera di Cermin."
     },
     "about": {
       "name": "Notching",
