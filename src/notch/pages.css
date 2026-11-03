@@ -73,11 +73,11 @@
   left: calc(50% + var(--notch-w) / 2 + 12px);
 }
 
-/* One row, 4 equal columns. */
+/* One row, 4 equal columns, 8 px apart (owner, 3 Nov: 16 was too far). */
 .pg-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: 16px;
+  column-gap: 8px;
 }
 
 /* Each widget sits on a black card (Volt §4); its own page stays transparent. */
@@ -101,10 +101,11 @@
   grid-column: 1 / -1 !important;
 }
 
-/* A page's strip (design 31 Oct, Timer §3; Volt §3): 16 px under the row, as
-   tall as page-view.ts sets it (route.ts STRIP_HEIGHT). A full view hides it. */
+/* A page's strip (design 31 Oct, Timer §3; Volt §3): 8 px under the row, the
+   same as between the cards, as tall as page-view.ts sets it (route.ts
+   STRIP_HEIGHT). A full view hides it. */
 .pg-strip {
-  margin-top: 16px;
+  margin-top: 8px;
 }
 
 .pg-page.full .pg-strip {

@@ -15,7 +15,7 @@ export const FULL_PAGE_MAX = 240;
 // the panel's 18 px sides.
 export const MODULES_GRID = { columns: 4, gap: 6, tile: 64, tileWidth: 76, width: 358, empty: 56 } as const;
 // A page's strip (design 31 Oct, Timer §3; Volt §3): 16 px under the row.
-export const STRIP_GAP = 16;
+export const STRIP_GAP = 8;
 export const STRIP_HEIGHT = 52;
 // A widget page's head (Volt §4): in the camera row beside a notch; on a screen
 // without one, a 16 px row above the widgets with a 10 px gap, which the page

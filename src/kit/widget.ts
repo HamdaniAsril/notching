@@ -1,5 +1,5 @@
-// A one-column widget is about this wide (520 px panel, 4 columns, 16 px gaps).
-export const COLUMN_PX = 109;
+// A one-column widget is about this wide (484 px row, 4 columns, 8 px gaps).
+export const COLUMN_PX = 115;
 
 export function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);

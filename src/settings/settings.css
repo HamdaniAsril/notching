@@ -1045,7 +1045,7 @@ body > .ed-ghost.page-row {
   transform-origin: top center;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  column-gap: 16px;
+  column-gap: 8px;
   padding: 12px 18px 16px;
   border-radius: 0 0 22px 22px;
   background: #000;
@@ -2680,7 +2680,7 @@ body > .ed-ghost.page-row {
    widget's own 12 px padding, shrunk by the same fixed amount. */
 .ed-shot {
   zoom: 0.75;
-  width: 109px;
+  width: 115px;
   height: 104px;
   box-sizing: border-box;
   padding: 12px;
@@ -2702,7 +2702,7 @@ body > .ed-ghost.page-row {
 
 /* Two cells and the gap between them, at the same scale. */
 .ed-shot[data-width="2"] {
-  width: 234px;
+  width: 238px;
 }
 
 /* The card is black in both themes, so its hover ring is the notch's ink. */
@@ -2735,7 +2735,7 @@ body > .ed-ghost.page-row {
   grid-row: 2;
   grid-column: 1 / -1;
   height: 52px;
-  margin-top: 16px;
+  margin-top: 8px;
   box-sizing: border-box;
   border-radius: 17px;
 }

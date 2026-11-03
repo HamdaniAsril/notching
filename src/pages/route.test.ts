@@ -68,13 +68,13 @@ test('the Modul page holds modules with an action, which have no page of their o
 test('a page with a strip is taller, unless the strip is away', () => {
   const page: Page = { ...BERANDA, strip: 'timer/strip' };
   const on = state({ pages: [page], modules: [homeWidgets(), timerInfo()] });
-  // The row, 16 px, then the 52 px strip (design 2 Nov, Volt §3).
-  expect(viewSize(pickPage(on, null, false))).toEqual({ width: 520, height: 172 });
-  expect(viewSize(pickPage(on, null, false), 120)).toEqual({ width: 520, height: 172 });
+  // The row, 8 px, then the 52 px strip (design 2 Nov, Volt §3; owner 3 Nov: 8 px gaps).
+  expect(viewSize(pickPage(on, null, false))).toEqual({ width: 520, height: 164 });
+  expect(viewSize(pickPage(on, null, false), 120)).toEqual({ width: 520, height: 164 });
   expect(viewSize(pickPage(on, null, false), 200)).toEqual({ width: 520, height: 200 });
   const off = state({ pages: [page], modules: [homeWidgets(), timerInfo({ enabled: false })] });
   expect(viewSize(pickPage(off, null, false))).toEqual({ width: 520, height: 104 });
-  expect(viewSize(resolvePage(on, 'home')!)).toEqual({ width: 520, height: 172 });
+  expect(viewSize(resolvePage(on, 'home')!)).toEqual({ width: 520, height: 164 });
 });
 
 test('without a notch, a widget page is taller by its head row: 16 px and a 10 px gap', () => {
@@ -83,7 +83,7 @@ test('without a notch, a widget page is taller by its head row: 16 px and a 10 p
   expect(viewSize(home, 193, true)).toEqual({ width: 520, height: 219 });
   expect(viewSize(home, 999, true)).toEqual({ width: 520, height: 266 });
   const on = state({ pages: [{ ...BERANDA, strip: 'timer/strip' }], modules: [homeWidgets(), timerInfo()] });
-  expect(viewSize(pickPage(on, null, false), undefined, true)).toEqual({ width: 520, height: 198 });
+  expect(viewSize(pickPage(on, null, false), undefined, true)).toEqual({ width: 520, height: 190 });
   // Other pages have no head.
   expect(viewSize(resolvePage(state(), 'module:system-stat')!, undefined, true)).toEqual({ width: 400, height: 104 });
   expect(viewSize(resolvePage(state(), 'modules')!, undefined, true)).toEqual({ width: 358, height: 64 });
