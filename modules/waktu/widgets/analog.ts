@@ -16,15 +16,19 @@ const H = 104;
 const CX = W / 2;
 const CY = H / 2;
 // The Volt colours as literals, so the editor's sample, outside the card's CSS, draws the same.
+// The accent is the page's variable instead, which follows Tampilan's pick;
+// a variable works only in a style, not as an SVG attribute.
 const INK = '#f3f5f0';
 const FAINT = '#454941';
 const MUTED = '#8c9187';
-const ACCENT = '#c8f04a';
+const ACCENT = 'var(--v-acc)';
+const paint = (prop: 'fill' | 'stroke', color: string) =>
+  color.startsWith('var(') ? `style="${prop}: ${color}"` : `${prop}="${color}"`;
 const NAME_MAX = 16;
 
 // A hand from the centre, `len` long, as a line rotated about the pin.
 const hand = (cls: string, deg: number, len: number, width: number, color: string, tail: number) =>
-  `<line class="${cls}" x1="${CX}" y1="${CY + tail}" x2="${CX}" y2="${CY - len}" stroke="${color}" stroke-width="${width}" stroke-linecap="round" transform="rotate(${deg} ${CX} ${CY})"/>`;
+  `<line class="${cls}" x1="${CX}" y1="${CY + tail}" x2="${CX}" y2="${CY - len}" ${paint('stroke', color)} stroke-width="${width}" stroke-linecap="round" transform="rotate(${deg} ${CX} ${CY})"/>`;
 
 // A tick on the dial, `i` twelfths round: the quarters long, the rest short.
 function tick(i: number): string {
@@ -47,7 +51,7 @@ export function analogSvg(now: Date, lang: Lang, city: string | null = null): st
   const label = `<text x="${CX}" y="${CY + 27}" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="9" font-weight="500" fill="${MUTED}">${escape(shown)}</text>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${ticks}${label}`
     + hand('hr', a.hour, 28, 2.5, INK, 3) + hand('mn', a.minute, 38, 1.6, INK, 3)
-    + hand('sec', a.second, 43, 1, ACCENT, 5) + `<circle class="pin" cx="${CX}" cy="${CY}" r="2.5" fill="${ACCENT}"/></svg>`;
+    + hand('sec', a.second, 43, 1, ACCENT, 5) + `<circle class="pin" cx="${CX}" cy="${CY}" r="2.5" ${paint('fill', ACCENT)}/></svg>`;
 }
 
 // Jam analog.
