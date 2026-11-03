@@ -16,8 +16,13 @@
   --v-dim: #80857b;
   --v-faint: #454941;
   --v-track: #23251f;
+  /* The accent's defaults (Lime); src/kit/accent.ts rewrites them on the root. */
   --v-acc: #c8f04a;
+  --v-acc-hi: #d6f56e;
+  --v-acc-rgb: 200, 240, 74;
   --v-acc-deep: #4c6b12;
+  --v-acc-deep-hi: #5a7d17;
+  --v-acc-deep-soft: rgba(76, 107, 18, 0.13);
   --v-acc-soft: #1d260b;
   --v-on-acc: #0f1404;
   --v-ring: #ffffff14;
