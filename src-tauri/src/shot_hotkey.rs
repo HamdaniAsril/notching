@@ -177,6 +177,9 @@ pub enum Launch {
 }
 
 const FREED_TITLE: &str = "notice.freed.title";
+// macOS opens no deeper than Keyboard Shortcuts, so the notch says where to go
+// from there (owner, 3 Nov 2026).
+const TURN_OFF_TITLE: &str = "notice.turnOff.title";
 
 fn join(names: &[&str], lang: Lang) -> String {
     names.join(match lang {
@@ -590,6 +593,13 @@ fn watch(app: &AppHandle) {
     if !watched.contains(&true) {
         return;
     }
+    let names: Vec<&str> =
+        [&start.labels.screen, &start.labels.pick].into_iter().zip(watched).filter(|&(_, w)| w).map(|(l, _)| l.as_str()).collect();
+    let names = join(&names, app.state::<CoreState>().0.lock().unwrap().lang());
+    let hint = module_text(app, TURN_OFF_TITLE).map_or_else(|| names.clone(), |t| t.replace("{keys}", &names));
+    if let Err(e) = crate::notify::post(app, MODULE_ID, "keys", &hint, "") {
+        eprintln!("notching: the screenshot turn-off hint was not sent: {e}");
+    }
     for _ in 0..WATCH_READS {
         std::thread::sleep(WATCH_EVERY);
         let now = keys(app);
@@ -729,7 +739,7 @@ mod tests {
         for lang in ["id", "en"] {
             let text = std::fs::read_to_string(dir.join(format!("{lang}.json"))).unwrap();
             let json: serde_json::Value = serde_json::from_str(&text).unwrap();
-            for key in [Holder::Mac.title_key(), Holder::Other.title_key(), Holder::OtherMany.title_key(), FREED_TITLE] {
+            for key in [Holder::Mac.title_key(), Holder::Other.title_key(), Holder::OtherMany.title_key(), FREED_TITLE, TURN_OFF_TITLE] {
                 let pointer = format!("/{}", key.replace('.', "/"));
                 let title = json.pointer(&pointer).and_then(|v| v.as_str()).unwrap_or_default();
                 assert!(title.contains("{keys}"), "{lang} {pointer}: {title:?}");
