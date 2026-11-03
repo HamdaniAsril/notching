@@ -191,6 +191,8 @@ pub enum KeyState {
     Ok,
     /// The Mac's own screenshot shortcut is on.
     Mac,
+    /// Another of the Mac's shortcuts that is on holds it.
+    Shortcut,
     /// Another app holds the key.
     Other,
     Off,

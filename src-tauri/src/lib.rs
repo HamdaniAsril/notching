@@ -17,6 +17,7 @@ mod prefs;
 mod settings;
 mod shelf;
 mod shot;
+mod shot_keys;
 mod status;
 mod system_stats;
 mod keyclean;
