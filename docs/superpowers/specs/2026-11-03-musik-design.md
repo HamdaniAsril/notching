@@ -67,3 +67,29 @@ Nama paket: "Musik", dengan ikon not balok bergaris lucide gaya Volt. Ada tiga w
 - Lebih dari satu proses perl berjalan sekaligus.
 - App macet atau lambat saat pembantu mati, menulis baris rusak, atau tidak menjawab.
 - Teks keluar dari kartu, atau ukuran di bawah 9 px.
+
+## 5. Musik di samping notch (pemilik, 3 Nov)
+
+Permintaan pemilik: "buat semacam notifikasi di notch, sebelah kiri cover album, sebelah kanan animasi soundwave".
+
+**Kapan tampil**
+- Saat paket Musik nyala dan ada yang **diputar** (kecepatan lebih dari 0).
+- Panel harus sedang tertutup. Di samping notch fisik, juga saat kursor di atasnya, sama seperti status.
+- Saat lagu dijeda, tampilannya hilang 3 detik kemudian, supaya jeda singkat tidak membuatnya berkedip. **(keputusan penulis)**
+- Saat notifikasi tampil di telinga notch, notifikasi yang tampil dan musik mengalah. Musik muncul lagi setelah notifikasi selesai.
+- Tidak ada saklar tersendiri. Mematikan paket Musik ikut menyembunyikannya. **(keputusan penulis)**
+
+**Bentuknya, di Mac dengan notch**
+- Notch melebar ke **kiri** untuk sampul album: kotak bersudut 5 px, setinggi notch dikurangi 8 px.
+- Notch melebar ke **kanan** untuk gelombang suara: 5 batang beraksen limau (`#C8F04A`), lebar 2 px dengan jarak 2 px. Tingginya naik-turun bergantian, dari 30% sampai 100% tinggi area, dengan iringan sekitar 0,9–1,3 detik per batang.
+- Tanpa sampul album (misalnya YouTube di browser), kotaknya berupa gradasi limau.
+- Kalau ada status lain, misalnya timer, status itu muncul di kanan setelah gelombang, dengan garis pemisah yang sama seperti antarstatus.
+- Titik notifikasi terlewat (missed) berada di kiri sampul.
+
+**Di layar tanpa notch** (monitor luar): satu pil kecil di bawah lensa, berisi sampul di kiri dan gelombang di kanan, mengikuti pil status. **(keputusan penulis)**
+
+**Data ke halaman notch**
+- `media_service` mengirim event `notching://media` setiap kali ada perubahan, dengan isi `{ playing, title, art }`.
+- Halaman notch menerimanya lewat `bridge.media()` dan `bridge.onMedia()`.
+- Gerak gelombang memakai CSS atau SVG, tanpa menggambar ulang dari JS setiap frame, dan berhenti saat disembunyikan.
+- Area klik di jendela notch ikut melebar, supaya klik pada sampul atau gelombang membuka panel seperti biasa.
