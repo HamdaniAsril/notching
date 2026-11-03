@@ -133,3 +133,17 @@ Setiap pilihan seperti ini dicatat pembuat sebagai keputusan penulis di laporan 
 ## 8. Diserahkan ke pembuat
 
 Ketebalan huruf yang tepat, jarak kecil di dalam kartu, bentuk ikon cuaca (lucide, seperti di desain), dan cara menggambar cincin atau busur (SVG). Patokannya selalu gambar acuan dan `tree.txt`.
+
+## 9. Revisi pemilik, 3 November 01.57
+
+Pemilik memperbarui `widget.pego`. Salinannya ada di `desain widget/widget-volt.pego`, dan gambar acuan di `volt/` sudah diganti. Perubahannya:
+
+| Widget | Perubahan |
+|---|---|
+| Jam (`waktu/clockdate`) | Jam dan detik memakai **Barlow** biasa (bukan Condensed) 800, dengan jarak huruf sedikit. Ukurannya lebih besar: 100 dan 32 di desain. |
+| Tanggal (`home/date`) | Tanggal dan bulan **di tengah** kartu. Tanggal lebih besar (112 di desain), bulan 16. |
+| Waktu shalat (`home/prayer`) | Nama shalat dengan **ikon kubah masjid** beraksen di kanannya. Jamnya lebih besar (58 di desain). "1 j 57 m lagi" di tengah. Ikon `mosque` tidak ada di lucide, jadi digambar sendiri. **(keputusan penulis)** |
+| Jam tumpuk (`home/clock`) | **Barlow** 800 (86 di desain), dengan jarak huruf 4. Jam di atas, menit di bawah, mengisi tinggi kartu. |
+| Hari ke (`waktu/yearday`) | Angka dan "61 hari lagi" **di tengah**. |
+| Cuaca besar (`sekitar/bigweather`) | Ikonnya **dua kali** lebih besar (64 di desain). |
+| Musik Kecil | Widget baru satu kolom. Menunggu bagian C, sama seperti Musik. |

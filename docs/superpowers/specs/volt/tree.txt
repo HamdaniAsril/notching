@@ -6,19 +6,20 @@ frame Widget/Jam LU | width=352 height=176 fill="$lu-card-black" effects=[{"type
     text City | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Jakarta"
     text Date | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Sab, 31 Okt"
   frame Time | layout="horizontal" gap=8 alignItems="end"
-    text Clock | fontFamily="Barlow Condensed" fontSize=84 fontWeight=600 lineHeight=0.9 fill="$lu-ink" "09.41"
-    text Sec | fontFamily="Barlow Condensed" fontSize=28 fontWeight=600 lineHeight=1.1 fill="$lu-accent" "12"
+    text Clock | fontFamily="Barlow" fontSize=100 fontWeight=800 lineHeight=0.85 letterSpacing=2 fill="$lu-ink" "09.41"
+    text Sec | fontFamily="Barlow" fontSize=32 fontWeight=800 lineHeight=1 fill="$lu-accent" "12"
   frame Day bar | width="fill_container" layout="horizontal" gap=12 alignItems="center"
     frame Track | width="fill_container" height=2 fill="$lu-track" cornerRadius=1 layout="horizontal"
       rectangle Done | width=104 height=2 fill="$lu-accent" cornerRadius=1
     text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "40% hari"
 
-frame Widget/Tanggal LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
+frame Widget/Tanggal LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" gap=0 padding="$lu-pad" justifyContent="start"
   frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
     text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Sabtu"
     ellipse  | width=6 height=6 fill="$lu-accent"
-  text Day | fontFamily="Barlow Condensed" fontSize=92 fontWeight=600 lineHeight=0.9 fill="$lu-ink" "31"
-  text Month | fontFamily="Barlow Condensed" fontSize=18 fontWeight=500 fill="$lu-ink-2" "Oktober 2026"
+  frame Date | width="fill_container" height="fill_container" layout="vertical" gap=6 justifyContent="center" alignItems="center"
+    text Day | fontFamily="Barlow Condensed" fontSize=112 fontWeight=600 lineHeight=0.82 letterSpacing=-3 textAlign="center" fill="$lu-ink" "31"
+    text Month | fontFamily="Barlow Condensed" fontSize=16 fontWeight=500 lineHeight=1.2 letterSpacing=0.2 textAlign="center" fill="$lu-ink-2" "Oktober 2026"
 
 frame Widget/Zona Waktu LU | width=352 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
   frame Top | width="fill_container" layout="horizontal" justifyContent="space_between" alignItems="center"
@@ -41,10 +42,13 @@ frame Widget/Zona Waktu LU | width=352 height=176 fill="$lu-card-black" effects=
       text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "−7 jam · malam"
 
 frame Widget/Waktu Shalat LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="vertical" padding="$lu-pad" justifyContent="space_between"
-  text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Shalat berikutnya"
-  frame Next | layout="vertical" gap=2
-    text Name | fontFamily="Barlow Condensed" fontSize=22 fontWeight=500 fill="$lu-accent" "Dzuhur"
-    text Time | fontFamily="Barlow Condensed" fontSize=48 fontWeight=600 lineHeight=1 fill="$lu-ink" "11.38"
+  frame Header | width="fill_container" height="fit_content" layout="horizontal" justifyContent="space_between" alignItems="center"
+    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Shalat berikutnya"
+  frame Next | width="fill_container" layout="vertical" gap=0
+    frame Name Row | width="fill_container" height="fit_content" layout="horizontal" gap=6 justifyContent="space_between" alignItems="start"
+      text Name | fontFamily="Barlow Condensed" fontSize=22 fontWeight=500 lineHeight=1 fill="$lu-accent" "Dzuhur"
+      icon Kubah Masjid | width=28 height=28 iconSet="lucide" iconName="mosque" fill="$lu-accent"
+    text Time | fontFamily="Barlow Condensed" fontSize=58 fontWeight=600 lineHeight=0.9 fill="$lu-ink" "11.38"
   frame Footer | width="fill_container" layout="vertical" gap=8
     frame Prayers | width="fill_container" layout="horizontal" gap=4
       rectangle  | width="fill_container" height=3 fill="$lu-ink-2" cornerRadius=2
@@ -52,7 +56,7 @@ frame Widget/Waktu Shalat LU | width=176 height=176 fill="$lu-card-black" effect
       rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
       rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
       rectangle  | width="fill_container" height=3 fill="$lu-track" cornerRadius=2
-    text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "1 j 57 m lagi"
+    text  | width="fill_container" fontFamily="Inter" fontSize=12 textAlign="center" fill="$lu-muted" "1 j 57 m lagi"
 
 frame Widget/Jam Analog LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" clip=true layout="none"
   path Ticks | width=176 height=176 stroke={"color":"$lu-faint","width":1.5} viewBox=[0,0,176,176] strokeCap="round" d="M88.0 12.0L88.0 24.0M126.0 22.2L123.5 26.5M153.8 50.0L149.5 …"
@@ -63,9 +67,9 @@ frame Widget/Jam Analog LU | width=176 height=176 fill="$lu-card-black" effects=
   ellipse Pin | width=8 height=8 fill="$lu-accent"
 
 frame Widget/Jam Tumpuk LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" padding="$lu-pad" justifyContent="space_between"
-  frame Stack | layout="vertical" gap=0
-    text Hour | fontFamily="Barlow Condensed" fontSize=72 fontWeight=600 lineHeight=0.92 fill="$lu-ink" "09"
-    text Minute | fontFamily="Barlow Condensed" fontSize=72 fontWeight=600 lineHeight=0.92 fill="$lu-accent" "41"
+  frame Stack | height="fill_container" layout="vertical" gap=0 justifyContent="space_between"
+    text Hour | fontFamily="Barlow" fontSize=86 fontWeight=800 lineHeight=0.8 letterSpacing=4 fill="$lu-ink" "09"
+    text Minute | fontFamily="Barlow" fontSize=86 fontWeight=800 lineHeight=0.8 letterSpacing=4 fill="$lu-accent" "41"
   frame Meta | height="fill_container" layout="vertical" justifyContent="space_between" alignItems="end"
     text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "pagi"
     text  | fontFamily="Inter" fontSize=12 fontWeight=500 fill="$lu-ink-2" "WIB"
@@ -131,11 +135,11 @@ frame Widget/Hari Ke LU | width=176 height=176 fill="$lu-card-black" effects=[{"
   frame Top | width="fill_container" layout="horizontal" justifyContent="space_between"
     text  | fontFamily="Inter" fontSize=13 fontWeight=500 fill="$lu-ink" "Hari ke"
     text  | fontFamily="Inter" fontSize=12 fill="$lu-ink-2" "2026"
-  text Number | fontFamily="Barlow Condensed" fontSize=80 fontWeight=600 lineHeight=0.95 fill="$lu-accent" "304"
+  text Number | width="fill_container" fontFamily="Barlow Condensed" fontSize=80 fontWeight=600 lineHeight=0.95 textAlign="center" fill="$lu-accent" "304"
   frame Footer | width="fill_container" layout="vertical" gap=8
     frame Track | width="fill_container" height=2 fill="#FFFFFF1F" layout="horizontal"
       rectangle  | width=113 height=2 fill="$lu-accent"
-    text  | fontFamily="Inter" fontSize=12 fill="$lu-ink-2" "61 hari lagi"
+    text  | width="fill_container" fontFamily="Inter" fontSize=12 textAlign="center" fill="$lu-ink-2" "61 hari lagi"
 
 frame Widget/Tanggal Strip LU | width=776 height=88 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" layout="horizontal" padding=[0,28,0,28] justifyContent="space_between" alignItems="center"
   frame Today | width=140 layout="vertical" gap=2
@@ -375,7 +379,7 @@ frame Widget/Cuaca LU | width=352 height=176 fill="$lu-card-black" effects=[{"ty
     text Temp | fontFamily="Barlow Condensed" fontSize=88 fontWeight=600 lineHeight=0.9 fill="$lu-ink" "24°"
     text  | fontFamily="Barlow Condensed" fontSize=18 fontWeight=500 fill="$lu-ink-2" "Cerah berawan"
   frame Side | height="fill_container" layout="vertical" justifyContent="space_between" alignItems="end"
-    icon  | width=32 height=32 iconSet="lucide" iconName="cloud-sun" fill="$lu-accent"
+    icon  | width=64 height=64 iconSet="lucide" iconName="cloud-sun" fill="$lu-accent"
     frame  | layout="vertical" gap=4 alignItems="end"
       text  | fontFamily="Inter" fontSize=12 fill="$lu-ink-2" "Tertinggi 27°"
       text  | fontFamily="Inter" fontSize=12 fill="$lu-muted" "Terendah 18°"
@@ -450,6 +454,25 @@ frame Widget/Cuaca Per Jam LU | width=776 height=88 fill="$lu-card-black" effect
   frame Rain | width=108 layout="vertical" gap=2 alignItems="end"
     text  | fontFamily="Barlow Condensed" fontSize=20 fontWeight=500 fill="$lu-accent" "Hujan 16.00"
     text  | fontFamily="Inter" fontSize=11 fill="$lu-muted" "Selama 2 jam"
+
+frame Widget/Musik Kecil LU | width=176 height=176 fill="$lu-card-black" effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius="$lu-radius" clip=true layout="vertical" gap=10 padding=16 justifyContent="center" alignItems="center"
+  frame Top | width="fit_content" layout="horizontal" gap=8 justifyContent="center" alignItems="center"
+    frame Cover | width=80 height=80 fill={"type":"radial","center":[0.5,0.5],"radius":[0.5,0.5],"stops":[{"color":"#2A2A2A","position":0},{"color":"#141414","position":0.6},{"color":"#222222","position":1}]} effects=[{"type":"shadow","color":"$lu-ring","x":0,"y":0,"blur":0,"spread":1}] cornerRadius=40 clip=true layout="none"
+      ellipse Groove 1 | width=70 height=70 stroke={"color":"#FFFFFF14","width":1}
+      ellipse Groove 2 | width=56 height=56 stroke={"color":"#FFFFFF10","width":1}
+      ellipse Label | width=40 height=40 fill={"type":"linear","angle":160,"stops":[{"color":"$lu-accent","position":0},{"color":"$lu-accent-deep","position":1}]}
+      ellipse Hole | width=4 height=4 fill="$lu-card-black"
+      frame Controls | width=72 height=28 layout="horizontal" gap=8 justifyContent="center" alignItems="center"
+        icon Prev | width=14 height=14 iconSet="lucide" iconName="skip-back" fill="$lu-ink"
+        frame Play | width=28 height=28 fill="$lu-ink" cornerRadius=14 layout="horizontal" justifyContent="center" alignItems="center"
+          icon  | width=14 height=14 iconSet="lucide" iconName="pause" fill="$lu-on-accent"
+        icon Next | width=14 height=14 iconSet="lucide" iconName="skip-forward" fill="$lu-ink"
+  frame Info | width="fill_container" layout="vertical" gap=8 alignItems="center"
+    frame Title | width="fill_container" layout="vertical" gap=2 alignItems="center"
+      text  | width="fill_container" fontFamily="Barlow Condensed" fontSize=22 fontWeight=600 lineHeight=1.1 textAlign="center" fill="$lu-ink" "Jalan Braga"
+      text  | width="fill_container" fontFamily="Inter" fontSize=12 textAlign="center" fill="$lu-muted" "Kolektif Senja"
+    frame Progress | width=96 height=2 fill="$lu-track" layout="horizontal"
+      rectangle  | width=58 height=2 fill="$lu-ink"
 
 # Panel notch, contoh 1 (widget di dalamnya adalah ref ke komponen di atas)
 frame Notch | width="fit_content" height="fit_content" fill={"type":"linear","angle":180,"stops":[{"color":"$notch-solid","position":0},{"color":"$notch-solid","position":0.45},{"color":"$notch-fade","position":1}]} effects=[{"type":"shadow","color":"#0000002E","x":0,"y":16,"blur":40,"spread":0}] cornerRadius=52 layout="vertical" gap=20 padding=[64,24,24,24]
