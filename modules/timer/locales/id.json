@@ -11,6 +11,7 @@
   "left": "menit lagi",
   "clock": "{h}.{m}",
   "paused": "Jeda",
+  "sound": "Bunyi penggaris",
   "widgets": {
     "strip": "Timer",
     "tile": "Timer kecil"

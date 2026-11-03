@@ -16,7 +16,8 @@ function mount(v: TimerView, s = id) {
   const root = document.createElement('div');
   document.body.append(root);
   const act = { start: vi.fn(), pause: vi.fn(), resume: vi.fn(), stop: vi.fn() };
-  const tile = renderTile(root, s, act);
+  const sound = { prime: vi.fn(), step: vi.fn() };
+  const tile = renderTile(root, s, act, sound);
   tile.update(v);
   tile.tick(NOW);
   const button = root.querySelector<HTMLButtonElement>('button')!;
@@ -24,7 +25,7 @@ function mount(v: TimerView, s = id) {
   const click = () => { fire('pointerdown'); fire('pointerup'); };
   // The big number: the minutes shown.
   const minutes = () => root.querySelector('.v-num')!.textContent;
-  return { root, act, tile, button, fire, click, minutes };
+  return { root, act, tile, button, fire, click, minutes, sound };
 }
 
 test('idle: an empty ring, the name, the minutes chosen and "Menit"', () => {
@@ -250,4 +251,25 @@ test('running: a cancelled drag goes back to the time left and starts nothing', 
   m.fire('pointercancel', 76);
   expect(m.act.start).not.toHaveBeenCalled();
   expect(m.button.getAttribute('aria-label')).toContain('6:42');
+});
+
+test('a drag or the wheel sounds each whole minute; a click does not', () => {
+  const m = mount(IDLE);
+  m.click();
+  expect(m.sound.step).not.toHaveBeenCalled();
+  m.fire('pointerdown', 200);
+  expect(m.sound.prime).toHaveBeenCalled();
+  // 6 px a minute on the tile: 30 px left is 25 to 30, then one more.
+  m.fire('pointermove', 170);
+  m.fire('pointermove', 164);
+  m.fire('pointermove', 163);
+  m.fire('pointerup', 163);
+  m.button.dispatchEvent(new WheelEvent('wheel', { deltaY: 40, bubbles: true, cancelable: true }));
+  expect(m.sound.step.mock.calls).toEqual([[25, 30], [30, 31], [31, 32]]);
+});
+
+test('the wheel at 60 stays quiet', () => {
+  const m = mount({ ...IDLE, minutes: 60 });
+  m.button.dispatchEvent(new WheelEvent('wheel', { deltaY: 40, bubbles: true, cancelable: true }));
+  expect(m.sound.step).not.toHaveBeenCalled();
 });

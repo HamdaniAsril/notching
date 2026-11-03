@@ -11,6 +11,7 @@
   "left": "min left",
   "clock": "{h}:{m}",
   "paused": "Paused",
+  "sound": "Ruler sound",
   "widgets": {
     "strip": "Timer",
     "tile": "Timer, small"

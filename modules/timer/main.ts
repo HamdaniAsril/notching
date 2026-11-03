@@ -2,10 +2,12 @@ import '../../src/kit/kit.css';
 import '../../src/kit/volt.css';
 import './style.css';
 import { connectKit } from '../../src/kit/client';
+import { readPrefs, writePrefs } from '../../src/kit/prefs';
 import en from './locales/en.json';
 import id from './locales/id.json';
 import { renderTile } from './tile';
-import { renderTimer, type TimerView } from './view';
+import { checkPrefs, DEFAULT_PREFS, makeTicker, tikSound } from './tik';
+import { renderTimer, type Sound, type TimerView } from './view';
 
 // Read once a second while the panel is open, as Keep awake does: the timer
 // itself lives in the app, and the strip or page may change it from elsewhere.
@@ -24,7 +26,25 @@ async function start(): Promise<void> {
     stop: () => void call('stop'),
   };
   const strings = kit.lang === 'en' ? en : id;
-  const view = kit.widget === 'tile' ? renderTile(root, strings, act) : renderTimer(root, strings, act, kit.widget !== 'strip');
+  // The tik is on unless the Timer page's button turned it off; read again at each press, so
+  // the strip and the tile follow a change made on the page.
+  let prefs = await readPrefs(kit, DEFAULT_PREFS, checkPrefs);
+  const tik = tikSound();
+  const ticker = makeTicker(t => tik.play(t), () => performance.now());
+  const sound: Sound = {
+    prime() {
+      if (prefs.sound) tik.prime();
+      void readPrefs(kit, prefs, checkPrefs).then(p => { prefs = p; });
+    },
+    step: (from, to) => { if (prefs.sound) ticker.step(from, to); },
+    on: () => prefs.sound,
+    set(on) {
+      prefs = { ...prefs, sound: on };
+      void writePrefs(kit, prefs);
+      if (on) tik.play('minute');
+    },
+  };
+  const view = kit.widget === 'tile' ? renderTile(root, strings, act, sound) : renderTimer(root, strings, act, kit.widget !== 'strip', sound);
   const read = (): void => {
     void call('read').finally(() => setTimeout(read, POLL_MS));
   };

@@ -342,7 +342,8 @@
 }
 
 .tm-lead,
-.tm-buttons {
+.tm-buttons,
+.tm-tail {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -470,4 +471,42 @@
 
 .tm-time.tm-dim {
   color: var(--v-ink2);
+}
+
+/* The Timer page's sound button for the ruler's tik: a speaker after Jeda and Stop, crossed out
+   while off. */
+.tm-sound {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-ink2);
+  cursor: pointer;
+}
+
+.tm-sound:hover {
+  filter: brightness(1.15);
+}
+
+.tm-sound:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
+}
+
+.tm-sound .tm-cross,
+.tm-sound.tm-off .tm-waves {
+  display: none;
+}
+
+.tm-sound.tm-off {
+  color: var(--v-muted);
+}
+
+.tm-sound.tm-off .tm-cross {
+  display: inline;
 }

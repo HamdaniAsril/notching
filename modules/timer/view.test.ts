@@ -15,14 +15,16 @@ function mount(v: TimerView, big = false) {
   const root = document.createElement('div');
   document.body.append(root);
   const act = { start: vi.fn(), pause: vi.fn(), resume: vi.fn(), stop: vi.fn() };
-  const view = renderTimer(root, id, act, big);
+  let on = true;
+  const sound = { prime: vi.fn(), step: vi.fn(), on: () => on, set: vi.fn((v: boolean) => { on = v; }) };
+  const view = renderTimer(root, id, act, big, sound);
   view.update(v);
   view.tick(NOW);
   const button = (text: string) => [...root.querySelectorAll('button')].find(b => b.textContent === text);
   const ruler = root.querySelector<HTMLElement>('.tm-ruler')!;
   const time = () => root.querySelector<HTMLInputElement>('input.tm-time')!;
   const pointer = (type: string, x: number) => ruler.dispatchEvent(new MouseEvent(type, { clientX: x, bubbles: true }));
-  return { root, act, view, button, ruler, time, pointer };
+  return { root, act, view, button, ruler, time, pointer, sound };
 }
 
 test('the strip has no presets, only the ruler and a dim time', () => {
@@ -194,7 +196,7 @@ test('the ruler marks every 5 minutes and numbers every 10', () => {
 
 test('the Timer page puts a bigger ruler and the time on top, with no dot time', () => {
   const { root } = mount(RUNNING, true);
-  expect(root.querySelector('svg')).toBeNull();
+  expect([...root.querySelectorAll('svg')].filter(g => !g.closest('.tm-sound'))).toEqual([]);
   const top = root.firstElementChild!;
   // Two black cards: the ruler with the time, and the buttons.
   expect([...root.children].map(c => c.classList.contains('tm-card'))).toEqual([true, true]);
@@ -256,4 +258,45 @@ test('before the first reading the ruler sits at 30 minutes, the middle', () => 
   const view = renderTimer(root, id, { start: vi.fn(), pause: vi.fn(), resume: vi.fn(), stop: vi.fn() }, false);
   view.tick(NOW);
   expect(root.querySelector<HTMLInputElement>('input.tm-time')!.value).toBe('30:00');
+});
+
+test('dragging the ruler sounds each whole minute it passes, and nothing else does', () => {
+  const { pointer, sound, view, button } = mount(IDLE, true);
+  pointer('pointerdown', 200);
+  expect(sound.prime).toHaveBeenCalled();
+  pointer('pointermove', 196);
+  expect(sound.step).not.toHaveBeenCalled();
+  // 12 px a minute on the page: 60 px left is 5 to 10, then one more.
+  pointer('pointermove', 140);
+  pointer('pointermove', 128);
+  pointer('pointermove', 126);
+  pointer('pointerup', 126);
+  expect(sound.step.mock.calls).toEqual([[5, 10], [10, 11]]);
+  button('25m')!.click();
+  view.update(RUNNING);
+  view.tick(NOW + 60_000);
+  expect(sound.step).toHaveBeenCalledTimes(2);
+});
+
+test('the Timer page has the ruler\'s sound button; the strip has none', () => {
+  expect(mount(IDLE).root.querySelector('.tm-sound')).toBeNull();
+  const { root, sound } = mount(IDLE, true);
+  const b = root.querySelector<HTMLButtonElement>('.tm-card:not(.tm-top) .tm-sound')!;
+  expect(b.getAttribute('aria-label')).toBe('Bunyi penggaris');
+  expect(b.getAttribute('aria-pressed')).toBe('true');
+  b.click();
+  expect(sound.set).toHaveBeenCalledWith(false);
+  expect(b.getAttribute('aria-pressed')).toBe('false');
+  expect(b.classList.contains('tm-off')).toBe(true);
+  b.click();
+  expect(sound.set).toHaveBeenLastCalledWith(true);
+  expect(b.getAttribute('aria-pressed')).toBe('true');
+});
+
+test('the sound button stays at the end of the button card while a timer runs', () => {
+  const { root, view } = mount(IDLE, true);
+  view.update(RUNNING);
+  const card = root.querySelector('.tm-card:not(.tm-top)')!;
+  expect(card.lastElementChild!.lastElementChild!.classList.contains('tm-sound')).toBe(true);
+  expect(card.querySelector('.tm-buttons')!.textContent).toContain('Jeda');
 });
