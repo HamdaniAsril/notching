@@ -37,6 +37,15 @@ export interface LiveStatus {
   items: { moduleId: string | null; text: string }[];
 }
 
+// What plays, for the cover and soundwave beside the notch (MediaSummary in
+// src-tauri/src/media_service.rs). Nothing playing, or the Musik package off:
+// playing false and both null. `art` is a data: URL.
+export interface MediaSummary {
+  playing: boolean;
+  title: string | null;
+  art: string | null;
+}
+
 // Titipan's shelf (ShelfDto in src-tauri/src/shelf.rs): the same on every screen.
 export interface ShelfItem {
   id: number;
@@ -97,6 +106,8 @@ export interface Bridge {
   onNotice(cb: (n: Notice) => void): () => void;
   status(): Promise<LiveStatus | null>;
   onStatus(cb: (s: LiveStatus | null) => void): () => void;
+  media(): Promise<MediaSummary>;
+  onMedia(cb: (m: MediaSummary) => void): () => void;
   clearMissed(): Promise<void>;
   shelf(refresh: boolean): Promise<ShelfState>; // refresh: check every file is still there
   onShelf(cb: (s: ShelfState) => void): () => void;
@@ -205,6 +216,9 @@ export function tauriBridge(): Bridge {
     status: () => invoke<LiveStatus | null>('get_status'),
     // Broadcast to every window; each keeps it only for its own screen.
     onStatus: cb => syncUnlisten(listen<LiveStatus | null>('notching://status', e => cb(e.payload))),
+    media: () => invoke<MediaSummary>('get_media'),
+    // Broadcast to every window: the music shows beside every notch.
+    onMedia: cb => syncUnlisten(listen<MediaSummary>('notching://media', e => cb(e.payload))),
     shelf: refresh => invoke<ShelfState>('shelf_state', { refresh }),
     // Broadcast to every window: one shelf for every screen.
     onShelf: cb => syncUnlisten(listen<ShelfState>('notching://shelf', e => cb(e.payload))),

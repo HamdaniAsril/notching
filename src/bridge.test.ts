@@ -43,6 +43,9 @@ test('broadcasts are heard app-wide', () => {
   b.onShelf(cb);
   b.onStatus(cb);
   b.onModuleState(cb);
-  expect(heard(globalListen)).toEqual(['notching://shots', 'notching://shelf', 'notching://status', 'notching://module-state']);
+  b.onMedia(cb);
+  expect(heard(globalListen)).toEqual([
+    'notching://shots', 'notching://shelf', 'notching://status', 'notching://module-state', 'notching://media',
+  ]);
   expect(windowListen).not.toHaveBeenCalled();
 });

@@ -35,3 +35,24 @@ test('?media=off is nothing playing, ?media=art has a picture and ?media=long lo
   expect(() => off('command', 'toggle')).toThrow();
   expect((fakeMedia('art')('now', undefined) as { art: string }).art.startsWith('data:image/')).toBe(true);
 });
+
+test('the notch hears the same track: playing, then paused by a command', () => {
+  const call = fakeMedia('art');
+  expect(call.summary()).toMatchObject({ playing: true, title: 'Jalan Braga' });
+  expect(call.summary().art!.startsWith('data:image/')).toBe(true);
+  const heard: boolean[] = [];
+  const off = call.onSummary(m => heard.push(m.playing));
+  call('command', 'toggle');
+  call('command', 'pause');
+  call('command', 'next');
+  call('command', 'play');
+  off();
+  call('command', 'toggle');
+  expect(heard).toEqual([false, true]);
+  expect(call.summary().playing).toBe(false);
+});
+
+test('?media=off is nothing playing beside the notch, and no picture without ?media=art', () => {
+  expect(fakeMedia('off').summary()).toEqual({ playing: false, title: null, art: null });
+  expect(fakeMedia().summary()).toEqual({ playing: true, title: 'Jalan Braga', art: null });
+});

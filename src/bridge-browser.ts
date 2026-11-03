@@ -206,6 +206,8 @@ export function browserBridge(root: HTMLElement): Bridge {
       return text ? { screen: 'browser', items: [{ moduleId: params.get('statusModule'), text }] } : null;
     },
     onStatus: () => () => {},
+    media: async () => mediaCall.summary(),
+    onMedia: cb => mediaCall.onSummary(cb),
     // The browser preview has no drag and drop to the notch: ?shelf=<n> shows n
     // made-up files, the third one missing.
     shelf: async () => ({

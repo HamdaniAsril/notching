@@ -1,5 +1,5 @@
 import { beforeEach, vi } from 'vitest';
-import type { Bridge, CleanerApp, CleanerEvent, CleanerItem, CleanerNode, CleanerScan, LiveStatus, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys } from '../bridge';
+import type { Bridge, CleanerApp, CleanerEvent, CleanerItem, CleanerNode, CleanerScan, LiveStatus, MediaSummary, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys } from '../bridge';
 import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
@@ -150,6 +150,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
   const shotsSubs = new Set<(list: Shot[]) => void>();
   const shotDragSubs = new Set<(e: ShotDrag) => void>();
   const cleanerSubs = new Set<(e: CleanerEvent) => void>();
+  const mediaSubs = new Set<(m: MediaSummary) => void>();
   let state = initial;
   const bridge = {
     screenInfo: vi.fn(async () => ({ label: 'test', hasNotch: false, notchWidth: 0, notchHeight: 0 })),
@@ -168,6 +169,8 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     onNotice: vi.fn((cb: (n: Notice) => void) => { noticeSubs.add(cb); return () => { noticeSubs.delete(cb); }; }),
     status: vi.fn(async (): Promise<LiveStatus | null> => null),
     onStatus: vi.fn((cb: (s: LiveStatus | null) => void) => { statusSubs.add(cb); return () => { statusSubs.delete(cb); }; }),
+    media: vi.fn(async (): Promise<MediaSummary> => ({ playing: false, title: null, art: null })),
+    onMedia: vi.fn((cb: (m: MediaSummary) => void) => { mediaSubs.add(cb); return () => { mediaSubs.delete(cb); }; }),
     clearMissed: vi.fn(async () => {}),
     shelf: vi.fn(async (_refresh: boolean): Promise<ShelfState> => ({ items: [] })),
     onShelf: vi.fn((cb: (s: ShelfState) => void) => { shelfSubs.add(cb); return () => { shelfSubs.delete(cb); }; }),
@@ -218,6 +221,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     emitShelfDrag: (e: ShelfDrag) => dragSubs.forEach(cb => cb(e)),
     emitNotice: (n: Notice) => noticeSubs.forEach(cb => cb(n)),
     emitStatus: (s: LiveStatus | null) => statusSubs.forEach(cb => cb(s)),
+    emitMedia: (m: MediaSummary) => mediaSubs.forEach(cb => cb(m)),
     emitPointer: (p: PointerUpdate) => pointer.forEach(cb => cb(p)),
     emitResignKey: () => resign.forEach(cb => cb()),
     emitModuleState: (s: ModuleState) => { state = s; moduleSubs.forEach(cb => cb(s)); },

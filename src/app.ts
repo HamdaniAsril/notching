@@ -86,6 +86,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     onPhase,
     onSelect: id => go(id),
     onMore,
+    setTimer: env.setTimer,
   });
   const frames = mountFrameHost({
     bridge,
@@ -333,6 +334,10 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   };
   const offStatus = bridge.onStatus(showStatus);
   showStatus(await bridge.status());
+  // The music beside the notch (design 3 Nov, §5), on every screen; the view
+  // hides it while a notice or the panel is up, and a pause after 3 s.
+  const offMedia = bridge.onMedia(m => view.setMedia(m));
+  view.setMedia(await bridge.media().catch(() => null));
   // Notices reach this overlay now: Screenshot's launch notice about its keys can go.
   bridge.shotReady().catch(e => console.error('notching: shot_ready failed', e));
 
@@ -564,6 +569,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       offState();
       offNotice();
       offStatus();
+      offMedia();
       offShelf();
       offDrop();
       offDrag();

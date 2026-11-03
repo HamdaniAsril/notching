@@ -52,3 +52,20 @@ test('a notice catches clicks on its ears', () => {
   expect(hitRects(c, null)).toEqual([{ x: 480 - 245 - 12, y: 0, w: 490 + 24, h: 36 }]);
 });
 
+
+test('music beside the notch widens the resting hit area over its tabs', () => {
+  const c = ctl({ width: 190, height: 32 });
+  const beside = { left: 38, right: 82 };
+  expect(hitRects(c, null, beside)).toEqual([{ x: 480 - 95 - 10 - 38, y: 0, w: 190 + 20 + 120, h: 42 }]);
+  c.pointer(true, 0);
+  expect(hitRects(c, null, beside)[0]).toMatchObject({ x: 337, w: 330 });
+  // Open, the panel's rect alone, as before.
+  c.click();
+  expect(hitRects(c, null, beside)).toEqual(hitRects(c, null));
+});
+
+test('on a lens the music pill widens the hit area only past the usual 120 px', () => {
+  const c = ctl(null);
+  expect(hitRects(c, null, { left: 32, right: 32 })).toEqual([{ x: 420, y: 0, w: 120, h: 34 }]);
+  expect(hitRects(c, null, { left: 65.5, right: 65.5 })).toEqual([{ x: 404.5, y: 0, w: 151, h: 34 }]);
+});

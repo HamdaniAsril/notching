@@ -438,3 +438,228 @@ test('the page head in the camera row is hidden while a notice shows in the ears
   expect(root.querySelector('.notch-notice')!.classList.contains('show')).toBe(false);
   expect(head.closest('.notch-content.show')).not.toBeNull();
 });
+
+// Music beside the notch (design 3 Nov, §5).
+const PLAYING = { playing: true, title: 'Jalan Braga', art: 'data:image/jpeg;base64,AAAA' };
+const PAUSED = { ...PLAYING, playing: false };
+const NOTHING = { playing: false, title: null, art: null };
+const bars = (root: HTMLElement) => [...root.querySelectorAll('.mu-bar')];
+const attrs = (el: Element, ...names: string[]) => names.map(n => el.getAttribute(n));
+
+test('while music plays the cover sits left of the notch and five lime bars right of it', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  expect(shown(root, '.mu')).toBe(false);
+  v.setMedia(PLAYING);
+  expect(shown(root, '.mu')).toBe(true);
+  expect(shown(root, '.mu-tab')).toBe(true);
+  expect(shown(root, '.st-tab')).toBe(true);
+  // The cover: 32 − 8 tall, 6 px from the notch's edge, corners of 5.
+  const bg = root.querySelector('.mu-art-bg')!;
+  expect(attrs(bg, 'x', 'y', 'width', 'height', 'rx')).toEqual(['-125', '4', '24', '24', '5']);
+  const art = root.querySelector('.mu-art')!;
+  expect(art.getAttribute('href')).toBe(PLAYING.art);
+  expect(art.getAttribute('display')).toBe('inline');
+  const clip = art.getAttribute('clip-path')!.match(/^url\(#(.+)\)$/)![1];
+  expect(attrs(root.querySelector(`[id="${clip}"] rect`)!, 'x', 'width', 'rx')).toEqual(['-125', '24', '5']);
+  // The left tab: 6 + 24 + 8, its shoulder 6 further.
+  expect(root.querySelector('.mu-tab')!.getAttribute('d')).toMatch(/^M -139\.00 0 /);
+  // Five bars 2 px wide with 2 px between, centred in a 24 px box 6 px from the edge.
+  expect(bars(root).map(b => b.getAttribute('x'))).toEqual(['104', '108', '112', '116', '120']);
+  expect(bars(root).every(b => b.getAttribute('width') === '2' && b.getAttribute('fill') === '#C8F04A')).toBe(true);
+  expect(attrs(bars(root)[0], 'y', 'height')).toEqual(['9', '14']);
+  // Each bar on its own beat, 0.9–1.3 s.
+  const beats = bars(root).map(b => parseFloat((b as SVGElement).style.getPropertyValue('--mu-t')));
+  expect(new Set(beats).size).toBe(5);
+  expect(beats.every(t => t >= 0.9 && t <= 1.3)).toBe(true);
+  // The right tab mirrors the left.
+  expect(root.querySelector('.st-tab')!.getAttribute('d')).toMatch(/^M 139\.00 0 /);
+  expect(shown(root, '.st-items')).toBe(false);
+});
+
+test('a track without artwork gets the lime gradient', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setMedia({ ...PLAYING, art: null });
+  expect(root.querySelector('.mu-art')!.getAttribute('display')).toBe('none');
+  const fill = root.querySelector('.mu-art-bg')!.getAttribute('fill')!.match(/^url\(#(.+)\)$/)![1];
+  const stops = [...root.querySelectorAll(`[id="${fill}"] stop`)].map(s => s.getAttribute('stop-color'));
+  expect(stops).toEqual(['#C8F04A', '#4C6B12']);
+  v.setMedia(PLAYING);
+  expect(root.querySelector('.mu-art')!.getAttribute('display')).toBe('inline');
+});
+
+test('the music hides while the panel is open and comes back once it is closed', () => {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  const c = ctl({ width: 190, height: 32 });
+  const v = mountNotch(root, c, deps(r));
+  v.setMedia(PLAYING);
+  c.pointer(true, 0);
+  v.kick();
+  r.runAll(1);
+  expect(shown(root, '.mu')).toBe(true);
+  c.click();
+  v.kick();
+  r.runAll(1);
+  expect(shown(root, '.mu')).toBe(false);
+  expect(shown(root, '.mu-tab')).toBe(false);
+  expect(shown(root, '.st-tab')).toBe(false);
+  c.escape();
+  c.pointer(false, 0);
+  v.kick();
+  r.runAll(600);
+  expect(c.phase).toBe('idle');
+  expect(shown(root, '.mu')).toBe(true);
+});
+
+test('a notice in the ears hides the music until it is over', () => {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  const c = ctl({ width: 190, height: 32 });
+  const v = mountNotch(root, c, deps(r));
+  v.setMedia(PLAYING);
+  v.setNotice({ icon: null, title: 'Kirim', detail: '14.00', glow: false });
+  c.notify(3500);
+  v.kick();
+  r.runAll(1);
+  expect(shown(root, '.mu')).toBe(false);
+  timers.advance(3640);
+  r.runAll(600);
+  expect(c.phase).toBe('idle');
+  expect(shown(root, '.mu')).toBe(true);
+});
+
+test('paused, the music stays 3 s with still bars, then goes', () => {
+  vi.useFakeTimers();
+  try {
+    const r = fakeRaf();
+    const root = document.createElement('div');
+    const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(r));
+    v.setMedia(PLAYING);
+    v.setMedia(PAUSED);
+    expect(shown(root, '.mu')).toBe(true);
+    expect(root.querySelector('.mu-waves')!.classList.contains('paused')).toBe(true);
+    vi.advanceTimersByTime(2900);
+    expect(shown(root, '.mu')).toBe(true);
+    // Playing again within the 3 s: it stays, and the pause timer is dropped.
+    v.setMedia(PLAYING);
+    expect(root.querySelector('.mu-waves')!.classList.contains('paused')).toBe(false);
+    vi.advanceTimersByTime(5000);
+    expect(shown(root, '.mu')).toBe(true);
+    v.setMedia(PAUSED);
+    vi.advanceTimersByTime(3000);
+    expect(shown(root, '.mu')).toBe(false);
+    expect(shown(root, '.st-tab')).toBe(false);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test('nothing left to play (the package switched off) hides the music at once', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setMedia(PLAYING);
+  v.setMedia(NOTHING);
+  expect(shown(root, '.mu')).toBe(false);
+  v.setMedia(PAUSED);
+  expect(shown(root, '.mu')).toBe(false);
+});
+
+test('a status follows the soundwave, after the same thin separator', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setStatus([st('18:42')]);
+  v.setMedia(PLAYING);
+  expect(shown(root, '.st-items')).toBe(true);
+  // Bars end at 122; the line in the 12 px gap; the text; 8 px to the tab's edge.
+  expect(root.querySelector('.st-sep line')!.getAttribute('x1')).toBe('128');
+  expect(root.querySelector('.st-text')!.getAttribute('x')).toBe('134');
+  expect(root.querySelector('.st-tab')!.getAttribute('d')).toMatch(/^M 183\.00 0 /);
+  v.setMedia(NOTHING);
+  // Back to the status alone, exactly as before.
+  expect(root.querySelector('.st-text')!.getAttribute('x')).toBe('128');
+  expect(root.querySelector('.st-sep')).toBeNull();
+  expect(root.querySelector('.st-tab')!.getAttribute('d')).toMatch(/^M 177\.00 0 /);
+});
+
+test('the missed dot sits left of the cover, in the widened left tab', () => {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  const c = ctl({ width: 190, height: 32 });
+  const v = mountNotch(root, c, deps(r));
+  v.setMissed(true);
+  v.setMedia(PLAYING);
+  const dot = root.querySelector('.missed-dot')!;
+  expect(shown(root, '.missed-dot')).toBe(true);
+  expect(attrs(dot, 'cx', 'cy')).toEqual(['-134', '16']);
+  expect(shown(root, '.missed-tab')).toBe(false);
+  expect(root.querySelector('.mu-tab')!.getAttribute('d')).toMatch(/^M -151\.00 0 /);
+  v.setMedia(NOTHING);
+  expect(attrs(dot, 'cx', 'cy')).toEqual(['-103', '16']);
+  expect(shown(root, '.missed-tab')).toBe(true);
+});
+
+test('the music widens the hit area over the cover and the soundwave', () => {
+  const r = fakeRaf();
+  const spy = vi.fn();
+  const c = ctl({ width: 190, height: 32 });
+  const v = mountNotch(document.createElement('div'), c, { ...deps(r), onHitRects: spy });
+  v.kick();
+  r.runAll(600);
+  expect(spy).toHaveBeenLastCalledWith([{ x: 375, y: 0, w: 210, h: 42 }]);
+  v.setMedia(PLAYING);
+  r.runAll(600);
+  expect(spy).toHaveBeenLastCalledWith([{ x: 337, y: 0, w: 286, h: 42 }]);
+  v.setMedia(NOTHING);
+  r.runAll(600);
+  expect(spy).toHaveBeenLastCalledWith([{ x: 375, y: 0, w: 210, h: 42 }]);
+});
+
+test('without a notch the music is one small pill under the lens: cover left, waves right', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setMedia(PLAYING);
+  expect(shown(root, '.st-pill')).toBe(true);
+  expect(shown(root, '.mu')).toBe(true);
+  expect(root.querySelector('.mu-tab')).toBeNull();
+  // 12 + 14 cover + 8 + 18 waves + 12, centred: the shoulders reach 6 px further.
+  expect(root.querySelector('.st-pill')!.getAttribute('d')).toMatch(/^M -38\.00 0 /);
+  expect(attrs(root.querySelector('.mu-art-bg')!, 'x', 'y', 'width', 'height')).toEqual(['-20', '4', '14', '14']);
+  expect(bars(root).map(b => b.getAttribute('x'))).toEqual(['2', '6', '10', '14', '18']);
+  expect(attrs(bars(root)[0], 'y', 'height')).toEqual(['6', '10']);
+  // A missed dot goes first, then a status after the waves.
+  v.setMissed(true);
+  v.setStatus([st('18:42')]);
+  const dot = root.querySelector('.missed-dot')!;
+  const cover = Number(root.querySelector('.mu-art-bg')!.getAttribute('x'));
+  expect(Number(dot.getAttribute('cx'))).toBeLessThan(cover);
+  expect(Number(root.querySelector('.st-text')!.getAttribute('x'))).toBeGreaterThan(Number(bars(root)[4].getAttribute('x')));
+  v.setMedia(NOTHING);
+  expect(shown(root, '.mu')).toBe(false);
+  expect(shown(root, '.st-pill')).toBe(true);
+});
+
+test('on a lens the music shows only while idle, like the status pill', () => {
+  const r = fakeRaf();
+  const root = document.createElement('div');
+  const c = ctl(null);
+  const v = mountNotch(root, c, deps(r));
+  v.setMedia(PLAYING);
+  c.pointer(true, 0);
+  v.kick();
+  r.runAll(1);
+  expect(shown(root, '.mu')).toBe(false);
+  expect(shown(root, '.st-pill')).toBe(false);
+});
+
+test('nothing playing leaves the notch exactly as without music', () => {
+  const plain = document.createElement('div');
+  const quiet = document.createElement('div');
+  mountNotch(plain, ctl({ width: 190, height: 32 }), deps(fakeRaf())).setStatus([st('18:42')]);
+  const v = mountNotch(quiet, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setStatus([st('18:42')]);
+  v.setMedia(NOTHING);
+  const strip = (root: HTMLElement) => root.querySelector('svg')!.outerHTML.replace(/-\d+"/g, '"').replace(/-\d+\)/g, ')');
+  expect(strip(quiet)).toBe(strip(plain));
+});

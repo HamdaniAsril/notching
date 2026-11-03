@@ -1,5 +1,5 @@
 import { EAR_W, NOTICE_PILL, type NotchController, type Phase } from './controller';
-import { containsPoint, OVERLAY_SIZE, type Rect, hitRects } from './hit';
+import { type Beside, containsPoint, OVERLAY_SIZE, type Rect, hitRects } from './hit';
 import { lensPath, notchPath, notchTabPath, panelFade, panelPath, topPillPath } from './shape';
 
 export interface ViewDeps {
@@ -10,6 +10,7 @@ export interface ViewDeps {
   onQuit: () => void; // Cmd+Q while the panel is open
   onSelect: (id: string) => void; // a page icon in the pill was clicked
   onMore: () => void; // the ⋯ icon was clicked
+  setTimer?: (fn: () => void, ms: number) => () => void; // for the music's pause; setTimeout if left out
 }
 
 // One page icon in the pill; `svg` is one of the fixed icons in src/pages/icons.ts.
@@ -34,6 +35,13 @@ export interface StatusView {
   icon: string | null;
 }
 
+// What plays (MediaSummary in src/bridge.ts): `art` is a data: URL, or null.
+export interface MediaView {
+  playing: boolean;
+  title: string | null;
+  art: string | null;
+}
+
 export interface NotchView {
   kick(): void;
   destroy(): void;
@@ -43,6 +51,7 @@ export interface NotchView {
   setMissed(on: boolean): void; // the dot under the notch while idle
   setStatus(items: StatusView[]): void; // beside the notch, or in a pill on a lens; [] hides it
   setLamp(lamp: LampView | null): void; // Cermin's lamp; null: the usual panel
+  setMedia(m: MediaView | null): void; // the cover and soundwave beside the notch, or in the lens's pill
 }
 
 // Cermin's lamp (design 31 Oct, Cermin §4, cermin-v6.html): a white panel whose
@@ -87,6 +96,31 @@ const PILL_CHAR = 7;
 const PILL_DOT = 14;
 // Between two statuses: a thin line in a 12 px gap.
 const ST_SEP = 12;
+
+// Music beside the notch (design 3 Nov, §5): the cover in a tab left of the
+// notch, the soundwave in one right of it, each in a square box as tall as the
+// notch less 8 px, MU_IN from the notch's edge and MU_OUT from the tab's.
+const MU_IN = 6;
+const MU_OUT = 8;
+// The missed dot's room, left of the cover.
+const MU_DOT = 12;
+// Five bars 2 px wide, 2 px apart, rising from 30 % to 100 % of the wave's height.
+const BARS = 5;
+const BAR_W = 2;
+const BAR_GAP = 2;
+const WAVE_W = BARS * BAR_W + (BARS - 1) * BAR_GAP;
+// Each bar's beat (s), its start within it, and its height where motion is reduced.
+const BAR_BEATS = [1.1, 0.9, 1.3, 1.0, 1.2];
+const BAR_DELAYS = [-0.2, -0.6, -0.1, -0.8, -0.4];
+const BAR_REST = [0.5, 0.8, 1, 0.7, 0.45];
+// On a lens, between the cover and the waves.
+const MU_GAP = 8;
+// Paused, the music stays this long, so a short pause does not flicker.
+export const MUSIC_LINGER_MS = 3000;
+// Volt's accent (--v-acc) and its deep shade (--v-acc-deep): the bars, and the
+// cover of a track without artwork.
+const ACC = '#C8F04A';
+const ACC_DEEP = '#4C6B12';
 
 // The G2 glow from notif-v1.html: a gradient running round the notice's rim.
 const GLOW_STOPS = ['#ff6ec4', '#7873f5', '#4adede', '#ffd166'];
@@ -158,7 +192,21 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   lampGlow.innerHTML = '<feFlood result="c"/><feComposite in="c" in2="SourceAlpha" operator="in" result="s"/>'
     + '<feGaussianBlur in="s" stdDeviation="2" result="near"/><feGaussianBlur in="s" stdDeviation="6" result="far"/>'
     + '<feMerge><feMergeNode in="far"/><feMergeNode in="near"/><feMergeNode in="SourceGraphic"/></feMerge>';
-  defs.append(fade, gradient, blur, white, lampFill, lampGlow);
+  // The cover: a lime gradient, under the artwork clipped to the same rounded square.
+  const muFill = doc.createElementNS(SVG_NS, 'linearGradient');
+  muFill.id = `notch-mu-fill-${uid}`;
+  for (const [k, v] of Object.entries({ x1: '0', y1: '0', x2: '1', y2: '1' })) muFill.setAttribute(k, v);
+  [ACC, ACC_DEEP].forEach((color, i) => {
+    const stop = doc.createElementNS(SVG_NS, 'stop');
+    stop.setAttribute('offset', String(i));
+    stop.setAttribute('stop-color', color);
+    muFill.append(stop);
+  });
+  const muClip = doc.createElementNS(SVG_NS, 'clipPath');
+  muClip.id = `notch-mu-clip-${uid}`;
+  const muClipRect = doc.createElementNS(SVG_NS, 'rect');
+  muClip.append(muClipRect);
+  defs.append(fade, gradient, blur, white, lampFill, lampGlow, muFill, muClip);
   const glow = doc.createElementNS(SVG_NS, 'g');
   glow.setAttribute('class', 'notice-glow');
   // A missed notice: the Volt accent dot, inside the notch widened to the
@@ -184,10 +232,41 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   const stItems = doc.createElementNS(SVG_NS, 'g');
   stItems.setAttribute('class', 'st-items');
   stItems.setAttribute('display', 'none');
+  // The music: a tab left of the notch for the cover (the right one is stShape's),
+  // then the cover and the bars. The bars move by CSS alone (notch.css), and
+  // stop with the group hidden.
+  const muTab = doc.createElementNS(SVG_NS, 'path');
+  muTab.setAttribute('class', 'mu-tab');
+  muTab.setAttribute('display', 'none');
+  const mu = doc.createElementNS(SVG_NS, 'g');
+  mu.setAttribute('class', 'mu');
+  mu.setAttribute('display', 'none');
+  const muBg = doc.createElementNS(SVG_NS, 'rect');
+  muBg.setAttribute('class', 'mu-art-bg');
+  muBg.setAttribute('fill', `url(#${muFill.id})`);
+  const muArt = doc.createElementNS(SVG_NS, 'image');
+  muArt.setAttribute('class', 'mu-art');
+  muArt.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+  muArt.setAttribute('clip-path', `url(#${muClip.id})`);
+  muArt.setAttribute('display', 'none');
+  const muWaves = doc.createElementNS(SVG_NS, 'g');
+  muWaves.setAttribute('class', 'mu-waves');
+  for (let i = 0; i < BARS; i++) {
+    const bar = doc.createElementNS(SVG_NS, 'rect');
+    bar.setAttribute('class', 'mu-bar');
+    bar.setAttribute('width', String(BAR_W));
+    bar.setAttribute('rx', String(BAR_W / 2));
+    bar.setAttribute('fill', ACC);
+    bar.style.setProperty('--mu-t', `${BAR_BEATS[i]}s`);
+    bar.style.setProperty('--mu-d', `${BAR_DELAYS[i]}s`);
+    bar.style.setProperty('--mu-rest', String(BAR_REST[i]));
+    muWaves.append(bar);
+  }
+  mu.append(muBg, muArt, muWaves);
   // Same stacking as the mockups: the lens under the panel, the physical notch over
   // it; the glow just under the panel, so only its rim shows.
-  if (notch) svg.append(defs, glow, panel, liquid, tab, dot, stShape, stItems);
-  else svg.append(defs, liquid, glow, panel, stShape, stItems, dot);
+  if (notch) svg.append(defs, glow, panel, liquid, tab, muTab, stShape, mu, dot, stItems);
+  else svg.append(defs, liquid, glow, panel, stShape, mu, stItems, dot);
 
   // Styles are set through CSSOM only, never as style="" markup, so the page's CSP
   // needs no inline styles.
@@ -226,6 +305,15 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   let glowA = 0;
   let missed = false;
   let statuses: StatusView[] = [];
+  // The music shows while it plays and for MUSIC_LINGER_MS after a pause.
+  let musicOn = false;
+  let playing = false;
+  let art: string | null = null;
+  let cancelLinger: (() => void) | null = null;
+  const setTimer = deps.setTimer ?? ((fn: () => void, ms: number) => {
+    const id = setTimeout(fn, ms);
+    return () => clearTimeout(id);
+  });
 
   // Layout box, not getBoundingClientRect(): the entrance animation scales the pill.
   // offsetLeft ignores the translateX(-50%) that centres it, so subtract half the width.
@@ -302,22 +390,46 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     glow.replaceChildren(rim('5', true), rim('2.2', false));
   }
 
-  // The status shows while the notch rests: beside a notch also under the
-  // pointer, on a lens only while idle, as the lens grows under the pointer.
-  function statusShown(): boolean {
-    return statuses.length > 0 && (c.phase === 'idle' || (notch !== null && c.phase === 'hover'));
+  // The status and the music show while the notch rests: beside a notch also
+  // under the pointer, on a lens only while idle, as the lens grows under the pointer.
+  const resting = () => c.phase === 'idle' || (notch !== null && c.phase === 'hover');
+  const statusShown = () => statuses.length > 0 && resting();
+  const musicShown = () => musicOn && resting();
+
+  // Writes an attribute only when it changes: drawDot runs every frame.
+  function setAttr(el: Element, name: string, value: string): void {
+    if (el.getAttribute(name) !== value) el.setAttribute(name, value);
   }
 
+  // The cover's (and the wave box's) side.
+  const coverSize = () => (notch ? notch.height : PILL_H) - 8;
+  const waveHeight = () => Math.max(10, Math.round(coverSize() * 0.6));
+  // Beside a notch: the left tab, with room for the missed dot when it shows,
+  // and the right one, which holds the statuses after the waves.
+  const leftWidth = (withDot: boolean) => MU_IN + coverSize() + MU_OUT + (withDot ? MU_DOT : 0);
+  const rightWidth = () => MU_IN + (coverSize() + WAVE_W) / 2
+    + (statuses.length > 0 ? ST_SEP + contentWidth() : (coverSize() - WAVE_W) / 2) + MU_OUT;
+
   function drawDot(): void {
-    const show = missed && c.phase === 'idle' ? 'inline' : 'none';
-    const st = statusShown() ? 'inline' : 'none';
-    dot.setAttribute('display', show);
-    tab.setAttribute('display', show);
-    stShape.setAttribute('display', st);
-    stItems.setAttribute('display', st);
+    const idle = c.phase === 'idle';
+    const music = musicShown();
+    const show = missed && idle ? 'inline' : 'none';
+    const side = statusShown() || music ? 'inline' : 'none';
+    setAttr(dot, 'display', show);
+    setAttr(tab, 'display', music ? 'none' : show);
+    setAttr(stShape, 'display', side);
+    setAttr(stItems, 'display', statusShown() ? 'inline' : 'none');
+    setAttr(mu, 'display', music ? 'inline' : 'none');
+    setAttr(muTab, 'display', music && notch ? 'inline' : 'none');
     if (notch) {
-      dot.setAttribute('cy', String(notch.height / 2));
-    } else if (st === 'inline') {
+      if (music) {
+        setAttr(muTab, 'd', notchTabPath(notch, leftWidth(missed && idle)));
+        setAttr(dot, 'cx', String(-notch.width / 2 - MU_IN - coverSize() - MU_DOT / 2 - 3));
+      } else {
+        setAttr(dot, 'cx', String(-notch.width / 2 - MISSED_TAB / 2 + 2));
+      }
+      setAttr(dot, 'cy', String(notch.height / 2));
+    } else if (side === 'inline') {
       // In the pill, left of the text.
       dot.setAttribute('cx', String(-pillHalf() + PILL_PAD + 3));
       dot.setAttribute('cy', String(PILL_H / 2));
@@ -327,8 +439,49 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     }
   }
 
+  // The lens's pill: the music (cover, gap, waves), then the statuses.
+  const musicWidth = () => coverSize() + MU_GAP + WAVE_W;
+  const pillContent = () => (musicOn
+    ? musicWidth() + (statuses.length > 0 ? ST_SEP + contentWidth() : 0)
+    : contentWidth());
+
   function pillHalf(): number {
-    return (2 * PILL_PAD + contentWidth() + (missed ? PILL_DOT : 0)) / 2;
+    return (2 * PILL_PAD + pillContent() + (missed ? PILL_DOT : 0)) / 2;
+  }
+
+  // How far the music's hit area reaches: the tabs beside a notch, with the
+  // dot's room so it does not shrink under the pointer; the pill on a lens.
+  function beside(): Beside | null {
+    if (!musicOn) return null;
+    if (notch) return { left: leftWidth(missed), right: rightWidth() };
+    return { left: pillHalf(), right: pillHalf() };
+  }
+
+  // The cover at (x, y), and the bars in a box from x2, centred on cy.
+  function placeMusic(x: number, y: number, x2: number, cy: number): void {
+    const size = coverSize();
+    const box = { x, y, width: size, height: size, rx: size >= 20 ? 5 : 4 };
+    for (const el of [muBg, muClipRect, muArt]) {
+      for (const [k, v] of Object.entries(box)) el.setAttribute(k, String(v));
+    }
+    muArt.removeAttribute('rx');
+    const h = waveHeight();
+    [...muWaves.children].forEach((bar, i) => {
+      bar.setAttribute('x', String(x2 + i * (BAR_W + BAR_GAP)));
+      bar.setAttribute('y', String(cy - h / 2));
+      bar.setAttribute('height', String(h));
+    });
+  }
+
+  function drawArt(): void {
+    if (art) {
+      setAttr(muArt, 'href', art);
+      setAttr(muArt, 'display', 'inline');
+    } else {
+      muArt.removeAttribute('href');
+      setAttr(muArt, 'display', 'none');
+    }
+    muWaves.classList.toggle('paused', !playing);
   }
 
   // An empty status is the icon alone (Keyboard Cleaning Mode): no gap after it.
@@ -371,13 +524,21 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
 
   // Lays the statuses out left to right from x: beside a notch they end 8 px
   // inside the tab, which grows past STATUS_TAB only when they need it; on a lens
-  // the pill fits the dot, the icons and the texts.
+  // the pill fits the dot, the icons and the texts. With music they follow the
+  // waves, after a separator.
   function layoutStatus(): void {
     stItems.replaceChildren();
-    if (statuses.length === 0) return;
+    if (statuses.length === 0 && !musicOn) return;
     let x: number;
     let cy: number;
-    if (notch) {
+    if (notch && musicOn) {
+      const size = coverSize();
+      cy = notch.height / 2;
+      const bars = notch.width / 2 + MU_IN + (size - WAVE_W) / 2;
+      placeMusic(-notch.width / 2 - MU_IN - size, (notch.height - size) / 2, bars, cy);
+      stShape.setAttribute('d', notchTabPath(notch, rightWidth(), 'right'));
+      x = bars + WAVE_W;
+    } else if (notch) {
       const width = Math.max(STATUS_TAB, contentWidth() + 16);
       stShape.setAttribute('d', notchTabPath(notch, width, 'right'));
       x = notch.width / 2 + width - 8 - contentWidth();
@@ -387,9 +548,13 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
       stShape.setAttribute('d', topPillPath(half, PILL_H));
       x = -half + PILL_PAD + (missed ? PILL_DOT : 0);
       cy = PILL_H / 2;
+      if (musicOn) {
+        placeMusic(x, (PILL_H - coverSize()) / 2, x + coverSize() + MU_GAP, cy);
+        x += musicWidth();
+      }
     }
     statuses.forEach((s, i) => {
-      if (i > 0) {
+      if (i > 0 || musicOn) {
         stItems.append(drawSep(x + ST_SEP / 2, cy));
         x += ST_SEP;
       }
@@ -448,6 +613,42 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     drawDot();
   }
 
+  function showMusic(on: boolean): void {
+    musicOn = on;
+    layoutStatus();
+    drawArt();
+    drawDot();
+    kick();
+  }
+
+  // Shows the music at once while it plays; a pause hides it MUSIC_LINGER_MS
+  // later, nothing left to play (the package off) at once.
+  function setMedia(m: MediaView | null): void {
+    playing = m?.playing ?? false;
+    const something = m !== null && (m.playing || m.title !== null || m.art !== null);
+    if (playing || !something) {
+      cancelLinger?.();
+      cancelLinger = null;
+    }
+    if (playing) {
+      art = m!.art;
+      if (musicOn) {
+        drawArt();
+      } else {
+        showMusic(true);
+      }
+    } else if (!something) {
+      if (musicOn) showMusic(false);
+    } else if (musicOn) {
+      art = m!.art;
+      drawArt();
+      cancelLinger ??= setTimer(() => {
+        cancelLinger = null;
+        showMusic(false);
+      }, MUSIC_LINGER_MS);
+    }
+  }
+
   // Changes the SVG and asks for one frame; nothing runs while the status rests.
   function setStatus(items: StatusView[]): void {
     statuses = items;
@@ -463,7 +664,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   }
 
   function report(): void {
-    const rects = hitRects(c, c.pillVisible ? pillRect() : null).map(r => ({
+    const rects = hitRects(c, c.pillVisible ? pillRect() : null, beside()).map(r => ({
       x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h),
     }));
     const key = JSON.stringify(rects);
@@ -502,7 +703,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   function onClick(e: MouseEvent): void {
     if (c.phase === 'open') return;
     const box = root.getBoundingClientRect();
-    if (containsPoint(hitRects(c, null), e.clientX - box.left, e.clientY - box.top)) {
+    if (containsPoint(hitRects(c, null, beside()), e.clientX - box.left, e.clientY - box.top)) {
       c.click();
       kick();
     }
@@ -531,7 +732,10 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     setMissed,
     setStatus,
     setLamp,
+    setMedia,
     destroy(): void {
+      cancelLinger?.();
+      cancelLinger = null;
       if (rafId !== null) deps.caf(rafId);
       rafId = null;
       doc.removeEventListener('click', onClick);

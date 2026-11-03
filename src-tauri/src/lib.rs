@@ -119,6 +119,7 @@ pub fn run() {
             status::get_status,
             status::set_sample_status,
             status::set_status_shown,
+            media_service::get_media,
             module_commands::set_module_enabled,
             module_commands::uninstall_module,
             module_commands::reinstall_module,

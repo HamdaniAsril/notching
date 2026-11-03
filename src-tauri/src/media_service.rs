@@ -17,7 +17,7 @@ use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::app_core::CoreState;
 
@@ -29,6 +29,8 @@ const SILENCE: Duration = Duration::from_secs(30);
 /// A helper that ran this long starts the waits from 1 s again.
 const STEADY: Duration = Duration::from_secs(60);
 const LONGEST_WAIT_S: u64 = 30;
+/// Sent to every window with a MediaSummary when it changes (design 3 Nov, §5).
+pub const MEDIA_EVENT: &str = "notching://media";
 
 /// One line of the helper. With nothing playing every field is null and `rate` 0.
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -59,6 +61,28 @@ pub struct NowDto {
     now: NowPlaying,
     on: bool,
 }
+
+/// What the notch shows beside itself: the cover while something plays. Same
+/// shape as MediaSummary in src/bridge.ts. Position and duration are left out,
+/// so the event goes only when playing, the track or the picture changes.
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct MediaSummary {
+    pub playing: bool,
+    pub title: Option<String>,
+    pub art: Option<String>,
+}
+
+impl MediaSummary {
+    fn of(now: Option<&NowPlaying>) -> MediaSummary {
+        match now {
+            Some(n) => MediaSummary { playing: n.rate > 0.0, title: n.title.clone(), art: n.art.clone() },
+            None => MediaSummary::default(),
+        }
+    }
+}
+
+/// Hears each changed summary; called under the service's lock, so they arrive in order.
+type Notify = Arc<dyn Fn(&MediaSummary) + Send + Sync>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Command {
@@ -154,6 +178,23 @@ struct Control {
     on: bool,
     helper: Option<Helper>,
     latest: Option<NowPlaying>,
+    /// The summary last sent; nothing playing until the first is.
+    sent: MediaSummary,
+    notify: Option<Notify>,
+}
+
+impl Control {
+    /// Keeps `now` as the latest state and sends the summary if it changed.
+    fn store(&mut self, now: Option<NowPlaying>) {
+        self.latest = now;
+        let next = MediaSummary::of(self.latest.as_ref());
+        if next != self.sent {
+            self.sent = next;
+            if let Some(notify) = &self.notify {
+                notify(&self.sent);
+            }
+        }
+    }
 }
 
 type Shared = Arc<(Mutex<Control>, Condvar)>;
@@ -175,7 +216,13 @@ fn helper_files(app: &AppHandle) -> Option<(PathBuf, PathBuf)> {
 }
 
 pub fn start(app: &AppHandle) {
-    app.manage(MediaService(Arc::new((Mutex::new(Control::default()), Condvar::new()))));
+    // The emit only queues the script for each webview: safe under the lock.
+    let handle = app.clone();
+    let notify: Notify = Arc::new(move |summary: &MediaSummary| {
+        let _ = handle.emit(MEDIA_EVENT, summary);
+    });
+    let control = Control { notify: Some(notify), ..Control::default() };
+    app.manage(MediaService(Arc::new((Mutex::new(control), Condvar::new()))));
     if enabled(app) {
         switch_on(app);
     }
@@ -209,6 +256,12 @@ pub fn now(app: &AppHandle) -> NowDto {
         Some(now) => NowDto { now: now.clone(), on: true },
         None => NowDto { now: NowPlaying::default(), on: false },
     }
+}
+
+/// What the notch shows beside itself now.
+#[tauri::command]
+pub fn get_media(app: AppHandle) -> MediaSummary {
+    app.state::<MediaService>().0.0.lock().unwrap().sent.clone()
 }
 
 pub fn send(app: &AppHandle, command: Command) -> Result<serde_json::Value, String> {
@@ -255,7 +308,7 @@ fn switch_off(shared: &Shared) {
         }
         control.on = false;
         control.run += 1;
-        control.latest = None;
+        control.store(None);
         control.helper.take()
     };
     shared.1.notify_all();
@@ -295,7 +348,7 @@ fn supervise(shared: &Shared, run: u64, script: &Path, lib: &Path) {
             if control.run != run {
                 return;
             }
-            control.latest = None;
+            control.store(None);
             control.helper.take()
         };
         if let Some(helper) = gone {
@@ -339,7 +392,7 @@ fn listen(shared: &Shared, run: u64, stdout: ChildStdout) {
                 let Some(now) = parse_line(&line) else { continue };
                 let mut control = shared.0.lock().unwrap();
                 if control.run == run {
-                    control.latest = Some(now);
+                    control.store(Some(now));
                 }
             }
             Err(RecvTimeoutError::Timeout) => {
@@ -490,6 +543,63 @@ while (my $w = <STDIN>) { chomp $w; print qq({"title":"$w","rate":1,"at":2}\n); 
         let after = starts(&log);
         std::thread::sleep(Duration::from_millis(2500));
         assert_eq!(starts(&log), after, "a helper started after the switch off");
+    }
+
+    fn heard() -> (Control, Arc<Mutex<Vec<MediaSummary>>>) {
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let sink = Arc::clone(&log);
+        let notify: Notify = Arc::new(move |s: &MediaSummary| sink.lock().unwrap().push(s.clone()));
+        (Control { notify: Some(notify), ..Control::default() }, log)
+    }
+
+    fn line(json: &str) -> Option<NowPlaying> {
+        Some(parse_line(json.as_bytes()).unwrap())
+    }
+
+    #[test]
+    fn the_summary_goes_out_only_when_it_changes() {
+        let (mut c, log) = heard();
+        c.store(line(r#"{"title":null,"rate":0,"at":1}"#));
+        assert!(log.lock().unwrap().is_empty(), "nothing playing at the start is not news");
+        c.store(line(r#"{"title":"Jalan Braga","elapsed":134.5,"rate":1,"at":2,"art":"data:image/jpeg;base64,AAAA"}"#));
+        // The elapsed time ticks, the clock moves, the artist line changes: no event.
+        c.store(line(r#"{"title":"Jalan Braga","elapsed":144.5,"rate":1,"at":12,"art":"data:image/jpeg;base64,AAAA"}"#));
+        c.store(line(r#"{"title":"Jalan Braga","artist":"Kolektif Senja","elapsed":154.5,"rate":1,"at":22,"art":"data:image/jpeg;base64,AAAA"}"#));
+        c.store(line(r#"{"title":"Jalan Braga","elapsed":155.0,"rate":0,"at":23,"art":"data:image/jpeg;base64,AAAA"}"#));
+        c.store(line(r#"{"title":"Jalan Braga","elapsed":155.0,"rate":0,"at":33,"art":"data:image/jpeg;base64,AAAA"}"#));
+        c.store(line(r#"{"title":"Senja","rate":1,"at":40}"#));
+        c.store(None);
+        c.store(None);
+        let art = Some("data:image/jpeg;base64,AAAA".to_string());
+        let braga = Some("Jalan Braga".to_string());
+        assert_eq!(*log.lock().unwrap(), vec![
+            MediaSummary { playing: true, title: braga.clone(), art: art.clone() },
+            MediaSummary { playing: false, title: braga, art },
+            MediaSummary { playing: true, title: Some("Senja".into()), art: None },
+            MediaSummary::default(),
+        ]);
+        assert_eq!(c.sent, MediaSummary::default());
+    }
+
+    #[test]
+    fn a_rate_above_zero_is_playing() {
+        assert!(MediaSummary::of(line(r#"{"title":"x","rate":0.5,"at":1}"#).as_ref()).playing);
+        assert!(!MediaSummary::of(line(r#"{"title":"x","rate":0,"at":1}"#).as_ref()).playing);
+        assert!(!MediaSummary::of(None).playing);
+    }
+
+    #[test]
+    fn switching_off_sends_nothing_playing_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let (script, log) = fake(dir.path(), ECHO);
+        let (control, sent) = heard();
+        let s: Shared = Arc::new((Mutex::new(control), Condvar::new()));
+        begin(&s, script, log);
+        wait_for("the first line", || title(&s).as_deref() == Some("first"));
+        switch_off(&s);
+        switch_off(&s);
+        let titles: Vec<(bool, Option<String>)> = sent.lock().unwrap().iter().map(|m| (m.playing, m.title.clone())).collect();
+        assert_eq!(titles, vec![(true, Some("first".into())), (false, None)]);
     }
 
     #[test]

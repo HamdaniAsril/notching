@@ -421,6 +421,70 @@ test('the status hides while a notice or the panel shows', async () => {
   expect(statusShown(root)).toBe(false);
 });
 
+// Music beside the notch (design 3 Nov, §5).
+const musicShown = (root: HTMLElement) => root.querySelector('.mu')?.getAttribute('display') === 'inline';
+const PLAYING = { playing: true, title: 'Jalan Braga', art: 'data:image/png;base64,AAAA' };
+
+test('music playing at start shows its cover and soundwave while the panel is closed', async () => {
+  const root = document.createElement('div');
+  document.body.append(root);
+  const bridge = fakeBridge(TEST_STATE);
+  bridge.media.mockResolvedValue(PLAYING);
+  const r = fakeRaf();
+  const app = await startApp(root, bridge, { raf: r.raf, caf: r.caf, setTimer: timers.setTimer });
+  expect(musicShown(root)).toBe(true);
+  expect(root.querySelector('.mu-art')!.getAttribute('href')).toBe(PLAYING.art);
+  open(app, r);
+  expect(musicShown(root)).toBe(false);
+  close(app, r);
+  expect(musicShown(root)).toBe(true);
+});
+
+test('the media event shows and hides the music, a pause 3 s later', async () => {
+  const { root, bridge } = await start();
+  expect(musicShown(root)).toBe(false);
+  bridge.emitMedia(PLAYING);
+  expect(musicShown(root)).toBe(true);
+  bridge.emitMedia({ ...PLAYING, playing: false });
+  timers.advance(2999);
+  expect(musicShown(root)).toBe(true);
+  timers.advance(1);
+  expect(musicShown(root)).toBe(false);
+});
+
+test('a notice hides the music; it comes back once the notice is over', async () => {
+  const { root, app, bridge, r } = await start();
+  bridge.emitMedia(PLAYING);
+  bridge.emitNotice(notice('Kirim invoice'));
+  r.runAll(120);
+  expect(app.controller.phase).toBe('notify');
+  expect(musicShown(root)).toBe(false);
+  timers.advance(3640);
+  r.runAll(600);
+  expect(app.controller.phase).toBe('idle');
+  expect(musicShown(root)).toBe(true);
+});
+
+test('a media read that fails leaves nothing beside the notch', async () => {
+  const root = document.createElement('div');
+  document.body.append(root);
+  const bridge = fakeBridge(TEST_STATE);
+  bridge.media.mockRejectedValue(new Error('no media service'));
+  const r = fakeRaf();
+  await startApp(root, bridge, { raf: r.raf, caf: r.caf, setTimer: timers.setTimer });
+  expect(musicShown(root)).toBe(false);
+});
+
+test('the media listener goes with the app', async () => {
+  const { app, bridge, r } = await start();
+  r.runAll(600);
+  app.destroy();
+  bridge.emitMedia(PLAYING);
+  // A listener left behind would draw the music and ask for a frame.
+  expect(r.pending()).toBe(0);
+  expect(document.querySelector('.mu')).toBeNull();
+});
+
 // Titipan (design 1 Nov).
 const shelfInfo = (over = {}) => moduleInfo('shelf', {
   name: 'Titipan', shortName: 'Titipan', entry: null, card: null, status: true,

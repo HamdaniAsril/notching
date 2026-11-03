@@ -184,3 +184,31 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+/* The soundwave beside the notch while music plays (view.ts, design 3 Nov §5):
+   each bar grows from 30 % to 100 % of its height and back, on its own beat
+   (--mu-t, 0.9–1.3 s) and start (--mu-d), so they rise and fall in turn. CSS
+   only: the group is display none while hidden, which stops it; paused in the
+   seconds after a pause. */
+.mu-bar {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mu-wave var(--mu-t, 1.1s) ease-in-out var(--mu-d, 0s) infinite alternate;
+}
+
+.mu-waves.paused .mu-bar {
+  animation-play-state: paused;
+}
+
+@keyframes mu-wave {
+  from { transform: scaleY(0.3); }
+  to { transform: scaleY(1); }
+}
+
+/* Reduced motion: still bars of different heights. */
+@media (prefers-reduced-motion: reduce) {
+  .mu-bar {
+    animation: none;
+    transform: scaleY(var(--mu-rest, 0.6));
+  }
+}

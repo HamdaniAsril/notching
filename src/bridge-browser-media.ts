@@ -1,3 +1,4 @@
+import type { MediaSummary } from './bridge';
 import type { NowState } from '../modules/musik/now';
 
 const DURATION = 228;
@@ -7,7 +8,15 @@ const START = 214;
 // src-tauri/src/media_service.rs does: `now` and `command`. The track is "Jalan Braga" with no
 // artwork, 214 of 228 s in, playing; it starts over when it ends. `?media=off` is a Mac with
 // nothing playing, `?media=art` gives the track a picture and `?media=long` very long names.
-export function fakeMedia(mode: string | null = null, now: () => number = Date.now): (method: string, args: unknown) => NowState | { ok: true } {
+// `summary` and `onSummary` are the notch's view of the same track (bridge.media, bridge.onMedia):
+// a command that plays or pauses it is heard there, as notching://media is.
+export interface FakeMedia {
+  (method: string, args: unknown): NowState | { ok: true };
+  summary(): MediaSummary;
+  onSummary(cb: (m: MediaSummary) => void): () => void;
+}
+
+export function fakeMedia(mode: string | null = null, now: () => number = Date.now): FakeMedia {
   let elapsed = START;
   let at = now();
   let rate = 1;
@@ -23,7 +32,11 @@ export function fakeMedia(mode: string | null = null, now: () => number = Date.n
     : null;
   const title = mode === 'long' ? 'Jalan Braga di Malam Hari Ketika Hujan Turun Perlahan dan Lampu Kota Menyala' : 'Jalan Braga';
   const artist = mode === 'long' ? 'Kolektif Senja bersama Orkes Pantai Selatan dan Teman-teman' : 'Kolektif Senja';
-  return (method, args) => {
+  const subs = new Set<(m: MediaSummary) => void>();
+  const summary = (): MediaSummary => (mode === 'off'
+    ? { playing: false, title: null, art: null }
+    : { playing: rate > 0, title, art });
+  const call = (method: string, args: unknown): NowState | { ok: true } => {
     if (method === 'now') {
       if (mode === 'off') {
         return { on: false, title: null, artist: null, album: null, duration: null, elapsed: null, rate: 0, at: now(), app: null, art: null };
@@ -48,8 +61,17 @@ export function fakeMedia(mode: string | null = null, now: () => number = Date.n
         at = now();
         rate = args === 'play' ? 1 : 0;
       }
+      if (summary().playing !== sent.playing) {
+        sent = summary();
+        subs.forEach(cb => cb(sent));
+      }
       return { ok: true };
     }
     throw new Error(`unknown method ${method}`);
   };
+  let sent = summary();
+  return Object.assign(call, {
+    summary: () => sent,
+    onSummary: (cb: (m: MediaSummary) => void) => { subs.add(cb); return () => { subs.delete(cb); }; },
+  });
 }
