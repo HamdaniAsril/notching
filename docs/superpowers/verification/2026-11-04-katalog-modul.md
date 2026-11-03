@@ -41,3 +41,18 @@ Pengaturan pemilik dicadangkan dulu di `~/Library/Application Support/id.web.not
 | Pembantu Now playing tidak jalan saat Musik tercopot | Lulus | `pgrep -fl np.pl` tidak menemukan apa-apa. |
 | Posisi widget di Beranda tetap disimpan | Lulus | `settings.json` setelah app mulai masih berisi `sekitar/sun` dan strip `sekitar/hourly` di halaman `home`. |
 | Log tanpa error | Lulus | `katalog-uji.log` dan `katalog-uji-2.log` (build `a8c059b`) hanya berisi baris pendaftaran tombol screenshot. |
+
+### Dicoba pemilik (build `a8c059b`)
+
+Pemilik membuka Katalog, memasang Sekitar dan Musik, lalu mencopot dan memasang lagi Cermin. Pemilik melaporkan "sudah". Laporan itu dicocokkan dengan file:
+
+| Cek | Hasil | Bukti di file |
+|---|---|---|
+| Pasang Sekitar dan Musik | Lulus | Folder `modules/sekitar` dan `modules/musik` dibuat pukul 00.38. `uninstalledModules` kosong. |
+| Pembantu Now playing jalan lagi setelah Musik dipasang | Lulus | Satu proses `np.pl` dari build uji. |
+| Copot lalu Pasang Cermin | Lulus | Folder `modules/mirror` disalin ulang pukul 00.39. Modul lain tetap pukul 00.29. |
+| Widget Beranda kembali | Lulus | Halaman `home` tetap berisi `sekitar/sun` dan strip `sekitar/hourly`; paketnya kini terpasang. |
+| Pengaturan sama dengan sebelum pengujian | Lulus | `settings.json` sama persis dengan cadangan `before-katalog/settings.json`. |
+| Tidak ada sisa proses | Lulus | Build uji ditutup dengan SIGTERM tanpa sisa perl. Notching di `/Applications` dibuka lagi dengan satu proses perl. |
+
+Log build uji hanya berisi pendaftaran tombol screenshot dan satu peringatan AppKit "Window move completed without beginning". Peringatan ini tidak berkaitan dengan katalog.
