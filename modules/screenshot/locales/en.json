@@ -11,6 +11,7 @@
     "other": { "title": "{keys} is taken by another app" },
     "otherMany": { "title": "{keys} are taken by another app" },
     "access": { "title": "Screenshot needs Screen Recording access", "detail": "Open Screenshot to allow it" },
-    "failed": { "title": "The screenshot wasn't taken", "detail": "Try once more" }
+    "failed": { "title": "The screenshot wasn't taken", "detail": "Try once more" },
+    "freed": { "title": "{keys} now go to Notching" }
   }
 }

@@ -43,12 +43,26 @@ const NAV: [SectionId, IconName][] = [
 
 const FOUND_MS = 1200;
 
+const SECTIONS: SectionId[] = [...NAV.map(([id]) => id), 'about'];
+
+// A page asked for from outside, as lastPage writes it: a section, or
+// "module:<id>" (design 3 Nov tombol §6). Anything else is null.
+export function parseRoute(s: string | null): Route | null {
+  if (!s) return null;
+  if (s.startsWith('module:')) {
+    const id = s.slice('module:'.length);
+    return id ? { page: 'module', id } : null;
+  }
+  return SECTIONS.find(id => id === s) ? { page: s as SectionId } : null;
+}
+
 // The settings window: sidebar with search, and a pane rebuilt from state.
-export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, env: SettingsEnv): Promise<SettingsApp> {
+// `start`: the page to open at, else Umum.
+export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, env: SettingsEnv, start?: Route | null): Promise<SettingsApp> {
   const doc = root.ownerDocument;
   let [state, info]: [ModuleState, SettingsInfo] = await Promise.all([bridge.moduleState(), bridge.settings()]);
   applyAccent(doc.documentElement, state.accent);
-  let route: Route = { page: 'general' };
+  let route: Route = start ?? { page: 'general' };
   let cleanups: (() => void)[] = [];
 
   const side = el('nav', 'side');
@@ -225,6 +239,13 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
     if (!echo) render();
   });
   const offInfo = bridge.onSettings(next => { info = next; render(); });
+  // Asked from the notch while open, e.g. Screenshot's "use my own keys".
+  const offGo = bridge.onGo(next => {
+    const to = parseRoute(next);
+    if (!to) return;
+    searchInput.value = '';
+    go(to);
+  });
   render();
 
   return {
@@ -234,6 +255,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
       doc.removeEventListener('keydown', onKey);
       offState();
       offInfo();
+      offGo();
       cleanups.splice(0).forEach(fn => fn());
       root.replaceChildren();
     },

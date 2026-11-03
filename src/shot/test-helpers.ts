@@ -1,6 +1,11 @@
 import { vi } from 'vitest';
-import type { Shot, ShotEvent, ShotKeys } from '../bridge';
+import type { KeyState, Shot, ShotEvent, ShotKeys } from '../bridge';
 import type { Lang } from '../kit/protocol';
+
+// How the two keys stand, as the core sends them; ⌘⇧3 and ⌘⇧4 unless labels say else.
+export const shotKeys = (screen: KeyState = 'ok', pick: KeyState = 'ok', labels = { screen: '⌘⇧3', pick: '⌘⇧4' }): ShotKeys => ({
+  screen, pick, labels, custom: labels.screen !== '⌘⇧3' || labels.pick !== '⌘⇧4',
+});
 
 // A screenshot as the core sends it, its pictures at their notchshot: URLs.
 export const shot = (id: number, over: Partial<Shot> = {}): Shot => ({
@@ -23,9 +28,11 @@ export function fakeShotDeps(over: { lang?: Lang; now?: () => number } = {}) {
     shotTakeScreen: vi.fn(async () => {}),
     shotPick: vi.fn(async (_mode: 'window' | 'area') => {}),
     shotStartDrag: vi.fn(async (_id: number) => {}),
-    shotKeys: vi.fn(async (): Promise<ShotKeys> => ({ screen: 'ok', pick: 'ok' })),
+    shotKeys: vi.fn(async (): Promise<ShotKeys> => shotKeys()),
     shotPermission: vi.fn(async () => true),
     openKeyboardShortcuts: vi.fn(async () => {}),
+    shotTurnOffMac: vi.fn(async () => {}),
+    openShotKeySettings: vi.fn(async () => {}),
     openScreenRecordingSettings: vi.fn(async () => {}),
     openEditor: vi.fn(async (_id: number) => {}),
     onShot: vi.fn((cb: (e: ShotEvent) => void) => { subs.add(cb); return () => { subs.delete(cb); }; }),

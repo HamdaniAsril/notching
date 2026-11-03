@@ -1,6 +1,6 @@
 import { browserSettingsBridge } from './bridge-browser';
 import { tauriSettingsBridge } from './bridge-tauri';
-import { mountSettings } from './shell';
+import { mountSettings, parseRoute } from './shell';
 
 async function start(): Promise<void> {
   const root = document.getElementById('settings-root')!;
@@ -14,7 +14,7 @@ async function start(): Promise<void> {
       const id = setTimeout(fn, ms);
       return () => clearTimeout(id);
     },
-  });
+  }, parseRoute(new URLSearchParams(location.search).get('route')));
 }
 
 void start();

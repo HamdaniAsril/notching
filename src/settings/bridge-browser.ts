@@ -1,3 +1,4 @@
+import type { KeyState, ShotKeys } from '../bridge';
 import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
 import type { ModuleInfo, ModuleState, Page } from '../modules/types';
@@ -19,6 +20,9 @@ export const PAGES_CHANNEL = 'notching-pages';
 
 export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   const deviceLang: Lang = params.get('lang') === 'en' ? 'en' : 'id';
+  // Screenshot's keys as recorded here; labels made up from the key's code.
+  let labels = { screen: '⌘⇧3', pick: '⌘⇧4' };
+  const browserKeys = (k: KeyState): ShotKeys => ({ screen: k, pick: k, labels, custom: labels.screen !== '⌘⇧3' || labels.pick !== '⌘⇧4' });
   let info: SettingsInfo = {
     language: 'auto',
     screen: null,
@@ -52,6 +56,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     onModuleState: cb => { stateSubs.add(cb); return () => stateSubs.delete(cb); },
     settings: async () => info,
     onSettings: cb => { infoSubs.add(cb); return () => infoSubs.delete(cb); },
+    onGo: () => () => {},
     setLanguage: async (language: LanguageChoice) => {
       const lang: Lang = language === 'auto' ? deviceLang : language;
       // Names follow the language; on/off and installed stay as they were.
@@ -97,7 +102,18 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setStatusShown: async (id, on) => setModule(id, { statusShown: on }),
     openAccessibility: async () => {},
     openScreenRecordingSettings: async () => console.info('openScreenRecordingSettings'),
-    shotKeys: async () => { const k = params.get('keys') === 'mac' ? 'mac' : 'ok'; return { screen: k, pick: k }; }, // ?keys=mac
+    shotKeys: async () => browserKeys(params.get('keys') === 'mac' ? 'mac' : 'ok'), // ?keys=mac
+    shotSetKey: async (which, key) => {
+      if (!key.cmd && !key.ctrl && !key.alt) throw 'invalid';
+      const mods = `${key.ctrl ? '⌃' : ''}${key.alt ? '⌥' : ''}${key.cmd ? '⌘' : ''}${key.shift ? '⇧' : ''}`;
+      labels = { ...labels, [which]: mods + key.code.replace(/^(Key|Digit)/, '') };
+      return browserKeys('ok');
+    },
+    shotResetKeys: async () => {
+      labels = { screen: '⌘⇧3', pick: '⌘⇧4' };
+      return browserKeys('ok');
+    },
+    shotKeysHold: async hold => console.info('shotKeysHold', hold),
     openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
     openFullDiskAccessSettings: async () => console.info('openFullDiskAccessSettings'),
     cleanerExclusions: async () => ({ home: '/Users/a', paths: ['/Users/a/Library/Caches/com.spotify.client'] }),

@@ -24,9 +24,9 @@
       "area": "Area"
     },
     "hints": {
-      "screen": "⌘⇧3",
-      "window": "⌘⇧4 + klik",
-      "area": "⌘⇧4 + tarik"
+      "screen": "{key}",
+      "window": "{key} + klik",
+      "area": "{key} + tarik"
     },
     "edit": "Klik untuk edit",
     "copied": "Tersalin ke clipboard",
@@ -37,10 +37,20 @@
     "copyFailed": "Gagal menyalin",
     "delete": "Hapus",
     "title": "Screenshot · {n}",
-    "empty": "Tekan ⌘⇧3 atau ⌘⇧4 untuk screenshot pertama",
+    "empty": "Tekan {screen} atau {pick} untuk screenshot pertama",
     "macKeys": "{keys} masih dipakai screenshot bawaan Mac",
     "otherKeys": "{key} dipakai app lain",
     "otherKeysMany": "{key} dipakai app lain",
+    "shortcutKeys": "{keys} dipakai pintasan Mac",
+    "setup": {
+      "label": "Screenshot",
+      "macTitle": "{keys} masih dipakai Mac",
+      "otherTitle": "{keys} dipakai app lain",
+      "macText": "Matikan screenshot bawaan Mac, atau pakai tombol sendiri untuk Notching.",
+      "otherText": "Pilih tombol lain untuk Notching.",
+      "turnOff": "Matikan bawaan Mac",
+      "own": "Pakai tombol sendiri"
+    },
     "and": " dan ",
     "permission": "Screenshot butuh izin Perekaman Layar",
     "openSettings": "Buka Pengaturan Sistem",
@@ -274,6 +284,19 @@
       "status": "Status di samping notch",
       "statusHint": "Tampil saat panel tertutup."
     },
+    "shotKeys": {
+      "title": "Tombol",
+      "screen": "Seluruh layar",
+      "pick": "Window atau area",
+      "recording": "Tekan tombol…",
+      "invalid": "Pakai ⌘, ⌃, atau ⌥ dengan satu tombol",
+      "duplicate": "Sudah dipakai untuk {row}",
+      "reset": "Kembalikan ke ⌘⇧3 dan ⌘⇧4",
+      "mac": "Dipakai screenshot bawaan Mac",
+      "shortcut": "Dipakai pintasan Mac",
+      "other": "Dipakai app lain",
+      "open": "Buka Pengaturan Sistem"
+    },
     "permissions": {
       "sub": "Belum ada modul yang butuh izin sistem.",
       "note": "Kalau nanti ada, di sini kamu lihat izin apa, untuk apa, dan modul mana yang memakainya.",
@@ -355,6 +378,7 @@
     },
     "keywords": {
       "accent": "warna aksen tema hijau lime warna sendiri accent colour color",
+      "shotKeys": "tombol pintasan shortcut keyboard screenshot cmd shift ⌘⇧3 ⌘⇧4",
       "language": "bahasa indonesia inggris english language otomatis",
       "screen": "layar monitor eksternal display screen",
       "login": "login masuk mulai startup otomatis",

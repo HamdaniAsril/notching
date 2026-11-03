@@ -4,7 +4,7 @@
 use tauri::webview::PageLoadEvent;
 use tauri::window::{Effect, EffectState, EffectsBuilder};
 use tauri::{
-    ActivationPolicy, AppHandle, Emitter, Manager, State, TitleBarStyle, WebviewUrl, WebviewWindow,
+    ActivationPolicy, AppHandle, Emitter, EventTarget, Manager, State, TitleBarStyle, WebviewUrl, WebviewWindow,
     WebviewWindowBuilder, WindowEvent,
 };
 
@@ -19,6 +19,8 @@ pub const SETTINGS_LABEL: &str = "settings";
 /// Broadcast whenever anything in SettingsDto changes.
 pub const SETTINGS_EVENT: &str = "notching://settings";
 pub const SETTINGS_SIZE: (f64, f64) = (680.0, 600.0);
+// Tells an open settings window to go to a page (src/settings/shell.ts parseRoute).
+const GO_EVENT: &str = "notching://settings-go";
 
 // Two ⋯ clicks close together must not both build the window: the second build
 // fails, and its clean-up would take the Dock icon from the open window. The
@@ -121,10 +123,33 @@ pub fn set_screen(app: AppHandle, core: State<CoreState>, name: Option<String>) 
 /// synchronous command can deadlock.
 #[tauri::command]
 pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    open(app, window, None)
+}
+
+/// As `open_settings`, at a page (`module:screenshot`, design 3 Nov tombol §6). A
+/// window already open is told to go there.
+#[tauri::command]
+pub async fn open_settings_at(app: AppHandle, window: WebviewWindow, route: String) -> Result<(), String> {
+    open(app, window, Some(route))
+}
+
+/// The page a new settings window opens at: `settings.html?route=…`. Only the
+/// characters a route has pass; anything else opens at Umum.
+pub fn settings_url(route: Option<&str>) -> String {
+    match route.filter(|r| !r.is_empty() && r.chars().all(|c| c.is_ascii_alphanumeric() || "-_:".contains(c))) {
+        Some(r) => format!("settings.html?route={r}"),
+        None => "settings.html".into(),
+    }
+}
+
+fn open(app: AppHandle, window: WebviewWindow, route: Option<String>) -> Result<(), String> {
     let _opening = OPENING.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(existing) = app.get_webview_window(SETTINGS_LABEL) {
         let _ = app.set_activation_policy(ActivationPolicy::Regular);
         let _ = existing.unminimize();
+        if let Some(route) = route {
+            let _ = existing.emit_to(EventTarget::webview_window(SETTINGS_LABEL), GO_EVENT, route);
+        }
         existing.show().map_err(|e| e.to_string())?;
         return existing.set_focus().map_err(|e| e.to_string());
     }
@@ -132,7 +157,8 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
     let screen = app.state::<Overlays>().0.lock().unwrap().get(window.label()).map(|e| e.screen.frame);
     let _ = app.set_activation_policy(ActivationPolicy::Regular);
     let (w, h) = SETTINGS_SIZE;
-    let mut builder = WebviewWindowBuilder::new(&app, SETTINGS_LABEL, WebviewUrl::App("settings.html".into()))
+    let url = settings_url(route.as_deref());
+    let mut builder = WebviewWindowBuilder::new(&app, SETTINGS_LABEL, WebviewUrl::App(url.into()))
         .title("Notching")
         .inner_size(w, h)
         .min_inner_size(600.0, 480.0)
@@ -171,10 +197,11 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
 
     let handle = app.clone();
     settings.on_window_event(move |event| {
-        if let WindowEvent::Destroyed = event
-            && !keep_regular(false, handle.get_webview_window(EDITOR_LABEL).is_some())
-        {
-            let _ = handle.set_activation_policy(ActivationPolicy::Accessory);
+        if let WindowEvent::Destroyed = event {
+            crate::shot_hotkey::settings_closed(&handle);
+            if !keep_regular(false, handle.get_webview_window(EDITOR_LABEL).is_some()) {
+                let _ = handle.set_activation_policy(ActivationPolicy::Accessory);
+            }
         }
     });
 
@@ -195,6 +222,16 @@ pub async fn open_settings(app: AppHandle, window: WebviewWindow) -> Result<(), 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_new_window_opens_at_the_route() {
+        assert_eq!(settings_url(None), "settings.html");
+        assert_eq!(settings_url(Some("module:screenshot")), "settings.html?route=module:screenshot");
+        assert_eq!(settings_url(Some("modules")), "settings.html?route=modules");
+        assert_eq!(settings_url(Some("")), "settings.html");
+        assert_eq!(settings_url(Some("a&b=c")), "settings.html");
+        assert_eq!(settings_url(Some("x#y")), "settings.html");
+    }
 
     // The settings window reads these names (SettingsInfo in src/settings/types.ts).
     #[test]

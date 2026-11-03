@@ -4,7 +4,8 @@ import type { Lang } from '../kit/protocol';
 // What Screenshot's pages ask of the core, as the bridge has it.
 export type ShotBridge = Pick<Bridge,
   | 'shotCopy' | 'shotSave' | 'shotDelete' | 'shotTakeScreen' | 'shotPick' | 'shotStartDrag' | 'shotKeys'
-  | 'shotPermission' | 'openKeyboardShortcuts' | 'openScreenRecordingSettings' | 'openEditor' | 'onShot'>;
+  | 'shotPermission' | 'openKeyboardShortcuts' | 'openScreenRecordingSettings' | 'openEditor' | 'onShot'
+  | 'shotTurnOffMac' | 'openShotKeySettings'>;
 
 export interface ShotDeps extends ShotBridge {
   lang: Lang;

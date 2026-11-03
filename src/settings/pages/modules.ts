@@ -1,26 +1,150 @@
+import type { ShotKeys } from '../../bridge';
 import { fill, hostStrings } from '../../i18n';
 import { formatBytes } from '../../kit/format';
 import { isModule, type ModuleInfo } from '../../modules/types';
-import { keyNotices } from '../../shot/keys';
+import { DEFAULT_LABELS } from '../../shot/keys';
 import { button, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
 import type { PageContext, PageRender } from '../types';
 
 export const UNINSTALL_CONFIRM_MS = 4000;
 
-// Screenshot's page (design 1 Nov §4, §10): when ⌘⇧3 or ⌘⇧4 does not reach
-// Notching, why. The Mac's own screenshots can be turned off in System Settings,
-// so that line gets a button there; another app's key has none. Nothing shows
-// while the keys are ours, or the module is off.
+type Which = 'screen' | 'pick';
+
+// Keys that only modify: pressed alone while recording, they wait for the rest.
+const MODIFIER = /^(Shift|Control|Alt|Meta|CapsLock|Fn)/;
+
+// Screenshot's page (design 1 Nov §4, §10; design 3 Nov tombol §6): its two keys,
+// each recorded by clicking it and pressing new ones. Under a key, who holds it
+// when it does not reach Notching; the Mac's own shortcuts can be changed in
+// System Settings, so they get a button there. While a key is recorded,
+// Notching's keys let go, so ⌘⇧4 does not open the picker here.
 function screenshotKeys(ctx: PageContext): HTMLElement {
   const box = el('div', 'shot-keys');
-  const s = hostStrings(ctx.lang).shot;
-  ctx.bridge.shotKeys().then(keys => {
-    const taken = keyNotices(keys, s);
-    if (taken.mac) {
-      box.append(note(taken.mac), button('module.screenshot.keys', s.openSettings, () => void ctx.bridge.openKeyboardShortcuts()));
+  const s = ctx.strings.shotKeys;
+  const names: Record<Which, string> = { screen: s.screen, pick: s.pick };
+  let keys: ShotKeys = { screen: 'off', pick: 'off', labels: { ...DEFAULT_LABELS }, custom: false };
+  let recording: Which | null = null;
+  let pending: Which | null = null; // a key on its way to the core
+  let error = '';
+  let gone = false;
+
+  function stop(): void {
+    if (!recording) return;
+    recording = null;
+    error = '';
+    doc().removeEventListener('keydown', onKey, true);
+    doc().removeEventListener('mousedown', onDown, true);
+    window.removeEventListener('blur', stopAndDraw);
+    void ctx.bridge.shotKeysHold(false).catch(() => {});
+  }
+
+  function stopAndDraw(): void {
+    stop();
+    draw();
+  }
+
+  function start(which: Which): void {
+    stop();
+    recording = which;
+    doc().addEventListener('keydown', onKey, true);
+    doc().addEventListener('mousedown', onDown, true);
+    window.addEventListener('blur', stopAndDraw);
+    void ctx.bridge.shotKeysHold(true).catch(() => {});
+    draw();
+  }
+
+  // A press elsewhere ends the recording, but the page is redrawn only after the
+  // button under the pointer got its click: replaced at mousedown, it would get none.
+  function onDown(e: MouseEvent): void {
+    if (e.target instanceof Element && e.target.closest('.keycap.recording')) return;
+    stop();
+    doc().addEventListener('mouseup', () => setTimeout(draw, 0), { once: true });
+  }
+
+  function onKey(e: KeyboardEvent): void {
+    const which = recording;
+    if (!which) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // One key at a time: what was pressed is being saved, so the row shows that.
+    if (pending) return;
+    const plain = !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
+    if (e.key === 'Escape' && plain) {
+      stopAndDraw();
+      return;
     }
-    if (taken.other) box.append(note(taken.other));
+    if (MODIFIER.test(e.code)) return;
+    pending = which;
+    ctx.bridge.shotSetKey(which, { code: e.code, cmd: e.metaKey, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey }).then(next => {
+      pending = null;
+      if (gone) return;
+      keys = next;
+      if (recording === which) {
+        stopAndDraw();
+        return;
+      }
+      // The core put the keys back for the new key; the other row still records.
+      if (recording) void ctx.bridge.shotKeysHold(true).catch(() => {});
+      draw();
+    }, reason => {
+      pending = null;
+      if (gone || recording !== which) return;
+      error = reason === 'duplicate' ? fill(s.duplicate, { row: names[which === 'screen' ? 'pick' : 'screen'] }) : s.invalid;
+      draw();
+    });
+  }
+
+  function held(which: Which): string {
+    const state = keys[which];
+    if (state === 'mac' || state === 'shortcut' || state === 'other') return s[state];
+    return '';
+  }
+
+  function keyRow(which: Which): HTMLElement {
+    const key = `module.screenshot.key.${which}`;
+    const on = recording === which;
+    const cap = button(key, on ? s.recording : keys.labels[which], () => (on ? undefined : start(which)));
+    cap.classList.add('keycap');
+    cap.classList.toggle('recording', on);
+    const r = row({ key, label: names[which], hint: (on && error) || held(which) || undefined, control: cap });
+    if (on && error) r.querySelector('small')?.classList.add('err');
+    return r;
+  }
+
+  function draw(): void {
+    if (gone) return;
+    const parts: HTMLElement[] = [el('div', 'grp-label', s.title), group(keyRow('screen'), keyRow('pick'))];
+    const foot = el('div', 'shot-keys-foot');
+    if ([keys.screen, keys.pick].some(k => k === 'mac' || k === 'shortcut')) {
+      foot.append(button('module.screenshot.keys', s.open, () => void ctx.bridge.openKeyboardShortcuts()));
+    }
+    if (keys.custom) {
+      foot.append(button('module.screenshot.reset', s.reset, () => {
+        ctx.bridge.shotResetKeys().then(next => {
+          keys = next;
+          draw();
+        }, () => {});
+      }));
+    }
+    if (foot.childElementCount) parts.push(foot);
+    const focused = box.contains(doc().activeElement) ? (doc().activeElement as HTMLElement).dataset.key : undefined;
+    box.replaceChildren(...parts);
+    if (focused) box.querySelector<HTMLElement>(`[data-key="${focused}"]`)?.focus();
+  }
+
+  function doc(): Document {
+    return box.ownerDocument;
+  }
+
+  ctx.onCleanup(() => {
+    gone = true;
+    stop();
+  });
+  draw();
+  ctx.bridge.shotKeys().then(next => {
+    keys = next;
+    draw();
   }, () => {});
   return box;
 }

@@ -24,9 +24,9 @@
       "area": "Area"
     },
     "hints": {
-      "screen": "⌘⇧3",
-      "window": "⌘⇧4 + click",
-      "area": "⌘⇧4 + drag"
+      "screen": "{key}",
+      "window": "{key} + click",
+      "area": "{key} + drag"
     },
     "edit": "Click to edit",
     "copied": "Copied to clipboard",
@@ -37,10 +37,20 @@
     "copyFailed": "Couldn't copy",
     "delete": "Delete",
     "title": "Screenshot · {n}",
-    "empty": "Press ⌘⇧3 or ⌘⇧4 for your first screenshot",
+    "empty": "Press {screen} or {pick} for your first screenshot",
     "macKeys": "{keys} still taken by the Mac's own screenshots",
     "otherKeys": "{key} is taken by another app",
     "otherKeysMany": "{key} are taken by another app",
+    "shortcutKeys": "{keys} taken by a Mac shortcut",
+    "setup": {
+      "label": "Screenshot",
+      "macTitle": "{keys} still taken by the Mac",
+      "otherTitle": "{keys} taken by another app",
+      "macText": "Turn off the Mac's own screenshots, or give Notching keys of its own.",
+      "otherText": "Pick other keys for Notching.",
+      "turnOff": "Turn off the Mac's",
+      "own": "Use my own keys"
+    },
     "and": " and ",
     "permission": "Screenshot needs Screen Recording access",
     "openSettings": "Open System Settings",
@@ -274,6 +284,19 @@
       "status": "Status beside the notch",
       "statusHint": "Shows while the panel is closed."
     },
+    "shotKeys": {
+      "title": "Keys",
+      "screen": "Whole screen",
+      "pick": "Window or area",
+      "recording": "Press keys…",
+      "invalid": "Use ⌘, ⌃ or ⌥ with one key",
+      "duplicate": "Already used for {row}",
+      "reset": "Back to ⌘⇧3 and ⌘⇧4",
+      "mac": "Taken by the Mac's screenshots",
+      "shortcut": "Taken by a Mac shortcut",
+      "other": "Taken by another app",
+      "open": "Open System Settings"
+    },
     "permissions": {
       "sub": "No module needs a system permission yet.",
       "note": "When one does, you'll see here which permission, what it's for and which module uses it.",
@@ -355,6 +378,7 @@
     },
     "keywords": {
       "accent": "accent colour color theme green lime custom warna aksen",
+      "shotKeys": "keys shortcut keyboard screenshot cmd shift ⌘⇧3 ⌘⇧4 tombol",
       "language": "language english indonesian bahasa automatic",
       "screen": "screen display monitor external",
       "login": "login startup launch automatic",

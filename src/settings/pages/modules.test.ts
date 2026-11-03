@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
+import type { ShotKeys } from '../../bridge';
 import type { ModuleState } from '../../modules/types';
 import { homeWidgets, moduleInfo, TEST_STATE, timers } from '../../notch/test-helpers';
+import { shotKeys } from '../../shot/test-helpers';
 import { h1, mountForTest, settle } from '../test-helpers';
 
 const STATE: ModuleState = {
@@ -146,67 +148,180 @@ test('a module with a status gets a status switch', async () => {
 const SHOT = moduleInfo('screenshot', { name: 'Screenshot', description: 'Layar, window, area', entry: null, card: null,
   action: { capability: 'screenshot', method: 'open' }, permissions: ['screen-recording'] });
 const WITH_SHOT: ModuleState = { ...STATE, modules: [...STATE.modules, SHOT] };
-const notice = (root: HTMLElement) => root.querySelector<HTMLElement>('.shot-keys');
+const keyRow = (root: HTMLElement, which: 'screen' | 'pick') => root.querySelector<HTMLElement>(`[data-row="module.screenshot.key.${which}"]`)!;
+const keyCap = (root: HTMLElement, which: 'screen' | 'pick') => root.querySelector<HTMLElement>(`[data-key="module.screenshot.key.${which}"]`)!;
+const hint = (root: HTMLElement, which: 'screen' | 'pick') => keyRow(root, which).querySelector('small')?.textContent ?? '';
+const press = (init: KeyboardEventInit) => document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
 
-test('screenshot page shows the Mac key notice with the System Settings button', async () => {
-  const { root, app, bridge } = await mountForTest(WITH_SHOT);
-  bridge.shotKeys.mockResolvedValue({ screen: 'mac', pick: 'mac' });
-  app.go({ page: 'module', id: 'screenshot' });
+async function onShotPage(keys = shotKeys(), lang: 'id' | 'en' = 'id') {
+  const t = await mountForTest({ ...WITH_SHOT, lang });
+  t.bridge.shotKeys.mockResolvedValue(keys);
+  t.app.go({ page: 'module', id: 'screenshot' });
   await settle();
-  expect(notice(root)!.textContent).toContain('⌘⇧3 dan ⌘⇧4 masih dipakai screenshot bawaan Mac');
+  return t;
+}
+
+test('screenshot page lists both keys with their labels', async () => {
+  const { root } = await onShotPage();
+  expect(root.querySelector('.shot-keys .grp-label')!.textContent).toBe('Tombol');
+  expect(keyRow(root, 'screen').querySelector('.label')!.textContent).toBe('Seluruh layar');
+  expect(keyRow(root, 'pick').querySelector('.label')!.textContent).toBe('Window atau area');
+  expect(keyCap(root, 'screen').textContent).toBe('⌘⇧3');
+  expect(keyCap(root, 'pick').textContent).toBe('⌘⇧4');
+  expect(hint(root, 'screen')).toBe('');
+  expect(root.querySelector('[data-key="module.screenshot.reset"]')).toBeNull();
+  expect(root.querySelector('[data-key="module.screenshot.keys"]')).toBeNull();
+  expect(root.querySelector('.pane')!.textContent).not.toContain('Modul ini belum punya pengaturan.');
+});
+
+test('recording a key: the Mac lets go, the new key is saved and shown', async () => {
+  const { root, bridge } = await onShotPage();
+  bridge.shotSetKey.mockResolvedValue(shotKeys('ok', 'ok', { screen: '⌃⇧S', pick: '⌘⇧4' }));
+  keyCap(root, 'screen').click();
+  expect(keyCap(root, 'screen').textContent).toBe('Tekan tombol…');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(true);
+  press({ key: 'Shift', code: 'ShiftLeft', shiftKey: true });
+  expect(bridge.shotSetKey).not.toHaveBeenCalled();
+  press({ key: 'S', code: 'KeyS', ctrlKey: true, shiftKey: true });
+  expect(bridge.shotSetKey).toHaveBeenCalledWith('screen', { code: 'KeyS', cmd: false, ctrl: true, alt: false, shift: true });
+  await settle();
+  expect(keyCap(root, 'screen').textContent).toBe('⌃⇧S');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
+  expect(root.querySelector('[data-key="module.screenshot.reset"]')).not.toBeNull();
+});
+
+test('a key that cannot be used keeps recording and says why', async () => {
+  const { root, bridge } = await onShotPage();
+  bridge.shotSetKey.mockRejectedValue('invalid');
+  keyCap(root, 'screen').click();
+  press({ key: 's', code: 'KeyS' });
+  await settle();
+  expect(hint(root, 'screen')).toBe('Pakai ⌘, ⌃, atau ⌥ dengan satu tombol');
+  expect(keyCap(root, 'screen').textContent).toBe('Tekan tombol…');
+  expect(bridge.shotKeysHold).not.toHaveBeenCalledWith(false);
+});
+
+test('the other row\'s key is refused, naming that row', async () => {
+  const { root, bridge } = await onShotPage();
+  bridge.shotSetKey.mockRejectedValue('duplicate');
+  keyCap(root, 'screen').click();
+  press({ key: '4', code: 'Digit4', metaKey: true, shiftKey: true });
+  await settle();
+  expect(hint(root, 'screen')).toBe('Sudah dipakai untuk Window atau area');
+  expect(keyCap(root, 'screen').textContent).toBe('Tekan tombol…');
+});
+
+test('Esc or leaving the window cancels, and the keys come back', async () => {
+  const { root, bridge } = await onShotPage();
+  keyCap(root, 'pick').click();
+  press({ key: 'Escape', code: 'Escape' });
+  expect(keyCap(root, 'pick').textContent).toBe('⌘⇧4');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
+  keyCap(root, 'pick').click();
+  window.dispatchEvent(new Event('blur'));
+  expect(keyCap(root, 'pick').textContent).toBe('⌘⇧4');
+  expect(bridge.shotKeysHold).toHaveBeenCalledTimes(4);
+  expect(bridge.shotSetKey).not.toHaveBeenCalled();
+});
+
+// A shotSetKey the test answers itself.
+function heldReply(bridge: { shotSetKey: { mockImplementation: (fn: () => Promise<ShotKeys>) => void } }) {
+  let answer!: (keys: ShotKeys) => void;
+  bridge.shotSetKey.mockImplementation(() => new Promise<ShotKeys>(r => { answer = r; }));
+  return (keys: ShotKeys) => answer(keys);
+}
+
+test('keys pressed while one is being saved are ignored, Esc too; the saved key shows', async () => {
+  const { root, bridge } = await onShotPage();
+  const answer = heldReply(bridge);
+  keyCap(root, 'screen').click();
+  press({ key: 'S', code: 'KeyS', ctrlKey: true, shiftKey: true });
+  press({ key: 'A', code: 'KeyA', ctrlKey: true, shiftKey: true });
+  press({ key: 'Escape', code: 'Escape' });
+  expect(bridge.shotSetKey).toHaveBeenCalledTimes(1);
+  answer(shotKeys('ok', 'ok', { screen: '⌃⇧S', pick: '⌘⇧4' }));
+  await settle();
+  expect(keyCap(root, 'screen').textContent).toBe('⌃⇧S');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
+});
+
+test('a key saved while the other row records keeps Notching\'s keys let go, and shows', async () => {
+  const { root, bridge } = await onShotPage();
+  const answer = heldReply(bridge);
+  keyCap(root, 'screen').click();
+  press({ key: 'S', code: 'KeyS', ctrlKey: true, shiftKey: true });
+  window.dispatchEvent(new Event('blur'));
+  keyCap(root, 'pick').click();
+  answer(shotKeys('ok', 'ok', { screen: '⌃⇧S', pick: '⌘⇧4' }));
+  await settle();
+  expect(keyCap(root, 'screen').textContent).toBe('⌃⇧S');
+  expect(keyCap(root, 'pick').textContent).toBe('Tekan tombol…');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(true);
+});
+
+test('pressing another button while recording leaves it in place for its click', async () => {
+  const { root } = await onShotPage();
+  keyCap(root, 'screen').click();
+  const pick = keyCap(root, 'pick');
+  pick.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+  expect(pick.isConnected).toBe(true);
+  pick.click();
+  expect(keyCap(root, 'pick').textContent).toBe('Tekan tombol…');
+  expect(keyCap(root, 'screen').textContent).toBe('⌘⇧3');
+});
+
+test('leaving the page while recording lets the keys come back', async () => {
+  const { root, app, bridge } = await onShotPage();
+  keyCap(root, 'pick').click();
+  app.go({ page: 'modules' });
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
+  press({ key: 'S', code: 'KeyS', ctrlKey: true });
+  expect(bridge.shotSetKey).not.toHaveBeenCalled();
+});
+
+test('keys of one own can go back to ⌘⇧3 and ⌘⇧4', async () => {
+  const { root, bridge } = await onShotPage(shotKeys('ok', 'ok', { screen: '⌃⇧S', pick: '⌃⇧A' }));
+  bridge.shotResetKeys.mockResolvedValue(shotKeys());
+  const reset = root.querySelector<HTMLElement>('[data-key="module.screenshot.reset"]')!;
+  expect(reset.textContent).toBe('Kembalikan ke ⌘⇧3 dan ⌘⇧4');
+  reset.click();
+  expect(bridge.shotResetKeys).toHaveBeenCalledTimes(1);
+  await settle();
+  expect(keyCap(root, 'screen').textContent).toBe('⌘⇧3');
+  expect(root.querySelector('[data-key="module.screenshot.reset"]')).toBeNull();
+});
+
+test('each row says who holds its key; the Mac\'s get the System Settings button', async () => {
+  const { root, bridge } = await onShotPage(shotKeys('mac', 'other'));
+  expect(hint(root, 'screen')).toBe('Dipakai screenshot bawaan Mac');
+  expect(hint(root, 'pick')).toBe('Dipakai app lain');
   const open = root.querySelector<HTMLElement>('[data-key="module.screenshot.keys"]')!;
   expect(open.textContent).toBe('Buka Pengaturan Sistem');
   open.click();
   expect(bridge.openKeyboardShortcuts).toHaveBeenCalledTimes(1);
-  expect(root.querySelector('.pane')!.textContent).not.toContain('Modul ini belum punya pengaturan.');
+  const shortcut = await onShotPage(shotKeys('ok', 'shortcut'));
+  expect(hint(shortcut.root, 'pick')).toBe('Dipakai pintasan Mac');
+  expect(shortcut.root.querySelector('[data-key="module.screenshot.keys"]')).not.toBeNull();
 });
 
-test('a key held by another app has its line and no button', async () => {
-  const { root, app, bridge } = await mountForTest(WITH_SHOT);
-  bridge.shotKeys.mockResolvedValue({ screen: 'ok', pick: 'other' });
-  app.go({ page: 'module', id: 'screenshot' });
-  await settle();
-  expect(notice(root)!.textContent).toBe('⌘⇧4 dipakai app lain');
-  expect(root.querySelector('[data-key="module.screenshot.keys"]')).toBeNull();
-});
-
-test('the Mac line comes first, then the other app line', async () => {
-  const { root, app, bridge } = await mountForTest(WITH_SHOT);
-  bridge.shotKeys.mockResolvedValue({ screen: 'mac', pick: 'other' });
-  app.go({ page: 'module', id: 'screenshot' });
-  await settle();
-  expect([...root.querySelectorAll('.shot-keys .note')].map(p => p.textContent)).toEqual([
-    '⌘⇧3 masih dipakai screenshot bawaan Mac', '⌘⇧4 dipakai app lain',
-  ]);
-});
-
-test('keys that are ours, or a module that is off, show no notice', async () => {
-  const { root, app, bridge } = await mountForTest(WITH_SHOT);
-  app.go({ page: 'module', id: 'screenshot' });
-  await settle();
-  expect(bridge.shotKeys).toHaveBeenCalled();
-  expect(notice(root)!.textContent).toBe('');
-  bridge.shotKeys.mockResolvedValue({ screen: 'off', pick: 'off' });
-  app.go({ page: 'modules' });
-  app.go({ page: 'module', id: 'screenshot' });
-  await settle();
-  expect(notice(root)!.textContent).toBe('');
-});
-
-test('the notice follows the language', async () => {
-  const { root, app, bridge } = await mountForTest({ ...WITH_SHOT, lang: 'en' });
-  bridge.shotKeys.mockResolvedValue({ screen: 'other', pick: 'other' });
-  app.go({ page: 'module', id: 'screenshot' });
-  await settle();
-  expect(notice(root)!.textContent).toBe('⌘⇧3 and ⌘⇧4 are taken by another app');
-});
-
-test('a failed key query shows no notice', async () => {
+test('another app\'s key, a module that is off, or a failed query: no System Settings button', async () => {
+  const other = await onShotPage(shotKeys('ok', 'other'));
+  expect(other.root.querySelector('[data-key="module.screenshot.keys"]')).toBeNull();
+  const off = await onShotPage(shotKeys('off', 'off'));
+  expect(hint(off.root, 'screen')).toBe('');
   const { root, app, bridge } = await mountForTest(WITH_SHOT);
   bridge.shotKeys.mockRejectedValue(new Error('no'));
   app.go({ page: 'module', id: 'screenshot' });
   await settle();
-  expect(notice(root)!.textContent).toBe('');
+  expect(keyCap(root, 'screen').textContent).toBe('⌘⇧3');
+  expect(hint(root, 'screen')).toBe('');
+});
+
+test('the keys page follows the language', async () => {
+  const { root } = await onShotPage(shotKeys('other', 'ok'), 'en');
+  expect(root.querySelector('.shot-keys .grp-label')!.textContent).toBe('Keys');
+  expect(keyRow(root, 'screen').querySelector('.label')!.textContent).toBe('Whole screen');
+  expect(hint(root, 'screen')).toBe('Taken by another app');
 });
 
 test('no status switch for screenshot', async () => {

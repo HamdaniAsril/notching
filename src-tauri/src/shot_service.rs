@@ -25,7 +25,7 @@ use crate::shelf_drag::DragOwner;
 use crate::shelf_service::DRAG_OUT;
 use crate::shot::{capture_args, desktop_name, png_size, History, Kind, ShotItem, Target};
 
-pub const MODULE_ID: &str = "screenshot";
+pub use crate::shot::MODULE_ID;
 pub const SCHEME: &str = "notchshot";
 /// To one overlay: `{ phase: "taken", id }`; to every window: `{ phase: "gone", id }`.
 pub const SHOT_EVENT: &str = "notching://shot";
@@ -386,11 +386,21 @@ fn announce(app: &AppHandle, evicted: &[u64], taken: Option<(u64, String)>) {
     emit_shots(app);
 }
 
+fn cursor_screen(mtm: MainThreadMarker) -> usize {
+    let p = NSEvent::mouseLocation();
+    current_screens(mtm).iter().position(|s| s.frame.contains(p.x, p.y)).unwrap_or(0)
+}
+
+/// The overlay for something not taken on a screen of its own: the cursor's, or
+/// one that has a notch.
+pub fn cursor_label(app: &AppHandle, mtm: MainThreadMarker) -> String {
+    result_label(app, mtm, cursor_screen(mtm))
+}
+
 // The overlay that shows a result captured on `screen`.
 fn result_label(app: &AppHandle, mtm: MainThreadMarker, screen: usize) -> String {
     let screens = current_screens(mtm);
-    let p = NSEvent::mouseLocation();
-    let cursor = screens.iter().position(|s| s.frame.contains(p.x, p.y)).unwrap_or(0);
+    let cursor = cursor_screen(mtm);
     let has_notch: Vec<bool> = {
         let overlays = app.state::<Overlays>();
         let overlays = overlays.0.lock().unwrap();

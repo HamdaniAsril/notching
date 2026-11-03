@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::geometry::Rect;
 
+/// Screenshot's module id.
+pub const MODULE_ID: &str = "screenshot";
+
 /// The 16th screenshot removes the oldest, with its folder.
 pub const HISTORY_MAX: usize = 15;
 
@@ -191,34 +194,11 @@ pub enum KeyState {
     Ok,
     /// The Mac's own screenshot shortcut is on.
     Mac,
+    /// Another of the Mac's shortcuts that is on holds it.
+    Shortcut,
     /// Another app holds the key.
     Other,
     Off,
-}
-
-const CMD_SHIFT: i64 = 0x120000;
-const KEY_3: i64 = 20;
-const KEY_4: i64 = 21;
-
-/// Whether the Mac's own Cmd+Shift+3 (hotkey 28) and Cmd+Shift+4 (hotkey 30) are still taken,
-/// from `com.apple.symbolichotkeys`. A missing entry is the default, which is on; an entry
-/// rebound to another key counts as free.
-pub fn parse_key_conflicts(symbolic_hotkeys: &serde_json::Value) -> (bool, bool) {
-    let hotkeys = &symbolic_hotkeys["AppleSymbolicHotKeys"];
-    let taken = |id: &str, code: i64| {
-        let entry = &hotkeys[id];
-        if entry.is_null() {
-            return true;
-        }
-        if entry["enabled"].as_bool() == Some(false) {
-            return false;
-        }
-        match entry["value"]["parameters"].as_array() {
-            Some(p) => p.get(1).and_then(|v| v.as_i64()) == Some(code) && p.get(2).and_then(|v| v.as_i64()) == Some(CMD_SHIFT),
-            None => true,
-        }
-    };
-    (taken("28", KEY_3), taken("30", KEY_4))
 }
 
 #[cfg(test)]
@@ -226,7 +206,6 @@ mod tests {
     use super::*;
     use crate::geometry::Rect;
     use chrono::NaiveDate;
-    use serde_json::json;
     use std::path::Path;
 
     fn rect(x: f64, y: f64, w: f64, h: f64) -> Rect {
@@ -378,28 +357,5 @@ mod tests {
         for t in [screen, win, area] {
             assert!(!capture_args(&t, out).iter().any(|a| a == "-x"));
         }
-    }
-
-    fn keys(e28: serde_json::Value, e30: serde_json::Value) -> serde_json::Value {
-        json!({ "AppleSymbolicHotKeys": { "28": e28, "30": e30 } })
-    }
-
-    fn entry(enabled: bool, code: i64) -> serde_json::Value {
-        json!({ "enabled": enabled, "value": { "parameters": [code - 1, code, 1179648] } })
-    }
-
-    #[test]
-    fn parse_key_conflicts_reads_ids_28_and_30() {
-        let defaults = json!({"AppleSymbolicHotKeys":{
-            "28":{"enabled":true,"value":{"parameters":[51,20,1179648]}},
-            "30":{"enabled":true,"value":{"parameters":[52,21,1179648]}}}});
-        assert_eq!(parse_key_conflicts(&defaults), (true, true));
-        assert_eq!(parse_key_conflicts(&keys(entry(false, 20), entry(true, 21))), (false, true));
-        assert_eq!(parse_key_conflicts(&keys(entry(true, 20), entry(false, 21))), (true, false));
-        assert_eq!(parse_key_conflicts(&json!({"AppleSymbolicHotKeys":{"28":entry(true, 20)}})), (true, true));
-        assert_eq!(parse_key_conflicts(&json!({})), (true, true));
-        assert_eq!(parse_key_conflicts(&keys(entry(true, 20), entry(true, 99))), (true, false));
-        let other_mods = json!({"enabled":true,"value":{"parameters":[51,20,1048576]}});
-        assert_eq!(parse_key_conflicts(&keys(other_mods, entry(true, 21))), (false, true));
     }
 }

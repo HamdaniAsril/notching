@@ -17,6 +17,7 @@ mod prefs;
 mod settings;
 mod shelf;
 mod shot;
+mod shot_keys;
 mod status;
 mod system_stats;
 mod keyclean;
@@ -125,6 +126,7 @@ pub fn run() {
             module_commands::reinstall_module,
             module_commands::module_call,
             settings_window::open_settings,
+            settings_window::open_settings_at,
             settings_window::get_settings,
             settings_window::set_language,
             settings_window::set_notch_config,
@@ -157,7 +159,12 @@ pub fn run() {
             shot_service::open_screen_recording_settings,
             shot_hotkey::shot_keys,
             shot_hotkey::shot_ready,
+            shot_hotkey::shot_setup_shown,
             shot_hotkey::open_keyboard_shortcuts,
+            shot_hotkey::shot_turn_off_mac,
+            shot_hotkey::shot_keys_hold,
+            shot_hotkey::shot_set_key,
+            shot_hotkey::shot_reset_keys,
             shot_pick::shot_pick,
             shot_pick::shot_pick_state,
             shot_pick::shot_pick_done,

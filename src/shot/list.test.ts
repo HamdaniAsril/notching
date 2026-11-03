@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { hostStrings } from '../i18n';
-import { fakeShotDeps, shot } from './test-helpers';
+import { fakeShotDeps, shot, shotKeys } from './test-helpers';
 import { mountShotList, timeLabel } from './list';
 
 let box: HTMLElement;
@@ -90,6 +90,26 @@ test('the take buttons show their keys', () => {
     .toEqual(['Layar⌘⇧3', 'Window⌘⇧4 + klik', 'Area⌘⇧4 + tarik']);
 });
 
+test('keys of one own show on the take buttons and the empty line', async () => {
+  deps.shotKeys.mockResolvedValue(shotKeys('ok', 'ok', { screen: '⌃⇧S', pick: '⌃⇧A' }));
+  mountShotList(box, deps).render([]);
+  await flush();
+  expect([...box.querySelectorAll('.shot-take button')].map(b => b.textContent))
+    .toEqual(['Layar⌃⇧S', 'Window⌃⇧A + klik', 'Area⌃⇧A + tarik']);
+  expect(box.querySelector('.shot-empty')!.textContent).toBe('Tekan ⌃⇧S atau ⌃⇧A untuk screenshot pertama');
+});
+
+test('a key a Mac shortcut holds says so, with a button to the settings', async () => {
+  deps.shotKeys.mockResolvedValue(shotKeys('shortcut', 'ok', { screen: '⌘␣', pick: '⌘⇧4' }));
+  mountShotList(box, deps).render([]);
+  await flush();
+  const notes = box.querySelectorAll('.shot-note');
+  expect(notes).toHaveLength(1);
+  expect(notes[0].querySelector('.shot-note-text')!.textContent).toBe('⌘␣ dipakai pintasan Mac');
+  notes[0].querySelector('button')!.click();
+  expect(deps.openKeyboardShortcuts).toHaveBeenCalledTimes(1);
+});
+
 test('Layar closes the panel and takes the screen only once it is closed', async () => {
   let closed!: () => void;
   deps.close.mockImplementation(() => new Promise<void>(r => { closed = r; }));
@@ -168,7 +188,7 @@ test('a tile click opens the editor; a drag drags it', () => {
 });
 
 test('keys still taken by the Mac show the notice, with a button to the settings', async () => {
-  deps.shotKeys.mockResolvedValue({ screen: 'mac', pick: 'mac' });
+  deps.shotKeys.mockResolvedValue(shotKeys('mac', 'mac'));
   mountShotList(box, deps).render([]);
   await flush();
   const note = box.querySelector('.shot-note')!;
@@ -181,7 +201,7 @@ test('keys still taken by the Mac show the notice, with a button to the settings
 });
 
 test('a key taken by another app shows its line without a button', async () => {
-  deps.shotKeys.mockResolvedValue({ screen: 'ok', pick: 'other' });
+  deps.shotKeys.mockResolvedValue(shotKeys('ok', 'other'));
   mountShotList(box, deps).render([]);
   await flush();
   const notes = box.querySelectorAll('.shot-note');
@@ -192,7 +212,7 @@ test('a key taken by another app shows its line without a button', async () => {
 
 test('no permission shows its line, with a button to the settings', async () => {
   deps.shotPermission.mockResolvedValue(false);
-  deps.shotKeys.mockResolvedValue({ screen: 'mac', pick: 'ok' });
+  deps.shotKeys.mockResolvedValue(shotKeys('mac', 'ok'));
   mountShotList(box, deps).render([]);
   await flush();
   const notes = box.querySelectorAll('.shot-note');
@@ -206,7 +226,7 @@ test('no permission shows its line, with a button to the settings', async () => 
 
 test('two keys held by another app read as plural in English', async () => {
   deps = fakeShotDeps({ lang: 'en' });
-  deps.shotKeys.mockResolvedValue({ screen: 'other', pick: 'other' });
+  deps.shotKeys.mockResolvedValue(shotKeys('other', 'other'));
   mountShotList(box, deps).render([]);
   await flush();
   expect(box.querySelector('.shot-note')!.textContent).toBe('⌘⇧3 and ⌘⇧4 are taken by another app');

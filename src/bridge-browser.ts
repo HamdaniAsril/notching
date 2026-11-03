@@ -239,15 +239,28 @@ export function browserBridge(root: HTMLElement): Bridge {
     shotTakeScreen: take,
     shotPick: take,
     shotStartDrag: async id => console.info('shotStartDrag', id),
-    shotKeys: async () => ({ screen: params.get('keys') === 'mac' ? 'mac' : 'ok', pick: params.get('keys') === 'mac' ? 'mac' : 'ok' }),
+    shotKeys: async () => {
+      const k = params.get('keys') === 'mac' ? 'mac' : 'ok';
+      return { screen: k, pick: k, labels: { screen: '⌘⇧3', pick: '⌘⇧4' }, custom: false };
+    },
     shotPermission: async () => params.get('access') !== '0',
     openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
+    shotTurnOffMac: async () => console.info('shotTurnOffMac'),
+    openShotKeySettings: async () => console.info('openShotKeySettings'),
     openScreenRecordingSettings: async () => console.info('openScreenRecordingSettings'),
     openEditor: async id => console.info('openEditor', id),
     onShot: cb => { shotSubs.add(cb); return () => shotSubs.delete(cb); },
+    // `?setup=mac` (or `other`) shows Screenshot's first-use notice a second after loading.
+    onShotSetup: cb => {
+      const holder = params.get('setup');
+      if (holder !== 'mac' && holder !== 'other') return () => {};
+      const t = setTimeout(() => cb({ holder, keys: holder === 'mac' ? '⌘⇧3 dan ⌘⇧4' : '⌘⇧4' }), 1000);
+      return () => clearTimeout(t);
+    },
     onShots: cb => { shotsSubs.add(cb); return () => shotsSubs.delete(cb); },
     onShotDrag: () => () => {},
     shotReady: async () => {},
+    shotSetupShown: async () => console.info('shotSetupShown'),
     ...fakeCleaner(params),
     clearMissed: async () => {
       state = { ...state, missed: [] };

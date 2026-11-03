@@ -170,6 +170,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       shotKeys: () => bridge.shotKeys(),
       shotPermission: () => bridge.shotPermission(),
       openKeyboardShortcuts: () => bridge.openKeyboardShortcuts(),
+      shotTurnOffMac: () => bridge.shotTurnOffMac(),
+      openShotKeySettings: () => bridge.openShotKeySettings(),
       openScreenRecordingSettings: () => bridge.openScreenRecordingSettings(),
       openEditor: id => bridge.openEditor(id),
       onShot: cb => bridge.onShot(cb),
@@ -219,11 +221,13 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   }
 
   const shotOn = () => state.modules.some(m => m.id === SHOT_KEY && m.installed && m.enabled);
-  const shotPage = (t: ShotTarget): PageView => (t.mode === 'result'
-    ? { kind: 'shot', mode: 'result', id: t.id, key: SHOT_KEY, shots }
-    : { kind: 'shot', mode: 'list', key: SHOT_KEY, shots, notes: shotNotes });
+  const shotPage = (t: ShotTarget): PageView => {
+    if (t.mode === 'result') return { kind: 'shot', mode: 'result', id: t.id, key: SHOT_KEY, shots };
+    if (t.mode === 'setup') return { kind: 'shot', mode: 'setup', setup: t.setup, key: SHOT_KEY, shots };
+    return { kind: 'shot', mode: 'list', key: SHOT_KEY, shots, notes: shotNotes };
+  };
 
-  // Screenshot's result or list. Like the shelf, never the last page.
+  // Screenshot's result, list or first-use notice. Like the shelf, never the last page.
   function openShot(t: ShotTarget): void {
     usePage(shotPage(t));
     showPage();
@@ -541,6 +545,18 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     }
   });
 
+  // Screenshot's keys don't reach Notching, the first time: its notice opens the
+  // panel here, under the cursor (design 3 Nov tombol §4).
+  const offShotSetup = bridge.onShotSetup(setup => {
+    openShot({ kind: 'shot', mode: 'setup', setup });
+    if (!isOpen()) {
+      controller.click();
+      view.kick();
+    }
+    // It counts as shown once it opened here, never once only sent.
+    bridge.shotSetupShown().catch(e => console.error('notching: shot_setup_shown failed', e));
+  });
+
   // One history for every screen.
   const offShots = bridge.onShots(list => {
     shots = list;
@@ -584,6 +600,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       offDrag();
       offShot();
       offShots();
+      offShotSetup();
       offShotDrag();
       offPeek();
       frames.destroy();

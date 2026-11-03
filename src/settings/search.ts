@@ -60,6 +60,10 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
       ? modules.filter(isModule).map(m =>
         entry(`module.${m.id}`, m.name, where, m.installed ? { page: 'module', id: m.id } : { page: 'add' }, m.description))
       : [];
+    // Screenshot's keys, on its own page (design 3 Nov tombol §6).
+    if (page === 'modules' && modules.some(m => m.id === 'screenshot' && m.installed)) {
+      mods.push(entry('module.screenshot.keys', s.shotKeys.title, where, { page: 'module', id: 'screenshot' }, k.shotKeys));
+    }
     const named = page === 'pages'
       ? pages.filter(p => p.name !== null).map(p => entry(`page.${p.id}`, p.name!, where, { page: 'pages' }, k.pages))
       : [];
