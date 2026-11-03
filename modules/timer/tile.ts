@@ -1,7 +1,7 @@
 import { lab, num } from '../../src/kit/volt';
 import { el } from '../../src/kit/widget';
 import { DRAG_PX, dragMinutes, formatLeft, MAX_MINUTES, MIN_MINUTES } from './ruler';
-import type { Actions, Strings, TimerView } from './view';
+import type { Actions, Sound, Strings, TimerView } from './view';
 
 // Minutes per pixel of drag.
 const PX_PER_MINUTE = 6;
@@ -62,7 +62,7 @@ export function tileView(_root: HTMLElement, s: Strings, st: TileState): HTMLEle
 // sets the minutes while idle; a click starts them, or pauses, or resumes. A drag while a timer
 // runs or waits starts the new minutes on release, as the strip's ruler does. `update` takes a
 // reading from the core; `tick` moves the time by this frame's clock between readings.
-export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
+export function renderTile(root: HTMLElement, s: Strings, act: Actions, sound: Sound = { prime() {}, step() {} }): {
   update(v: TimerView): void;
   tick(now: number): void;
 } {
@@ -102,7 +102,9 @@ export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
   }
 
   const set = (m: number) => {
+    const was = chosen ?? shownMinutes();
     chosen = Math.min(MAX_MINUTES, Math.max(MIN_MINUTES, m));
+    if (chosen !== was) sound.step(was, chosen);
     draw();
   };
   const press = () => {
@@ -116,6 +118,7 @@ export function renderTile(root: HTMLElement, s: Strings, act: Actions): {
     const id = (e as PointerEvent).pointerId;
     if (id !== undefined) button.setPointerCapture?.(id);
     drag = { x: e.clientX, base: shownMinutes(), moved: false };
+    sound.prime();
   });
   button.addEventListener('pointermove', e => {
     if (!drag) return;

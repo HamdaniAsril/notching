@@ -21,6 +21,23 @@ export interface Actions {
 
 export type Strings = typeof id;
 
+// The ruler's tik (tik.ts), given by main.ts. `on` and `set` are the Timer page's sound button;
+// the strip and the tile only play.
+export interface Sound {
+  prime(): void;
+  step(from: number, to: number): void;
+  on?(): boolean;
+  set?(on: boolean): void;
+}
+
+const QUIET: Sound = { prime() {}, step() {} };
+
+// A speaker, with waves while the sound is on and a cross while it is off.
+const SPEAKER = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" '
+  + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6h2.5l3.5-3v10l-3.5-3h-2.5z"/>'
+  + '<path class="tm-waves" d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.8a6 6 0 0 1 0 8.4"/>'
+  + '<path class="tm-cross" d="M11 6l4 4M15 6l-4 4"/></svg>';
+
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   e.className = cls;
@@ -51,7 +68,7 @@ const clockAt = (s: Strings, ms: number): string => {
 // the core; `tick` moves the ruler and the time by this frame's clock between
 // readings. A drag or typing owns them until it ends, and the minutes just
 // started stay shown until the core answers.
-export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: boolean): {
+export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: boolean, sound: Sound = QUIET): {
   update(v: TimerView): void;
   tick(now: number): void;
 } {
@@ -119,8 +136,26 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   if (big) {
     const top = el('div', 'tm-row tm-top tm-card');
     top.append(ruler, time);
+    // The sound button sits after Jeda and Stop, at the card's end, in every state.
+    const speaker = el('button', 'tm-sound');
+    speaker.type = 'button';
+    speaker.innerHTML = SPEAKER;
+    speaker.setAttribute('aria-label', s.sound);
+    speaker.title = s.sound;
+    const show = (on: boolean) => {
+      speaker.setAttribute('aria-pressed', String(on));
+      speaker.classList.toggle('tm-off', !on);
+    };
+    show(sound.on?.() ?? true);
+    speaker.addEventListener('click', () => {
+      const on = !(sound.on?.() ?? true);
+      sound.set?.(on);
+      show(on);
+    });
+    const tail = el('span', 'tm-tail');
+    tail.append(buttons, speaker);
     const bottom = el('div', 'tm-row tm-card');
-    bottom.append(lead, buttons);
+    bottom.append(lead, tail);
     root.replaceChildren(top, bottom);
   } else {
     const row = el('div', 'v-card tm-row tm-srow');
@@ -180,12 +215,15 @@ export function renderTimer(root: HTMLElement, s: Strings, act: Actions, big: bo
   ruler.addEventListener('pointerdown', e => {
     if ((e as PointerEvent).pointerId !== undefined) ruler.setPointerCapture?.((e as PointerEvent).pointerId);
     drag = { x: e.clientX, base: Math.max(1, Math.round(shownMinutes(view, lastNow))), minutes: null };
+    sound.prime();
   });
   ruler.addEventListener('pointermove', e => {
     if (!drag) return;
     const dx = e.clientX - drag.x;
     if (drag.minutes === null && Math.abs(dx) < DRAG_PX) return;
+    const was = drag.minutes ?? drag.base;
     drag.minutes = dragMinutes(drag.base, dx, px);
+    if (drag.minutes !== was) sound.step(was, drag.minutes);
     draw(drag.minutes, formatLeft(drag.minutes * 60_000), false);
   });
   const end = (go: boolean) => {

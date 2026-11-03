@@ -5,7 +5,7 @@
   "icon": "icon.svg",
   "card": { "width": 520, "height": 128 },
   "permissions": [],
-  "capabilities": ["timer", "status", "notify"],
+  "capabilities": ["timer", "status", "notify", "prefs"],
   "notifications": [{ "id": "done", "on": true, "sound": true }],
   "widgets": [
     { "id": "strip", "entry": "index.html", "width": 4, "kind": "work" },
