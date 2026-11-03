@@ -138,7 +138,7 @@ test('a language change reloads the frames in the new language', async () => {
   const posted: unknown[] = [];
   after.contentWindow!.postMessage = ((m: unknown) => { posted.push(m); }) as Window['postMessage'];
   after.dispatchEvent(new Event('load'));
-  expect(posted).toContainEqual({ type: 'notching:init', moduleId: 'home', lang: 'en', widget: 'date' });
+  expect(posted).toContainEqual({ type: 'notching:init', moduleId: 'home', lang: 'en', widget: 'date', accent: '#c8f04a' });
   expect(root.querySelector('.notch-pill .ic:not([data-id])')!.getAttribute('aria-label')).toBe('Settings');
   expect(root.querySelector('.notch-pill .ic[data-id="home"]')!.getAttribute('aria-label')).toBe('Home');
   expect(document.documentElement.lang).toBe('en');

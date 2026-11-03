@@ -42,7 +42,7 @@ test('a module frame says hello without a widget', () => {
   const f = iframe(put(spec('m', 'system-stat'), 'en'));
   const post = vi.spyOn(f.contentWindow!, 'postMessage');
   f.dispatchEvent(new Event('load'));
-  expect(post).toHaveBeenCalledWith({ type: 'notching:init', moduleId: 'system-stat', lang: 'en' }, '*');
+  expect(post).toHaveBeenCalledWith({ type: 'notching:init', moduleId: 'system-stat', lang: 'en', accent: '#c8f04a' }, '*');
 });
 
 test('a widget frame is told its widget', () => {
@@ -50,7 +50,7 @@ test('a widget frame is told its widget', () => {
   const f = iframe(put(spec('home/0/home/date', 'home', 'date')));
   const post = vi.spyOn(f.contentWindow!, 'postMessage');
   f.dispatchEvent(new Event('load'));
-  expect(post).toHaveBeenCalledWith({ type: 'notching:init', moduleId: 'home', lang: 'id', widget: 'date' }, '*');
+  expect(post).toHaveBeenCalledWith({ type: 'notching:init', moduleId: 'home', lang: 'id', widget: 'date', accent: '#c8f04a' }, '*');
 });
 
 test('calls go out as the sending frame\'s package only', async () => {
@@ -138,6 +138,23 @@ test('a frame whose lamp is off goes away quietly', () => {
   say({ type: 'notching:lamp', on: false }, f.contentWindow);
   h.clear();
   expect(deps.onLamp).toHaveBeenCalledTimes(2);
+});
+
+test('a frame made after the accent changed starts in the new colour', () => {
+  const { h, put, iframe } = host();
+  h.setAccent('#b18cff');
+  const f = iframe(put(spec('m', 'system-stat')));
+  const post = vi.spyOn(f.contentWindow!, 'postMessage');
+  f.dispatchEvent(new Event('load'));
+  expect(post).toHaveBeenCalledWith({ type: 'notching:init', moduleId: 'system-stat', lang: 'id', accent: '#b18cff' }, '*');
+});
+
+test('a live frame is told when the accent changes', () => {
+  const { h, put, iframe } = host();
+  const f = iframe(put(spec('m', 'system-stat')));
+  const post = vi.spyOn(f.contentWindow!, 'postMessage');
+  h.setAccent('#5ac8fa');
+  expect(post).toHaveBeenCalledWith({ type: 'notching:accent', accent: '#5ac8fa' }, '*');
 });
 
 test('setFull sends the view message', () => {

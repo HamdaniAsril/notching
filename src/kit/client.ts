@@ -1,3 +1,4 @@
+import { applyAccent, DEFAULT_ACCENT } from './accent';
 import { type FrameMessage, isHostMessage, type Lang } from './protocol';
 
 // What a module sees of the notch.
@@ -5,11 +6,13 @@ export interface Kit {
   readonly moduleId: string;
   readonly lang: Lang;
   readonly widget: string | null; // the widget this frame shows; null on a module page
+  readonly accent: string; // "#rrggbb", the accent the person picked; the frame's CSS variables follow it already
   call<T>(capability: string, method: string, args?: unknown): Promise<T>;
   expand(height?: number): void; // asks to cover the whole page, made this tall if it can
   collapse(): void;
   lamp(on: boolean, color?: string, glow?: string): void; // Cermin's lamp on the panel; colors "#rrggbb"
   onView(cb: (full: boolean) => void): void;
+  onAccent(cb: (hex: string) => void): void; // for colours drawn from script, not CSS
 }
 
 // Resolves when the host says hello. Only messages from the parent window count;
@@ -19,6 +22,9 @@ export function connectKit(win: Window = window): Promise<Kit> {
   const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
   let nextId = 1;
   const views: ((full: boolean) => void)[] = [];
+  const accents: ((hex: string) => void)[] = [];
+  let accent = DEFAULT_ACCENT;
+  const root = win.document.documentElement;
 
   return new Promise(resolve => {
     win.addEventListener('message', e => {
@@ -28,15 +34,27 @@ export function connectKit(win: Window = window): Promise<Kit> {
         views.forEach(cb => cb(msg.full));
         return;
       }
+      if (msg.type === 'notching:accent') {
+        accent = msg.accent;
+        applyAccent(root, accent);
+        accents.forEach(cb => cb(accent));
+        return;
+      }
       if (msg.type === 'notching:init') {
+        if (msg.accent) {
+          accent = msg.accent;
+          applyAccent(root, accent);
+        }
         resolve({
           moduleId: msg.moduleId,
           lang: msg.lang,
           widget: msg.widget ?? null,
+          get accent() { return accent; },
           expand: height => post(height === undefined ? { type: 'notching:expand' } : { type: 'notching:expand', height }),
           collapse: () => post({ type: 'notching:collapse' }),
           lamp: (on, color, glow) => post({ type: 'notching:lamp', on, ...(color && { color }), ...(glow && { glow }) }),
           onView: cb => { views.push(cb); },
+          onAccent: cb => { accents.push(cb); },
           call<T>(capability: string, method: string, args?: unknown): Promise<T> {
             const id = nextId++;
             return new Promise<T>((res, rej) => {
