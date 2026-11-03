@@ -70,6 +70,9 @@ export function setProgress(root: HTMLElement, v: NowView, lang: Lang): void {
   const frac = v.duration !== null && v.duration > 0 ? Math.min(1, Math.max(0, v.position / v.duration)) : 0;
   const fill = root.querySelector<HTMLElement>('.wd-mu-fill');
   if (fill) fill.style.width = `${Math.round(frac * 10000) / 100}%`;
+  // Musik kecil's ring: pathLength 100, so the offset is the part still to play.
+  const arc = root.querySelector<SVGElement>('.wd-mu-arc');
+  if (arc) arc.style.strokeDashoffset = String(Math.round((1 - frac) * 10000) / 100);
   const cur = root.querySelector('.wd-mu-cur');
   if (cur) cur.textContent = v.empty ? DASH : clockText(v.position, lang);
   const dur = root.querySelector('.wd-mu-dur');

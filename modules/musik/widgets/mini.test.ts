@@ -18,15 +18,24 @@ function mount(state = TRACK, strings = id, lang: 'id' | 'en' = 'id') {
   return { root, w, act, clock, text, btn };
 }
 
-test('a disc with the controls in it, then the title, the artist and a short progress line', () => {
+// The arc of the progress ring: pathLength 100, so the offset is what is left, in percent.
+const arc = (root: ParentNode) => root.querySelector<SVGElement>('.wd-mu-arc')!.style.strokeDashoffset;
+
+test('a big disc faced with the cover, play in the hole, prev and next on white inside it; then the title and the artist', () => {
   const m = mount();
   expect(m.root.querySelector('.v-card.wd-mu-mini')).not.toBeNull();
+  // The face is the whole disc (the cover, or the accent gradient), with two grooves over it.
+  expect(m.root.querySelector('.wd-mu-disc .wd-mu-face.tile')).not.toBeNull();
   expect(m.root.querySelectorAll('.wd-mu-disc .wd-mu-groove')).toHaveLength(2);
-  expect(m.root.querySelector('.wd-mu-disc .wd-mu-hub.tile')).not.toBeNull();
-  expect([...m.root.querySelectorAll('.wd-mu-disc [data-cmd]')].map(b => (b as HTMLElement).dataset.cmd)).toEqual(['prev', 'toggle', 'next']);
+  // Play/pause is the hole; prev and next are the white buttons left and right.
+  expect(m.root.querySelector('.wd-mu-disc .wd-mu-hole[data-cmd="toggle"]')).not.toBeNull();
+  expect(m.root.querySelector('.wd-mu-disc .wd-mu-side.left[data-cmd="prev"]')).not.toBeNull();
+  expect(m.root.querySelector('.wd-mu-disc .wd-mu-side.right[data-cmd="next"]')).not.toBeNull();
   expect(m.text('.wd-mu-title')).toBe('Jalan Braga');
   expect(m.text('.wd-mu-artist')).toBe('Kolektif Senja');
-  expect(m.root.querySelector<HTMLElement>('.wd-mu-fill')!.style.width).toBe('58.77%');
+  // The progress is a ring round the disc, not a line.
+  expect(arc(m.root)).toBe('41.23');
+  expect(m.root.querySelector('.wd-mu-line')).toBeNull();
   // No times in the small one.
   expect(m.root.querySelector('.wd-mu-cur')).toBeNull();
 });
@@ -38,8 +47,8 @@ test('English button names', () => {
 });
 
 test('the label of the disc is the artwork when there is one, the accent gradient when not', () => {
-  expect(mount({ ...TRACK, art: ART }).root.querySelector('.wd-mu-hub.art img')!.getAttribute('src')).toBe(ART);
-  expect(mount().root.querySelector('.wd-mu-hub.tile img')).toBeNull();
+  expect(mount({ ...TRACK, art: ART }).root.querySelector('.wd-mu-face.art img')!.getAttribute('src')).toBe(ART);
+  expect(mount().root.querySelector('.wd-mu-face.tile img')).toBeNull();
 });
 
 test('empty: the message, a note over the disc, dim buttons that do nothing', () => {
@@ -51,7 +60,7 @@ test('empty: the message, a note over the disc, dim buttons that do nothing', ()
     m.btn(cmd).click();
   }
   expect(m.act.command).not.toHaveBeenCalled();
-  expect(m.root.querySelector<HTMLElement>('.wd-mu-fill')!.style.width).toBe('0%');
+  expect(arc(m.root)).toBe('100');
 });
 
 test('the controls send the commands, and the toggle flips at once and is put right by a later read', () => {
@@ -66,18 +75,18 @@ test('the controls send the commands, and the toggle flips at once and is put ri
   expect(m.btn('toggle').getAttribute('aria-label')).toBe('Jeda');
 });
 
-test('the progress line moves on a tick', () => {
+test('the progress ring moves on a tick', () => {
   const m = mount();
   m.clock.t += 20_000;
   m.w.tick();
-  expect(m.root.querySelector<HTMLElement>('.wd-mu-fill')!.style.width).toBe('67.54%');
+  expect(arc(m.root)).toBe('32.46');
 });
 
 test('the editor sample is the same view', () => {
   const v = miniView(id, 'id', { empty: false, playing: true, title: 'Jalan Braga', artist: 'Kolektif Senja', art: null, position: 134, duration: 228 });
   expect(v.querySelector('.wd-mu-title')!.textContent).toBe('Jalan Braga');
   expect(v.querySelector('.wd-mu-disc')).not.toBeNull();
-  expect(v.querySelector<HTMLElement>('.wd-mu-fill')!.style.width).toBe('58.77%');
+  expect(arc(v)).toBe('41.23');
 });
 
 test('title and artist ellipsize on one line', async () => {

@@ -321,100 +321,155 @@ body {
   height: 25px;
 }
 
-/* Musik kecil: a disc 44 px (design 80) with two grooves, the label (22 px) and the hole, the
-   controls over it; then the title, the artist and a 60 px line, all centred. 44 + 2 + 16 + 10 +
-   4 + 2 make 78 of 80. */
-.wd-mu-mini {
+/* Musik kecil (owner, 3 Nov): the disc as big as the card lets it be, so the cover reads. The card
+   keeps 6 px round it (the disc is the picture, not text): 92 of 92 px of height are a 66 px ring
+   (the 60 px disc in a 2 px progress ring, 1 px apart), 2 px, the title (14) and the artist (10). */
+.wd-mu-mini.v-card {
+  padding: 6px;
   align-items: center;
   justify-content: center;
   min-width: 0;
 }
 
-.wd-mu-disc {
+.wd-mu-ringbox {
   position: relative;
   flex: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #2a2a2a 0%, #141414 60%, #222222 100%);
-  box-shadow: 0 0 0 1px var(--v-ring);
+  width: 66px;
+  height: 66px;
 }
 
-.wd-mu-groove,
-.wd-mu-hub,
-.wd-mu-hole {
+.wd-mu-ring {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  box-sizing: border-box;
+  inset: 0;
+  width: 66px;
+  height: 66px;
+  transform: rotate(-90deg);
+}
+
+.wd-mu-ring circle {
+  fill: none;
+  stroke-width: 2;
+}
+
+.wd-mu-track {
+  stroke: var(--v-track);
+}
+
+.wd-mu-arc {
+  stroke: var(--v-acc);
+  stroke-dasharray: 100;
+  stroke-linecap: round;
+}
+
+.wd-mu-mini.empty .wd-mu-arc {
+  display: none;
+}
+
+.wd-mu-disc {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
+  background: #141414;
 }
 
-.wd-mu-groove.one {
-  width: 38px;
-  height: 38px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.wd-mu-groove.two {
-  width: 31px;
-  height: 31px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.wd-mu-hub {
-  width: 22px;
-  height: 22px;
+/* The face: the cover over the whole disc. */
+.wd-mu-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 50%;
   overflow: hidden;
   background: linear-gradient(160deg, var(--v-acc), var(--v-acc-deep));
 }
 
-.wd-mu-hub.none {
+.wd-mu-face.none {
   background: var(--v-track);
 }
 
-.wd-mu-hub img {
+.wd-mu-face img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.wd-mu-hole {
-  width: 2px;
-  height: 2px;
-  background: #000;
-}
-
-.wd-mu-disc .wd-mu-ctrl {
+/* Two grooves over the face, so it reads as a record and not a round picture. */
+.wd-mu-groove {
   position: absolute;
   top: 50%;
   left: 50%;
+  box-sizing: border-box;
+  border-radius: 50%;
   transform: translate(-50%, -50%);
-  gap: 3px;
+  pointer-events: none;
 }
 
-.wd-mu-disc .wd-mu-btn {
-  width: 11px;
-  height: 16px;
-  border-radius: 0;
+.wd-mu-groove.one {
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+.wd-mu-groove.two {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+}
+
+/* The hole: a black 22 px circle at the centre that is the play/pause button. */
+.wd-mu-disc .wd-mu-hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
   color: var(--v-ink);
 }
 
-.wd-mu-disc .wd-mu-btn.play {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+.wd-mu-disc .wd-mu-hole svg {
+  fill: currentColor;
 }
 
-.wd-mu-disc .wd-mu-btn.play:disabled {
-  background: none;
+.wd-mu-disc .wd-mu-hole:disabled {
+  opacity: 1;
   color: var(--v-dim);
 }
 
-.wd-mu-disc .wd-mu-btn.play:disabled svg {
+.wd-mu-disc .wd-mu-hole:disabled svg {
   fill: none;
+}
+
+/* Prev and next: white 15 px circles inside the disc, left and right of the hole. */
+.wd-mu-disc .wd-mu-side {
+  position: absolute;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: var(--v-ink);
+  color: var(--v-on-acc);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.wd-mu-disc .wd-mu-side.left {
+  left: 4px;
+}
+
+.wd-mu-disc .wd-mu-side.right {
+  right: 4px;
+}
+
+.wd-mu-disc .wd-mu-side svg {
+  fill: currentColor;
 }
 
 .wd-mu-mini .wd-mu-text {
@@ -425,12 +480,10 @@ body {
 }
 
 .wd-mu-mini .wd-mu-title {
-  font-size: 14px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 14px;
 }
 
-.wd-mu-mini .wd-mu-line {
-  flex: none;
-  width: 60px;
-  margin-top: 4px;
+.wd-mu-mini .wd-mu-artist {
+  line-height: 10px;
 }
