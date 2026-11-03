@@ -79,3 +79,27 @@ test('a module frame has no widget', async () => {
   hostSays(win, { type: 'notching:init', moduleId: 'system-stat', lang: 'id' });
   expect((await p).widget).toBeNull();
 });
+
+test('init paints the frame in the accent it brings', async () => {
+  const { win } = frameWindow();
+  const p = connectKit(win);
+  hostSays(win, { type: 'notching:init', moduleId: 'timer', lang: 'id', accent: '#ff8a3d' });
+  const kit = await p;
+  expect(kit.accent).toBe('#ff8a3d');
+  expect(win.document.documentElement.style.getPropertyValue('--v-acc')).toBe('#ff8a3d');
+});
+
+test('an accent change repaints the frame and tells the module', async () => {
+  const { win } = frameWindow();
+  const p = connectKit(win);
+  hostSays(win, { type: 'notching:init', moduleId: 'timer', lang: 'id' });
+  const kit = await p;
+  expect(kit.accent).toBe('#c8f04a');
+  expect(win.document.documentElement.style.getPropertyValue('--v-acc')).toBe('');
+  const seen: string[] = [];
+  kit.onAccent(hex => seen.push(hex));
+  hostSays(win, { type: 'notching:accent', accent: '#5ac8fa' });
+  expect(win.document.documentElement.style.getPropertyValue('--v-acc')).toBe('#5ac8fa');
+  expect(kit.accent).toBe('#5ac8fa');
+  expect(seen).toEqual(['#5ac8fa']);
+});

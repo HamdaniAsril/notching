@@ -5,8 +5,9 @@ export type Lang = 'id' | 'en';
 // `widget` names the widget a frame shows; module pages have none. `notching:view`
 // tells a widget whether it covers the whole page (a full view, design 30 Oct §4).
 export type HostMessage =
-  | { type: 'notching:init'; moduleId: string; lang: Lang; widget?: string }
+  | { type: 'notching:init'; moduleId: string; lang: Lang; widget?: string; accent?: string }
   | { type: 'notching:view'; full: boolean }
+  | { type: 'notching:accent'; accent: string } // "#rrggbb": the person picked another accent
   | { type: 'notching:result'; id: number; ok: true; value: unknown }
   | { type: 'notching:result'; id: number; ok: false; error: string };
 
@@ -20,14 +21,17 @@ export type FrameMessage =
 
 type Loose = Record<string, unknown>;
 const HEX = /^#[0-9a-f]{6}$/i;
+const isHex = (c: unknown) => typeof c === 'string' && HEX.test(c);
 const isObject = (x: unknown): x is Loose => typeof x === 'object' && x !== null;
 
 export function isHostMessage(x: unknown): x is HostMessage {
   if (!isObject(x)) return false;
   if (x.type === 'notching:init') {
     return typeof x.moduleId === 'string' && (x.lang === 'id' || x.lang === 'en')
-      && (x.widget === undefined || typeof x.widget === 'string');
+      && (x.widget === undefined || typeof x.widget === 'string')
+      && (x.accent === undefined || isHex(x.accent));
   }
+  if (x.type === 'notching:accent') return isHex(x.accent);
   if (x.type === 'notching:view') return typeof x.full === 'boolean';
   if (x.type === 'notching:result') {
     return typeof x.id === 'number' && (x.ok === true || (x.ok === false && typeof x.error === 'string'));

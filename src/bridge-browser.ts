@@ -124,6 +124,8 @@ export function browserBridge(root: HTMLElement): Bridge {
     notifications: { glow: true, seconds: 3.5 },
     missed: (params.get('missed') ?? '').split(',').filter(Boolean),
     sampleStatus: false,
+    accent: '#c8f04a',
+    accentCustom: null,
   };
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);

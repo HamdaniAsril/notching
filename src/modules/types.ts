@@ -87,4 +87,6 @@ export interface ModuleState {
   notifications: { glow: boolean; seconds: number };
   missed: string[]; // "<module>.<channel>" of notices nobody saw, oldest first
   sampleStatus: boolean; // the sample status from Notifikasi is showing
+  accent: string; // "#rrggbb", the Volt accent picked in Tampilan
+  accentCustom: string | null; // the last custom colour, kept while a preset is chosen
 }

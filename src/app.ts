@@ -7,6 +7,7 @@ import { NotchController, type Phase } from './notch/controller';
 import { mountPageView } from './notch/page-view';
 import type { CardSize } from './notch/controller';
 import { LAMP_WING, mountNotch, type LampView, type NotchView } from './notch/view';
+import { applyAccent } from './kit/accent';
 import { type FrameSpec, mountFrameHost } from './pages/frames';
 import { MODULES_ICON, pageIconSvg } from './pages/icons';
 import {
@@ -68,6 +69,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
   const queue: Notice[] = [];
   let showing: Notice | null = null;
   doc.documentElement.lang = state.lang;
+  let accent = state.accent;
+  applyAccent(doc.documentElement, accent);
 
   // Without a notch a widget page's head takes a row of the page (route.ts HEAD_ROW).
   const headRow = !info.hasNotch;
@@ -103,6 +106,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     onCollapse: () => collapse(),
     onLamp: (spec, on, color, glow) => setLamp(spec, on, color, glow),
   }, doc);
+  frames.setAccent(accent);
   const pages = mountPageView(view.content, {
     frames,
     notch: controller.notch,
@@ -443,6 +447,11 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     state = next;
     strings = hostStrings(next.lang);
     doc.documentElement.lang = next.lang;
+    if (next.accent !== accent) {
+      accent = next.accent;
+      applyAccent(doc.documentElement, accent);
+      frames.setAccent(accent);
+    }
     if (!shelfOn()) dropping = false;
     const onShelfPage = page.kind === 'shelf';
     const picked = onShelfPage && shelfOn() ? shelfPage()

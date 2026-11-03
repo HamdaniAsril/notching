@@ -14,6 +14,7 @@ export function tauriSettingsBridge(): SettingsBridge {
     onSettings: cb => syncUnlisten(listen<SettingsInfo>('notching://settings', e => cb(e.payload))),
     setLanguage: language => invoke('set_language', { language }),
     setNotchConfig: config => invoke('set_notch_config', { config }),
+    setAccent: (accent, custom) => invoke('set_accent', { accent, custom }),
     setScreen: name => invoke('set_screen', { name }),
     setLaunchAtLogin: on => invoke('set_launch_at_login', { on }),
     openLoginItems: () => invoke('open_login_items'),

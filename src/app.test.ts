@@ -128,6 +128,20 @@ test('the frames go away once the panel has closed', async () => {
   expect(frame()).toBeNull();
 });
 
+test('the page and its frames follow the accent', async () => {
+  const { app, r, bridge, frame } = await start({ ...TEST_STATE, accent: '#ff6fa8' });
+  const root = document.documentElement;
+  expect(root.style.getPropertyValue('--v-acc')).toBe('#ff6fa8');
+  open(app, r);
+  const f = frame()!;
+  const posted: unknown[] = [];
+  f.contentWindow!.postMessage = ((m: unknown) => { posted.push(m); }) as Window['postMessage'];
+  bridge.emitModuleState({ ...TEST_STATE, accent: '#3ee6c4' });
+  expect(root.style.getPropertyValue('--v-acc')).toBe('#3ee6c4');
+  expect(posted).toContainEqual({ type: 'notching:accent', accent: '#3ee6c4' });
+  expect(frame()).toBe(f);
+});
+
 test('a language change reloads the frames in the new language', async () => {
   const { root, app, r, bridge, frame } = await start();
   open(app, r);
@@ -138,7 +152,7 @@ test('a language change reloads the frames in the new language', async () => {
   const posted: unknown[] = [];
   after.contentWindow!.postMessage = ((m: unknown) => { posted.push(m); }) as Window['postMessage'];
   after.dispatchEvent(new Event('load'));
-  expect(posted).toContainEqual({ type: 'notching:init', moduleId: 'home', lang: 'en', widget: 'date' });
+  expect(posted).toContainEqual({ type: 'notching:init', moduleId: 'home', lang: 'en', widget: 'date', accent: '#c8f04a' });
   expect(root.querySelector('.notch-pill .ic:not([data-id])')!.getAttribute('aria-label')).toBe('Settings');
   expect(root.querySelector('.notch-pill .ic[data-id="home"]')!.getAttribute('aria-label')).toBe('Home');
   expect(document.documentElement.lang).toBe('en');

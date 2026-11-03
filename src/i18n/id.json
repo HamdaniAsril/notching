@@ -231,6 +231,8 @@
       "cityPrayer": "Kota & waktu sholat"
     },
     "look": {
+      "accent": "Warna aksen",
+      "accentCustom": "Warna sendiri",
       "preview": "Pratinjau",
       "previewHint": "Arahkan kursor ke notch, lalu klik.",
       "bounce": "Kenyal",
@@ -352,6 +354,7 @@
       "prayerNoticeHint": "Tanpa suara, kecuali kamu menyalakannya di Notifikasi."
     },
     "keywords": {
+      "accent": "warna aksen tema hijau lime warna sendiri accent colour color",
       "language": "bahasa indonesia inggris english language otomatis",
       "screen": "layar monitor eksternal display screen",
       "login": "login masuk mulai startup otomatis",

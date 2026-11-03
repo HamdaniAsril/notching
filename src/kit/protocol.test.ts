@@ -22,6 +22,13 @@ test('a view message needs a boolean', () => {
   expect(isHostMessage({ type: 'notching:view', full: 'ya' })).toBe(false);
 });
 
+test('the accent travels as a hex only', () => {
+  expect(isHostMessage({ type: 'notching:accent', accent: '#ff8a3d' })).toBe(true);
+  expect(isHostMessage({ type: 'notching:accent', accent: 'red' })).toBe(false);
+  expect(isHostMessage({ type: 'notching:init', moduleId: 'm', lang: 'id', accent: '#ff8a3d' })).toBe(true);
+  expect(isHostMessage({ type: 'notching:init', moduleId: 'm', lang: 'id', accent: 'red' })).toBe(false);
+});
+
 test('init may name its widget', () => {
   expect(isHostMessage({ type: 'notching:init', moduleId: 'home', lang: 'id', widget: 'date' })).toBe(true);
   expect(isHostMessage({ type: 'notching:init', moduleId: 'home', lang: 'id', widget: 5 })).toBe(false);

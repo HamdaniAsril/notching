@@ -231,6 +231,8 @@
       "cityPrayer": "City & prayer times"
     },
     "look": {
+      "accent": "Accent colour",
+      "accentCustom": "Custom colour",
       "preview": "Preview",
       "previewHint": "Point at the notch, then click.",
       "bounce": "Bounce",
@@ -352,6 +354,7 @@
       "prayerNoticeHint": "Silent unless you turn sound on in Notifications."
     },
     "keywords": {
+      "accent": "accent colour color theme green lime custom warna aksen",
       "language": "language english indonesian bahasa automatic",
       "screen": "screen display monitor external",
       "login": "login startup launch automatic",

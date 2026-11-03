@@ -1,5 +1,6 @@
 import type { Bridge } from '../bridge';
 import type { HostStrings } from '../i18n';
+import { DEFAULT_ACCENT } from '../kit/accent';
 import { type HostMessage, isFrameMessage, type Lang } from '../kit/protocol';
 
 // A frame that has not said "ready" by then gets the load-error text.
@@ -30,6 +31,7 @@ export interface FrameHost {
   frame(spec: FrameSpec, lang: Lang, strings: HostStrings): HTMLElement; // the same box while key and lang hold
   keep(keys: string[]): void; // drops every other frame
   setFull(key: string, full: boolean): void;
+  setAccent(hex: string): void; // every frame repaints; later frames start in it
   clear(): void;
   destroy(): void;
 }
@@ -49,6 +51,7 @@ interface Entry {
 export function mountFrameHost(deps: FrameHostDeps, doc: Document): FrameHost {
   const view = doc.defaultView!;
   const entries = new Map<string, Entry>();
+  let accent = DEFAULT_ACCENT;
 
   function drop(e: Entry): void {
     e.cancelReady?.();
@@ -107,11 +110,11 @@ export function mountFrameHost(deps: FrameHostDeps, doc: Document): FrameHost {
       if (spec.camera) f.setAttribute('allow', 'camera *');
       f.title = spec.title;
       f.style.height = `${spec.height}px`;
-      const init: HostMessage = spec.widget === null
-        ? { type: 'notching:init', moduleId: spec.moduleId, lang }
-        : { type: 'notching:init', moduleId: spec.moduleId, lang, widget: spec.widget };
       const e: Entry = { spec, lang, box, iframe: f, cancelReady: null, lamp: false };
-      f.addEventListener('load', () => reply(e, f, init));
+      // Built at load, so a frame still loading when the accent changed gets the new one.
+      f.addEventListener('load', () => reply(e, f, spec.widget === null
+        ? { type: 'notching:init', moduleId: spec.moduleId, lang, accent }
+        : { type: 'notching:init', moduleId: spec.moduleId, lang, widget: spec.widget, accent }));
       f.src = deps.bridge.moduleUrl(spec.moduleId, spec.entry);
       box.append(f);
       e.cancelReady = deps.setTimer(() => {
@@ -128,6 +131,10 @@ export function mountFrameHost(deps: FrameHostDeps, doc: Document): FrameHost {
     },
     keep(keys) {
       for (const e of [...entries.values()]) if (!keys.includes(e.spec.key)) drop(e);
+    },
+    setAccent(hex) {
+      accent = hex;
+      for (const e of entries.values()) if (e.iframe) reply(e, e.iframe, { type: 'notching:accent', accent: hex });
     },
     setFull(key, full) {
       const e = entries.get(key);

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { followCoreAccent } from '../kit/accent-tauri';
 import type { Lang } from '../kit/protocol';
 import type { ModuleState } from '../modules/types';
 import { browserEditorBridge, tauriEditorBridge } from './bridge';
@@ -10,6 +11,7 @@ async function start(): Promise<void> {
   const tauri = '__TAURI_INTERNALS__' in window;
   let lang: Lang = new URLSearchParams(location.search).get('lang') === 'en' ? 'en' : 'id';
   if (tauri) {
+    void followCoreAccent();
     try {
       lang = (await invoke<ModuleState>('get_module_state')).lang;
     } catch (e) {

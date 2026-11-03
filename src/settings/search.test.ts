@@ -65,3 +65,9 @@ test('finds the glow and the notice kinds', () => {
   expect(search(idx(withKinds), 'notifikasi waktu sholat').map(e => e.key)).toContain('home.prayerNotice');
 });
 
+
+test('finds the accent colour in both languages', () => {
+  expect(search(idx(), 'aksen')[0].key).toBe('look.accent');
+  expect(search(idx(mods, 'en'), 'accent')[0].key).toBe('look.accent');
+  expect(search(idx(), 'warna')[0].key).toBe('look.accent');
+});

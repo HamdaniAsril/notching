@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { followCoreAccent } from '../kit/accent-tauri';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { dragBox, finish, isDrag, windowAt, type Box, type PickMode, type PickWindow, type Point } from './geometry';
 
@@ -105,6 +106,7 @@ export function mountPicker(root: HTMLElement, deps: PickDeps): { show(state: Pi
 // panel gets its own screen's state (`emit_to`), so it listens on its window only:
 // a global listener would hear every panel's (see the rule in src/bridge.ts).
 export async function start(): Promise<void> {
+  void followCoreAccent();
   const picker = mountPicker(document.getElementById('pick-root')!, { invoke });
   await getCurrentWebviewWindow().listen<PickState>('notching://pick', e => picker.show(e.payload));
   const now = await invoke<PickState | null>('shot_pick_state');

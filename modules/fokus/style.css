@@ -62,11 +62,11 @@ body {
 }
 
 .wd-br-ring.out {
-  background: rgba(200, 240, 74, 0.1);
+  background: rgba(var(--v-acc-rgb), 0.1);
 }
 
 .wd-br-ring.mid {
-  background: rgba(200, 240, 74, 0.2);
+  background: rgba(var(--v-acc-rgb), 0.2);
 }
 
 .wd-br-core {

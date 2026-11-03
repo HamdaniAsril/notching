@@ -24,8 +24,9 @@ test('the face fills the frame: 12 faint ticks, three hands, an accent pin and t
   expect(svg.querySelectorAll('line.tk')).toHaveLength(12);
   expect(svg.querySelectorAll('line.tk')[0].getAttribute('stroke')).toBe('#454941');
   expect(svg.querySelectorAll('circle.pin')).toHaveLength(1);
-  expect(svg.querySelector('circle.pin')!.getAttribute('fill')).toBe('#c8f04a');
-  expect(svg.querySelector('line.sec')!.getAttribute('stroke')).toBe('#c8f04a');
+  // The accent comes from the page's variables, so the hand follows Tampilan's pick.
+  expect(svg.querySelector<SVGElement>('circle.pin')!.style.getPropertyValue('fill')).toBe('var(--v-acc)');
+  expect(svg.querySelector<SVGElement>('line.sec')!.style.getPropertyValue('stroke')).toBe('var(--v-acc)');
   expect(svg.querySelector('line.sec')!.getAttribute('transform')).toBe('rotate(180 54.5 52)');
   expect(svg.querySelector('line.hr')!.getAttribute('stroke')).toBe('#f3f5f0');
   expect(svg.querySelector('line.mn')!.getAttribute('stroke')).toBe('#f3f5f0');

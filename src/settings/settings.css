@@ -28,10 +28,11 @@
   --g2: #8c9187;
   --g3: #454941;
   --knob: #c4c8bf;
-  --acc: #c8f04a;
-  --acc-hi: #d6f56e;
-  --acc-soft: #1d260b;
-  --on-acc: #0f1404;
+  /* The accent picked in Tampilan, from src/kit/accent.ts via volt-tokens.css. */
+  --acc: var(--v-acc);
+  --acc-hi: var(--v-acc-hi);
+  --acc-soft: var(--v-acc-soft);
+  --on-acc: var(--v-on-acc);
   --danger: #e5484d;
   /* A filled danger button: white on this red reads (5.6:1), on #e5484d it does not. */
   --danger-fill: #c62a2f;
@@ -39,7 +40,7 @@
   --shadow: rgba(0, 0, 0, 0.45);
 }
 
-/* Lime does not read on white, so light mode has the deep lime (design 3 Nov §4). */
+/* A bright accent does not read on white, so light mode has its deep shade (design 3 Nov §4). */
 @media (prefers-color-scheme: light) {
   :root {
     --glass: rgba(255, 255, 255, 0.3);
@@ -59,11 +60,11 @@
     --g2: rgba(0, 0, 0, 0.55);
     --g3: rgba(0, 0, 0, 0.22);
     --knob: #fff;
-    --acc: #4c6b12;
+    --acc: var(--v-acc-deep);
     /* #e5484d is 3.9:1 on white; this red is 5.6:1. */
     --danger: #c62a2f;
-    --acc-hi: #5a7d17;
-    --acc-soft: rgba(76, 107, 18, 0.13);
+    --acc-hi: var(--v-acc-deep-hi);
+    --acc-soft: var(--v-acc-deep-soft);
     --on-acc: #fff;
     --shadow: rgba(0, 0, 0, 0.18);
   }
@@ -2415,11 +2416,11 @@ body > .ed-ghost.page-row {
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-br-ring.out {
-  background: rgba(200, 240, 74, 0.1);
+  background: rgba(var(--v-acc-rgb), 0.1);
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-br-ring.mid {
-  background: rgba(200, 240, 74, 0.2);
+  background: rgba(var(--v-acc-rgb), 0.2);
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .wd-br-core {
@@ -3447,4 +3448,54 @@ body > .ed-ghost.page-row {
 
 .cl-ex > .btn {
   margin-top: 10px;
+}
+
+/* Warna aksen: nine dots, the chosen one ringed outside its edge; the last one a
+   rainbow ring round the custom colour, which opens the system picker. */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  gap: 12px;
+  padding: 4px 3px 6px;
+}
+
+.swatch {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+
+.swatch.on {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+}
+
+.swatch:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 3px;
+}
+
+.swatch.on:focus-visible {
+  outline-color: var(--fg);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 0 7px var(--acc);
+}
+
+.swatch.custom {
+  background:
+    radial-gradient(circle, var(--sw, transparent) 0 6px, transparent 6.5px),
+    conic-gradient(#ff5a4f, #ffd23f, #9be15d, #3ee6c4, #5ac8fa, #b18cff, #ff6fa8, #ff5a4f);
+}
+
+.swatch-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
