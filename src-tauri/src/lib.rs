@@ -159,6 +159,7 @@ pub fn run() {
             shot_service::open_screen_recording_settings,
             shot_hotkey::shot_keys,
             shot_hotkey::shot_ready,
+            shot_hotkey::shot_setup_shown,
             shot_hotkey::open_keyboard_shortcuts,
             shot_hotkey::shot_turn_off_mac,
             shot_hotkey::shot_keys_hold,

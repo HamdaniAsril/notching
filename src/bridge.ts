@@ -141,6 +141,7 @@ export interface Bridge {
   onShots(cb: (list: Shot[]) => void): () => void;
   onShotDrag(cb: (e: ShotDrag) => void): () => void;
   shotReady(): Promise<void>; // this overlay hears notices now: the launch key notice can go out
+  shotSetupShown(): Promise<void>; // the first-use notice opened here: it never shows again
   // Cleaner (design 1 Nov): scans come back under a scan id; the page sends ids, never paths.
   cleanerOverview(): Promise<CleanerOverview>;
   cleanerParts(): Promise<CleanerParts>;
@@ -261,6 +262,7 @@ export function tauriBridge(): Bridge {
     // Sent to this overlay only.
     onShotDrag: cb => syncUnlisten(win.listen<ShotDrag>('notching://shot-drag', e => cb(e.payload))),
     shotReady: () => invoke('shot_ready'),
+    shotSetupShown: () => invoke('shot_setup_shown'),
     cleanerOverview: () => invoke<CleanerOverview>('cleaner_overview'),
     cleanerParts: () => invoke<CleanerParts>('cleaner_parts'),
     cleanerDeepScan: () => invoke<CleanerScan<CleanerItem>>('cleaner_deep_scan'),

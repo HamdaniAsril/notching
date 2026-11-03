@@ -25,6 +25,7 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
   const names: Record<Which, string> = { screen: s.screen, pick: s.pick };
   let keys: ShotKeys = { screen: 'off', pick: 'off', labels: { ...DEFAULT_LABELS }, custom: false };
   let recording: Which | null = null;
+  let pending: Which | null = null; // a key on its way to the core
   let error = '';
   let gone = false;
 
@@ -53,8 +54,12 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
     draw();
   }
 
+  // A press elsewhere ends the recording, but the page is redrawn only after the
+  // button under the pointer got its click: replaced at mousedown, it would get none.
   function onDown(e: MouseEvent): void {
-    if (!(e.target instanceof Element) || !e.target.closest('.keycap.recording')) stopAndDraw();
+    if (e.target instanceof Element && e.target.closest('.keycap.recording')) return;
+    stop();
+    doc().addEventListener('mouseup', () => setTimeout(draw, 0), { once: true });
   }
 
   function onKey(e: KeyboardEvent): void {
@@ -62,17 +67,28 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
     if (!which) return;
     e.preventDefault();
     e.stopPropagation();
+    // One key at a time: what was pressed is being saved, so the row shows that.
+    if (pending) return;
     const plain = !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
     if (e.key === 'Escape' && plain) {
       stopAndDraw();
       return;
     }
     if (MODIFIER.test(e.code)) return;
+    pending = which;
     ctx.bridge.shotSetKey(which, { code: e.code, cmd: e.metaKey, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey }).then(next => {
-      if (gone || recording !== which) return;
+      pending = null;
+      if (gone) return;
       keys = next;
-      stopAndDraw();
+      if (recording === which) {
+        stopAndDraw();
+        return;
+      }
+      // The core put the keys back for the new key; the other row still records.
+      if (recording) void ctx.bridge.shotKeysHold(true).catch(() => {});
+      draw();
     }, reason => {
+      pending = null;
       if (gone || recording !== which) return;
       error = reason === 'duplicate' ? fill(s.duplicate, { row: names[which === 'screen' ? 'pick' : 'screen'] }) : s.invalid;
       draw();

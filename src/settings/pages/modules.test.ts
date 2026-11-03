@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
+import type { ShotKeys } from '../../bridge';
 import type { ModuleState } from '../../modules/types';
 import { homeWidgets, moduleInfo, TEST_STATE, timers } from '../../notch/test-helpers';
 import { shotKeys } from '../../shot/test-helpers';
@@ -221,6 +222,52 @@ test('Esc or leaving the window cancels, and the keys come back', async () => {
   expect(keyCap(root, 'pick').textContent).toBe('⌘⇧4');
   expect(bridge.shotKeysHold).toHaveBeenCalledTimes(4);
   expect(bridge.shotSetKey).not.toHaveBeenCalled();
+});
+
+// A shotSetKey the test answers itself.
+function heldReply(bridge: { shotSetKey: { mockImplementation: (fn: () => Promise<ShotKeys>) => void } }) {
+  let answer!: (keys: ShotKeys) => void;
+  bridge.shotSetKey.mockImplementation(() => new Promise<ShotKeys>(r => { answer = r; }));
+  return (keys: ShotKeys) => answer(keys);
+}
+
+test('keys pressed while one is being saved are ignored, Esc too; the saved key shows', async () => {
+  const { root, bridge } = await onShotPage();
+  const answer = heldReply(bridge);
+  keyCap(root, 'screen').click();
+  press({ key: 'S', code: 'KeyS', ctrlKey: true, shiftKey: true });
+  press({ key: 'A', code: 'KeyA', ctrlKey: true, shiftKey: true });
+  press({ key: 'Escape', code: 'Escape' });
+  expect(bridge.shotSetKey).toHaveBeenCalledTimes(1);
+  answer(shotKeys('ok', 'ok', { screen: '⌃⇧S', pick: '⌘⇧4' }));
+  await settle();
+  expect(keyCap(root, 'screen').textContent).toBe('⌃⇧S');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
+});
+
+test('a key saved while the other row records keeps Notching\'s keys let go, and shows', async () => {
+  const { root, bridge } = await onShotPage();
+  const answer = heldReply(bridge);
+  keyCap(root, 'screen').click();
+  press({ key: 'S', code: 'KeyS', ctrlKey: true, shiftKey: true });
+  window.dispatchEvent(new Event('blur'));
+  keyCap(root, 'pick').click();
+  answer(shotKeys('ok', 'ok', { screen: '⌃⇧S', pick: '⌘⇧4' }));
+  await settle();
+  expect(keyCap(root, 'screen').textContent).toBe('⌃⇧S');
+  expect(keyCap(root, 'pick').textContent).toBe('Tekan tombol…');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(true);
+});
+
+test('pressing another button while recording leaves it in place for its click', async () => {
+  const { root } = await onShotPage();
+  keyCap(root, 'screen').click();
+  const pick = keyCap(root, 'pick');
+  pick.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+  expect(pick.isConnected).toBe(true);
+  pick.click();
+  expect(keyCap(root, 'pick').textContent).toBe('Tekan tombol…');
+  expect(keyCap(root, 'screen').textContent).toBe('⌘⇧3');
 });
 
 test('leaving the page while recording lets the keys come back', async () => {

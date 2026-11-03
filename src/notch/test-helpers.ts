@@ -202,6 +202,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     onShots: vi.fn((cb: (list: Shot[]) => void) => { shotsSubs.add(cb); return () => { shotsSubs.delete(cb); }; }),
     onShotDrag: vi.fn((cb: (e: ShotDrag) => void) => { shotDragSubs.add(cb); return () => { shotDragSubs.delete(cb); }; }),
     shotReady: vi.fn(async () => {}),
+    shotSetupShown: vi.fn(async () => {}),
     cleanerOverview: vi.fn(async () => ({ testMode: false, fda: true, volume: 'Macintosh HD', total: 256e9, free: 44e9 })),
     cleanerParts: vi.fn(async () => ({ apps: 51e9, documents: 36e9, photos: 26e9, cleanable: 31e9, appCount: 84 })),
     cleanerDeepScan: vi.fn(async (): Promise<CleanerScan<CleanerItem>> => ({ scanId: 1, items: [] })),

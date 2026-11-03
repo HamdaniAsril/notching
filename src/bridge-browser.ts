@@ -260,6 +260,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     onShots: cb => { shotsSubs.add(cb); return () => shotsSubs.delete(cb); },
     onShotDrag: () => () => {},
     shotReady: async () => {},
+    shotSetupShown: async () => console.info('shotSetupShown'),
     ...fakeCleaner(params),
     clearMissed: async () => {
       state = { ...state, missed: [] };

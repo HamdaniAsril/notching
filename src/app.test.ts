@@ -694,6 +694,8 @@ test('the first-use notice opens the panel on it; a capture then takes its place
   expect(root.querySelector('.shot-setup-title')!.textContent).toBe('⌘⇧3 dan ⌘⇧4 masih dipakai Mac');
   expect(app.controller.card).toEqual({ width: 420, height: 144 });
   expect(bridge.setLastPage).not.toHaveBeenCalledWith('screenshot');
+  // Only now does the core count it as shown (§3).
+  expect(bridge.shotSetupShown).toHaveBeenCalledTimes(1);
   taken(bridge, 2);
   expect(onResult(root)).toBe(true);
   expect(root.querySelector('.shot-setup-title')).toBeNull();

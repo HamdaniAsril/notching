@@ -553,6 +553,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       controller.click();
       view.kick();
     }
+    // It counts as shown once it opened here, never once only sent.
+    bridge.shotSetupShown().catch(e => console.error('notching: shot_setup_shown failed', e));
   });
 
   // One history for every screen.

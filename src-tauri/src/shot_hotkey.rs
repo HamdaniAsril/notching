@@ -473,7 +473,8 @@ fn notice_if_due(app: &AppHandle) {
                     Err(e) => eprintln!("notching: the screenshot first-use notice was not sent: {e}"),
                 }
             });
-            mark_notice(app);
+            // Shown only once the notch says it opened (`shot_setup_shown`); until
+            // then a later launch tries again. This launch sends nothing more.
             *sent = true;
         }
         Launch::Small(holder, names) => {
@@ -544,6 +545,13 @@ pub fn shot_ready(app: AppHandle, window: WebviewWindow) {
         }
     }
     std::thread::spawn(move || notice_if_due(&app));
+}
+
+/// The first-use notice opened in a notch: it never shows again (§3).
+#[tauri::command]
+pub fn shot_setup_shown(app: AppHandle) {
+    eprintln!("notching: screenshot first-use notice shown");
+    mark_notice(&app);
 }
 
 #[tauri::command]
