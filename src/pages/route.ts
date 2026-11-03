@@ -34,7 +34,7 @@ export const SHOT_KEY = 'screenshot';
 // take buttons 12 px under them. The first-use notice (design 3 Nov tombol §4): its
 // label, title, line and buttons.
 export const SHOT = {
-  resultWidth: 420, resultHeight: 172, setupWidth: 420, setupHeight: 132, listWidth: 560, columns: 5, gap: 8, tileH: 62,
+  resultWidth: 420, resultHeight: 172, setupWidth: 420, setupHeight: 144, listWidth: 560, columns: 5, gap: 8, tileH: 62,
   label: 14, head: 22, buttons: 40, emptyH: 72, note: 24,
 } as const;
 const SHOT_ROWS = 3;

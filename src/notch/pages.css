@@ -633,6 +633,7 @@
 .shot-setup .shot-btns {
   flex-direction: row;
   margin-top: auto;
+  padding-top: 12px;
 }
 
 .shot-btn:focus-visible,

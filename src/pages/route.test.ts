@@ -163,16 +163,16 @@ test('the screenshot result is 420 × 172, however many shots there are', () => 
   }
 });
 
-test('the screenshot first-use notice is 420 × 132', () => {
+test('the screenshot first-use notice is 420 × 144', () => {
   const setup = { holder: 'mac' as const, keys: '⌘⇧3' };
-  expect(viewSize({ kind: 'shot', mode: 'setup', setup, key: 'screenshot', shots: shots(3) })).toEqual({ width: 420, height: 132 });
+  expect(viewSize({ kind: 'shot', mode: 'setup', setup, key: 'screenshot', shots: shots(3) })).toEqual({ width: 420, height: 144 });
 });
 
 test('the screenshot list grows by rows of 5, up to 3', () => {
   const list = (n: number, notes?: number) => viewSize({ kind: 'shot', mode: 'list', key: 'screenshot', shots: shots(n), notes });
   const { head, tileH, label, gap, buttons, emptyH } = SHOT;
   expect(SHOT).toEqual({
-    resultWidth: 420, resultHeight: 172, setupWidth: 420, setupHeight: 132, listWidth: 560, columns: 5, gap: 8, tileH: 62,
+    resultWidth: 420, resultHeight: 172, setupWidth: 420, setupHeight: 144, listWidth: 560, columns: 5, gap: 8, tileH: 62,
     label: 14, head: 22, buttons: 40, emptyH: 72, note: 24,
   });
   expect(list(0)).toEqual({ width: 560, height: head + emptyH + 12 + buttons });
