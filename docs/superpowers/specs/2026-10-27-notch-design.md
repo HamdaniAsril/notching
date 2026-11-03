@@ -300,6 +300,7 @@ Ini syarat yang wajib dipenuhi, cara mewujudkannya diserahkan ke pembuat.
   - "+ Tambah modul" di versi pertama hanya menampilkan modul bawaan yang pernah dicopot, untuk dipasang lagi tanpa internet.
   - Modul ikut diperbarui bersama app, tidak terpisah. Jadi API antara modul dan app inti masih boleh berubah sampai tahap 2.
   - **Tahap 2:** katalog unduhan di GitHub Releases, pemeriksaan tanda tangan, dan update modul terpisah. Semua ini dibuat bersamaan dengan modul pertama yang perlu diunduh. API modul baru dikunci versinya saat itu.
+  - **Katalog modul bawaan** selesai pada 4 November 2026: halaman Katalog di Pengaturan menggantikan "+ Tambah modul", dan paket widget kini bisa dicopot. Unduhan dan tanda tangan tetap menunggu modul pertama yang perlu diunduh. Lihat `2026-11-04-katalog-modul-design.md`.
   - **Alasan:**
     - Paket web modul hanya puluhan sampai ratusan KB.
     - Ukuran app hampir seluruhnya berasal dari app inti Tauri, sekitar 5–15 MB. Angka ini tetap jauh lebih kecil dari Vorssaint (27 MB).
