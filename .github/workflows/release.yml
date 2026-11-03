@@ -1,12 +1,15 @@
 name: release
 
-# Push a tag vX.Y.Z to release Notching X.Y.Z for Apple Silicon: build, sign with
-# Developer ID, notarize, staple, and attach the DMG to a DRAFT GitHub Release.
-# Check the notarization line in the log, then publish:
+# Push a tag vX.Y.Z to release Notching X.Y.Z. One matrix job per platform builds
+# and attaches its installers to the same DRAFT GitHub Release:
+#   macOS (Apple Silicon): signed with Developer ID, notarized, stapled DMG
+#   Windows: NSIS setup.exe + MSI (unsigned)
+#   Linux (built on Ubuntu 22.04): deb + rpm + AppImage (unsigned)
+# Check the notarization line in the macOS log, then publish:
 #   gh release edit vX.Y.Z --draft=false
 #
 # The tag must equal the version in src-tauri/tauri.conf.json, package.json and
-# src-tauri/Cargo.toml; the first job step fails otherwise.
+# src-tauri/Cargo.toml; the draft job fails otherwise, before anything is built.
 on:
   push:
     tags:
@@ -20,11 +23,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  macos:
-    runs-on: macos-latest
+  # Creates the draft once, so the three build jobs do not race to create it.
+  draft:
+    runs-on: ubuntu-22.04
     env:
-      TARGET: aarch64-apple-darwin
-
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v7
 
@@ -38,6 +42,42 @@ jobs:
           [ "$tag" = "$conf" ] && [ "$tag" = "$pkg" ] && [ "$tag" = "$cargo" ] || {
             echo "::error::tag v$tag does not match the app version"; exit 1; }
 
+      - name: create draft release
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+              --title "Notching $GITHUB_REF_NAME" --notes "Installers are being attached by CI."
+
+  build:
+    needs: draft
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin
+          - name: Linux (deb, rpm, AppImage)
+            os: ubuntu-22.04
+            target: ''
+            args: ''
+          - name: Windows (nsis, msi)
+            os: windows-latest
+            target: ''
+            args: ''
+    env:
+      TARGET: ${{ matrix.target }}
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+
       - uses: actions/setup-node@v7
         with:
           node-version: 20
@@ -45,11 +85,19 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ env.TARGET }}
+          targets: ${{ matrix.target }}
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: 'src-tauri -> target'
+
+      - name: install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev \
+            patchelf libfuse2
 
       - name: install frontend dependencies
         run: npm ci
@@ -68,6 +116,7 @@ jobs:
       # would import APPLE_CERTIFICATE itself. So APPLE_CERTIFICATE is not passed
       # to tauri-action below: a second copy of the identity would be ambiguous.
       - name: import Developer ID certificate
+        if: runner.os == 'macOS'
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -82,30 +131,44 @@ jobs:
             -A -t cert -f pkcs12 -k "$keychain"
           rm "$RUNNER_TEMP/cert.p12"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$pass" "$keychain"
+          # shellcheck disable=SC2046  # the existing keychain list must word-split
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
           security find-identity -v -p codesigning "$keychain"
 
+      # The Apple signing variables are empty on Windows and Linux: the bundler
+      # only signs and notarizes when they are set.
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_SIGNING_IDENTITY: ${{ runner.os == 'macOS' && secrets.APPLE_SIGNING_IDENTITY || '' }}
           # Notarization (Apple ID + app-specific password).
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
         with:
           tagName: v__VERSION__
           releaseName: 'Notching v__VERSION__'
-          releaseBody: 'Download the `_aarch64.dmg` below (Apple Silicon, macOS 13+), open it and drag Notching into Applications. Signed with Developer ID and notarized by Apple.'
+          releaseBody: |
+            Download the file for your system:
+
+            - **macOS** (Apple Silicon, macOS 13+): `_aarch64.dmg`. Open it and drag Notching into Applications. Signed with Developer ID and notarized by Apple.
+            - **Windows** (10/11): `_x64-setup.exe` (recommended) or `.msi`.
+            - **Ubuntu / Debian**: `.deb`. Install with `sudo apt install ./Notching_*.deb`.
+            - **Fedora / openSUSE**: `.rpm`. Install with `sudo dnf install ./Notching-*.rpm`.
+            - **Other Linux distributions**: `.AppImage`. Run `chmod +x Notching_*.AppImage`, then start it.
+
+            The Windows and Linux builds are not code-signed. On Windows, SmartScreen may warn: click "More info", then "Run anyway".
+            Linux needs webkit2gtk 4.1 (Ubuntu 22.04+, Fedora 38+). Shelf, Screenshot, Cleaner, Keyboard Cleaning Mode, Music and the Mirror lamp are macOS-only for now.
           releaseDraft: true
           prerelease: false
-          args: --target ${{ env.TARGET }}
+          args: ${{ matrix.args }}
 
       # The release is still a draft: if this fails, do not publish it.
       # Checks the app inside the uploaded DMG, which is what users launch.
       - name: verify signature and notarization
+        if: runner.os == 'macOS'
         run: |
-          dmg=$(ls src-tauri/target/$TARGET/release/bundle/dmg/*.dmg)
+          dmg=$(ls "src-tauri/target/$TARGET/release/bundle/dmg/"*.dmg)
           mnt=$(mktemp -d)
           hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$dmg"
           trap 'hdiutil detach "$mnt" -quiet || true' EXIT
@@ -117,5 +180,5 @@ jobs:
           spctl --assess --type execute --verbose=4 "$app"
 
       - name: remove signing keychain
-        if: always()
+        if: always() && runner.os == 'macOS'
         run: security delete-keychain "$RUNNER_TEMP/notching-signing.keychain-db" || true
