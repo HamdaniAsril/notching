@@ -188,6 +188,12 @@ pub struct Settings {
     /// The last custom colour, kept while a preset is chosen.
     #[serde(deserialize_with = "lenient_accent_custom")]
     pub accent_custom: Option<String>,
+    /// Screenshot's two keys (design 3 Nov tombol §6).
+    #[serde(deserialize_with = "lenient")]
+    pub shot_keys: crate::shot_keys::ShotKeys,
+    /// Screenshot's first-use notice has shown, or was not needed (§3).
+    #[serde(deserialize_with = "lenient")]
+    pub shot_notice: bool,
 }
 
 impl Default for Settings {
@@ -206,6 +212,8 @@ impl Default for Settings {
             status_off: Vec::new(),
             accent: DEFAULT_ACCENT.into(),
             accent_custom: None,
+            shot_keys: crate::shot_keys::ShotKeys::default(),
+            shot_notice: false,
         }
     }
 }
@@ -381,6 +389,19 @@ pub fn save_settings(path: &Path, settings: &Settings) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shot_keys_default_and_read_leniently() {
+        use crate::shot_keys::{Combo, ShotKeys, CONTROL, SHIFT};
+        let (_d, s) = load(r#"{"version":2,"language":"en"}"#);
+        assert_eq!((s.shot_keys, s.shot_notice), (ShotKeys::default(), false));
+        let (_d, s) = load(r#"{"shotKeys":{"screen":{"code":1,"mods":4608},"pick":{"code":21,"mods":768}},"shotNotice":true}"#);
+        assert_eq!(s.shot_keys.screen, Combo { code: 1, mods: CONTROL | SHIFT });
+        assert_eq!(s.shot_keys.pick, ShotKeys::default().pick);
+        assert!(s.shot_notice);
+        let (_d, s) = load(r#"{"shotKeys":"x","shotNotice":3,"language":"en"}"#);
+        assert_eq!((s.shot_keys, s.shot_notice, s.language), (ShotKeys::default(), false, LanguageSetting::En));
+    }
 
     #[test]
     fn accent_defaults_to_lime() {

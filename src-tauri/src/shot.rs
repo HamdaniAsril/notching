@@ -6,6 +6,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::geometry::Rect;
 
+/// Screenshot's module id.
+pub const MODULE_ID: &str = "screenshot";
+
 /// The 16th screenshot removes the oldest, with its folder.
 pub const HISTORY_MAX: usize = 15;
 

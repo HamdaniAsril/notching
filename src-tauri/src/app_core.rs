@@ -380,6 +380,24 @@ impl AppCore {
         self.save()
     }
 
+    pub fn shot_keys(&self) -> crate::shot_keys::ShotKeys {
+        self.settings.shot_keys
+    }
+
+    pub fn set_shot_keys(&mut self, keys: crate::shot_keys::ShotKeys) -> Result<(), CoreError> {
+        self.settings.shot_keys = keys;
+        self.save()
+    }
+
+    pub fn shot_notice(&self) -> bool {
+        self.settings.shot_notice
+    }
+
+    pub fn set_shot_notice(&mut self) -> Result<(), CoreError> {
+        self.settings.shot_notice = true;
+        self.save()
+    }
+
     /// An empty name means every screen, like None.
     pub fn set_screen(&mut self, name: Option<String>) -> Result<(), CoreError> {
         self.settings.screen = name.filter(|n| !n.is_empty());
@@ -461,8 +479,12 @@ impl AppCore {
         self.changed()
     }
 
+    /// Uninstalling Screenshot also puts its keys back (design 3 Nov tombol §6).
     pub fn uninstall(&mut self, id: &str) -> Result<(), CoreError> {
         self.store.uninstall(id, &mut self.settings).map_err(CoreError::Store)?;
+        if id == crate::shot::MODULE_ID {
+            self.settings.shot_keys = crate::shot_keys::ShotKeys::default();
+        }
         self.changed()
     }
 
@@ -520,6 +542,45 @@ mod tests {
         assert_eq!(s.modules[2].widgets[0].width, 1);
         assert_eq!(s.modules[0].short_name, "Module A");
         assert!(s.modules.iter().all(|m| m.activity.is_none()));
+    }
+
+    // The fake bundle with the real Screenshot module beside it.
+    fn setup_with_screenshot() -> tempfile::TempDir {
+        let d = setup();
+        let bundle = d.path().join("bundle");
+        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../modules/screenshot");
+        let dst = bundle.join("screenshot");
+        std::fs::create_dir_all(dst.join("locales")).unwrap();
+        for f in ["manifest.json", "icon.svg", "locales/id.json", "locales/en.json"] {
+            std::fs::copy(src.join(f), dst.join(f)).unwrap();
+        }
+        std::fs::write(bundle.join("index.json"), r#"["a","b","w","screenshot"]"#).unwrap();
+        d
+    }
+
+    #[test]
+    fn shot_keys_save_and_uninstall_resets_them() {
+        use crate::shot_keys::{Combo, ShotKeys, CONTROL, SHIFT};
+        let d = setup_with_screenshot();
+        let mine = ShotKeys { screen: Combo { code: 1, mods: CONTROL | SHIFT }, ..ShotKeys::default() };
+        open(&d, None).set_shot_keys(mine).unwrap();
+        assert_eq!(open(&d, None).shot_keys(), mine);
+        let mut core = open(&d, None);
+        core.set_enabled("screenshot", false).unwrap();
+        assert_eq!(core.shot_keys(), mine);
+        core.uninstall("a").unwrap();
+        assert_eq!(core.shot_keys(), mine);
+        core.uninstall("screenshot").unwrap();
+        assert_eq!(core.shot_keys(), ShotKeys::default());
+        assert_eq!(open(&d, None).shot_keys(), ShotKeys::default());
+    }
+
+    #[test]
+    fn shot_notice_is_saved() {
+        let d = setup();
+        assert!(!open(&d, None).shot_notice());
+        open(&d, None).set_shot_notice().unwrap();
+        assert!(open(&d, None).shot_notice());
     }
 
     #[test]

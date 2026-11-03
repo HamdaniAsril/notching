@@ -25,7 +25,7 @@ use crate::shelf_drag::DragOwner;
 use crate::shelf_service::DRAG_OUT;
 use crate::shot::{capture_args, desktop_name, png_size, History, Kind, ShotItem, Target};
 
-pub const MODULE_ID: &str = "screenshot";
+pub use crate::shot::MODULE_ID;
 pub const SCHEME: &str = "notchshot";
 /// To one overlay: `{ phase: "taken", id }`; to every window: `{ phase: "gone", id }`.
 pub const SHOT_EVENT: &str = "notching://shot";
