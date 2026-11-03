@@ -1,5 +1,5 @@
 import { fill } from '../../i18n';
-import type { ModuleState, Page, WidgetKind } from '../../modules/types';
+import { inCatalog, isModule, type ModuleState, type Page, type WidgetKind } from '../../modules/types';
 import { PAGE_ICON_NAMES, pageIconSvg } from '../../pages/icons';
 import { COLUMNS, place, removeWidget, replaceAt, slots, STRIP_WIDTH, stripSlot, swapInto, widgetCatalog, type CatalogWidget } from '../../pages/layout';
 import { button, el, head } from '../controls';
@@ -415,6 +415,12 @@ export const pageEditor: PageRender = (ctx, route) => {
       el('div', 'grp-label', s.preview), notchFrame(ctx, row),
       el('div', 'grp-label', s.widgetList), ...widgetList(ctx, page, catalog, () => row, save, draw),
     );
+    // More widgets wait in the Katalog while a package of them is not installed.
+    if (ctx.state.modules.some(m => !m.installed && !isModule(m) && inCatalog(m))) {
+      const more = button('pageEdit.catalog', ctx.strings.catalog.more, () => ctx.go({ page: 'catalog' }));
+      more.classList.add('ed-more');
+      body.append(more);
+    }
     if (focus) body.querySelector<HTMLElement>(`[data-key="${focus}"]`)?.focus();
   }
   draw();

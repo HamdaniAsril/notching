@@ -385,3 +385,18 @@ test('the echo of its own save with a null strip leaves the editor as it is', as
   bridge.emitModuleState({ ...STATE, pages: [BERANDA, { ...KERJA, name: 'Kantor', strip: null }] });
   expect(root.querySelector('.ed-icons')).toBe(popup);
 });
+
+test('with a widget package not installed, the list ends with a way to the Katalog', async () => {
+  const musik = moduleInfo('musik', { name: 'Musik', entry: null, card: null, installed: false, enabled: false,
+    widgets: [{ id: 'mini', name: 'Mini', entry: 'index.html', width: 1, kind: 'media' }] });
+  const { root, app } = await edit('p1', { ...STATE, modules: [...STATE.modules, musik] });
+  const more = key(root, 'pageEdit.catalog')!;
+  expect(more.textContent).toBe('Widget lain ada di Katalog');
+  more.click();
+  expect(app.route).toEqual({ page: 'catalog' });
+});
+
+test('with every widget package installed, there is no way to the Katalog', async () => {
+  const { root } = await edit('p1');
+  expect(key(root, 'pageEdit.catalog')).toBeNull();
+});

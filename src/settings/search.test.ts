@@ -30,9 +30,16 @@ test("Screenshot's keys are found by key words, in both languages", () => {
   expect(search(idx([...mods, off]), 'shortcut')).toEqual([]);
 });
 
-test('an uninstalled module leads to Add module', () =>
-  expect(search(idx([moduleInfo('home', { name: 'Beranda', installed: false, enabled: false })]), 'beranda')[0].route)
-    .toEqual({ page: 'add' }));
+test('an uninstalled module leads to its card in the Katalog', () =>
+  expect(search(idx([moduleInfo('mirror', { name: 'Cermin', installed: false, enabled: false })]), 'cermin')[0])
+    .toMatchObject({ key: 'catalog.mirror', route: { page: 'catalog' } }));
+
+test('a widget package leads to its card in the Katalog; Beranda\'s is not one', () => {
+  const waktu = moduleInfo('waktu', { name: 'Waktu', description: 'Jam dan kalender', entry: null, card: null,
+    widgets: [{ id: 'analog', name: 'Analog', entry: 'index.html', width: 1, kind: 'time' }] });
+  expect(search(idx([homeWidgets(), waktu]), 'kalender')[0]).toMatchObject({ key: 'catalog.waktu', route: { page: 'catalog' } });
+  expect(idx([homeWidgets(), waktu]).map(e => e.key)).not.toContain('catalog.home');
+});
 
 test('ignores case and accents', () => expect(search(idx(), 'KÉNYAL')[0].key).toBe('look.bounce'));
 

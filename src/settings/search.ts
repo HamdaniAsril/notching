@@ -1,5 +1,5 @@
 import type { SettingsStrings } from '../i18n';
-import { isModule, type ModuleInfo, type Page } from '../modules/types';
+import { inCatalog, isModule, type ModuleInfo, type Page } from '../modules/types';
 import type { Route, SectionId } from './types';
 
 export interface SearchEntry {
@@ -56,9 +56,11 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
       ? modules.filter(m => m.installed).flatMap(m =>
         m.channels.map(c => entry(`channel.${m.id}.${c.id}`, c.name, where, { page }, `${m.name} ${k.channels}`)))
       : [];
+    // An installed module opens its page; anything else in the Katalog, its card there.
     const mods = page === 'modules'
-      ? modules.filter(isModule).map(m =>
-        entry(`module.${m.id}`, m.name, where, m.installed ? { page: 'module', id: m.id } : { page: 'add' }, m.description))
+      ? modules.filter(m => isModule(m) || inCatalog(m)).map(m => (isModule(m) && m.installed
+        ? entry(`module.${m.id}`, m.name, where, { page: 'module', id: m.id }, m.description)
+        : entry(`catalog.${m.id}`, m.name, where, { page: 'catalog' }, m.description)))
       : [];
     // Screenshot's keys, on its own page (design 3 Nov tombol §6).
     if (page === 'modules' && modules.some(m => m.id === 'screenshot' && m.installed)) {
