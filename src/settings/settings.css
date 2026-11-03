@@ -3455,8 +3455,9 @@ body > .ed-ghost.page-row {
 .swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-left: auto;
+  flex-basis: 100%;
+  gap: 12px;
+  padding: 4px 3px 6px;
 }
 
 .swatch {
