@@ -67,11 +67,14 @@ test('finds the glow and the notice kinds', () => {
 
 
 test('Permissions is searchable on the Mac only', () => {
-  expect(idx().some(e => e.key === 'section.permissions')).toBe(true);
-  vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: '' });
-  try {
-    expect(idx().some(e => e.key === 'section.permissions')).toBe(false);
-  } finally {
-    vi.unstubAllGlobals();
-  }
+  const on = (userAgent: string) => {
+    vi.stubGlobal('navigator', { userAgent, platform: '' });
+    try {
+      return idx().some(e => e.key === 'section.permissions');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  };
+  expect(on('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')).toBe(true);
+  expect(on('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe(false);
 });
