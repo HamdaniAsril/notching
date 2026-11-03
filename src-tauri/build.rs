@@ -14,14 +14,31 @@ fn main() {
 
 fn build_media_helper() {
     println!("cargo:rerun-if-changed={MEDIA_SOURCE}");
+    println!("cargo:rerun-if-env-changed=APPLE_SIGNING_IDENTITY");
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos") {
         return;
     }
     // tauri_build watches the resources too: rewriting an unchanged library
     // would only make the next build run this script again.
-    if is_newer(Path::new(MEDIA_LIB), Path::new(MEDIA_SOURCE)) {
-        return;
+    if !is_newer(Path::new(MEDIA_LIB), Path::new(MEDIA_SOURCE)) {
+        compile_media_helper();
     }
+    // The bundler signs only the app's own code, not resources, and
+    // notarization rejects any unsigned Mach-O inside the app.
+    if let Ok(identity) = std::env::var("APPLE_SIGNING_IDENTITY") {
+        sign_media_helper(&identity);
+    }
+}
+
+fn sign_media_helper(identity: &str) {
+    let status = Command::new("codesign")
+        .args(["--force", "--options", "runtime", "--timestamp", "--sign", identity, MEDIA_LIB])
+        .status()
+        .expect("codesign (Xcode command line tools) is needed to sign the Now Playing helper");
+    assert!(status.success(), "signing {MEDIA_LIB} failed");
+}
+
+fn compile_media_helper() {
     std::fs::create_dir_all("media/build").expect("media/build");
     let status = Command::new("clang")
         .args(["-fobjc-arc", "-fvisibility=hidden", "-O2", "-Wall", "-mmacosx-version-min=13.0"])

@@ -8,13 +8,8 @@ Notching turns the MacBook notch into a calm panel for the small tools you reach
 
 1. Download `Notching_x.y.z_aarch64.dmg` from the latest [Release](https://github.com/HamdaniAsril/notching/releases/latest).
 2. Open the DMG and drag Notching into Applications.
-3. The build is not signed with an Apple Developer ID yet, so macOS blocks the first launch. To allow it, either:
-   - open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**, or
-   - run this once in Terminal:
 
-     ```bash
-     xattr -dr com.apple.quarantine /Applications/Notching.app
-     ```
+The app is signed with an Apple Developer ID and notarized by Apple, so it opens like any other Mac app.
 
 Requirements: macOS 13 or later on Apple Silicon (M1 or newer). It also works on Macs without a notch and on external displays.
 
@@ -68,6 +63,17 @@ npm run tauri build
 
 The output lands in `src-tauri/target/release/bundle/`.
 
+## Releasing
+
+Releases are built by [GitHub Actions](.github/workflows/release.yml) from a version tag:
+
+1. Bump the version in `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and the `notching` entry in `src-tauri/Cargo.lock`.
+2. Commit, then `git tag vX.Y.Z && git push origin main vX.Y.Z`. The tag must equal the version.
+3. CI runs the tests, builds for Apple Silicon, signs with Developer ID, notarizes, and attaches the DMG to a draft release.
+4. When the run is green, publish it: `gh release edit vX.Y.Z --draft=false`.
+
+The workflow needs these repository secrets: `APPLE_CERTIFICATE` (base64 `.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_TEAM_ID`, `APPLE_ID` and `APPLE_PASSWORD` (an app-specific password).
+
 ## Project layout
 
 - `src/`: the notch, settings window and shared kit (TypeScript).
@@ -81,4 +87,4 @@ The output lands in `src-tauri/target/release/bundle/`.
 
 ---
 
-**Bahasa Indonesia.** Notching mengubah notch MacBook menjadi panel tenang untuk alat harian. Gratis, open source, tanpa iklan, dan tanpa pelacakan. Unduh DMG dari [Releases](https://github.com/HamdaniAsril/notching/releases/latest). Karena belum ditandatangani Apple, buka dulu lewat **Pengaturan Sistem → Privasi & Keamanan → Tetap Buka**.
+**Bahasa Indonesia.** Notching mengubah notch MacBook menjadi panel tenang untuk alat harian. Gratis, open source, tanpa iklan, dan tanpa pelacakan. Unduh DMG dari [Releases](https://github.com/HamdaniAsril/notching/releases/latest). Aplikasi sudah ditandatangani Developer ID dan dinotarisasi Apple, jadi langsung bisa dibuka.

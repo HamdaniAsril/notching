@@ -1,0 +1,121 @@
+name: release
+
+# Push a tag vX.Y.Z to release Notching X.Y.Z for Apple Silicon: build, sign with
+# Developer ID, notarize, staple, and attach the DMG to a DRAFT GitHub Release.
+# Check the notarization line in the log, then publish:
+#   gh release edit vX.Y.Z --draft=false
+#
+# The tag must equal the version in src-tauri/tauri.conf.json, package.json and
+# src-tauri/Cargo.toml; the first job step fails otherwise.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    env:
+      TARGET: aarch64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: tag matches app version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          conf=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          pkg=$(node -p "require('./package.json').version")
+          cargo=$(sed -n 's/^version = "\(.*\)"/\1/p' src-tauri/Cargo.toml | head -1)
+          echo "tag=$tag tauri.conf=$conf package=$pkg cargo=$cargo"
+          [ "$tag" = "$conf" ] && [ "$tag" = "$pkg" ] && [ "$tag" = "$cargo" ] || {
+            echo "::error::tag v$tag does not match the app version"; exit 1; }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ env.TARGET }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: 'src-tauri -> target'
+
+      - name: install frontend dependencies
+        run: npm ci
+
+      - name: frontend tests
+        run: npm test
+
+      # tauri::generate_context! needs the built frontend (../dist) to compile.
+      - name: rust tests
+        run: |
+          npm run build
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
+
+      # Imported here, before the build, because build.rs signs the Now Playing
+      # dylib (a bundle resource) during `cargo build`, earlier than the bundler
+      # would import APPLE_CERTIFICATE itself. So APPLE_CERTIFICATE is not passed
+      # to tauri-action below: a second copy of the identity would be ambiguous.
+      - name: import Developer ID certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/notching-signing.keychain-db"
+          pass=$(uuidgen)
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$pass" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$pass" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$keychain"
+          rm "$RUNNER_TEMP/cert.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$pass" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          security find-identity -v -p codesigning "$keychain"
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # Notarization (Apple ID + app-specific password).
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'Notching v__VERSION__'
+          releaseBody: 'Download the `_aarch64.dmg` below (Apple Silicon, macOS 13+), open it and drag Notching into Applications. Signed with Developer ID and notarized by Apple.'
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ env.TARGET }}
+
+      # The release is still a draft: if this fails, do not publish it.
+      # Checks the app inside the uploaded DMG, which is what users launch.
+      - name: verify signature and notarization
+        run: |
+          dmg=$(ls src-tauri/target/$TARGET/release/bundle/dmg/*.dmg)
+          mnt=$(mktemp -d)
+          hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$dmg"
+          trap 'hdiutil detach "$mnt" -quiet || true' EXIT
+          app="$mnt/Notching.app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign --verify --strict --verbose=2 "$app/Contents/Resources/media/libnotching-media.dylib"
+          codesign -d --entitlements - "$app"
+          xcrun stapler validate "$app"
+          spctl --assess --type execute --verbose=4 "$app"
+
+      - name: remove signing keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/notching-signing.keychain-db" || true
