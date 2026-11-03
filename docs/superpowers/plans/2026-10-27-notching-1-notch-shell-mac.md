@@ -54,7 +54,7 @@ Setelah itu: versi Windows, lalu rilis publik.
 
 ## Global Constraints
 
-- **Repo:** `/Users/hamdaniasril/dev/notch`. App ditaruh di root folder ini, di samping `docs/`.
+- **Repo:** root repo ini. App ditaruh di root folder ini, di samping `docs/`.
 - **Identitas app:**
   - Nama produk `Notching`.
   - Bundle identifier `id.web.notching`.
@@ -130,7 +130,7 @@ Expected: `rustc 1.x.y (...)`. Xcode Command Line Tools sudah terpasang di `/Lib
 Run:
 ```bash
 cd "$(mktemp -d)" && npm create tauri-app@latest notching -- --template vanilla-ts --manager npm --identifier id.web.notching --yes \
-  && rsync -a notching/ /Users/hamdaniasril/dev/notch/ && cd /Users/hamdaniasril/dev/notch && npm install
+  && rsync -a notching/ ./ && npm install
 ```
 Expected: `src-tauri/Cargo.toml` berisi `name = "notching"`. `docs/` dan `.superpowers/` tetap utuh.
 

@@ -64,7 +64,7 @@ Ini rencana 2 dari 5 untuk tahap "versi Mac untuk dipakai sendiri":
 ## Global Constraints
 
 - **Repo dan git:**
-  - Repo ada di `/Users/hamdaniasril/dev/notch` dan tidak punya remote.
+  - Repo ada di root folder ini dan tidak punya remote.
   - Kerjakan di cabang `feat/modules` dari `main` (185a497).
   - Commit hanya dengan path eksplisit. Jangan pernah `git add -A`, dan jangan pernah meng-commit `.claude/` atau `.superpowers/`.
 - **Identitas app:**

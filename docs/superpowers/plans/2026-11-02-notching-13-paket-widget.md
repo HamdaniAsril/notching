@@ -10,7 +10,7 @@
 
 **Tech Stack:** Tauri 2, Rust (chrono, ureq, serde), TypeScript vanilla, vitest + jsdom.
 
-**Spec:** `docs/superpowers/specs/2026-11-02-paket-widget-design.md` (§ numbers refer to it). The pego source is `/Users/hamdaniasril/dev/notch/desain widget/widget.pego`, untracked in the main checkout. A condensed dump of every widget's tree is at `/private/tmp/claude-501/-Users-hamdaniasril-dev-notch/fd078dbb-a6ba-4a55-a244-4875e774b0e2/scratchpad/pego-widgets.txt`.
+**Spec:** `docs/superpowers/specs/2026-11-02-paket-widget-design.md` (§ numbers refer to it). The pego source is `desain widget/widget.pego`, untracked in the main checkout. A condensed dump of every widget's tree is at `/private/tmp/claude-501/-Users-hamdaniasril-dev-notch/fd078dbb-a6ba-4a55-a244-4875e774b0e2/scratchpad/pego-widgets.txt`.
 
 ## Global Constraints
 

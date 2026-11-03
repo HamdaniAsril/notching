@@ -84,7 +84,7 @@ Desain 30 Oktober menggantikan rencana 5 lama (lima modul). Urutannya sekarang:
 ## Global Constraints
 
 - **Repo dan git:**
-  - Repo ada di `/Users/hamdaniasril/dev/notch` dan tidak punya remote. Folder ini dipakai bersama sesi lain.
+  - Repo ada di root folder ini dan tidak punya remote. Folder ini dipakai bersama sesi lain.
   - Kerjakan di cabang `feat/halaman` dari `main` (9a9ff67). Commit pertamanya adalah rencana ini.
   - Commit hanya dengan path eksplisit. Jangan pernah `git add -A`, dan jangan pernah meng-commit `.claude/` atau `.superpowers/`.
   - Merge ke `main` hanya kalau pemilik memintanya.
