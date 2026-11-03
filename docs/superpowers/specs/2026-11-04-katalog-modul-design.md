@@ -1,7 +1,7 @@
 # Desain katalog modul
 
 Tanggal: 4 November 2026
-Status: dikerjakan atas permintaan pemilik ide ("kerjakan sampai selesai dulu", 4 November 2026), tanpa sesi tanya-jawab. Semua keputusan di dokumen ini adalah **keputusan penulis**. Pemilik ide memeriksanya di akhir lewat daftar di bagian 10.
+Status: disetujui pemilik ide (4 November 2026). Dikerjakan tanpa sesi tanya-jawab ("kerjakan sampai selesai dulu"). Semua keputusan ditulis sebagai **keputusan penulis**, lalu pemilik ide menyetujui daftar di bagian 10 tanpa perubahan.
 
 Dokumen ini menyelesaikan sisa tahap 2 di `2026-10-27-notch-design.md` (§6, "Sistem modul") dan katalog yang disebut di `2026-10-30-halaman-widget-design.md` §2 dan §11. Untuk hal lain, kedua desain itu tetap berlaku.
 
