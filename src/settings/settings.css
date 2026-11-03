@@ -1283,6 +1283,12 @@ body > .ed-ghost.page-row {
    height, the part of the day top right and the zone bottom right. 42 px is as big as the two
    digits can be with "malam" or "GMT+7" still beside them in 85 px. */
 
+/* The picture's padding stands in for the card's: 9 px on the right, as in the widget. */
+.ed-slot:has(.hm-clock),
+.ed-shot:has(.hm-clock) {
+  padding-right: 9px;
+}
+
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-clock {
   flex-direction: row;
   justify-content: space-between;
@@ -1291,7 +1297,7 @@ body > .ed-ghost.page-row {
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-stack {
   flex: none;
-  margin-right: 3px;
+  margin-right: 1px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1301,8 +1307,8 @@ body > .ed-ghost.page-row {
   font-family: "Barlow", "Arial Narrow", sans-serif;
   font-weight: 800;
   line-height: 0.8;
-  letter-spacing: 2px;
-  margin-right: -2px;
+  letter-spacing: 1px;
+  margin-right: -1px;
 }
 
 :is(.ed-slot, .ed-shot, .ed-strip) .hm-clock-meta {

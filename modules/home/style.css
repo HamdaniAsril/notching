@@ -74,10 +74,12 @@ body {
   color: var(--v-ink2);
 }
 
-/* Jam tumpuk: the hour over the minutes in Barlow 800 at 42 px (design 86), spread over the 80 px
-   height, the part of the day top right and the zone bottom right. 42 px is as big as the two
-   digits can be with "malam" or "GMT+7" still beside them in 85 px. */
+/* Jam tumpuk: the hour over the minutes in Barlow 800 at 48 px (design 86), nearly touching in
+   the 80 px height (owner, 3 Nov: the gap was too wide), the part of the day top right and the
+   zone bottom right. 48 px with 1 px tracking and a 9 px right side is as big as the digits can
+   be with "malam" or "GMT+7" still whole beside them. */
 .hm-clock {
+  padding-right: 9px;
   flex-direction: row;
   justify-content: space-between;
   min-width: 0;
@@ -85,7 +87,7 @@ body {
 
 .hm-clock-stack {
   flex: none;
-  margin-right: 3px;
+  margin-right: 1px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -95,8 +97,8 @@ body {
   font-family: "Barlow", "Arial Narrow", sans-serif;
   font-weight: 800;
   line-height: 0.8;
-  letter-spacing: 2px;
-  margin-right: -2px;
+  letter-spacing: 1px;
+  margin-right: -1px;
 }
 
 .hm-clock-meta {

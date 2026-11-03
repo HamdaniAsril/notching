@@ -19,7 +19,7 @@ function dayPart(h: number, s: HomeStrings): string {
 export function clockView(strings: HomeStrings, lang: Lang, now: Date): HTMLElement {
   const w = el('div', 'v-card hm-clock');
   const stack = el('div', 'hm-clock-stack');
-  stack.append(num(pad(now.getHours()), 42, 'hm-clock-no'), num(pad(now.getMinutes()), 42, 'v-acc hm-clock-no'));
+  stack.append(num(pad(now.getHours()), 48, 'hm-clock-no'), num(pad(now.getMinutes()), 48, 'v-acc hm-clock-no'));
   const meta = el('div', 'hm-clock-meta');
   meta.append(el('span', 'hm-clock-part', dayPart(now.getHours(), strings)), el('span', 'hm-clock-zone', zoneLabel(lang, now)));
   w.append(stack, meta);
