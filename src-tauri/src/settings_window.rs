@@ -96,6 +96,11 @@ pub fn set_notch_config(app: AppHandle, core: State<CoreState>, config: NotchCon
     change(&app, &core, |c| c.set_notch(config))
 }
 
+#[tauri::command]
+pub fn set_accent(app: AppHandle, core: State<CoreState>, accent: String, custom: Option<String>) -> Result<(), String> {
+    change(&app, &core, |c| c.set_accent(accent, custom))
+}
+
 /// Saves the choice, then rebuilds the overlays so only the chosen screen keeps one.
 #[tauri::command]
 pub fn set_screen(app: AppHandle, core: State<CoreState>, name: Option<String>) -> Result<(), String> {

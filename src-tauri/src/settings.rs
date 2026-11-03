@@ -182,6 +182,12 @@ pub struct Settings {
     /// Modules whose status is not shown beside the notch.
     #[serde(deserialize_with = "lenient")]
     pub status_off: Vec<String>,
+    /// The Volt accent, "#rrggbb" (Tampilan, design 3 Nov warna aksen).
+    #[serde(deserialize_with = "lenient_accent")]
+    pub accent: String,
+    /// The last custom colour, kept while a preset is chosen.
+    #[serde(deserialize_with = "lenient_accent_custom")]
+    pub accent_custom: Option<String>,
 }
 
 impl Default for Settings {
@@ -198,8 +204,27 @@ impl Default for Settings {
             pages: vec![beranda()],
             last_page: None,
             status_off: Vec::new(),
+            accent: DEFAULT_ACCENT.into(),
+            accent_custom: None,
         }
     }
+}
+
+/// Lime, Volt's accent before it could change.
+pub const DEFAULT_ACCENT: &str = "#c8f04a";
+
+/// "#rgb" or "#rrggbb" in any case, as lowercase "#rrggbb"; anything else is None.
+pub fn normalize_accent(s: &str) -> Option<String> {
+    let hex = s.strip_prefix('#')?;
+    if !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return None;
+    }
+    let full = match hex.len() {
+        3 => hex.chars().flat_map(|c| [c, c]).collect(),
+        6 => hex.to_string(),
+        _ => return None,
+    };
+    Some(format!("#{}", full.to_ascii_lowercase()))
 }
 
 // A value of the wrong type (a hand edit, an older or newer app) resets only its
@@ -249,6 +274,16 @@ fn page_from(value: &serde_json::Value) -> Option<Page> {
     let strip = value.get_mut("strip").map(serde_json::Value::take).and_then(|s| s.as_str().map(String::from));
     let page: Page = serde_json::from_value(value).ok()?;
     Some(Page { widgets, strip, ..page })
+}
+
+fn lenient_accent<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    let s: Option<String> = lenient(d)?;
+    Ok(s.as_deref().and_then(normalize_accent).unwrap_or_else(|| DEFAULT_ACCENT.into()))
+}
+
+fn lenient_accent_custom<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+    let s: Option<String> = lenient(d)?;
+    Ok(s.as_deref().and_then(normalize_accent))
 }
 
 // The version's default is not its type's default either.
@@ -346,6 +381,35 @@ pub fn save_settings(path: &Path, settings: &Settings) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn accent_defaults_to_lime() {
+        assert_eq!(Settings::default().accent, "#c8f04a");
+        assert_eq!(Settings::default().accent_custom, None);
+    }
+
+    #[test]
+    fn an_old_file_reads_lime() {
+        let (_d, s) = load(r#"{"version":2,"language":"en"}"#);
+        assert_eq!(s.accent, "#c8f04a");
+        assert_eq!(s.accent_custom, None);
+    }
+
+    #[test]
+    fn a_bad_accent_reads_lime_and_keeps_the_rest() {
+        let (_d, s) = load(r##"{"accent":"red","accentCustom":"#12","language":"en"}"##);
+        assert_eq!((s.accent.as_str(), s.accent_custom.as_deref()), ("#c8f04a", None));
+        assert_eq!(s.language, LanguageSetting::En);
+        let (_d, s) = load(r#"{"accent":5}"#);
+        assert_eq!(s.accent, "#c8f04a");
+    }
+
+    #[test]
+    fn the_accent_is_normalised_on_read() {
+        let (_d, s) = load(r##"{"accent":"#ABCDEF","accentCustom":"#123"}"##);
+        assert_eq!(s.accent, "#abcdef");
+        assert_eq!(s.accent_custom.as_deref(), Some("#112233"));
+    }
 
     #[test]
     fn a_missing_file_gives_the_defaults() {

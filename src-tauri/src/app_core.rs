@@ -88,6 +88,9 @@ pub struct ModuleStateDto {
     pub missed: Vec<String>,
     /// The sample status from Notifikasi is showing.
     pub sample_status: bool,
+    /// The Volt accent and the last custom colour, "#rrggbb".
+    pub accent: String,
+    pub accent_custom: Option<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -207,6 +210,8 @@ impl AppCore {
             notifications: self.notice_look(),
             missed: self.missed.clone(),
             sample_status: self.live.has_sample(),
+            accent: self.settings.accent.clone(),
+            accent_custom: self.settings.accent_custom.clone(),
         }
     }
 
@@ -362,6 +367,19 @@ impl AppCore {
         self.save()
     }
 
+    /// `custom` None keeps the last custom colour.
+    pub fn set_accent(&mut self, accent: String, custom: Option<String>) -> Result<(), CoreError> {
+        let bad = || CoreError::Invalid("accent".into());
+        let accent = crate::settings::normalize_accent(&accent).ok_or_else(bad)?;
+        let custom = match custom {
+            Some(c) => Some(crate::settings::normalize_accent(&c).ok_or_else(bad)?),
+            None => self.settings.accent_custom.clone(),
+        };
+        self.settings.accent = accent;
+        self.settings.accent_custom = custom;
+        self.save()
+    }
+
     /// An empty name means every screen, like None.
     pub fn set_screen(&mut self, name: Option<String>) -> Result<(), CoreError> {
         self.settings.screen = name.filter(|n| !n.is_empty());
@@ -502,6 +520,33 @@ mod tests {
         assert_eq!(s.modules[2].widgets[0].width, 1);
         assert_eq!(s.modules[0].short_name, "Module A");
         assert!(s.modules.iter().all(|m| m.activity.is_none()));
+    }
+
+    #[test]
+    fn set_accent_saves_and_shows_in_the_state() {
+        let d = setup();
+        open(&d, None).set_accent("#FF8A3D".into(), None).unwrap();
+        let s = open(&d, None).state();
+        assert_eq!((s.accent.as_str(), s.accent_custom), ("#ff8a3d", None));
+    }
+
+    #[test]
+    fn set_accent_keeps_the_custom_colour_when_none_comes() {
+        let d = setup();
+        let mut core = open(&d, None);
+        core.set_accent("#123456".into(), Some("#123456".into())).unwrap();
+        core.set_accent("#c8f04a".into(), None).unwrap();
+        let s = core.state();
+        assert_eq!((s.accent.as_str(), s.accent_custom.as_deref()), ("#c8f04a", Some("#123456")));
+    }
+
+    #[test]
+    fn set_accent_rejects_a_bad_hex() {
+        let d = setup();
+        let mut core = open(&d, None);
+        assert_eq!(core.set_accent("nope".into(), None), Err(CoreError::Invalid("accent".into())));
+        assert_eq!(core.set_accent("#c8f04a".into(), Some("x".into())), Err(CoreError::Invalid("accent".into())));
+        assert_eq!(core.state().accent, "#c8f04a");
     }
 
     #[test]
