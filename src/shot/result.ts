@@ -1,5 +1,6 @@
 import type { Shot } from '../bridge';
 import { fill, hostStrings } from '../i18n';
+import { hasMod, hasOtherMod } from '../kit/platform';
 import { presses } from '../notch/presses';
 import { button, COPY_ICON, DELETE_ICON, el, image, openEditor, SAVE_ICON, SAVED_ICON, saves, type ShotDeps } from './common';
 
@@ -30,7 +31,7 @@ export function mountShotResult(box: HTMLElement, deps: ShotDeps): ShotResult {
 
   // The panel is key while open, so Cmd+C comes here, and only while this page is.
   function onKey(e: KeyboardEvent): void {
-    if (e.metaKey && !e.shiftKey && !e.altKey && !e.ctrlKey && e.key.toLowerCase() === 'c') {
+    if (hasMod(e) && !e.shiftKey && !e.altKey && !hasOtherMod(e) && e.key.toLowerCase() === 'c') {
       e.preventDefault();
       copy();
     }

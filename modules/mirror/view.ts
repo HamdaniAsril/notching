@@ -13,6 +13,7 @@ export interface Actions {
 export interface MirrorView {
   setStream(stream: MediaStream | null): void; // null: the camera could not be opened
   setCameras(names: string[], current: number): void; // the chip shows only with two or more
+  setLampAvailable(on: boolean): void; // false: this system has no lamp, so its chip and ruler go
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = ''): HTMLElementTagNameMap[K] {
@@ -167,6 +168,14 @@ export function renderMirror(root: HTMLElement, t: Strings, actions: Actions): M
       video.srcObject = stream;
       msg.textContent = stream ? '' : t.noCamera;
       on.hidden = !stream;
+    },
+    setLampAvailable(available) {
+      lamp.style.display = available ? '' : 'none';
+      lightRow.style.display = available ? '' : 'none';
+      if (!available && lit) {
+        lit = false;
+        root.classList.remove('cm-lit');
+      }
     },
     setCameras(names, current) {
       camera.hidden = names.length < 2;

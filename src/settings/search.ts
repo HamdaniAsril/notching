@@ -1,5 +1,6 @@
 import type { SettingsStrings } from '../i18n';
 import { isModule, type ModuleInfo, type Page } from '../modules/types';
+import { isMac } from '../kit/platform';
 import type { Route, SectionId } from './types';
 
 export interface SearchEntry {
@@ -47,7 +48,8 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
   const entry = (key: string, label: string, where: string, route: Route, extra = ''): SearchEntry =>
     ({ key, label, where, route, text: normalize(`${label} ${where} ${extra}`) });
 
-  return SECTIONS.flatMap(page => {
+  // Permissions are the Mac's (Accessibility, Screen Recording, Full Disk Access).
+  return SECTIONS.filter(page => page !== 'permissions' || isMac()).flatMap(page => {
     const where = s.sections[page];
     const own = rows[page].map(([key, label, keywords]) => entry(key, label, where, { page }, keywords));
     // Each kind of notice an installed module sends, on the Notifikasi page.

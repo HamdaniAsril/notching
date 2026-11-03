@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { settingsStrings } from '../i18n';
 import type { Lang } from '../kit/protocol';
 import { homeWidgets, moduleInfo } from '../notch/test-helpers';
@@ -65,3 +65,13 @@ test('finds the glow and the notice kinds', () => {
   expect(search(idx(withKinds), 'notifikasi waktu sholat').map(e => e.key)).toContain('home.prayerNotice');
 });
 
+
+test('Permissions is searchable on the Mac only', () => {
+  expect(idx().some(e => e.key === 'section.permissions')).toBe(true);
+  vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: '' });
+  try {
+    expect(idx().some(e => e.key === 'section.permissions')).toBe(false);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

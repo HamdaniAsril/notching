@@ -1,5 +1,6 @@
 import type { Shot } from '../bridge';
 import { fill, hostStrings } from '../i18n';
+import { hasMod, hasOtherMod } from '../kit/platform';
 import type { Lang } from '../kit/protocol';
 import { SAVE_FAILED_MS, button, el } from '../shot/common';
 import { fileJpeg, wallpaperJpeg } from './background';
@@ -262,7 +263,7 @@ export async function mountEditor(root: HTMLElement, deps: EditorDeps): Promise<
   // has the focus every key belongs to the box, but for Cmd+C at the page's end.
   const onKey = (e: KeyboardEvent) => {
     if (typing(doc)) return;
-    if (e.metaKey && !e.altKey && !e.ctrlKey) {
+    if (hasMod(e) && !e.altKey && !hasOtherMod(e)) {
       const key = e.key.toLowerCase();
       if (key === 'c' && !e.shiftKey) {
         e.preventDefault();

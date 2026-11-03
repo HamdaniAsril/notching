@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { moduleInfo, TEST_STATE } from '../notch/test-helpers';
 import { h1, mountForTest, settle, TEST_INFO } from './test-helpers';
 
@@ -97,4 +97,18 @@ test('a failed save says so next to the setting', async () => {
   root.querySelector<HTMLElement>('[data-key="general.language.en"]')!.click();
   await settle();
   expect(root.querySelector('[data-row="general.language"]')!.textContent).toContain('Gagal menyimpan. Coba lagi.');
+});
+
+test('off the Mac Ctrl+Q quits, Cmd+Q does not, and Permissions is not listed', async () => {
+  vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: '' });
+  try {
+    const { root, bridge } = await mountForTest();
+    expect(root.querySelector('[data-key="nav.permissions"]')).toBeNull();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', metaKey: true }));
+    expect(bridge.quit).not.toHaveBeenCalled();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', ctrlKey: true }));
+    expect(bridge.quit).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

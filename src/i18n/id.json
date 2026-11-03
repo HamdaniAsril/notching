@@ -225,7 +225,7 @@
       "screenMissingHint": "Layar ini sedang tidak tersambung. Sampai tersambung lagi, notch muncul di semua layar.",
       "login": "Buka saat login",
       "loginHint": "Notching siap begitu kamu masuk.",
-      "loginUnavailable": "Hanya bisa diatur dari Notching.app yang terpasang.",
+      "loginUnavailable": "Hanya bisa diatur dari Notching yang terpasang.",
       "loginNeedsApproval": "macOS menunggu persetujuanmu di Login Items.",
       "loginOpen": "Buka Login Items",
       "cityPrayer": "Kota & waktu sholat"

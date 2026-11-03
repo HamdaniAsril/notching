@@ -53,6 +53,10 @@ async function start(): Promise<void> {
     },
   });
 
+  // Where the system has no lamp (not every OS can set the screen's brightness) the
+  // core refuses; then the lamp's chip and ruler go and the mirror stays.
+  kit.call('lamp', 'off').catch(() => view.setLampAvailable(false));
+
   navigator.mediaDevices?.addEventListener('devicechange', () => void listCameras());
   window.addEventListener('pagehide', stop);
   if (navigator.mediaDevices) await open();

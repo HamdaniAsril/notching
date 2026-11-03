@@ -1,4 +1,5 @@
 import { settingsStrings } from '../i18n';
+import { hasMod, isMac } from '../kit/platform';
 import type { ModuleState } from '../modules/types';
 import { el, head, note } from './controls';
 import { icon, type IconName } from './icons';
@@ -35,10 +36,12 @@ export const PAGES: Partial<Record<Route['page'], PageRender>> = {
 };
 
 // The sidebar never grows (spec 8, design 30 Oct §9): six sections on top, About at the bottom.
-const NAV: [SectionId, IconName][] = [
+const NAV_ALL: [SectionId, IconName][] = [
   ['general', 'gear'], ['look', 'drop'], ['notifications', 'bell'], ['pages', 'layers'], ['modules', 'grid'],
   ['permissions', 'shield'],
 ];
+// Permissions are the Mac's, so the section is left out elsewhere.
+const nav = () => NAV_ALL.filter(([id]) => id !== 'permissions' || isMac());
 
 const FOUND_MS = 1200;
 
@@ -77,7 +80,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
     navItems.set(id, { button, label, count });
     return button;
   };
-  side.append(sideDrag, searchLabel, ...NAV.map(([id, name]) => navButton(id, name)), el('div', 'grow'),
+  side.append(sideDrag, searchLabel, ...nav().map(([id, name]) => navButton(id, name)), el('div', 'grow'),
     navButton('about', 'info'));
 
   const pane = el('section', 'pane');
@@ -186,7 +189,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   }
 
   function onKey(e: KeyboardEvent): void {
-    if (!e.metaKey) return;
+    if (!hasMod(e)) return;
     const key = e.key.toLowerCase();
     if (key === 'f') {
       e.preventDefault();
