@@ -2,6 +2,7 @@ import type id from './locales/id.json';
 import {
   DRAG_PX, dragTick, glowColor, kelvin, LIGHT, LIGHT_START, type Scale, ZOOM, zoomScale, zoomText,
 } from './ruler';
+import { QUIET, type Sound, SPEAKER } from '../timer/tik';
 
 export type Strings = typeof id;
 
@@ -35,6 +36,7 @@ interface RulerOptions {
   number: (tick: number) => string;
   color?: (tick: number) => string; // each tick its own color; otherwise ink up to the mark
   onChange: (tick: number) => void;
+  sound: Sound; // Timer's tik: a tick passed, fuller at each long one
 }
 
 // Timer's ruler: ticks on a tape slid under a fixed accent mark; longer every 5.
@@ -70,7 +72,8 @@ function ruler(s: Scale, start: number, o: RulerOptions): { box: HTMLElement; dr
   let drag: { x: number; from: number; moved: boolean } | null = null;
   box.addEventListener('pointerdown', e => {
     drag = { x: e.clientX, from: value, moved: false };
-    box.setPointerCapture(e.pointerId);
+    box.setPointerCapture?.(e.pointerId);
+    o.sound.prime();
   });
   box.addEventListener('pointermove', e => {
     if (!drag) return;
@@ -79,6 +82,7 @@ function ruler(s: Scale, start: number, o: RulerOptions): { box: HTMLElement; dr
     drag.moved = true;
     const next = dragTick(s, drag.from, dx);
     if (next === value) return;
+    o.sound.step(value, next);
     value = next;
     draw();
     o.onChange(value);
@@ -87,7 +91,7 @@ function ruler(s: Scale, start: number, o: RulerOptions): { box: HTMLElement; dr
   box.addEventListener('pointerup', end);
   box.addEventListener('pointercancel', end);
   box.addEventListener('lostpointercapture', end);
-  new ResizeObserver(draw).observe(box);
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(draw).observe(box);
   return { box, draw };
 }
 
@@ -95,7 +99,7 @@ function ruler(s: Scale, start: number, o: RulerOptions): { box: HTMLElement; dr
 // cards: the camera, mirrored unless flipped, and under it the zoom ruler, the
 // light's ruler while the lamp is on, and the camera, Flip and Lampu. The lamp
 // turns the notch panel white; the text sits on the black cards, so it stays light.
-export function renderMirror(root: HTMLElement, t: Strings, actions: Actions): MirrorView {
+export function renderMirror(root: HTMLElement, t: Strings, actions: Actions, sound: Sound = QUIET): MirrorView {
   let mirrored = true;
   let zoom = ZOOM.min;
   let lit = false;
@@ -118,7 +122,7 @@ export function renderMirror(root: HTMLElement, t: Strings, actions: Actions): M
 
   const zoomVal = el('div', 'cm-val', zoomText(zoom));
   const zoomRuler = ruler(ZOOM, zoom, {
-    label: t.zoom, every: 10, number: zoomText,
+    label: t.zoom, every: 10, number: zoomText, sound,
     onChange: v => { zoom = v; zoomVal.textContent = zoomText(v); place(); },
   });
   const zoomRow = el('div', 'cm-row');
@@ -126,7 +130,7 @@ export function renderMirror(root: HTMLElement, t: Strings, actions: Actions): M
 
   const lightVal = el('div', 'cm-val cm-k', `${kelvin(light)}K`);
   const lightRuler = ruler(LIGHT, light, {
-    label: t.light, every: 10, number: v => `${kelvin(v)}K`, color: v => glowColor(kelvin(v)),
+    label: t.light, every: 10, number: v => `${kelvin(v)}K`, color: v => glowColor(kelvin(v)), sound,
     onChange: v => { light = v; lightVal.textContent = `${kelvin(v)}K`; actions.lamp(true, kelvin(v)); },
   });
   const lightRow = el('div', 'cm-row cm-light');
@@ -149,11 +153,27 @@ export function renderMirror(root: HTMLElement, t: Strings, actions: Actions): M
     actions.lamp(lit, kelvin(light));
   });
   lamp.setAttribute('aria-pressed', 'false');
+  // Timer's speaker, at the end of the chips: the rulers' tik on or off.
+  const speaker = el('button', 'cm-sound');
+  speaker.type = 'button';
+  speaker.innerHTML = SPEAKER;
+  speaker.setAttribute('aria-label', t.sound);
+  speaker.title = t.sound;
+  const showSound = (on: boolean) => {
+    speaker.setAttribute('aria-pressed', String(on));
+    speaker.classList.toggle('cm-off', !on);
+  };
+  showSound(sound.on?.() ?? true);
+  speaker.addEventListener('click', () => {
+    const on = !(sound.on?.() ?? true);
+    sound.set?.(on);
+    showSound(on);
+  });
   const on = el('span', 'v-lab cm-on');
   on.append(el('i', 'cm-dot'), document.createTextNode(t.cameraOn));
   on.hidden = true;
   const chips = el('div', 'cm-chips');
-  chips.append(camera, flip, lamp);
+  chips.append(camera, flip, lamp, speaker);
   const bar = el('div', 'cm-bar');
   bar.append(on, chips);
 

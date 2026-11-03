@@ -2,6 +2,7 @@ import type id from './locales/id.json';
 import {
   BIG_PX_PER_MINUTE, DRAG_PX, dragMinutes, formatLeft, MAX_MINUTES, PRESETS, PX_PER_MINUTE, shownMinutes, typedMinutes,
 } from './ruler';
+import { QUIET, type Sound, SPEAKER } from './tik';
 
 // Same as TimerDto in src-tauri/src/timer.rs.
 export interface TimerView {
@@ -21,22 +22,7 @@ export interface Actions {
 
 export type Strings = typeof id;
 
-// The ruler's tik (tik.ts), given by main.ts. `on` and `set` are the Timer page's sound button;
-// the strip and the tile only play.
-export interface Sound {
-  prime(): void;
-  step(from: number, to: number): void;
-  on?(): boolean;
-  set?(on: boolean): void;
-}
-
-const QUIET: Sound = { prime() {}, step() {} };
-
-// A speaker, with waves while the sound is on and a cross while it is off.
-const SPEAKER = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" '
-  + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6h2.5l3.5-3v10l-3.5-3h-2.5z"/>'
-  + '<path class="tm-waves" d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.8a6 6 0 0 1 0 8.4"/>'
-  + '<path class="tm-cross" d="M11 6l4 4M15 6l-4 4"/></svg>';
+export type { Sound } from './tik';
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = ''): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);

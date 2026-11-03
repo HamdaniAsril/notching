@@ -498,8 +498,8 @@
   outline-offset: 2px;
 }
 
-.tm-sound .tm-cross,
-.tm-sound.tm-off .tm-waves {
+.tm-sound .tik-cross,
+.tm-sound.tm-off .tik-waves {
   display: none;
 }
 
@@ -507,6 +507,6 @@
   color: var(--v-muted);
 }
 
-.tm-sound.tm-off .tm-cross {
+.tm-sound.tm-off .tik-cross {
   display: inline;
 }

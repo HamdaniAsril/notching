@@ -5,5 +5,5 @@
   "icon": "icon.svg",
   "card": { "width": 600, "height": 400 },
   "permissions": ["camera"],
-  "capabilities": ["lamp"]
+  "capabilities": ["lamp", "prefs"]
 }

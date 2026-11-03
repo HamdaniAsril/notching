@@ -8,5 +8,6 @@
   "cameraOn": "Camera on",
   "noCamera": "Camera unavailable",
   "zoom": "Zoom",
-  "light": "Light color"
+  "light": "Light color",
+  "sound": "Ruler sound"
 }

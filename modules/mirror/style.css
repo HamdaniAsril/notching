@@ -221,6 +221,43 @@
   display: none;
 }
 
+/* Timer's speaker button, the rulers' tik on or off. */
+.cm-sound {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+  color: var(--v-ink2);
+  cursor: pointer;
+}
+
+.cm-sound:hover {
+  filter: brightness(1.15);
+}
+
+.cm-sound:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
+}
+
+.cm-sound .tik-cross,
+.cm-sound.cm-off .tik-waves {
+  display: none;
+}
+
+.cm-sound.cm-off {
+  color: var(--v-muted);
+}
+
+.cm-sound.cm-off .tik-cross {
+  display: inline;
+}
+
 /* Flip and Lampu while on: the accent. */
 .cm-chip.cm-sel {
   background: var(--v-acc);

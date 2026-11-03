@@ -4,6 +4,7 @@ import './style.css';
 import { connectKit } from '../../src/kit/client';
 import en from './locales/en.json';
 import id from './locales/id.json';
+import { kitSound } from '../timer/tik';
 import { glowColor, lightColor } from './ruler';
 import { renderMirror } from './view';
 
@@ -45,13 +46,14 @@ async function start(): Promise<void> {
     await listCameras();
   }
 
+  const sound = await kitSound(kit);
   const view = renderMirror(document.getElementById('cm')!, t, {
     lamp: (on, k) => kit.lamp(on, lightColor(k), glowColor(k)),
     nextCamera: () => {
       if (cameras.length < 2) return;
       void open(cameras[(current + 1) % cameras.length].deviceId);
     },
-  });
+  }, sound);
 
   navigator.mediaDevices?.addEventListener('devicechange', () => void listCameras());
   window.addEventListener('pagehide', stop);
