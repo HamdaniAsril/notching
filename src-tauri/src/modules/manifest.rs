@@ -135,7 +135,13 @@ pub struct Manifest {
     pub widgets: Vec<WidgetSpec>,
     #[serde(default)]
     pub action: Option<TileAction>,
+    /// The systems it runs on, as std::env::consts::OS names; none listed: all.
+    #[serde(default)]
+    pub platforms: Option<Vec<String>>,
 }
+
+/// The values `platforms` may hold.
+pub const PLATFORMS: [&str; 3] = ["macos", "windows", "linux"];
 
 impl Manifest {
     pub fn has_page(&self) -> bool {
@@ -146,6 +152,11 @@ impl Manifest {
     /// A package with neither only offers widgets, and is always on.
     pub fn is_module(&self) -> bool {
         self.has_page() || self.action.is_some()
+    }
+
+    /// `os` is a std::env::consts::OS name.
+    pub fn runs_on(&self, os: &str) -> bool {
+        self.platforms.as_ref().is_none_or(|list| list.iter().any(|p| p == os))
     }
 }
 
@@ -162,6 +173,7 @@ pub enum ManifestError {
     Empty,
     BadWidget,
     BadAction,
+    BadPlatform,
 }
 
 // The panel and the pill must fit the 960 × 560 notch overlay; Cermin's card is
@@ -216,6 +228,13 @@ pub fn parse_manifest(json: &str, folder: &str) -> Result<Manifest, ManifestErro
     }
     if !m.has_page() && m.widgets.is_empty() && m.action.is_none() {
         return Err(ManifestError::Empty);
+    }
+    // An empty list would hide the package everywhere.
+    if m.platforms.as_ref().is_some_and(|list| {
+        let names: Vec<&str> = list.iter().map(String::as_str).collect();
+        names.is_empty() || !unique(&names) || !names.iter().all(|p| PLATFORMS.contains(p))
+    }) {
+        return Err(ManifestError::BadPlatform);
     }
     if m.action.as_ref().is_some_and(|a| m.has_page() || a.method.is_empty() || !m.capabilities.contains(&a.capability)) {
         return Err(ManifestError::BadAction);
@@ -422,6 +441,28 @@ mod tests {
         let json = GOOD.replace(r#""permissions":[]"#, r#""permissions":["full-disk-access"]"#);
         let m = parse_manifest(&json, "system-stat").unwrap();
         assert_eq!(m.permissions, vec![Permission::FullDiskAccess]);
+    }
+
+    #[test]
+    fn platforms_limit_where_a_package_runs() {
+        let with = |list: &str| GOOD.replace("\"capabilities\"", &format!(r#""platforms":{list},"capabilities""#));
+        let mac = parse_manifest(&with(r#"["macos"]"#), "system-stat").unwrap();
+        assert!(mac.runs_on("macos"));
+        assert!(!mac.runs_on("windows") && !mac.runs_on("linux"));
+        let two = parse_manifest(&with(r#"["windows","linux"]"#), "system-stat").unwrap();
+        assert!(two.runs_on("linux") && !two.runs_on("macos"));
+        let all = parse_manifest(GOOD, "system-stat").unwrap();
+        assert_eq!(all.platforms, None);
+        assert!(PLATFORMS.iter().all(|os| all.runs_on(os)));
+    }
+
+    #[test]
+    fn bad_platforms_are_refused() {
+        let with = |list: &str| GOOD.replace("\"capabilities\"", &format!(r#""platforms":{list},"capabilities""#));
+        for bad in ["[]", r#"["macOS"]"#, r#"["ios"]"#, r#"["linux","linux"]"#] {
+            assert_eq!(parse_manifest(&with(bad), "system-stat"), Err(ManifestError::BadPlatform), "{bad}");
+        }
+        assert!(matches!(parse_manifest(&with(r#""macos""#), "system-stat"), Err(ManifestError::Json(_))));
     }
 
     #[test]

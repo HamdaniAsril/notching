@@ -1,6 +1,7 @@
 {
   "id": "cleaner",
   "version": "1.0.0",
+  "platforms": ["macos"],
   "icon": "icon.svg",
   "permissions": ["full-disk-access"],
   "capabilities": ["cleaner", "status"],

@@ -1,11 +1,19 @@
-//! Commands the notch webview calls. AppKit work goes through run_on_main_thread.
+//! Commands the notch webview calls. AppKit work goes through run_on_main_thread;
+//! on Windows and Linux they hand over to desktop::overlay.
 
-use tauri::{AppHandle, State, WebviewWindow};
+use tauri::{AppHandle, WebviewWindow};
+#[cfg(target_os = "macos")]
+use tauri::State;
+#[cfg(target_os = "macos")]
 use tauri_nspanel::ManagerExt;
 
 use crate::geometry::Rect;
+#[cfg(target_os = "macos")]
 use crate::overlay::Overlays;
+#[cfg(not(target_os = "macos"))]
+use crate::overlay::ScreenInfoDto;
 
+#[cfg(target_os = "macos")]
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScreenInfoDto {
@@ -15,6 +23,7 @@ pub struct ScreenInfoDto {
     notch_height: f64,
 }
 
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub fn get_screen_info(window: WebviewWindow, overlays: State<Overlays>) -> Result<ScreenInfoDto, String> {
     let label = window.label().to_string();
@@ -31,6 +40,7 @@ pub fn get_screen_info(window: WebviewWindow, overlays: State<Overlays>) -> Resu
 
 /// Moves the sensors to the new hit areas and reroutes the cursor at once, so
 /// click-through follows a hit area that grows or shrinks under a still cursor.
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub fn set_hit_rects(app: AppHandle, window: WebviewWindow, overlays: State<Overlays>, rects: Vec<Rect>) {
     let label = window.label().to_string();
@@ -47,6 +57,7 @@ pub fn set_hit_rects(app: AppHandle, window: WebviewWindow, overlays: State<Over
 
 /// `true` makes the panel key so it gets Esc; `false` hands key status back to the
 /// app that had it, by ordering the panel out and in again.
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub fn set_panel_key(app: AppHandle, window: WebviewWindow, key: bool) -> Result<(), String> {
     let label = window.label().to_string();
@@ -64,7 +75,35 @@ pub fn set_panel_key(app: AppHandle, window: WebviewWindow, key: bool) -> Result
 }
 
 /// An open editor commits its edits first; the app ends when its window has gone.
+#[cfg(target_os = "macos")]
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {
     crate::editor_window::quit(&app);
+}
+
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub fn get_screen_info(window: WebviewWindow) -> Result<ScreenInfoDto, String> {
+    crate::overlay::screen_info(&window)
+}
+
+/// The overlay's click-through follows the new hit areas at once.
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub fn set_hit_rects(app: AppHandle, window: WebviewWindow, rects: Vec<Rect>) {
+    crate::overlay::set_hit_rects(&app, &window, rects);
+}
+
+/// `true` focuses the overlay so it gets Esc; `false` gives focus back.
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub fn set_panel_key(app: AppHandle, window: WebviewWindow, key: bool) -> Result<(), String> {
+    crate::overlay::set_key(&app, &window, key)
+}
+
+/// No editor off macOS: the app just ends.
+#[cfg(not(target_os = "macos"))]
+#[tauri::command]
+pub fn quit_app(app: AppHandle) {
+    app.exit(0);
 }

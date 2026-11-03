@@ -18,6 +18,8 @@ pub const SAMPLE_TEXT: &str = "18:42";
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Activity {
+    // PORT(C): Keep awake's; drop the allow once awake_service builds everywhere.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     On,
     Running,
 }
@@ -58,7 +60,8 @@ impl LiveStatus {
     }
 
     /// A module's status as its icon alone, with no text; true when its
-    /// activity changed.
+    /// activity changed. Keyboard Cleaning Mode's, macOS-only.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub fn set_icon(&mut self, module: &str, activity: Activity) -> bool {
         let changed = self.set(Some(module), activity, None);
         if let Some(e) = self.entries.iter_mut().find(|e| e.module.as_deref() == Some(module)) {
@@ -160,6 +163,7 @@ pub fn set(app: &AppHandle, module: &str, activity: Activity, text: Option<&str>
 }
 
 /// A module's status as its icon alone; it must declare "status".
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn set_icon(app: &AppHandle, module: &str, activity: Activity) -> Result<(), String> {
     let mut result = Ok(());
     update(app, |core| match core.set_status_icon(module, activity) {

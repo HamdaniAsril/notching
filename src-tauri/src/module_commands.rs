@@ -11,6 +11,13 @@ use crate::prefs::PrefsState;
 /// Broadcast to every window whenever module state changes.
 pub const MODULE_STATE_EVENT: &str = "notching://module-state";
 
+/// A hidden feature's capability called off macOS; its module never installs there.
+#[cfg(not(target_os = "macos"))]
+const NOT_HERE: &str = "not available on this platform";
+/// Keep awake off macOS, until package C's backend is in.
+#[cfg(not(target_os = "macos"))]
+const NOT_YET: &str = "not available on this platform yet";
+
 #[tauri::command]
 pub fn get_module_state(core: State<CoreState>) -> ModuleStateDto {
     core.0.lock().unwrap().state()
@@ -40,33 +47,47 @@ pub fn set_last_page(app: AppHandle, core: State<CoreState>, page: String) -> Re
 pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, enabled: bool) -> Result<(), String> {
     change(&app, &core, |c| c.set_enabled(&id, enabled))?;
     if !enabled {
-        crate::awake_service::module_gone(&app, &id);
-        crate::timer_service::module_gone(&app, &id);
-        crate::keyclean_service::module_gone(&app, &id);
-        crate::lamp_service::module_gone(&app, &id);
-        crate::shelf_service::module_gone(&app, &id);
-        crate::shot_service::module_gone(&app, &id);
-        crate::cleaner_service::module_gone(&app, &id);
-        crate::media_service::module_gone(&app, &id);
+        module_gone(&app, &id);
     } else {
-        crate::shot_hotkey::module_on(&app, &id);
-        crate::media_service::module_on(&app, &id);
+        module_on(&app, &id);
     }
     crate::status::publish(&app);
     Ok(())
 }
 
+// The module was switched off or uninstalled: whatever it runs ends with it.
+#[cfg(target_os = "macos")]
+fn module_gone(app: &AppHandle, id: &str) {
+    crate::awake_service::module_gone(app, id);
+    crate::timer_service::module_gone(app, id);
+    crate::keyclean_service::module_gone(app, id);
+    crate::lamp_service::module_gone(app, id);
+    crate::shelf_service::module_gone(app, id);
+    crate::shot_service::module_gone(app, id);
+    crate::cleaner_service::module_gone(app, id);
+    crate::media_service::module_gone(app, id);
+}
+
+#[cfg(not(target_os = "macos"))]
+fn module_gone(app: &AppHandle, id: &str) {
+    // PORT(C): crate::awake_service::module_gone(app, id);
+    crate::timer_service::module_gone(app, id);
+}
+
+#[cfg(target_os = "macos")]
+fn module_on(app: &AppHandle, id: &str) {
+    crate::shot_hotkey::module_on(app, id);
+    crate::media_service::module_on(app, id);
+}
+
+#[cfg(not(target_os = "macos"))]
+fn module_on(_app: &AppHandle, _id: &str) {}
+
 #[tauri::command]
 pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> Result<(), String> {
     change(&app, &core, |c| c.uninstall(&id))?;
-    crate::awake_service::module_gone(&app, &id);
-    crate::timer_service::module_gone(&app, &id);
-    crate::keyclean_service::module_gone(&app, &id);
-    crate::lamp_service::module_gone(&app, &id);
-    crate::shelf_service::module_gone(&app, &id);
-    crate::shot_service::module_gone(&app, &id);
-    crate::cleaner_service::module_gone(&app, &id);
-    crate::media_service::module_gone(&app, &id);
+    module_gone(&app, &id);
+    #[cfg(target_os = "macos")]
     crate::shot_service::uninstalled(&app, &id);
     crate::status::publish(&app);
     Ok(())
@@ -75,8 +96,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
 #[tauri::command]
 pub fn reinstall_module(app: AppHandle, core: State<CoreState>, id: String) -> Result<(), String> {
     change(&app, &core, |c| c.reinstall(&id))?;
-    crate::shot_hotkey::module_on(&app, &id);
-    crate::media_service::module_on(&app, &id);
+    module_on(&app, &id);
     crate::status::publish(&app);
     Ok(())
 }
@@ -128,17 +148,24 @@ pub async fn module_call(
             crate::notify::post(&app, &module_id, &a.channel, &a.title, a.detail.as_deref().unwrap_or(""))?;
             Ok(serde_json::Value::Null)
         }
+        #[cfg(target_os = "macos")]
         Call::AwakeRead => serde_json::to_value(crate::awake_service::read(&app)),
         // The run belongs to the module that started it: its status and notice.
+        #[cfg(target_os = "macos")]
         Call::AwakeStart => {
             let a: StartArgs = parse_args(args, "awake.start")?;
             serde_json::to_value(crate::awake_service::turn_on(&app, &module_id, a.minutes)?)
         }
+        #[cfg(target_os = "macos")]
         Call::AwakeAdd => {
             let a: ExtendArgs = parse_args(args, "awake.add")?;
             serde_json::to_value(crate::awake_service::extend(&app, a.minutes)?)
         }
+        #[cfg(target_os = "macos")]
         Call::AwakeStop => serde_json::to_value(crate::awake_service::turn_off(&app)),
+        // PORT(C): the four arms above, once awake_service builds here.
+        #[cfg(not(target_os = "macos"))]
+        Call::AwakeRead | Call::AwakeStart | Call::AwakeAdd | Call::AwakeStop => return Err(NOT_YET.into()),
         Call::TimerRead => serde_json::to_value(crate::timer_service::read(&app)),
         // Like Keep awake: the timer belongs to the module that started it.
         Call::TimerStart => {
@@ -148,29 +175,47 @@ pub async fn module_call(
         Call::TimerPause => serde_json::to_value(crate::timer_service::pause(&app)?),
         Call::TimerResume => serde_json::to_value(crate::timer_service::resume(&app)?),
         Call::TimerStop => serde_json::to_value(crate::timer_service::stop(&app)),
+        #[cfg(target_os = "macos")]
         Call::KeyCleanToggle => {
             crate::keyclean_service::toggle(&app, &module_id)?;
             Ok(serde_json::Value::Null)
         }
+        #[cfg(target_os = "macos")]
         Call::LampOn => {
             crate::lamp_service::turn_on(&app, &module_id);
             Ok(serde_json::Value::Null)
         }
+        #[cfg(target_os = "macos")]
         Call::LampOff => {
             crate::lamp_service::turn_off(&app);
             Ok(serde_json::Value::Null)
         }
         // The notch opens the shelf itself; the call has nothing to do.
+        #[cfg(target_os = "macos")]
         Call::ShelfOpen => Ok(serde_json::Value::Null),
         // The tile's capture is wired in the screenshot service (a later task).
+        #[cfg(target_os = "macos")]
         Call::ScreenshotOpen => Ok(serde_json::Value::Null),
         // Cleaner's pages are drawn by the notch, which opens them itself.
+        #[cfg(target_os = "macos")]
         Call::CleanerOpen => Ok(serde_json::Value::Null),
+        #[cfg(target_os = "macos")]
         Call::MediaNow => serde_json::to_value(crate::media_service::now(&app)),
+        #[cfg(target_os = "macos")]
         Call::MediaCommand => {
             let command = crate::media_service::parse_command(args.as_ref())?;
             Ok(crate::media_service::send(&app, command)?)
         }
+        // Mirror's lamp; the rest belong to modules that never install here.
+        #[cfg(not(target_os = "macos"))]
+        Call::KeyCleanToggle
+        | Call::LampOn
+        | Call::LampOff
+        | Call::ShelfOpen
+        | Call::ScreenshotOpen
+        | Call::CleanerOpen
+        | Call::MediaNow
+        | Call::MediaCommand => return Err(NOT_HERE.into()),
         // Always the calling module's own file: the id never comes from args.
         Call::PrefsRead => Ok(app.state::<PrefsState>().0.read(&module_id)),
         Call::PrefsWrite => {
@@ -197,6 +242,8 @@ struct PostArgs {
 }
 
 /// `minutes` null: no limit.
+// PORT(C): ungate with the awake arms.
+#[cfg(target_os = "macos")]
 #[derive(serde::Deserialize)]
 struct StartArgs {
     minutes: Option<u32>,

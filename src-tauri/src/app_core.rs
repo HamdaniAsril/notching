@@ -221,6 +221,8 @@ impl AppCore {
         Ok(self.live.set(module, activity, text))
     }
 
+    // Keyboard Cleaning Mode's, macOS-only.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub fn set_status_icon(&mut self, module: &str, activity: Activity) -> Result<bool, CoreError> {
         if !self.module(module).is_some_and(|e| e.manifest.capabilities.contains(&Capability::Status)) {
             return Err(CoreError::Invalid("status".into()));
@@ -310,7 +312,9 @@ impl AppCore {
         self.save()
     }
 
-    /// Once per channel, in the order the notices came.
+    /// Once per channel, in the order the notices came. Off macOS no notice is
+    /// ever missed (no idle or full-screen check there).
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub fn mark_missed(&mut self, module: &str, channel: &str) {
         let key = format!("{module}.{channel}");
         if !self.missed.contains(&key) {

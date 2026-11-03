@@ -20,15 +20,16 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+# tauri-build wants every `tauri` entry to carry the features the merged config
+# implies, so the feature and app.macOSPrivateApi stay here for every OS; off
+# macOS the feature does nothing.
 tauri = { version = "2", features = ["macos-private-api"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sys-locale = "0.3"
 sysinfo = { version = "0.39", default-features = false, features = ["system", "network"] }
 chrono = "0.4"
-plist = "1"
-# HTTPS through macOS's own TLS (Security framework), no rustls.
-base64 = "0.22"
+# HTTPS through the system's TLS (Security framework, schannel, OpenSSL), no rustls.
 ureq = { version = "3", default-features = false, features = ["native-tls-no-default"] }
 
 [dev-dependencies]
@@ -36,6 +37,8 @@ tempfile = "3"
 
 # Same objc2 family versions that Tauri itself pulls in (check: cargo tree -d | grep objc2).
 [target.'cfg(target_os = "macos")'.dependencies]
+plist = "1"
+base64 = "0.22"
 tauri-nspanel = "2.1"
 objc2 = "0.6"
 objc2-service-management = { version = "0.3", default-features = false, features = ["std", "objc2", "objc2-foundation", "SMAppService"] }

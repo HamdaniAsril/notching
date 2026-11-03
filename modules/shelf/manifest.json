@@ -1,6 +1,7 @@
 {
   "id": "shelf",
   "version": "1.0.0",
+  "platforms": ["macos"],
   "icon": "icon.svg",
   "permissions": [],
   "capabilities": ["shelf", "status"],

@@ -69,11 +69,19 @@ fn io(e: std::io::Error) -> StoreError {
 pub struct ModuleStore {
     bundle_dir: PathBuf,
     active_dir: PathBuf,
+    /// The system packages must run on (manifest `platforms`).
+    os: &'static str,
 }
 
 impl ModuleStore {
     pub fn new(bundle_dir: PathBuf, active_dir: PathBuf) -> Self {
-        ModuleStore { bundle_dir, active_dir }
+        ModuleStore { bundle_dir, active_dir, os: std::env::consts::OS }
+    }
+
+    /// The same store as seen from another system.
+    #[cfg(test)]
+    pub fn on_os(self, os: &'static str) -> Self {
+        ModuleStore { os, ..self }
     }
 
     pub fn active_dir(&self) -> &Path {
@@ -81,11 +89,22 @@ impl ModuleStore {
     }
 
     /// Module ids in catalog order (index.json in the bundle). Missing or broken: none.
+    /// A package whose manifest leaves out this system is not in it, so it never
+    /// shows or installs here.
     pub fn catalog(&self) -> Vec<String> {
         std::fs::read_to_string(self.bundle_dir.join("index.json"))
             .ok()
-            .and_then(|text| serde_json::from_str(&text).ok())
+            .and_then(|text| serde_json::from_str::<Vec<String>>(&text).ok())
             .unwrap_or_default()
+            .into_iter()
+            .filter(|id| self.bundled(id).is_none_or(|m| m.runs_on(self.os)))
+            .collect()
+    }
+
+    // The bundled manifest, if it is valid.
+    fn bundled(&self, id: &str) -> Option<Manifest> {
+        let json = std::fs::read_to_string(self.bundle_dir.join(id).join("manifest.json")).ok()?;
+        parse_manifest(&json, id).ok()
     }
 
     /// Replaces the active copy of every installed module with the bundle's, so
@@ -217,10 +236,7 @@ impl ModuleStore {
     // Read from the bundled manifest; a broken one counts as a module, so it can
     // still be uninstalled.
     fn is_module(&self, id: &str) -> bool {
-        std::fs::read_to_string(self.bundle_dir.join(id).join("manifest.json"))
-            .ok()
-            .and_then(|json| parse_manifest(&json, id).ok())
-            .is_none_or(|m| m.is_module())
+        self.bundled(id).is_none_or(|m| m.is_module())
     }
 
     fn known(&self, id: &str) -> Result<(), StoreError> {
@@ -528,6 +544,58 @@ mod tests {
         );
         assert_eq!(list[0].short_name, "Modul A");
         assert_eq!(w.short_name, "Pendek W");
+    }
+
+    // "m" runs on macOS only, "d" everywhere but macOS.
+    fn add_platform_modules(bundle: &std::path::Path) {
+        std::fs::write(bundle.join("index.json"), r#"["a","m","d"]"#).unwrap();
+        for (id, platforms) in [("m", r#"["macos"]"#), ("d", r#"["windows","linux"]"#)] {
+            let dir = bundle.join(id);
+            std::fs::create_dir_all(dir.join("locales")).unwrap();
+            std::fs::write(
+                dir.join("manifest.json"),
+                format!(
+                    r#"{{"id":"{id}","version":"1.0.0","entry":"index.html","icon":"icon.svg",
+                       "card":{{"width":400,"height":90}},"permissions":[],"capabilities":[],"platforms":{platforms}}}"#
+                ),
+            )
+            .unwrap();
+            std::fs::write(dir.join("index.html"), "v1").unwrap();
+            std::fs::write(dir.join("icon.svg"), "<svg/>").unwrap();
+            std::fs::write(dir.join("locales/id.json"), format!(r#"{{"name":"{id}","description":""}}"#)).unwrap();
+        }
+    }
+
+    fn ids(store: &ModuleStore) -> Vec<String> {
+        store.list(&Settings::default(), Lang::Id).into_iter().map(|e| e.manifest.id).collect()
+    }
+
+    #[test]
+    fn a_package_for_other_systems_never_shows() {
+        let d = tempfile::tempdir().unwrap();
+        fake_bundle(&d.path().join("bundle"));
+        add_platform_modules(&d.path().join("bundle"));
+        let store = |os| ModuleStore::new(d.path().join("bundle"), d.path().join("active")).on_os(os);
+        assert_eq!(store("macos").catalog(), ["a", "m"]);
+        assert_eq!(ids(&store("macos")), ["a", "m"]);
+        assert_eq!(ids(&store("windows")), ["a", "d"]);
+        assert_eq!(ids(&store("linux")), ["a", "d"]);
+    }
+
+    #[test]
+    fn a_package_for_other_systems_never_installs() {
+        let (d, store) = setup();
+        add_platform_modules(&d.path().join("bundle"));
+        let store = store.on_os("windows");
+        let mut s = Settings::default();
+        assert!(store.sync(&s).is_empty());
+        assert!(d.path().join("active/d/index.html").exists());
+        assert!(!d.path().join("active/m").exists());
+        assert_eq!(store.reinstall("m", &mut s), Err(StoreError::UnknownModule("m".into())));
+        assert_eq!(store.set_enabled("m", false, &mut s), Err(StoreError::UnknownModule("m".into())));
+        assert!(!d.path().join("active/m").exists());
+        assert_eq!(store.module_text("m", Lang::Id, "name"), None);
+        assert_eq!(store.module_text("d", Lang::Id, "name"), Some("d".into()));
     }
 
     #[test]

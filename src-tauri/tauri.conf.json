@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' notchmod: notchshot: data:; font-src 'self'; frame-src notchmod:; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' notchmod: notchshot: http://notchmod.localhost http://notchshot.localhost data:; font-src 'self'; frame-src notchmod: http://notchmod.localhost; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
@@ -26,15 +26,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "macOS": {
-      "minimumSystemVersion": "13.0",
-      "hardenedRuntime": true,
-      "entitlements": "./Entitlements.plist"
-    },
     "resources": {
-      "../dist-modules/": "modules/",
-      "media/np.pl": "media/np.pl",
-      "media/build/libnotching-media.dylib": "media/libnotching-media.dylib"
+      "../dist-modules/": "modules/"
     }
   }
 }
