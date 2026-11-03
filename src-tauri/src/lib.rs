@@ -1,8 +1,5 @@
 mod app_core;
 mod commands;
-// Keep awake's timing; its service is macOS-only until package C ports it.
-// PORT(C): drop the allow once awake_service builds everywhere.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 mod awake;
 // Partly used by the macOS overlay and pointer code only.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
@@ -79,12 +76,8 @@ mod screens;
 #[cfg(target_os = "macos")]
 mod sensor;
 
-// PORT(C): ungate once package C's Windows and Linux backends are in.
-#[cfg(target_os = "macos")]
 mod awake_hold;
-#[cfg(target_os = "macos")]
 mod awake_service;
-#[cfg(target_os = "macos")]
 mod login_item;
 
 // Windows and Linux: one window at the top centre of each screen.

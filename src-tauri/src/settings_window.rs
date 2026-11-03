@@ -29,8 +29,6 @@ pub const SETTINGS_SIZE: (f64, f64) = (680.0, 600.0);
 static OPENING: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 /// Open at login, as macOS reports it. Same values as LoginItem in src/settings/types.ts.
-// PORT(C): drop the allow once login_item builds off macOS.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LoginItem {
@@ -93,8 +91,7 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         language,
         screen,
         screens,
-        // PORT(C): crate::login_item::state() once login_item builds here.
-        login: LoginItem::Unavailable,
+        login: crate::login_item::state(),
         version: app.package_info().version.to_string(),
         home,
         accessibility: false,

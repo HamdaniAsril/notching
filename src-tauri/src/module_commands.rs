@@ -14,9 +14,6 @@ pub const MODULE_STATE_EVENT: &str = "notching://module-state";
 /// A hidden feature's capability called off macOS; its module never installs there.
 #[cfg(not(target_os = "macos"))]
 const NOT_HERE: &str = "not available on this platform";
-/// Keep awake off macOS, until package C's backend is in.
-#[cfg(not(target_os = "macos"))]
-const NOT_YET: &str = "not available on this platform yet";
 
 #[tauri::command]
 pub fn get_module_state(core: State<CoreState>) -> ModuleStateDto {
@@ -70,7 +67,7 @@ fn module_gone(app: &AppHandle, id: &str) {
 
 #[cfg(not(target_os = "macos"))]
 fn module_gone(app: &AppHandle, id: &str) {
-    // PORT(C): crate::awake_service::module_gone(app, id);
+    crate::awake_service::module_gone(app, id);
     crate::timer_service::module_gone(app, id);
 }
 
@@ -148,24 +145,17 @@ pub async fn module_call(
             crate::notify::post(&app, &module_id, &a.channel, &a.title, a.detail.as_deref().unwrap_or(""))?;
             Ok(serde_json::Value::Null)
         }
-        #[cfg(target_os = "macos")]
         Call::AwakeRead => serde_json::to_value(crate::awake_service::read(&app)),
         // The run belongs to the module that started it: its status and notice.
-        #[cfg(target_os = "macos")]
         Call::AwakeStart => {
             let a: StartArgs = parse_args(args, "awake.start")?;
             serde_json::to_value(crate::awake_service::turn_on(&app, &module_id, a.minutes)?)
         }
-        #[cfg(target_os = "macos")]
         Call::AwakeAdd => {
             let a: ExtendArgs = parse_args(args, "awake.add")?;
             serde_json::to_value(crate::awake_service::extend(&app, a.minutes)?)
         }
-        #[cfg(target_os = "macos")]
         Call::AwakeStop => serde_json::to_value(crate::awake_service::turn_off(&app)),
-        // PORT(C): the four arms above, once awake_service builds here.
-        #[cfg(not(target_os = "macos"))]
-        Call::AwakeRead | Call::AwakeStart | Call::AwakeAdd | Call::AwakeStop => return Err(NOT_YET.into()),
         Call::TimerRead => serde_json::to_value(crate::timer_service::read(&app)),
         // Like Keep awake: the timer belongs to the module that started it.
         Call::TimerStart => {
@@ -242,8 +232,6 @@ struct PostArgs {
 }
 
 /// `minutes` null: no limit.
-// PORT(C): ungate with the awake arms.
-#[cfg(target_os = "macos")]
 #[derive(serde::Deserialize)]
 struct StartArgs {
     minutes: Option<u32>,

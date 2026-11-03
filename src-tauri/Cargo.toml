@@ -110,3 +110,7 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+# Mirror's camera: webkit2gtk has media stream off by default. Same version tauri locks.
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = { version = "2.0", features = ["v2_40"] }

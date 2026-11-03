@@ -26,6 +26,8 @@ jobs:
   # Creates the draft once, so the three build jobs do not race to create it.
   draft:
     runs-on: ubuntu-22.04
+    outputs:
+      id: ${{ steps.release.outputs.id }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
@@ -43,10 +45,12 @@ jobs:
             echo "::error::tag v$tag does not match the app version"; exit 1; }
 
       - name: create draft release
+        id: release
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
-              --title "Notching $GITHUB_REF_NAME" --notes "Installers are being attached by CI."
+              --title "Notching $GITHUB_REF_NAME" --notes-file .github/release-notes.md
+          echo "id=$(gh api "repos/$GH_REPO/releases" --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" | head -1)" >> "$GITHUB_OUTPUT"
 
   build:
     needs: draft
@@ -146,21 +150,7 @@ jobs:
           APPLE_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_PASSWORD || '' }}
           APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
         with:
-          tagName: v__VERSION__
-          releaseName: 'Notching v__VERSION__'
-          releaseBody: |
-            Download the file for your system:
-
-            - **macOS** (Apple Silicon, macOS 13+): `_aarch64.dmg`. Open it and drag Notching into Applications. Signed with Developer ID and notarized by Apple.
-            - **Windows** (10/11): `_x64-setup.exe` (recommended) or `.msi`.
-            - **Ubuntu / Debian**: `.deb`. Install with `sudo apt install ./Notching_*.deb`.
-            - **Fedora / openSUSE**: `.rpm`. Install with `sudo dnf install ./Notching-*.rpm`.
-            - **Other Linux distributions**: `.AppImage`. Run `chmod +x Notching_*.AppImage`, then start it.
-
-            The Windows and Linux builds are not code-signed. On Windows, SmartScreen may warn: click "More info", then "Run anyway".
-            Linux needs webkit2gtk 4.1 (Ubuntu 22.04+, Fedora 38+). Shelf, Screenshot, Cleaner, Keyboard Cleaning Mode, Music and the Mirror lamp are macOS-only for now.
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.draft.outputs.id }}
           args: ${{ matrix.args }}
 
       # The release is still a draft: if this fails, do not publish it.

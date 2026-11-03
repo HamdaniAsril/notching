@@ -18,8 +18,6 @@ pub const SAMPLE_TEXT: &str = "18:42";
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Activity {
-    // PORT(C): Keep awake's; drop the allow once awake_service builds everywhere.
-    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     On,
     Running,
 }

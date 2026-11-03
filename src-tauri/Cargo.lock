@@ -1934,6 +1934,7 @@ dependencies = [
  "tauri-nspanel",
  "tempfile",
  "ureq",
+ "webkit2gtk",
 ]
 
 [[package]]

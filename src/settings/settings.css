@@ -69,6 +69,18 @@
   }
 }
 
+/* Windows and Linux have no vibrancy under the window: solid stand-ins. */
+:root:not([data-platform='macos']) {
+  --glass: #161714;
+  --glass-side: #1b1c19;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-platform='macos']) {
+    --glass: #f4f5f2;
+    --glass-side: #ebece8;
+  }
+}
+
 html,
 body {
   height: 100%;

@@ -7,7 +7,7 @@ pub mod overlay;
 use tauri::Manager;
 
 use crate::{
-    app_core, commands, home, locale, module_commands, modules, notify, page_commands, prefs, settings,
+    app_core, commands, home, locale, login_item, module_commands, modules, notify, page_commands, prefs, settings,
     settings_window, status, system_stats, timer_service,
 };
 
@@ -48,7 +48,8 @@ pub fn run() {
             settings_window::set_language,
             settings_window::set_notch_config,
             settings_window::set_screen,
-            // PORT(C): login_item::set_launch_at_login, login_item::open_login_items
+            login_item::set_launch_at_login,
+            login_item::open_login_items,
             home::commands::search_places,
             home::commands::set_place,
             home::commands::set_prayer_method,
@@ -75,7 +76,7 @@ pub fn run() {
             overlay::rebuild_overlays(app.handle())?;
             overlay::start(app.handle().clone());
             home::schedule::start(app.handle().clone());
-            // PORT(C): crate::awake_service::start(app.handle().clone());
+            crate::awake_service::start(app.handle().clone());
             timer_service::start(app.handle().clone());
             Ok(())
         })
