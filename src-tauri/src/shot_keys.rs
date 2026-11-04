@@ -52,6 +52,8 @@ pub enum SetKeyError {
     Invalid,
     /// The other row's combo.
     Duplicate,
+    /// One of Atur jendela's nine keys while that tool is on (design 4 Nov, alat latar).
+    Tool,
 }
 
 // The keys that can be recorded: (virtual key code, KeyboardEvent.code, label).

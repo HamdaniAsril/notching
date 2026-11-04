@@ -40,10 +40,10 @@ Sampai sekarang setiap modul Notching punya kotak di notch: halaman sendiri atau
 - Butuh izin Aksesibilitas.
 
 **Cara kerja (keputusan penulis)**
-1. Event tap keyboard (sesi, bisa menahan event) hanya melihat tombol yang ditekan. Untuk tombol selain ⌘X dan ⌘V, atau kalau app terdepan bukan Finder (`com.apple.finder`), event langsung diteruskan.
+1. Event tap keyboard (sesi, bisa menahan event) berjalan di thread sendiri, jadi ketikan tidak pernah menunggu thread utama app. Tap hanya melihat tombol yang ditekan. Untuk tombol selain ⌘X dan ⌘V, atau kalau app terdepan bukan Finder (`com.apple.finder`, dicatat dari pemberitahuan macOS saat app berganti), event langsung diteruskan. ⌘X dan ⌘V dikenali dari huruf yang diketik, jadi layout seperti Dvorak tetap benar. Tombol C yang dikirim juga dicari dari layout yang aktif.
 2. ⌘X di Finder ditahan. Di thread lain Notching bertanya ke Finder lewat Aksesibilitas, apakah yang sedang fokus adalah kolom teks (`AXTextField`, `AXTextArea`, `AXComboBox`, `AXSearchField`).
-   - Kolom teks: ⌘X dikirim ulang apa adanya, jadi teks terpotong seperti biasa.
-   - Bukan kolom teks: Notching mengirim ⌘C ke Finder. Setelah 0,3 detik clipboard dibaca. Kalau clipboard berubah dan berisi file, potongan dicatat (daftar path dan nomor perubahan clipboard), lalu notch memberi tahu "N file dipotong". Kalau tidak ada file terpilih, tidak ada yang terjadi.
+   - Kolom teks: ⌘X dikirim ulang apa adanya, jadi teks terpotong seperti biasa. Kalau Finder tidak menjawab dalam 0,5 detik, dianggap kolom teks juga, supaya tombolnya tidak berubah arti.
+   - Bukan kolom teks: Notching mengirim ⌘C ke Finder, lalu menunggu clipboard berubah (dicek setiap 50 ms, paling lama 1 detik). Kalau clipboard berubah dan berisi file, potongan dicatat (daftar path dan nomor perubahan clipboard), lalu notch memberi tahu "N file dipotong". Kalau clipboard tidak berubah (tidak ada file terpilih), tidak ada yang terjadi, walaupun clipboard masih berisi file dari salinan sebelumnya.
 3. ⌘V di Finder hanya ditahan kalau ada potongan dan clipboard masih sama (nomor perubahannya belum berganti). Kalau tidak, ⌘V lewat seperti biasa.
    - Fokus di kolom teks: ⌘V dikirim ulang apa adanya. Potongan tetap.
    - Selain itu Notching mengirim ⌘⌥V (Finder: "Pindahkan item ke sini"), mencatat nama jendela Finder yang fokus sebagai folder tujuan, lalu potongan selesai.
@@ -57,6 +57,7 @@ Sampai sekarang setiap modul Notching punya kotak di notch: halaman sendiri atau
 
 **Izin**
 - Tanpa izin Aksesibilitas, macOS menolak event tap, jadi ⌘X di Finder tetap seperti biasa (berbunyi "tidak bisa").
+- Kalau izin dicabut, event tap dilepas (saat macOS memberi tahu perubahan daftar izin), supaya keyboard tidak tersangkut.
 - Event tap dicoba dipasang saat app menyala, saat alat dinyalakan atau dipasang, saat Pengaturan dibuka, dan saat macOS memberi tahu daftar izin Aksesibilitas berubah (`com.apple.accessibility.api`). Tidak ada polling.
 - Saat alat dinyalakan tanpa izin, macOS diminta menampilkan permintaan izinnya sendiri.
 
@@ -92,12 +93,13 @@ Sampai sekarang setiap modul Notching punya kotak di notch: halaman sendiri atau
 - Tidak ada jendela yang bisa diatur (misalnya desktop yang fokus): diam.
 
 **Konflik shortcut (keputusan penulis)**
-- Kalau macOS menolak mendaftarkan sebuah tombol karena dipegang app lain, atau tombol itu dipakai shortcut Mac sendiri yang menyala, halaman alat di Pengaturan menandai tombol itu ("Dipakai app lain" atau "Dipakai Mac"). Tidak ada notifikasi saat app menyala.
+- Tombol didaftarkan secara eksklusif. Kalau macOS menolak mendaftarkan sebuah tombol karena dipegang app lain, atau tombol itu dipakai shortcut Mac sendiri yang menyala, halaman alat di Pengaturan menandai tombol itu ("Dipakai app lain" atau "Dipakai Mac"). Tidak ada notifikasi saat app menyala.
 - Shortcut tidak bisa diganti di versi ini (bagian 10).
+- Selama Atur jendela menyala, tombol Screenshot tidak bisa direkam dengan salah satu dari sembilan tombol ini. Pesannya "Dipakai Atur jendela".
 
 ## 6. Jenis modul "alat"
 
-- Manifest mendapat field `"tool": true`. Alat tidak punya `entry`, `card`, atau `action`. Ia boleh punya `notifications` dan wajib menyebut kemampuannya sendiri.
+- Manifest mendapat field `"tool"` berisi nama kemampuan alat itu, misalnya `"tool": "cut"`. Kemampuan itu wajib ada di `capabilities`. Alat tidak punya `entry`, `card`, atau `action`. Ia boleh punya `notifications`.
 - Kemampuan baru: `cut` (Potong file) dan `windows` (Atur jendela). Keduanya dijalankan inti app, bukan halaman modul, jadi gate hanya membolehkannya untuk paket yang menyebutnya.
 - Alat dihitung sebagai modul untuk nyala/mati, copot, dan pasang (`disabled_modules`, `uninstalled_modules`, sama seperti modul).
 - Alat tidak punya kotak di notch dan tidak bisa dibuka sebagai halaman modul di notch.

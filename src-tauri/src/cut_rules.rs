@@ -21,15 +21,39 @@ pub enum Press {
     Other,
 }
 
-/// ⌘X and ⌘V with ⌘ alone; anything else is not Potong file's.
-pub fn classify(keycode: i64, flags: u64) -> Press {
+/// ⌘X and ⌘V with ⌘ alone; anything else is not Potong file's. The key is told
+/// by the character it types (`ch`), so Dvorak's X and V count wherever they
+/// sit; only an event without a character falls back to the QWERTY places.
+pub fn classify(ch: Option<char>, keycode: i64, flags: u64) -> Press {
     if flags & MODS != COMMAND {
         return Press::Other;
     }
-    match keycode {
-        KEY_X => Press::Cut,
-        KEY_V => Press::Paste,
-        _ => Press::Other,
+    match ch.map(|c| c.to_ascii_lowercase()) {
+        Some('x') => Press::Cut,
+        Some('v') => Press::Paste,
+        Some(_) => Press::Other,
+        None => match keycode {
+            KEY_X => Press::Cut,
+            KEY_V => Press::Paste,
+            _ => Press::Other,
+        },
+    }
+}
+
+/// Whether the clipboard took Finder's copy: it changed since `before`, and it
+/// holds files.
+pub fn copied(before: isize, now: isize, files: usize) -> bool {
+    now != before && files > 0
+}
+
+/// Whether the focused element is one to type into. An element Finder could
+/// not name (`Err`, a timeout) counts as typing, so the key stays as it was;
+/// nothing focused at all (the desktop) does not.
+pub fn typing(role: Result<Option<String>, ()>) -> bool {
+    match role {
+        Ok(Some(r)) => is_text_role(&r),
+        Ok(None) => false,
+        Err(()) => true,
     }
 }
 
@@ -80,14 +104,41 @@ mod tests {
 
     #[test]
     fn only_command_x_and_command_v_matter() {
-        assert_eq!(classify(KEY_X, COMMAND), Press::Cut);
-        assert_eq!(classify(KEY_V, COMMAND), Press::Paste);
-        assert_eq!(classify(KEY_X, COMMAND | CAPS_LOCK), Press::Cut);
-        assert_eq!(classify(KEY_X, 0), Press::Other);
-        assert_eq!(classify(KEY_X, COMMAND | SHIFT), Press::Other);
+        assert_eq!(classify(Some('x'), KEY_X, COMMAND), Press::Cut);
+        assert_eq!(classify(Some('v'), KEY_V, COMMAND), Press::Paste);
+        assert_eq!(classify(Some('x'), KEY_X, COMMAND | CAPS_LOCK), Press::Cut);
+        assert_eq!(classify(Some('X'), KEY_X, COMMAND | CAPS_LOCK), Press::Cut);
+        assert_eq!(classify(Some('x'), KEY_X, 0), Press::Other);
+        assert_eq!(classify(Some('x'), KEY_X, COMMAND | SHIFT), Press::Other);
         // ⌘⌥V is Finder's own move, which Notching itself sends.
-        assert_eq!(classify(KEY_V, COMMAND | OPTION), Press::Other);
-        assert_eq!(classify(8, COMMAND), Press::Other);
+        assert_eq!(classify(Some('v'), KEY_V, COMMAND | OPTION), Press::Other);
+        assert_eq!(classify(Some('c'), 8, COMMAND), Press::Other);
+    }
+
+    #[test]
+    fn the_character_decides_on_other_layouts() {
+        // Dvorak: the QWERTY X place types Q, and X sits on QWERTY's B (11).
+        assert_eq!(classify(Some('q'), KEY_X, COMMAND), Press::Other);
+        assert_eq!(classify(Some('x'), 11, COMMAND), Press::Cut);
+        // No character: the QWERTY place.
+        assert_eq!(classify(None, KEY_X, COMMAND), Press::Cut);
+        assert_eq!(classify(None, 8, COMMAND), Press::Other);
+    }
+
+    #[test]
+    fn a_cut_needs_a_fresh_clipboard_with_files() {
+        assert!(copied(10, 11, 2));
+        // ⌘C copied nothing: the files from an earlier copy are not cut.
+        assert!(!copied(10, 10, 2));
+        assert!(!copied(10, 11, 0));
+    }
+
+    #[test]
+    fn an_unknown_focus_counts_as_typing() {
+        assert!(typing(Ok(Some("AXTextField".into()))));
+        assert!(!typing(Ok(Some("AXOutline".into()))));
+        assert!(!typing(Ok(None)));
+        assert!(typing(Err(())));
     }
 
     #[test]

@@ -309,6 +309,7 @@
       "recording": "Press keys…",
       "invalid": "Use ⌘, ⌃ or ⌥ with one key",
       "duplicate": "Already used for {row}",
+      "tool": "Taken by Arrange windows",
       "reset": "Back to ⌘⇧3 and ⌘⇧4",
       "mac": "Taken by the Mac's screenshots",
       "shortcut": "Taken by a Mac shortcut",

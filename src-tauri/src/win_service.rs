@@ -24,7 +24,6 @@ const MODS: u32 = CONTROL | OPTION;
 const SIGNATURE: u32 = u32::from_be_bytes(*b"ncwa");
 // The no-permission notice, at most once a minute (§5).
 const NOTICE_EVERY: Duration = Duration::from_secs(60);
-const AX_TIMEOUT: f32 = 0.5;
 
 struct HotKeys([*mut c_void; 9]);
 // SAFETY: the refs are only used on the main thread; the Mutex just holds them.
@@ -77,7 +76,7 @@ fn arrange(app: &AppHandle, cell: Cell, pid: i32, screens: &[(Rect, Rect)]) {
         no_access(app);
         return;
     }
-    let Some(window) = crate::ax::app(pid, AX_TIMEOUT).and_then(|a| crate::ax::focused_window(&a)) else { return };
+    let Some(window) = crate::ax::app(pid).and_then(|a| crate::ax::focused_window(&a)) else { return };
     let Some(now) = crate::ax::frame(&window) else { return };
     let full: Vec<Rect> = screens.iter().map(|s| s.0).collect();
     let Some(&(_, visible)) = screens.get(screen_for(now, &full)) else { return };
@@ -167,6 +166,11 @@ pub fn module_changed(app: &AppHandle, id: &str) {
     }
 }
 
+/// One of the nine keys: Screenshot may not take it while the tool is on.
+pub fn is_grid_key(c: Combo) -> bool {
+    c.mods == MODS && Cell::ALL.iter().any(|cell| cell.code() == c.code)
+}
+
 #[derive(Serialize, Clone, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct WindowKeyDto {
@@ -213,6 +217,14 @@ mod tests {
         assert_eq!(key_state(true, KeyState::Ok, MacHold::Free), KeyState::Ok);
         assert_eq!(key_state(true, KeyState::Other, MacHold::Free), KeyState::Other);
         assert_eq!(key_state(true, KeyState::Ok, MacHold::Shortcut), KeyState::Shortcut);
+    }
+
+    #[test]
+    fn grid_keys_are_control_option_with_q_to_c() {
+        assert!(is_grid_key(Combo { code: 0x0C, mods: CONTROL | OPTION }));
+        assert!(is_grid_key(Combo { code: 0x08, mods: CONTROL | OPTION }));
+        assert!(!is_grid_key(Combo { code: 0x08, mods: CONTROL | OPTION | crate::shot_keys::SHIFT }));
+        assert!(!is_grid_key(Combo { code: 0x0B, mods: CONTROL | OPTION }));
     }
 
     #[test]

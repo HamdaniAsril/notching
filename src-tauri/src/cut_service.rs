@@ -2,12 +2,16 @@
 //! that only acts on ⌘X and ⌘V while Finder is in front. ⌘X becomes ⌘C and the
 //! files are remembered; the next ⌘V becomes ⌘⌥V, Finder's "Move Item Here".
 //! In a text field both keys stay as they are. Every other key passes untouched.
+//!
+//! The tap runs on a thread of its own, so typing never waits for the main
+//! thread. Which app is in front is kept from AppKit's own notice, and the key
+//! that types "c" from the keyboard layout, so the tap asks AppKit nothing.
 
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
-use std::sync::atomic::{AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicI32, AtomicPtr, AtomicU16, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
@@ -15,28 +19,31 @@ use block2::RcBlock;
 use objc2::rc::Retained;
 use objc2::runtime::ProtocolObject;
 use objc2::{ClassType, MainThreadMarker};
-use objc2_app_kit::{NSPasteboard, NSWorkspace};
-use objc2_foundation::{NSArray, NSDistributedNotificationCenter, NSNotification, NSObjectProtocol, NSOperationQueue, NSString, NSURL};
+use objc2_app_kit::{NSPasteboard, NSWorkspace, NSWorkspaceDidActivateApplicationNotification};
+use objc2_foundation::{
+    NSArray, NSDistributedNotificationCenter, NSNotification, NSNotificationCenter, NSObjectProtocol, NSOperationQueue,
+    NSString, NSURL,
+};
 use tauri::{AppHandle, Manager};
 
 use crate::app_core::CoreState;
-use crate::cut_rules::{classify, fill, is_text_role, moved, paste_is_ours, Cut, Press};
+use crate::cut_rules::{classify, copied, fill, moved, paste_is_ours, typing, Cut, Press};
 
 pub const MODULE_ID: &str = "cut-files";
 const FINDER: &str = "com.apple.finder";
 // macOS posts this when the Accessibility list changes; the trust follows a moment later.
 const ACCESS_CHANGED: &str = "com.apple.accessibility.api";
+const LAYOUT_CHANGED: &str = "com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged";
 const ACCESS_SETTLE: Duration = Duration::from_millis(1500);
-// Finder has copied the files by then.
-const COPY_SETTLE: Duration = Duration::from_millis(300);
+// After ⌘C: wait for Finder to fill the clipboard, at most a second.
+const COPY_EVERY: Duration = Duration::from_millis(50);
+const COPY_READS: u32 = 20;
 // After a move: look every half second, at most 15 seconds (§4).
 const MOVE_EVERY: Duration = Duration::from_millis(500);
 const MOVE_READS: u32 = 30;
-const AX_TIMEOUT: f32 = 0.25;
 
-const KEY_C: u16 = 8;
-const KEY_V: u16 = 9;
-const KEY_X: u16 = 7;
+// The QWERTY place of C, until the layout says otherwise.
+const QWERTY_C: u16 = 8;
 const FLAG_COMMAND: u64 = 0x0010_0000;
 const FLAG_OPTION: u64 = 0x0008_0000;
 // Marks the keys Notching sends, so the tap lets them through: "ncut".
@@ -58,6 +65,7 @@ unsafe extern "C" {
     fn CGEventGetFlags(event: *mut c_void) -> u64;
     fn CGEventSetFlags(event: *mut c_void, flags: u64);
     fn CGEventCreateKeyboardEvent(source: *const c_void, key: u16, down: bool) -> *mut c_void;
+    fn CGEventKeyboardGetUnicodeString(event: *mut c_void, max: usize, actual: *mut usize, chars: *mut u16);
     fn CGEventPost(tap: u32, event: *mut c_void);
 }
 
@@ -65,11 +73,35 @@ unsafe extern "C" {
 unsafe extern "C" {
     fn CFMachPortCreateRunLoopSource(allocator: *const c_void, port: *mut c_void, order: isize) -> *mut c_void;
     fn CFMachPortInvalidate(port: *mut c_void);
-    fn CFRunLoopGetMain() -> *mut c_void;
+    fn CFRunLoopGetCurrent() -> *mut c_void;
+    fn CFRunLoopRun();
+    fn CFRunLoopStop(rl: *mut c_void);
     fn CFRunLoopAddSource(rl: *mut c_void, source: *mut c_void, mode: *const c_void);
     fn CFRunLoopRemoveSource(rl: *mut c_void, source: *mut c_void, mode: *const c_void);
+    fn CFRetain(cf: *const c_void) -> *const c_void;
     fn CFRelease(cf: *const c_void);
-    static kCFRunLoopCommonModes: *const c_void;
+    fn CFDataGetBytePtr(data: *const c_void) -> *const u8;
+    static kCFRunLoopDefaultMode: *const c_void;
+}
+
+#[link(name = "Carbon", kind = "framework")]
+unsafe extern "C" {
+    fn TISCopyCurrentKeyboardLayoutInputSource() -> *const c_void;
+    fn TISGetInputSourceProperty(source: *const c_void, key: *const c_void) -> *const c_void;
+    fn LMGetKbdType() -> u8;
+    fn UCKeyTranslate(
+        layout: *const u8,
+        key: u16,
+        action: u16,
+        modifiers: u32,
+        keyboard_type: u32,
+        options: u32,
+        dead_key_state: *mut u32,
+        max: usize,
+        actual: *mut usize,
+        chars: *mut u16,
+    ) -> i32;
+    static kTISPropertyUnicodeKeyLayoutData: *const c_void;
 }
 
 const SESSION_TAP: u32 = 1; // kCGSessionEventTap
@@ -81,37 +113,91 @@ const DISABLED_BY_USER_INPUT: u32 = 0xFFFF_FFFF;
 const FIELD_AUTOREPEAT: u32 = 8; // kCGKeyboardEventAutorepeat
 const FIELD_KEYCODE: u32 = 9; // kCGKeyboardEventKeycode
 const FIELD_USER_DATA: u32 = 42; // kCGEventSourceUserData
+const UC_KEY_DOWN: u16 = 0; // kUCKeyActionDown
+const UC_CMD: u32 = 1; // (cmdKey >> 8) & 0xFF: the layout's ⌘ table
+const UC_NO_DEAD_KEYS: u32 = 1; // kUCKeyTranslateNoDeadKeysMask
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static TAP: Mutex<Option<Tap>> = Mutex::new(None);
+// The live tap's port, for re-enabling it on its own thread.
 static PORT: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
+// Finder's pid while it is the app in front, else 0.
+static FINDER_PID: AtomicI32 = AtomicI32::new(0);
+// The key that types "c" with ⌘ in the current layout.
+static KEY_C: AtomicU16 = AtomicU16::new(QWERTY_C);
 // The files ⌘X marked, until a ⌘V moves them or the clipboard changes (§4).
 static CUT: Mutex<Option<Cut>> = Mutex::new(None);
 
 thread_local! {
-    static OBSERVER: RefCell<Option<Retained<ProtocolObject<dyn NSObjectProtocol>>>> = const { RefCell::new(None) };
+    static OBSERVERS: RefCell<Vec<Retained<ProtocolObject<dyn NSObjectProtocol>>>> = const { RefCell::new(Vec::new()) };
 }
 
 fn enabled(app: &AppHandle) -> bool {
     app.state::<CoreState>().0.lock().unwrap().module(MODULE_ID).is_some_and(|e| e.installed && e.enabled)
 }
 
-fn change_count() -> isize {
-    NSPasteboard::generalPasteboard().changeCount()
+// Main thread: who is in front now.
+fn note_front() {
+    let pid = NSWorkspace::sharedWorkspace()
+        .frontmostApplication()
+        .filter(|a| a.bundleIdentifier().is_some_and(|id| id.to_string() == FINDER))
+        .map_or(0, |a| a.processIdentifier());
+    FINDER_PID.store(pid, Ordering::SeqCst);
 }
 
-// Main thread: Finder's pid when Finder is the app in front.
-fn finder_in_front() -> Option<i32> {
-    let front = NSWorkspace::sharedWorkspace().frontmostApplication()?;
-    let finder = front.bundleIdentifier().is_some_and(|id| id.to_string() == FINDER);
-    finder.then(|| front.processIdentifier())
+// Main thread (the Text Input Sources calls ask for it): the key that types "c"
+// with ⌘ held, in the current layout. QWERTY's place when it can't be read.
+fn note_layout() {
+    // SAFETY: TIS and UCKeyTranslate with checked pointers; the source is released once.
+    let code = unsafe {
+        let source = TISCopyCurrentKeyboardLayoutInputSource();
+        if source.is_null() {
+            return;
+        }
+        let data = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData);
+        let layout = if data.is_null() { std::ptr::null() } else { CFDataGetBytePtr(data) };
+        let found = (!layout.is_null())
+            .then(|| {
+                (0u16..128).find(|&key| {
+                    let mut dead = 0u32;
+                    let mut len = 0usize;
+                    let mut chars = [0u16; 4];
+                    let status = UCKeyTranslate(
+                        layout,
+                        key,
+                        UC_KEY_DOWN,
+                        UC_CMD,
+                        u32::from(LMGetKbdType()),
+                        UC_NO_DEAD_KEYS,
+                        &mut dead,
+                        chars.len(),
+                        &mut len,
+                        chars.as_mut_ptr(),
+                    );
+                    status == 0 && len == 1 && (chars[0] == u16::from(b'c') || chars[0] == u16::from(b'C'))
+                })
+            })
+            .flatten();
+        CFRelease(source);
+        found.unwrap_or(QWERTY_C)
+    };
+    KEY_C.store(code, Ordering::SeqCst);
 }
 
+fn typed_char(event: *mut c_void) -> Option<char> {
+    let mut len = 0usize;
+    let mut chars = [0u16; 4];
+    // SAFETY: the buffer is as large as the max passed.
+    unsafe { CGEventKeyboardGetUnicodeString(event, chars.len(), &mut len, chars.as_mut_ptr()) };
+    (len == 1).then(|| char::from_u32(u32::from(chars[0]))).flatten()
+}
+
+// On the tap's thread. Reads only atomics, the event and the clipboard's count.
 extern "C" fn on_event(_proxy: *mut c_void, kind: u32, event: *mut c_void, _info: *mut c_void) -> *mut c_void {
     if kind == DISABLED_BY_TIMEOUT || kind == DISABLED_BY_USER_INPUT {
         let port = PORT.load(Ordering::SeqCst);
         if !port.is_null() {
-            // SAFETY: the port lives until the tap is dropped, which clears PORT first.
+            // SAFETY: the port is released only on this same thread, after its run loop ends.
             unsafe { CGEventTapEnable(port, true) };
         }
         return event;
@@ -128,18 +214,25 @@ extern "C" fn on_event(_proxy: *mut c_void, kind: u32, event: *mut c_void, _info
             CGEventGetIntegerValueField(event, FIELD_AUTOREPEAT) != 0,
         )
     };
-    let press = classify(keycode, flags);
-    if press == Press::Other || mark == MARK {
+    if mark == MARK || flags & FLAG_COMMAND == 0 {
         return event;
     }
-    let Some(pid) = finder_in_front() else { return event };
-    if press == Press::Paste && !paste_is_ours(CUT.lock().unwrap().as_ref(), change_count()) {
+    let pid = FINDER_PID.load(Ordering::SeqCst);
+    if pid == 0 {
+        return event;
+    }
+    let press = classify(typed_char(event), keycode, flags);
+    if press == Press::Other {
+        return event;
+    }
+    if press == Press::Paste && !paste_is_ours(CUT.lock().unwrap().as_ref(), NSPasteboard::generalPasteboard().changeCount()) {
         return event;
     }
     // Held down, the key counts once.
     if !repeat {
         let Some(app) = APP.get().cloned() else { return event };
-        std::thread::spawn(move || decide(&app, press, pid));
+        let key = keycode as u16;
+        std::thread::spawn(move || decide(&app, press, key, pid));
     }
     std::ptr::null_mut()
 }
@@ -161,25 +254,28 @@ fn post(key: u16, flags: u64) {
     }
 }
 
-// Off the main thread: Finder may take a moment to answer.
-fn decide(app: &AppHandle, press: Press, pid: i32) {
-    let finder = crate::ax::app(pid, AX_TIMEOUT);
-    let typing = finder.as_ref().and_then(crate::ax::focused_role).is_some_and(|r| is_text_role(&r));
-    match (press, typing) {
-        (Press::Cut, true) => post(KEY_X, FLAG_COMMAND),
-        (Press::Paste, true) => post(KEY_V, FLAG_COMMAND),
-        (Press::Cut, false) => {
-            post(KEY_C, FLAG_COMMAND);
-            std::thread::sleep(COPY_SETTLE);
-            remember(app);
+// Off the tap's thread: Finder may take a moment to answer. `key` is the key
+// that was pressed, sent back as it was when Finder is being typed in.
+fn decide(app: &AppHandle, press: Press, key: u16, pid: i32) {
+    let finder = crate::ax::app(pid);
+    let role = finder.as_ref().map_or(Err(()), crate::ax::focused_role);
+    if typing(role) {
+        post(key, FLAG_COMMAND);
+        return;
+    }
+    match press {
+        Press::Cut => {
+            let before = NSPasteboard::generalPasteboard().changeCount();
+            post(KEY_C.load(Ordering::SeqCst), FLAG_COMMAND);
+            remember(app, before);
         }
-        (Press::Paste, false) => {
-            let folder = finder.as_ref().and_then(crate::ax::focused_window).and_then(|w| crate::ax::title(&w));
+        Press::Paste => {
+            let folder = finder.as_ref().and_then(crate::ax::focused_window_only).and_then(|w| crate::ax::title(&w));
             let Some(cut) = CUT.lock().unwrap().take() else { return };
-            post(KEY_V, FLAG_COMMAND | FLAG_OPTION);
+            post(key, FLAG_COMMAND | FLAG_OPTION);
             follow(app, cut, folder);
         }
-        (Press::Other, _) => {}
+        Press::Other => {}
     }
 }
 
@@ -196,24 +292,27 @@ fn file_paths(pb: &NSPasteboard) -> Vec<PathBuf> {
         .collect()
 }
 
-// After the ⌘C: what Finder put on the clipboard, read on the main thread.
-fn remember(app: &AppHandle) {
-    let (done, wait) = std::sync::mpsc::sync_channel(1);
-    let sent = app.run_on_main_thread(move || {
+// After the ⌘C: once the clipboard changed, what Finder put there. Nothing is
+// cut when it did not change (nothing selected) or holds no files (§4).
+fn remember(app: &AppHandle, before: isize) {
+    for _ in 0..COPY_READS {
+        std::thread::sleep(COPY_EVERY);
         let pb = NSPasteboard::generalPasteboard();
-        let _ = done.send((pb.changeCount(), file_paths(&pb)));
-    });
-    let Ok((change, paths)) = sent.map_err(|e| e.to_string()).and_then(|()| wait.recv().map_err(|e| e.to_string())) else {
-        return;
-    };
-    if paths.is_empty() {
+        let change = pb.changeCount();
+        if change == before {
+            continue;
+        }
+        let paths = file_paths(&pb);
+        if !copied(before, change, paths.len()) {
+            return;
+        }
+        let n = paths.len();
+        *CUT.lock().unwrap() = Some(Cut { paths, change });
+        eprintln!("notching: {n} files cut");
+        let title = notice_title(app, "notice.cut", n, "");
+        notice(app, &title, &text(app, "notice.cut.detail").unwrap_or_default());
         return;
     }
-    let n = paths.len();
-    *CUT.lock().unwrap() = Some(Cut { paths, change });
-    eprintln!("notching: {n} files cut");
-    let title = notice_title(app, "notice.cut", n, "");
-    notice(app, &title, &text(app, "notice.cut.detail").unwrap_or_default());
 }
 
 // After the ⌘⌥V: how many files left their place, then one notice.
@@ -251,96 +350,128 @@ fn notice(app: &AppHandle, title: &str, detail: &str) {
     }
 }
 
-/// The event tap on the main run loop, for key downs only.
+/// The event tap, for key downs only, on a run loop of its own thread. Dropping
+/// it stops that run loop; the thread then takes the tap down itself.
 struct Tap {
-    port: *mut c_void,
-    source: *mut c_void,
+    run_loop: *mut c_void,
+    thread: Option<std::thread::JoinHandle<()>>,
 }
 
-// SAFETY: the port and source are only added to and removed from the main run
-// loop, which CoreFoundation allows from any thread.
+// SAFETY: the run loop ref is retained and only used to stop it, which
+// CoreFoundation allows from any thread.
 unsafe impl Send for Tap {}
+
+struct Ptr(*mut c_void);
+// SAFETY: only carried from the tap's thread back to the one that started it.
+unsafe impl Send for Ptr {}
 
 impl Tap {
     /// None when macOS refuses it (no Accessibility permission).
     fn install() -> Option<Tap> {
-        // SAFETY: plain CoreGraphics and CoreFoundation calls with checked results.
-        unsafe {
-            let port = CGEventTapCreate(SESSION_TAP, HEAD_INSERT, FILTER, 1 << KEY_DOWN, on_event, std::ptr::null_mut());
-            if port.is_null() {
-                return None;
+        let (sent, got) = std::sync::mpsc::sync_channel::<Option<Ptr>>(1);
+        let thread = std::thread::Builder::new()
+            .name("notching-cut-tap".into())
+            .spawn(move || {
+                // SAFETY: plain CoreGraphics and CoreFoundation calls with checked
+                // results; everything made here is released here, once.
+                unsafe {
+                    let port = CGEventTapCreate(SESSION_TAP, HEAD_INSERT, FILTER, 1 << KEY_DOWN, on_event, std::ptr::null_mut());
+                    if port.is_null() {
+                        let _ = sent.send(None);
+                        return;
+                    }
+                    let source = CFMachPortCreateRunLoopSource(std::ptr::null(), port, 0);
+                    if source.is_null() {
+                        CFMachPortInvalidate(port);
+                        CFRelease(port);
+                        let _ = sent.send(None);
+                        return;
+                    }
+                    let rl = CFRunLoopGetCurrent();
+                    CFRunLoopAddSource(rl, source, kCFRunLoopDefaultMode);
+                    PORT.store(port, Ordering::SeqCst);
+                    CGEventTapEnable(port, true);
+                    let _ = sent.send(Some(Ptr(CFRetain(rl) as *mut c_void)));
+                    CFRunLoopRun();
+                    PORT.store(std::ptr::null_mut(), Ordering::SeqCst);
+                    CGEventTapEnable(port, false);
+                    CFRunLoopRemoveSource(rl, source, kCFRunLoopDefaultMode);
+                    CFMachPortInvalidate(port);
+                    CFRelease(source);
+                    CFRelease(port);
+                }
+            })
+            .ok()?;
+        match got.recv() {
+            Ok(Some(rl)) => Some(Tap { run_loop: rl.0, thread: Some(thread) }),
+            _ => {
+                let _ = thread.join();
+                None
             }
-            let source = CFMachPortCreateRunLoopSource(std::ptr::null(), port, 0);
-            if source.is_null() {
-                CFMachPortInvalidate(port);
-                CFRelease(port);
-                return None;
-            }
-            PORT.store(port, Ordering::SeqCst);
-            CFRunLoopAddSource(CFRunLoopGetMain(), source, kCFRunLoopCommonModes);
-            CGEventTapEnable(port, true);
-            Some(Tap { port, source })
         }
     }
 }
 
 impl Drop for Tap {
     fn drop(&mut self) {
-        let _ = PORT.compare_exchange(self.port, std::ptr::null_mut(), Ordering::SeqCst, Ordering::SeqCst);
-        // SAFETY: both were created by `install` and are released once, here.
-        unsafe {
-            CGEventTapEnable(self.port, false);
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), self.source, kCFRunLoopCommonModes);
-            CFMachPortInvalidate(self.port);
-            CFRelease(self.source);
-            CFRelease(self.port);
+        // SAFETY: the run loop was retained by `install` and is released once, here.
+        unsafe { CFRunLoopStop(self.run_loop) };
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
         }
+        // SAFETY: as above.
+        unsafe { CFRelease(self.run_loop) };
     }
 }
 
 /// The tap as the tool's state and the permission say: in while the tool is on
-/// and macOS allows it, out otherwise. Safe from any thread.
+/// and macOS allows it, out otherwise, also when the permission was taken away.
+/// Safe from any thread.
 pub fn sync(app: &AppHandle) {
-    let on = enabled(app);
+    let wanted = enabled(app) && crate::keyclean_tap::trusted(false);
     let mut tap = TAP.lock().unwrap();
-    if !on {
+    if !wanted {
         if tap.take().is_some() {
             eprintln!("notching: cut-files tap removed");
         }
         *CUT.lock().unwrap() = None;
         return;
     }
-    if tap.is_none() && crate::keyclean_tap::trusted(false) {
+    if tap.is_none() {
         *tap = Tap::install();
         eprintln!("notching: cut-files tap installed: {}", tap.is_some());
     }
 }
 
-/// At launch, on the main thread: the tap, and a watch on the Accessibility list
-/// so a permission given later takes effect without a restart.
+fn observe(center: &NSNotificationCenter, name: &NSString, run: impl Fn() + 'static) {
+    let block = RcBlock::new(move |_: NonNull<NSNotification>| run());
+    // SAFETY: the block lives as long as its observer, kept for the app's life.
+    let observer =
+        unsafe { center.addObserverForName_object_queue_usingBlock(Some(name), None, Some(&NSOperationQueue::mainQueue()), &block) };
+    OBSERVERS.with(|o| o.borrow_mut().push(observer));
+}
+
+/// At launch, on the main thread: who is in front, the layout, the tap, and
+/// watches on all three, so a permission given later works without a restart.
 pub fn start(app: &AppHandle) {
     let _ = APP.set(app.clone());
-    sync(app);
     if MainThreadMarker::new().is_none() {
         return;
     }
+    note_front();
+    note_layout();
+    sync(app);
+    let workspace = NSWorkspace::sharedWorkspace().notificationCenter();
+    // SAFETY: AppKit's notification name is a static string.
+    observe(&workspace, unsafe { NSWorkspaceDidActivateApplicationNotification }, note_front);
+    let distributed = NSDistributedNotificationCenter::defaultCenter();
+    observe(&distributed, &NSString::from_str(LAYOUT_CHANGED), note_layout);
     let handle = app.clone();
-    let block = RcBlock::new(move |_: NonNull<NSNotification>| {
+    observe(&distributed, &NSString::from_str(ACCESS_CHANGED), move || {
         let handle = handle.clone();
         std::thread::spawn(move || {
             std::thread::sleep(ACCESS_SETTLE);
             sync(&handle);
         });
     });
-    let center = NSDistributedNotificationCenter::defaultCenter();
-    // SAFETY: the block lives as long as its observer, kept for the app's life.
-    let observer = unsafe {
-        center.addObserverForName_object_queue_usingBlock(
-            Some(&NSString::from_str(ACCESS_CHANGED)),
-            None,
-            Some(&NSOperationQueue::mainQueue()),
-            &block,
-        )
-    };
-    OBSERVER.with(|o| *o.borrow_mut() = Some(observer));
 }

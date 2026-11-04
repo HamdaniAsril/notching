@@ -90,7 +90,8 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
     }, reason => {
       pending = null;
       if (gone || recording !== which) return;
-      error = reason === 'duplicate' ? fill(s.duplicate, { row: names[which === 'screen' ? 'pick' : 'screen'] }) : s.invalid;
+      error = reason === 'duplicate' ? fill(s.duplicate, { row: names[which === 'screen' ? 'pick' : 'screen'] })
+        : reason === 'tool' ? s.tool : s.invalid;
       draw();
     });
   }

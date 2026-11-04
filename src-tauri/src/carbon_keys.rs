@@ -88,13 +88,16 @@ pub fn install_handler(handler: extern "C" fn(*mut c_void, *mut c_void, *mut c_v
     }
 }
 
-/// Registers one hot key on the app's event target; None when macOS refuses it
-/// (another app holds it). Main thread.
+// kEventHotKeyExclusive: refused (eventHotKeyExistsErr) when another app holds it.
+const EXCLUSIVE: u32 = 1;
+
+/// Registers one hot key on the app's event target, exclusively; None when
+/// macOS refuses it because another app holds it. Main thread.
 pub fn register(code: u32, mods: u32, signature: u32, id: u32) -> Option<*mut c_void> {
     let mut hot_key = std::ptr::null_mut();
     let id = EventHotKeyID { signature, id };
     // SAFETY: `hot_key` receives the ref, which stays valid until unregistered.
-    let status = unsafe { RegisterEventHotKey(code, mods, id, GetApplicationEventTarget(), 0, &mut hot_key) };
+    let status = unsafe { RegisterEventHotKey(code, mods, id, GetApplicationEventTarget(), EXCLUSIVE, &mut hot_key) };
     (status == NO_ERR && !hot_key.is_null()).then_some(hot_key)
 }
 

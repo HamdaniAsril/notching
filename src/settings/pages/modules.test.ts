@@ -192,6 +192,15 @@ test('the other row\'s key is refused, naming that row', async () => {
   expect(keyCap(root, 'screen').textContent).toBe('Tekan tombol…');
 });
 
+test('a key of Atur jendela is refused, naming the tool', async () => {
+  const { root, bridge } = await onShotPage();
+  bridge.shotSetKey.mockRejectedValue('tool');
+  keyCap(root, 'screen').click();
+  press({ key: 'c', code: 'KeyC', ctrlKey: true, altKey: true });
+  await settle();
+  expect(hint(root, 'screen')).toBe('Dipakai Atur jendela');
+});
+
 test('Esc or leaving the window cancels, and the keys come back', async () => {
   const { root, bridge } = await onShotPage();
   keyCap(root, 'pick').click();

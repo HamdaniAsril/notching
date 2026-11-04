@@ -309,6 +309,7 @@
       "recording": "Tekan tombol…",
       "invalid": "Pakai ⌘, ⌃, atau ⌥ dengan satu tombol",
       "duplicate": "Sudah dipakai untuk {row}",
+      "tool": "Dipakai Atur jendela",
       "reset": "Kembalikan ke ⌘⇧3 dan ⌘⇧4",
       "mac": "Dipakai screenshot bawaan Mac",
       "shortcut": "Dipakai pintasan Mac",

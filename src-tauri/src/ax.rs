@@ -11,6 +11,7 @@ use crate::geometry::Rect;
 #[link(name = "ApplicationServices", kind = "framework")]
 unsafe extern "C" {
     fn AXUIElementCreateApplication(pid: i32) -> *const c_void;
+    fn AXUIElementCreateSystemWide() -> *const c_void;
     fn AXUIElementCopyAttributeValue(element: *const c_void, attribute: *const c_void, value: *mut *const c_void) -> i32;
     fn AXUIElementSetAttributeValue(element: *const c_void, attribute: *const c_void, value: *const c_void) -> i32;
     fn AXUIElementIsAttributeSettable(element: *const c_void, attribute: *const c_void, settable: *mut u8) -> i32;
@@ -27,6 +28,10 @@ unsafe extern "C" {
 }
 
 const AX_OK: i32 = 0;
+const AX_NO_VALUE: i32 = -25212; // kAXErrorNoValue: the attribute is empty
+// Every Accessibility call waits at most this long (set on the system-wide
+// element, it holds for every element, not only the app's).
+const TIMEOUT: f32 = 0.5;
 const VALUE_POINT: u32 = 1; // kAXValueCGPointType
 const VALUE_SIZE: u32 = 2; // kAXValueCGSizeType
 
@@ -62,12 +67,20 @@ fn name_ptr(s: &NSString) -> *const c_void {
     s as *const NSString as *const c_void
 }
 
-fn copy(element: &Cf, name: &str) -> Option<Cf> {
+// The AXError when the value can't be read.
+fn try_copy(element: &Cf, name: &str) -> Result<Cf, i32> {
     let name = attr(name);
     let mut out = std::ptr::null();
     // SAFETY: an element and a CFString name; `out` gets a +1 value or stays null.
     let status = unsafe { AXUIElementCopyAttributeValue(element.0, name_ptr(&name), &mut out) };
-    if status == AX_OK { owned(out) } else { None }
+    if status != AX_OK {
+        return Err(status);
+    }
+    owned(out).ok_or(AX_NO_VALUE)
+}
+
+fn copy(element: &Cf, name: &str) -> Option<Cf> {
+    try_copy(element, name).ok()
 }
 
 fn string(element: &Cf, name: &str) -> Option<String> {
@@ -97,13 +110,21 @@ fn set_pair(element: &Cf, name: &str, kind: u32, p: Pair) -> bool {
     unsafe { AXUIElementSetAttributeValue(element.0, name_ptr(&name), value.0) == AX_OK }
 }
 
-/// The app with this process id, asking at most `timeout` seconds per call.
-pub fn app(pid: i32, timeout: f32) -> Option<Cf> {
+static TIMEOUT_SET: std::sync::Once = std::sync::Once::new();
+
+/// The app with this process id. Every call waits at most half a second.
+pub fn app(pid: i32) -> Option<Cf> {
+    TIMEOUT_SET.call_once(|| {
+        // SAFETY: the system-wide element, kept for the app's life on purpose.
+        unsafe {
+            let all = AXUIElementCreateSystemWide();
+            if !all.is_null() {
+                AXUIElementSetMessagingTimeout(all, TIMEOUT);
+            }
+        }
+    });
     // SAFETY: any pid; a null result means none.
-    let app = owned(unsafe { AXUIElementCreateApplication(pid) })?;
-    // SAFETY: a live element.
-    unsafe { AXUIElementSetMessagingTimeout(app.0, timeout) };
-    Some(app)
+    owned(unsafe { AXUIElementCreateApplication(pid) })
 }
 
 /// The app's focused window, else its main window.
@@ -111,9 +132,19 @@ pub fn focused_window(app: &Cf) -> Option<Cf> {
     copy(app, "AXFocusedWindow").or_else(|| copy(app, "AXMainWindow"))
 }
 
-/// The role of the app's focused element ("AXTextField", "AXOutline", …).
-pub fn focused_role(app: &Cf) -> Option<String> {
-    string(&copy(app, "AXFocusedUIElement")?, "AXRole")
+/// The app's focused window only: none when, in Finder, the desktop has the focus.
+pub fn focused_window_only(app: &Cf) -> Option<Cf> {
+    copy(app, "AXFocusedWindow")
+}
+
+/// The role of the app's focused element ("AXTextField", "AXOutline", …):
+/// Ok(None) when nothing is focused, Err when the app did not answer.
+pub fn focused_role(app: &Cf) -> Result<Option<String>, ()> {
+    match try_copy(app, "AXFocusedUIElement") {
+        Ok(el) => string(&el, "AXRole").map(Some).ok_or(()),
+        Err(AX_NO_VALUE) => Ok(None),
+        Err(_) => Err(()),
+    }
 }
 
 pub fn title(element: &Cf) -> Option<String> {

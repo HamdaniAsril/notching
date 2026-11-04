@@ -595,7 +595,11 @@ pub async fn shot_set_key(
     alt: bool,
     shift: bool,
 ) -> Result<KeysDto, SetKeyError> {
-    let next = set_key(saved_keys(&app), which, from_web(&code, cmd, ctrl, alt, shift))?;
+    let combo = from_web(&code, cmd, ctrl, alt, shift);
+    if combo.is_some_and(crate::win_service::is_grid_key) && crate::win_service::enabled(&app) {
+        return Err(SetKeyError::Tool);
+    }
+    let next = set_key(saved_keys(&app), which, combo)?;
     save_keys(&app, next);
     Ok(keys(&app))
 }
