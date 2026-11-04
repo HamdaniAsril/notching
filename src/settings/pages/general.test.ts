@@ -56,3 +56,14 @@ test('the see-through panel switch shows the saved choice and saves a change', a
   expect(bridge.setPanelGlass).toHaveBeenCalledWith(true);
   expect(root.querySelector('[data-row="general.glass"]')!.textContent).toContain('Panel tembus pandang');
 });
+
+test('the appearance shows the saved choice and saves a change', async () => {
+  const { root, bridge } = await mountForTest(undefined, { ...TEST_INFO, theme: 'dark' });
+  const row = root.querySelector('[data-row="general.theme"]')!;
+  expect(row.textContent).toContain('Mode tampilan');
+  const options = [...row.querySelectorAll<HTMLButtonElement>('button')];
+  expect(options.map(b => b.textContent)).toEqual(['Sistem', 'Terang', 'Gelap']);
+  expect(options.find(b => b.getAttribute('aria-checked') === 'true')!.textContent).toBe('Gelap');
+  options[1].click();
+  expect(bridge.setTheme).toHaveBeenCalledWith('light');
+});

@@ -1,5 +1,6 @@
 import type { SettingsStrings } from '../i18n';
 import { inCatalog, isModule, isTool, type ModuleInfo, type Page } from '../modules/types';
+import { CHANGELOG } from './changelog';
 import type { Route, SectionId } from './types';
 
 export interface SearchEntry {
@@ -15,7 +16,7 @@ export function normalize(s: string): string {
   return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-const SECTIONS: SectionId[] = ['general', 'look', 'notifications', 'pages', 'modules', 'shortcuts', 'permissions', 'about'];
+const SECTIONS: SectionId[] = ['general', 'look', 'pages', 'modules', 'shortcuts', 'notifications', 'permissions', 'uninstall', 'about', 'whatsnew'];
 
 // Every searchable setting, in sidebar order; modules and pages follow their section.
 export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Page[] = []): SearchEntry[] {
@@ -23,6 +24,7 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
   const rows: Record<SectionId, [key: string, label: string, keywords: string][]> = {
     general: [
       ['general.language', s.general.language, k.language],
+      ['general.theme', s.general.theme, k.theme],
       ['home.place', s.home.place, k.place],
       ['general.screen', s.general.screen, k.screen],
       ['general.login', s.general.login, k.login],
@@ -48,7 +50,16 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
       ['shortcuts.shelf', s.shortcuts.shelf, k.shortcuts],
     ],
     permissions: [],
-    about: [['about.version', s.about.version, k.version]],
+    uninstall: [
+      ['uninstall.permissions', s.uninstall.permissions, k.uninstall],
+      ['uninstall.app', s.uninstall.uninstall, k.uninstall],
+    ],
+    // The newest version's card.
+    whatsnew: [[`whatsnew.${CHANGELOG[0].version}`, s.whatsNew.title, k.whatsNew]],
+    about: [
+      ['about.update', s.about.update, `${k.update} ${k.version}`],
+      ['about.auto', s.about.auto, k.update],
+    ],
   };
   const entry = (key: string, label: string, where: string, route: Route, extra = ''): SearchEntry =>
     ({ key, label, where, route, text: normalize(`${label} ${where} ${extra}`) });

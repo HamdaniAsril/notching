@@ -366,6 +366,42 @@ impl AppCore {
     }
 
     /// Module names and descriptions follow the new language at once.
+    pub fn auto_update(&self) -> bool {
+        self.settings.auto_update
+    }
+
+    pub fn set_auto_update(&mut self, on: bool) -> Result<(), CoreError> {
+        self.settings.auto_update = on;
+        self.save()
+    }
+
+    pub fn update_checked_at(&self) -> Option<i64> {
+        self.settings.update_checked_at
+    }
+
+    pub fn set_update_checked(&mut self, at: i64) -> Result<(), CoreError> {
+        self.settings.update_checked_at = Some(at);
+        self.save()
+    }
+
+    /// True the first time `version` is noticed, and remembers it.
+    pub fn notice_update(&mut self, version: &str) -> Result<bool, CoreError> {
+        if self.settings.update_noticed.as_deref() == Some(version) {
+            return Ok(false);
+        }
+        self.settings.update_noticed = Some(version.to_string());
+        self.save().map(|()| true)
+    }
+
+    pub fn theme(&self) -> crate::settings::ThemeSetting {
+        self.settings.theme
+    }
+
+    pub fn set_theme(&mut self, theme: crate::settings::ThemeSetting) -> Result<(), CoreError> {
+        self.settings.theme = theme;
+        self.save()
+    }
+
     pub fn set_language(&mut self, language: LanguageSetting) -> Result<(), CoreError> {
         self.settings.language = language;
         self.changed()
@@ -658,6 +694,31 @@ mod tests {
         core.set_accent("#c8f04a".into(), None).unwrap();
         let s = core.state();
         assert_eq!((s.accent.as_str(), s.accent_custom.as_deref()), ("#c8f04a", Some("#123456")));
+    }
+
+    #[test]
+    fn updates_are_checked_until_turned_off_and_each_version_noticed_once() {
+        let d = setup();
+        let mut core = open(&d, None);
+        assert!(core.auto_update());
+        assert_eq!(core.update_checked_at(), None);
+        core.set_auto_update(false).unwrap();
+        core.set_update_checked(42).unwrap();
+        assert!(core.notice_update("0.1.3").unwrap());
+        let mut core = open(&d, None);
+        assert!(!core.auto_update());
+        assert_eq!(core.update_checked_at(), Some(42));
+        assert!(!core.notice_update("0.1.3").unwrap());
+        assert!(core.notice_update("0.1.4").unwrap());
+    }
+
+    #[test]
+    fn theme_follows_the_device_until_chosen() {
+        use crate::settings::ThemeSetting;
+        let d = setup();
+        assert_eq!(open(&d, None).theme(), ThemeSetting::System);
+        open(&d, None).set_theme(ThemeSetting::Dark).unwrap();
+        assert_eq!(open(&d, None).theme(), ThemeSetting::Dark);
     }
 
     #[test]

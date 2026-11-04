@@ -41,10 +41,22 @@ test('Pintasan holds the app keys, Screenshot\'s two and the background tools', 
   expect([...root.querySelectorAll('.pane .module .label')].map(e => e.textContent)).toEqual(['Potong file', 'Atur jendela']);
 });
 
-test('a tool opens its page from Pintasan and goes back there', async () => {
+test('Atur jendela folds open in place with its key grid', async () => {
   const { root, app } = await onShortcuts();
-  cap(root, 'module.window-keys').click();
-  expect(app.route).toEqual({ page: 'module', id: 'window-keys' });
+  const head = cap(root, 'module.window-keys');
+  head.click();
+  await settle();
+  expect(app.route).toEqual({ page: 'shortcuts' });
+  const body = head.nextElementSibling as HTMLElement;
+  expect(body.hidden).toBe(false);
+  expect(body.querySelectorAll('.win-row .keycap')).toHaveLength(10);
+  expect(body.querySelectorAll('.win-row .win-pos svg')).toHaveLength(10);
+  expect(body.querySelector('[data-row="tool.window-keys.access"]')).not.toBeNull();
+});
+
+test('a tool\'s own page, reached another way, goes back to Pintasan', async () => {
+  const { root, app } = await onShortcuts();
+  app.go({ page: 'module', id: 'window-keys' });
   expect(root.querySelector('.nav.on .label')!.textContent).toBe('Pintasan');
   expect(root.querySelector('[data-key="module.back"]')!.textContent).toBe('Pintasan');
   cap(root, 'module.back').click();
@@ -86,4 +98,22 @@ test('a key whose module is off says where to turn it on; one another app holds 
   const { root } = await onShortcuts(STATE, appKeys({ shelf: 'off', awake: 'other' }));
   expect(hint(root, 'shortcuts.shelf')).toBe('Shelf sedang mati. Nyalakan di Modul supaya tombolnya bekerja.');
   expect(hint(root, 'shortcuts.awake')).toBe('Dipakai app lain');
+});
+
+test('Potong file folds open in place, with its permission and keys, instead of opening a page', async () => {
+  const { root, app } = await onShortcuts();
+  const head = cap(root, 'module.cut-files');
+  const body = head.nextElementSibling as HTMLElement;
+  expect(body.hidden).toBe(true);
+  head.click();
+  expect(app.route).toEqual({ page: 'shortcuts' });
+  expect(body.hidden).toBe(false);
+  expect(head.getAttribute('aria-expanded')).toBe('true');
+  expect(body.querySelector('[data-row="tool.cut-files.access"]')).not.toBeNull();
+  expect([...body.querySelectorAll('.keycap')].map(e => e.textContent)).toEqual(['⌘X', '⌘V']);
+  // Its switch does not fold it.
+  cap(root, 'module.cut-files.on').click();
+  expect(body.hidden).toBe(false);
+  head.click();
+  expect(body.hidden).toBe(true);
 });

@@ -3,7 +3,7 @@ import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
 import type { ModuleInfo, ModuleState, Page } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
-import type { AppAction, AppKey, LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
+import type { AppAction, AppKey, UpdateInfo, LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
 
 const city = (name: string, region: string, latitude: number, longitude: number): Place =>
   ({ name, region, country: 'Indonesia', latitude, longitude });
@@ -31,6 +31,13 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     cell, label: windowLabels[cell] ?? `⌃⌥${k}`, state: params.get('winkeys') === 'taken' && k === '/' ? 'other' as const : 'ok' as const,
   }));
   let appLabels: Partial<Record<AppAction, string>> = {};
+  // Updates, made up: "Cek versi" finds 0.1.3, which a browser cannot install.
+  let update: UpdateInfo = {
+    current: '0.1.2', latest: null, available: false, page: null, size: null, checkedAt: null,
+    auto: true, installable: false, phase: 'idle', progress: null, error: null,
+  };
+  const updateSubs = new Set<(u: UpdateInfo) => void>();
+  const setUpdate = (next: UpdateInfo) => { update = next; updateSubs.forEach(cb => cb(update)); };
   // A key is off while its module is.
   const browserAppKeys = (): AppKey[] => (['awake', 'shelf'] as const).map(action => ({
     action,
@@ -40,6 +47,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   const browserKeys = (k: KeyState): ShotKeys => ({ screen: k, pick: k, labels, custom: labels.screen !== '⌘⇧3' || labels.pick !== '⌘⇧4' });
   let info: SettingsInfo = {
     language: 'auto',
+    theme: 'system',
     screen: null,
     screens: ['Built-in Retina Display', 'DELL U2723QE'],
     login: 'off',
@@ -87,6 +95,25 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setNotchConfig: async notch => setState({ ...state, notch }),
     setPanelGlass: async panelGlass => setState({ ...state, panelGlass }),
     setAccent: async (accent, custom) => setState({ ...state, accent, accentCustom: custom ?? state.accentCustom }),
+    // The page cannot change its own light or dark here; the app sets the window's.
+    setTheme: async theme => setInfo({ ...info, theme }),
+    // Made up, and nothing is ever taken from here.
+    uninstallPreview: async () => ({ app: null, files: ['~/Library/Application Support/id.web.notching', '~/Library/Caches/id.web.notching'] }),
+    releasePermissions: async () => console.info('releasePermissions'),
+    uninstallNotching: async () => { throw 'dev'; },
+    updateState: async () => update,
+    onUpdate: cb => { updateSubs.add(cb); return () => updateSubs.delete(cb); },
+    updateCheck: async () => {
+      setUpdate({ ...update, latest: '0.1.3', available: true, page: 'https://github.com/HamdaniAsril/notching/releases', size: 6551363, checkedAt: Date.now() });
+      return update;
+    },
+    updateInstall: async () => {
+      setUpdate({ ...update, error: 'dev' });
+      throw 'dev';
+    },
+    setAutoUpdate: async auto => setUpdate({ ...update, auto }),
+    openReleaseNotes: async () => console.info('openReleaseNotes'),
+    openLink: async link => console.info('openLink', link),
     setScreen: async screen => setInfo({ ...info, screen }),
     setLaunchAtLogin: async on => setInfo({ ...info, login: on ? 'on' : 'off' }),
     openLoginItems: async () => console.info('openLoginItems'),

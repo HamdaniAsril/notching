@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { syncUnlisten, type ShotKeys } from '../bridge';
 import type { ModuleState } from '../modules/types';
-import type { Place, SettingsBridge, SettingsInfo, WindowKey } from './types';
+import type { Place, SettingsBridge, SettingsInfo, UpdateInfo, WindowKey } from './types';
 
 // The native side: commands in src-tauri/src/settings_window.rs,
 // module_commands.rs and page_commands.rs; both broadcasts reach every window.
@@ -29,6 +29,17 @@ export function tauriSettingsBridge(): SettingsBridge {
     appKeys: () => invoke('app_keys'),
     appSetKey: (action, key) => invoke('app_set_key', { action, ...key }),
     appResetKeys: () => invoke('app_reset_keys'),
+    uninstallPreview: () => invoke('uninstall_preview'),
+    updateState: () => invoke<UpdateInfo>('update_state'),
+    onUpdate: cb => syncUnlisten(listen<UpdateInfo>('notching://update', e => cb(e.payload))),
+    updateCheck: () => invoke<UpdateInfo>('update_check'),
+    updateInstall: () => invoke('update_install'),
+    setAutoUpdate: on => invoke('set_auto_update', { on }),
+    openReleaseNotes: () => invoke('update_open_notes'),
+    openLink: link => invoke('open_link', { link }),
+    releasePermissions: () => invoke('release_permissions'),
+    uninstallNotching: () => invoke('uninstall_notching'),
+    setTheme: theme => invoke('set_theme', { theme }),
     setPanelGlass: on => invoke('set_panel_glass', { on }),
     setNoticeGlow: on => invoke('set_notice_glow', { on }),
     setNoticeSeconds: seconds => invoke('set_notice_seconds', { seconds }),

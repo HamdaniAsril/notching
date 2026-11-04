@@ -42,6 +42,7 @@ pub enum LoginItem {
 #[serde(rename_all = "camelCase")]
 pub struct SettingsDto {
     pub language: LanguageSetting,
+    pub theme: crate::settings::ThemeSetting,
     pub screen: Option<String>,
     pub screens: Vec<String>,
     pub login: LoginItem,
@@ -59,14 +60,15 @@ pub struct SettingsDto {
 
 // One lock at a time, so this is safe to call from anywhere.
 pub fn settings_dto(app: &AppHandle) -> SettingsDto {
-    let (language, screen, home) = {
+    let (language, theme, screen, home) = {
         let core = app.state::<CoreState>();
         let core = core.0.lock().unwrap();
-        (core.language(), core.screen().map(String::from), core.home().clone())
+        (core.language(), core.theme(), core.screen().map(String::from), core.home().clone())
     };
     let screens = app.state::<ConnectedScreens>().0.lock().unwrap().clone();
     SettingsDto {
         language,
+        theme,
         screen,
         screens,
         login: crate::login_item::state(),
@@ -107,6 +109,27 @@ pub fn set_notch_config(app: AppHandle, core: State<CoreState>, config: NotchCon
 #[tauri::command]
 pub fn set_accent(app: AppHandle, core: State<CoreState>, accent: String, custom: Option<String>) -> Result<(), String> {
     change(&app, &core, |c| c.set_accent(accent, custom))
+}
+
+/// The window's own appearance: WKWebView follows it for prefers-color-scheme,
+/// and the frosted glass under the page follows it too. None is the device's.
+fn window_theme(theme: crate::settings::ThemeSetting) -> Option<tauri::Theme> {
+    use crate::settings::ThemeSetting;
+    match theme {
+        ThemeSetting::System => None,
+        ThemeSetting::Light => Some(tauri::Theme::Light),
+        ThemeSetting::Dark => Some(tauri::Theme::Dark),
+    }
+}
+
+#[tauri::command]
+pub fn set_theme(app: AppHandle, core: State<CoreState>, theme: crate::settings::ThemeSetting) -> Result<(), String> {
+    change(&app, &core, |c| c.set_theme(theme))?;
+    if let Some(w) = app.get_webview_window(SETTINGS_LABEL) {
+        w.set_theme(window_theme(theme)).map_err(|e| e.to_string())?;
+    }
+    emit_settings(&app);
+    Ok(())
 }
 
 #[tauri::command]
@@ -170,7 +193,9 @@ fn open(app: AppHandle, window: WebviewWindow, route: Option<String>) -> Result<
     let _ = app.set_activation_policy(ActivationPolicy::Regular);
     let (w, h) = SETTINGS_SIZE;
     let url = settings_url(route.as_deref());
+    let theme = window_theme(app.state::<CoreState>().0.lock().unwrap().theme());
     let mut builder = WebviewWindowBuilder::new(&app, SETTINGS_LABEL, WebviewUrl::App(url.into()))
+        .theme(theme)
         .title("Notching")
         .inner_size(w, h)
         .min_inner_size(600.0, 480.0)
@@ -252,6 +277,7 @@ mod tests {
     fn dto_names_both_permissions_for_the_izin_page() {
         let dto = SettingsDto {
             language: LanguageSetting::default(),
+            theme: crate::settings::ThemeSetting::Dark,
             screen: None,
             screens: vec![],
             login: LoginItem::Off,
@@ -267,5 +293,6 @@ mod tests {
         assert_eq!(json["screenRecording"], false);
         assert_eq!(json["fullDiskAccess"], false);
         assert_eq!(json["camera"], true);
+        assert_eq!(json["theme"], "dark");
     }
 }

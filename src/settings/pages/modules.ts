@@ -210,6 +210,10 @@ function cleanerSettings(ctx: PageContext): HTMLElement {
 // A tool's permission row (design 4 Nov, alat latar §7): what macOS says now and
 // the way to System Settings. Asked again as the window hears new settings.
 function toolAccess(ctx: PageContext, m: ModuleInfo): HTMLElement {
+  return wrap('perms tool-access', el('div', 'grp-label', ctx.strings.tools.access), group(accessRow(ctx, m)));
+}
+
+function accessRow(ctx: PageContext, m: ModuleInfo): HTMLElement {
   const s = ctx.strings.tools;
   const state = el('span', 'perm-state');
   state.append(el('i', 'perm-dot'), el('span'));
@@ -221,8 +225,7 @@ function toolAccess(ctx: PageContext, m: ModuleInfo): HTMLElement {
   ctx.onCleanup(ctx.bridge.onSettings(show));
   const ctl = el('div', 'ctl');
   ctl.append(state, button(`tool.${m.id}.open`, s.open, () => void ctx.bridge.openAccessibility()));
-  return wrap('perms tool-access', el('div', 'grp-label', s.access),
-    group(row({ key: `tool.${m.id}.access`, label: s.accessibility, hint: s.accessibilityHint, control: ctl })));
+  return row({ key: `tool.${m.id}.access`, label: s.accessibility, hint: s.accessibilityHint, control: ctl });
 }
 
 // A div holding `children`.
@@ -249,17 +252,92 @@ function cutSettings(ctx: PageContext): HTMLElement {
   return wrap(undefined, toolAccess(ctx, m), keys);
 }
 
-// The modifiers in front of a label ("⌃⌥" of "⌃⌥Q").
-const mods = (label: string) => /^[⌃⌥⌘⇧]*/.exec(label)![0];
+// A background tool on Pintasan (owner, 4 Nov): its row folds open in place,
+// showing its permission and its keys inside the same card, instead of a page.
+export function toolFold(ctx: PageContext, m: ModuleInfo): HTMLElement[] {
+  const s = ctx.strings.tools;
+  const head = moduleRow(ctx, m, onSwitch(ctx, m), icon('chev'));
+  head.classList.add('fold-head');
+  head.dataset.key = `module.${m.id}`;
+  head.setAttribute('role', 'button');
+  head.setAttribute('aria-expanded', 'false');
+  head.tabIndex = 0;
+  const body = el('div', 'fold-body perms');
+  body.hidden = true;
+  const keys = m.id === 'window-keys'
+    ? windowKeysBox(ctx, true)
+    : row({ key: 'tool.cut-files.keys', label: s.keys, hint: s.cutNote, control: wrap('ctl', keycap('⌘X', s.cut), keycap('⌘V', s.paste)) });
+  body.append(accessRow(ctx, m), keys);
+  const toggle = () => {
+    body.hidden = !body.hidden;
+    head.setAttribute('aria-expanded', String(!body.hidden));
+    head.classList.toggle('open', !body.hidden);
+  };
+  head.addEventListener('click', toggle);
+  head.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === head) toggle(); });
+  return [head, body];
+}
 
 // Atur jendela's page: its permission and its nine keys drawn as the 3×3 grid
 // they make on the keyboard. A key someone else holds is marked and named below.
 // Clicking a key records a new one for that cell (design 4 Nov tombol atur
 // jendela §3); when all nine share their modifiers, those stand in front.
 function windowSettings(ctx: PageContext): HTMLElement {
-  const s = ctx.strings.tools;
   const m = ctx.state.modules.find(x => x.id === 'window-keys')!;
-  const box = el('div', 'tool-keys');
+  return wrap(undefined, toolAccess(ctx, m), windowKeysBox(ctx, false));
+}
+
+// The positions as listed, halves first, then corners, then the rest (owner, 4 Nov).
+const WINDOW_ORDER: WindowCell[] = ['left', 'right', 'top', 'bottom', 'topLeft', 'topRight', 'bottomLeft', 'bottomRight', 'center', 'fill'];
+
+// The keys until changed (owner, 4 Nov).
+const DEFAULT_WINDOW_LABELS: Record<WindowCell, string> = {
+  left: '⌃⌥←', right: '⌃⌥→', top: '⌃⌥↑', bottom: '⌃⌥↓',
+  topLeft: '⌃⌥;', topRight: "⌃⌥'", bottomLeft: '⌃⌥.', bottomRight: '⌃⌥/',
+  center: '⌃⌥\\', fill: '⌃⌥↩',
+};
+
+// Where a position puts the window inside the screen's 19 × 11 area, in the
+// icon's 26 × 18 box: [x, y, width, height].
+const HALF_W = 9;
+const HALF_H = 5;
+const AREA = { x: 3.5, y: 3.5, w: 19, h: 11 };
+function windowArea(cell: WindowCell): [number, number, number, number] {
+  const { x, y, w, h } = AREA;
+  const right = x + w - HALF_W;
+  const low = y + h - HALF_H;
+  switch (cell) {
+    case 'left': return [x, y, HALF_W, h];
+    case 'right': return [right, y, HALF_W, h];
+    case 'top': return [x, y, w, HALF_H];
+    case 'bottom': return [x, low, w, HALF_H];
+    case 'topLeft': return [x, y, HALF_W, HALF_H];
+    case 'topRight': return [right, y, HALF_W, HALF_H];
+    case 'bottomLeft': return [x, low, HALF_W, HALF_H];
+    case 'bottomRight': return [right, low, HALF_W, HALF_H];
+    case 'center': return [x + (w - HALF_W) / 2, y + (h - HALF_H) / 2, HALF_W, HALF_H];
+    case 'fill': return [x, y, w, h];
+  }
+}
+
+// A small screen with the part a position fills in the accent. Fixed numbers,
+// so it may go in as markup.
+function windowIcon(cell: WindowCell): HTMLElement {
+  const [x, y, w, h] = windowArea(cell);
+  const i = el('span', 'win-pos');
+  i.setAttribute('aria-hidden', 'true');
+  i.innerHTML = `<svg viewBox="0 0 26 18"><rect class="screen" x="1" y="1" width="24" height="16" rx="3.5"/>`
+    + `<rect class="area" x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5"/></svg>`;
+  return i;
+}
+
+// The keys, one row per position with its picture, name and key (owner, 4 Nov).
+// Clicking a key records a new one; a key someone else holds says who.
+// `folded` draws the rows straight into a card already open (Pintasan).
+function windowKeysBox(ctx: PageContext, folded: boolean): HTMLElement {
+  const s = ctx.strings.tools;
+  const held = ctx.strings.shotKeys;
+  const box = el('div', folded ? 'tool-keys fold-keys' : 'tool-keys');
   let keys: WindowKey[] | null = null;
   let gone = false;
   const rec = recorder<WindowCell, WindowKey[]>(ctx, box, {
@@ -274,53 +352,40 @@ function windowSettings(ctx: PageContext): HTMLElement {
     gone: () => gone,
   });
 
+  function keyRow(k: WindowKey): HTMLElement {
+    const key = `tool.window-keys.${k.cell}`;
+    const on = rec.at() === k.cell;
+    const taken = !on && (k.state === 'other' || k.state === 'shortcut' || k.state === 'mac');
+    const cap = button(key, on ? held.recording : k.label, () => (on ? undefined : rec.start(k.cell)));
+    cap.classList.add('keycap');
+    cap.classList.toggle('recording', on);
+    cap.classList.toggle('taken', taken);
+    const hint = on ? rec.error() || fill(s.record, { cell: s.cells[k.cell] }) : taken ? held[k.state as 'other' | 'shortcut' | 'mac'] : '';
+    const r = row({ key, label: s.cells[k.cell], hint: hint || undefined, control: cap });
+    r.classList.add('win-row');
+    r.prepend(windowIcon(k.cell));
+    if ((on && rec.error()) || taken) r.querySelector('small')?.classList.add('err');
+    return r;
+  }
+
   function draw(): void {
     if (gone || !keys) return;
-    const shared = keys.every(k => mods(k.label) === mods(keys![0].label)) ? mods(keys[0].label) : '';
-    const grid = el('div', shared ? 'win-grid' : 'win-grid full');
-    // The grid row by row, then the whole screen as one wide key under it.
-    grid.append(...keys.map(k => {
-      const on = rec.at() === k.cell;
-      const cap = button(`tool.window-keys.${k.cell}`, on ? '…' : k.label.slice(shared.length), () => (on ? undefined : rec.start(k.cell)));
-      cap.classList.add('keycap');
-      cap.setAttribute('aria-label', `${k.label} · ${s.cells[k.cell]}`);
-      cap.dataset.cell = k.cell;
-      cap.classList.toggle('recording', on);
-      cap.classList.toggle('taken', !on && (k.state === 'other' || k.state === 'shortcut' || k.state === 'mac'));
-      cap.classList.toggle('fill', k.cell === 'fill');
-      return cap;
-    }));
-    const keyRow = shared
-      ? wrap('win-keys', wrap('win-lead', ...[...shared].map(g => keycap(g)), el('span', 'win-plus', '+')), grid)
-      : wrap('win-keys', grid);
-    const parts: HTMLElement[] = [el('div', 'grp-label', s.keys), group(keyRow)];
-    const at = rec.at();
-    if (at) {
-      const hint = note(rec.error() || fill(s.record, { cell: s.cells[at] }));
-      hint.classList.add('win-hint');
-      if (rec.error()) hint.classList.add('err');
-      parts.push(hint);
-    }
-    parts.push(note(s.windowNote));
-    const taken = (state: WindowKey['state']) => keys!.filter(k => k.state === state).map(k => k.label).join(', ');
-    const held = [taken('shortcut'), taken('mac')].filter(Boolean).join(', ');
-    for (const t of [taken('other') && fill(s.other, { keys: taken('other') }), held && fill(s.shortcut, { keys: held })]) {
-      if (!t) continue;
-      const p = note(t);
-      p.classList.add('err');
-      parts.push(p);
-    }
-    if (keys.some((k, i) => k.label !== DEFAULT_WINDOW_LABELS[i])) {
-      const foot = el('div', 'shot-keys-foot');
-      foot.append(button('tool.window-keys.reset', s.reset, () => {
+    const byCell = new Map(keys.map(k => [k.cell, k]));
+    const rows = WINDOW_ORDER.flatMap(c => (byCell.has(c) ? [keyRow(byCell.get(c)!)] : []));
+    const parts: HTMLElement[] = folded ? rows : [el('div', 'grp-label', s.keys), group(...rows)];
+    const foot: HTMLElement[] = [note(s.windowNote)];
+    if (keys.some(k => k.label !== DEFAULT_WINDOW_LABELS[k.cell])) {
+      const reset = el('div', 'shot-keys-foot');
+      reset.append(button('tool.window-keys.reset', s.reset, () => {
         rec.stop();
         ctx.bridge.windowResetKeys().then(next => {
           keys = next;
           draw();
         }, () => {});
       }));
-      parts.push(foot);
+      foot.push(reset);
     }
+    parts.push(folded ? wrap('win-foot', ...foot) : wrap(undefined, ...foot));
     redraw(box, parts);
   }
 
@@ -332,11 +397,8 @@ function windowSettings(ctx: PageContext): HTMLElement {
     keys = next;
     draw();
   }, () => {});
-  return wrap(undefined, toolAccess(ctx, m), box);
+  return box;
 }
-
-// The keys until changed, in grid order, then the whole screen (owner, 4 Nov).
-const DEFAULT_WINDOW_LABELS = [';', '↑', "'", '←', '\\', '→', '.', '↓', '/', '↩'].map(k => `⌃⌥${k}`);
 
 // Each module's own settings, shown on its page; the rest say they have none.
 export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {

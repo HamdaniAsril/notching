@@ -35,3 +35,18 @@ test('a click outside the rects resigns; dispose stops listening', async () => {
   click(50, 50);
   expect(resign).toHaveBeenCalledTimes(1);
 });
+
+test('a root drawn scaled down reads the pointer in its own pixels', async () => {
+  const root = document.createElement('div');
+  document.body.append(root);
+  // 960 wide, drawn at half size from 100,20.
+  Object.defineProperty(root, 'offsetWidth', { value: 960 });
+  root.getBoundingClientRect = () => ({ left: 100, top: 20, width: 480, height: 280 } as DOMRect);
+  const p = localPointer(root);
+  const cb = vi.fn();
+  p.onPointer(cb);
+  await p.setHitRects([{ x: 400, y: 0, w: 160, h: 40 }]);
+  move(100 + 240, 20 + 10);
+  expect(cb).toHaveBeenLastCalledWith({ inside: true, x: 480, y: 20 });
+  p.dispose();
+});

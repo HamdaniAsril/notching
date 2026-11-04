@@ -1,6 +1,6 @@
 import { fill } from '../../i18n';
 import { button, el, choice, group, head, row, select, toggle } from '../controls';
-import type { LanguageChoice, PageRender } from '../types';
+import type { LanguageChoice, PageRender, ThemeChoice } from '../types';
 import { placeRow, prayerSettings } from './home';
 
 export const generalPage: PageRender = ctx => {
@@ -16,6 +16,18 @@ export const generalPage: PageRender = ctx => {
       { value: 'id', label: s.languageId },
       { value: 'en', label: s.languageEn },
     ], info.language, v => ctx.save('general.language', bridge.setLanguage(v))),
+  });
+
+  // Light, dark or as the device: this window only (owner, 4 Nov).
+  const theme = row({
+    key: 'general.theme',
+    label: s.theme,
+    hint: s.themeHint,
+    control: choice<ThemeChoice>('general.theme', [
+      { value: 'system', label: s.themeSystem },
+      { value: 'light', label: s.themeLight },
+      { value: 'dark', label: s.themeDark },
+    ], info.theme, v => ctx.save('general.theme', bridge.setTheme(v))),
   });
 
   // A chosen screen that is not connected stays listed, so the choice is not lost.
@@ -53,7 +65,7 @@ export const generalPage: PageRender = ctx => {
   const page = el('div');
   page.append(
     head({ title: ctx.strings.sections.general }),
-    group(language, placeRow(ctx), screen, login, glass),
+    group(language, theme, placeRow(ctx), screen, login, glass),
     el('div', 'grp-label', s.cityPrayer),
     prayerSettings(ctx),
   );

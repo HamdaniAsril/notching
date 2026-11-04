@@ -424,25 +424,39 @@ test('a tool page shows the permission and the fixed keys', async () => {
   expect(root.textContent).not.toContain('Modul ini belum punya pengaturan.');
 });
 
-test('Atur jendela shows its keys as the screen\'s grid plus the whole screen, and says which are taken', async () => {
+// Rows in the order the page lists them: halves, corners, centre, whole screen.
+const LISTED = ['⌃⌥←', '⌃⌥→', '⌃⌥↑', '⌃⌥↓', '⌃⌥;', "⌃⌥'", '⌃⌥.', '⌃⌥/', '⌃⌥\\', '⌃⌥↩'];
+
+test('Atur jendela lists each position with its picture, name and key, and says which are taken', async () => {
   const { root, app, bridge } = await mountForTest({ ...TOOLS, lang: 'id' });
   bridge.windowKeys.mockResolvedValueOnce(windowKeys({ bottomRight: 'other', center: 'shortcut' }));
   app.go({ page: 'module', id: 'window-keys' });
   await settle();
-  const caps = [...root.querySelectorAll<HTMLElement>('.win-grid .keycap')];
-  expect(caps.map(e => e.textContent)).toEqual([';', '↑', "'", '←', '\\', '→', '.', '↓', '/', '↩']);
-  expect(caps[0].getAttribute('aria-label')).toBe('⌃⌥; · Kiri atas');
-  expect(caps[9].getAttribute('aria-label')).toBe('⌃⌥↩ · Penuhi layar');
-  expect(caps[9].classList.contains('fill')).toBe(true);
-  expect(caps.filter(c => c.classList.contains('taken')).map(e => e.textContent)).toEqual(['\\', '/']);
-  const text = root.querySelector('.tool-keys')!.textContent!;
-  expect(text).toContain('⌃⌥/ dipakai app lain');
-  expect(text).toContain('⌃⌥\\ dipakai pintasan Mac');
+  const rows = [...root.querySelectorAll<HTMLElement>('.win-row')];
+  expect(rows.map(r => r.querySelector('.label')!.textContent)).toEqual([
+    'Setengah kiri', 'Setengah kanan', 'Setengah atas', 'Setengah bawah',
+    'Kiri atas', 'Kanan atas', 'Kiri bawah', 'Kanan bawah', 'Tengah', 'Penuhi layar',
+  ]);
+  expect(winCaps(root)).toEqual(LISTED);
+  // Each picture fills its part of a small screen: the left half is the left 9 of 19.
+  const area = (cell: string) => {
+    const a = winRow(root, cell).querySelector('.win-pos .area')!;
+    return ['x', 'y', 'width', 'height'].map(k => Number(a.getAttribute(k)));
+  };
+  expect(area('left')).toEqual([3.5, 3.5, 9, 11]);
+  expect(area('bottomRight')).toEqual([13.5, 9.5, 9, 5]);
+  expect(area('fill')).toEqual([3.5, 3.5, 19, 11]);
+  expect(area('center')).toEqual([8.5, 6.5, 9, 5]);
+  expect(winCap(root, 'bottomRight').classList.contains('taken')).toBe(true);
+  expect(winRowHint(root, 'bottomRight')).toBe('Dipakai app lain');
+  expect(winRowHint(root, 'center')).toBe('Dipakai pintasan Mac');
+  expect(winRowHint(root, 'left')).toBeUndefined();
 });
 
 const winCap = (root: HTMLElement, cell: string) => root.querySelector<HTMLElement>(`[data-key="tool.window-keys.${cell}"]`)!;
-const winHint = (root: HTMLElement) => root.querySelector<HTMLElement>('.tool-keys .win-hint');
-const winCaps = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('.win-grid .keycap')].map(e => e.textContent);
+const winRow = (root: HTMLElement, cell: string) => root.querySelector<HTMLElement>(`[data-row="tool.window-keys.${cell}"]`)!;
+const winRowHint = (root: HTMLElement, cell: string) => winRow(root, cell).querySelector('small')?.textContent;
+const winCaps = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('.win-row .keycap')].map(e => e.textContent);
 
 async function onWindowPage(keys = windowKeys(), lang: 'id' | 'en' = 'id') {
   const t = await mountForTest({ ...TOOLS, lang });
@@ -452,18 +466,17 @@ async function onWindowPage(keys = windowKeys(), lang: 'id' | 'en' = 'id') {
   return t;
 }
 
-// The nine keys with some cells' labels changed.
+// The keys with some cells' labels changed.
 const relabel = (labels: Record<string, string>) => windowKeys().map(k => ({ ...k, label: labels[k.cell] ?? k.label }));
 
-test('Atur jendela: clicking a key records a new one for that cell', async () => {
+test('Atur jendela: clicking a key records a new one for that position', async () => {
   const { root, bridge } = await onWindowPage();
-  expect(winHint(root)).toBeNull();
   expect(root.querySelector('[data-key="tool.window-keys.reset"]')).toBeNull();
   bridge.windowSetKey.mockResolvedValue(relabel({ topLeft: '⌃⇧T' }));
   winCap(root, 'topLeft').click();
-  expect(winCap(root, 'topLeft').textContent).toBe('…');
+  expect(winCap(root, 'topLeft').textContent).toBe('Tekan tombol…');
   expect(winCap(root, 'topLeft').classList.contains('recording')).toBe(true);
-  expect(winHint(root)!.textContent).toBe('Tekan tombol baru untuk Kiri atas. Esc untuk batal.');
+  expect(winRowHint(root, 'topLeft')).toBe('Tekan tombol baru untuk Kiri atas. Esc untuk batal.');
   expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(true);
   press({ key: 'Control', code: 'ControlLeft', ctrlKey: true });
   expect(bridge.windowSetKey).not.toHaveBeenCalled();
@@ -471,37 +484,32 @@ test('Atur jendela: clicking a key records a new one for that cell', async () =>
   expect(bridge.windowSetKey).toHaveBeenCalledWith('topLeft', { code: 'KeyT', cmd: false, ctrl: true, alt: false, shift: true });
   await settle();
   expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
-  expect(winHint(root)).toBeNull();
-  // The modifiers differ now: no ⌃⌥ in front, each key in full.
-  expect(root.querySelector('.win-lead')).toBeNull();
-  expect(winCaps(root)).toEqual(['⌃⇧T', '⌃⌥↑', "⌃⌥'", '⌃⌥←', '⌃⌥\\', '⌃⌥→', '⌃⌥.', '⌃⌥↓', '⌃⌥/', '⌃⌥↩']);
+  expect(winRowHint(root, 'topLeft')).toBeUndefined();
+  expect(winCap(root, 'topLeft').textContent).toBe('⌃⇧T');
   expect(root.querySelector('[data-key="tool.window-keys.reset"]')!.textContent).toBe('Kembalikan ke tombol bawaan');
-});
-
-test('Atur jendela: the same modifiers for all keep them in front of the grid', async () => {
-  const { root } = await onWindowPage(relabel({ center: '⌃⌥G' }));
-  expect(root.querySelector('.win-lead')!.textContent).toBe('⌃⌥+');
-  expect(winCaps(root)).toEqual([';', '↑', "'", '←', 'G', '→', '.', '↓', '/', '↩']);
-  expect(root.querySelector('[data-key="tool.window-keys.reset"]')).not.toBeNull();
 });
 
 test('Atur jendela: a refused key keeps recording and says why', async () => {
   const { root, bridge } = await onWindowPage();
   winCap(root, 'top').click();
   bridge.windowSetKey.mockRejectedValueOnce({ kind: 'duplicate', cell: 'bottomRight' });
-  press({ key: 'c', code: 'KeyC', ctrlKey: true, altKey: true });
+  press({ key: '/', code: 'Slash', ctrlKey: true, altKey: true });
   await settle();
-  expect(winHint(root)!.textContent).toBe('Sudah dipakai untuk Kanan bawah');
-  expect(winHint(root)!.classList.contains('err')).toBe(true);
-  expect(winCap(root, 'top').textContent).toBe('…');
+  expect(winRowHint(root, 'top')).toBe('Sudah dipakai untuk Kanan bawah');
+  expect(winRow(root, 'top').querySelector('small')!.classList.contains('err')).toBe(true);
+  expect(winCap(root, 'top').textContent).toBe('Tekan tombol…');
   bridge.windowSetKey.mockRejectedValueOnce({ kind: 'shot' });
   press({ key: '3', code: 'Digit3', metaKey: true, shiftKey: true });
   await settle();
-  expect(winHint(root)!.textContent).toBe('Dipakai Screenshot');
+  expect(winRowHint(root, 'top')).toBe('Dipakai Screenshot');
+  bridge.windowSetKey.mockRejectedValueOnce({ kind: 'app' });
+  press({ key: 'k', code: 'KeyK', ctrlKey: true, altKey: true });
+  await settle();
+  expect(winRowHint(root, 'top')).toBe('Dipakai pintasan Keep awake atau Shelf');
   bridge.windowSetKey.mockRejectedValueOnce({ kind: 'invalid' });
   press({ key: 'q', code: 'KeyQ' });
   await settle();
-  expect(winHint(root)!.textContent).toBe('Pakai ⌘, ⌃, atau ⌥ dengan satu tombol');
+  expect(winRowHint(root, 'top')).toBe('Pakai ⌘, ⌃, atau ⌥ dengan satu tombol');
   expect(bridge.shotKeysHold).not.toHaveBeenCalledWith(false);
 });
 
@@ -509,7 +517,7 @@ test('Atur jendela: Esc cancels, leaving the page lets the keys come back', asyn
   const { root, app, bridge } = await onWindowPage();
   winCap(root, 'center').click();
   press({ key: 'Escape', code: 'Escape' });
-  expect(winCap(root, 'center').textContent).toBe('\\');
+  expect(winCap(root, 'center').textContent).toBe('⌃⌥\\');
   expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
   winCap(root, 'center').click();
   app.go({ page: 'modules' });
@@ -523,10 +531,11 @@ test('Atur jendela: changed keys go back to the default keys', async () => {
   bridge.windowResetKeys.mockResolvedValue(windowKeys());
   const reset = root.querySelector<HTMLElement>('[data-key="tool.window-keys.reset"]')!;
   expect(reset.textContent).toBe('Back to the default keys');
+  expect(winRow(root, 'topLeft').querySelector('.label')!.textContent).toBe('Top left');
   reset.click();
   await settle();
   expect(bridge.windowResetKeys).toHaveBeenCalledTimes(1);
-  expect(winCaps(root)).toEqual([';', '↑', "'", '←', '\\', '→', '.', '↓', '/', '↩']);
+  expect(winCaps(root)).toEqual(LISTED);
   expect(root.querySelector('[data-key="tool.window-keys.reset"]')).toBeNull();
 });
 

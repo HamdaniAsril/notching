@@ -222,7 +222,9 @@
       "modules": "Modules",
       "shortcuts": "Shortcuts",
       "permissions": "Permissions",
-      "about": "About"
+      "uninstall": "Uninstall",
+      "about": "About",
+      "whatsnew": "What's new"
     },
     "general": {
       "language": "Language",
@@ -230,6 +232,11 @@
       "languageAuto": "Automatic",
       "languageId": "Indonesia",
       "languageEn": "English",
+      "theme": "Appearance",
+      "themeHint": "For this window. The notch stays black.",
+      "themeSystem": "System",
+      "themeLight": "Light",
+      "themeDark": "Dark",
       "screen": "Show the notch on",
       "screenEvery": "Every screen",
       "screenMissing": "{name} (not connected)",
@@ -340,7 +347,7 @@
       "cut": "Cut",
       "paste": "Move here",
       "cutNote": "Only in Finder. While you type, ⌘X and ⌘V work as usual.",
-      "windowNote": "Corners fill a quarter of the screen, sides fill half, the centre key moves the window to the centre, ↩ fills the screen. Always on the window’s own screen. Click a key to change it.",
+      "windowNote": "Corners fill a quarter of the screen; Center moves the window without resizing it. Always on the window’s own screen. Click a key to change it.",
       "record": "Press a new key for {cell}. Esc to cancel.",
       "duplicate": "Already used for {cell}",
       "shot": "Used by Screenshot",
@@ -350,13 +357,13 @@
       "shortcut": "{keys} taken by a Mac shortcut",
       "cells": {
         "topLeft": "Top left",
-        "top": "Top",
+        "top": "Top half",
         "topRight": "Top right",
-        "left": "Left",
-        "center": "Centre",
-        "right": "Right",
+        "left": "Left half",
+        "center": "Center",
+        "right": "Right half",
         "bottomLeft": "Bottom left",
-        "bottom": "Bottom",
+        "bottom": "Bottom half",
         "bottomRight": "Bottom right",
         "fill": "Fill screen"
       },
@@ -380,9 +387,39 @@
     },
     "about": {
       "name": "Notching",
-      "version": "Version",
-      "trust": "Free. No ads. No tracking.",
-      "later": "Update checks and the donation link come with the public release."
+      "tagline": "Your notch does more. Your computer barely notices.",
+      "version": "Version {version}",
+      "update": "Update",
+      "auto": "Check for updates automatically",
+      "autoHint": "Once a day Notching asks GitHub for the latest version. Nothing about you is sent.",
+      "check": "Check now",
+      "install": "Update & install",
+      "notes": "What's new",
+      "neverChecked": "Not checked yet",
+      "checkedAt": "Last checked {when}",
+      "upToDate": "Notching is up to date",
+      "available": "Notching {version} is available",
+      "availableHint": "{size} download. Notching closes for a moment and opens again.",
+      "current": "Installed version {version}",
+      "checking": "Checking for the latest version…",
+      "downloading": "Downloading Notching {version}… {percent}",
+      "verifying": "Checking Apple's signature…",
+      "installing": "Installing…",
+      "restarting": "Opening Notching again…",
+      "errors": {
+        "network": "Couldn't reach GitHub. Try again later.",
+        "notFound": "No release to install yet.",
+        "signature": "Download refused: it isn't signed as Notching. Nothing was changed.",
+        "copy": "Notching can't be replaced in this folder. Download it from the release page and install it yourself.",
+        "dev": "Updates install only from the installed Notching.app.",
+        "busy": "An update is already running."
+      },
+      "links": "Links",
+      "repo": "Source code on GitHub",
+      "license": "MIT license",
+      "privacy": "Privacy",
+      "open": "Open",
+      "trust": "Free. No ads. No tracking."
     },
     "pages": {
       "sub": "Build your notch from widgets.",
@@ -461,7 +498,11 @@
       "seconds": "duration seconds time",
       "channels": "notification sound reminder prayer",
       "pages": "pages widgets pill order home",
-      "shortcuts": "shortcuts keys keyboard hotkey keep awake shelf screenshot cut files arrange windows"
+      "shortcuts": "shortcuts keys keyboard hotkey keep awake shelf screenshot cut files arrange windows",
+      "theme": "appearance theme light dark system mode tampilan",
+      "uninstall": "uninstall remove delete permissions release reset revoke trash copot",
+      "update": "update upgrade new version automatic check install",
+      "whatsNew": "what's new changes changelog version release notes"
     },
     "shortcuts": {
       "sub": "Notching's keyboard shortcuts in one place. Click a key to change it.",
@@ -480,6 +521,30 @@
       "other": "Used by another app",
       "reset": "Back to ⌃⌥K and ⌃⌥V",
       "awakeNote": "Keep awake stays on with no time limit until you press its key again."
+    },
+    "uninstall": {
+      "sub": "Take back the permissions you gave, or remove Notching from this Mac.",
+      "permissionsGroup": "Permissions",
+      "permissions": "Release all permissions",
+      "permissionsHint": "Accessibility, Screen Recording, Full Disk Access and Camera are taken back from Notching. Modules that need them stop working until you allow them again in Permissions.",
+      "release": "Release",
+      "released": "All permissions released. macOS will ask again when a module needs one.",
+      "releaseFailed": "Permissions could not be released: {reason}",
+      "appGroup": "Uninstall",
+      "uninstall": "Uninstall Notching",
+      "uninstallHint": "Notching stops opening at login, all permissions are released, then settings, screenshots and Notching.app move to the Trash. Notching then quits.",
+      "devOnly": "Only from the installed Notching.app.",
+      "done": "Notching is uninstalled. Goodbye.",
+      "failed": "Notching could not be uninstalled: {reason}",
+      "goes": "What moves to the Trash",
+      "nothing": "No Notching files found.",
+      "trashNote": "Nothing is deleted for good. Until you empty the Trash, everything can come back with Put Back."
+    },
+    "whatsNew": {
+      "title": "What's new",
+      "sub": "What changed in each version of Notching.",
+      "thisVersion": "This version",
+      "coming": "Coming next"
     }
   }
 }

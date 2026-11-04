@@ -711,8 +711,10 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
 
   function onClick(e: MouseEvent): void {
     if (c.phase === 'open') return;
+    // In the root's own pixels, also when the settings preview draws it scaled.
     const box = root.getBoundingClientRect();
-    if (containsPoint(hitRects(c, null, beside()), e.clientX - box.left, e.clientY - box.top)) {
+    const k = root.offsetWidth > 0 && box.width > 0 ? box.width / root.offsetWidth : 1;
+    if (containsPoint(hitRects(c, null, beside()), (e.clientX - box.left) / k, (e.clientY - box.top) / k)) {
       c.click();
       kick();
     }

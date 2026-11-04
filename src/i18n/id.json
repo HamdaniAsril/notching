@@ -222,7 +222,9 @@
       "modules": "Modul",
       "shortcuts": "Pintasan",
       "permissions": "Izin",
-      "about": "Tentang"
+      "uninstall": "Copot Notching",
+      "about": "Tentang",
+      "whatsnew": "Yang baru"
     },
     "general": {
       "language": "Bahasa",
@@ -230,6 +232,11 @@
       "languageAuto": "Otomatis",
       "languageId": "Indonesia",
       "languageEn": "English",
+      "theme": "Mode tampilan",
+      "themeHint": "Untuk jendela ini. Notch tetap hitam.",
+      "themeSystem": "Sistem",
+      "themeLight": "Terang",
+      "themeDark": "Gelap",
       "screen": "Notch muncul di",
       "screenEvery": "Semua layar",
       "screenMissing": "{name} (tidak tersambung)",
@@ -340,7 +347,7 @@
       "cut": "Potong",
       "paste": "Pindahkan ke sini",
       "cutNote": "Hanya di Finder. Saat mengetik, ⌘X dan ⌘V tetap seperti biasa.",
-      "windowNote": "Sudut mengisi seperempat layar, sisi mengisi setengah, tengah memindah jendela ke tengah, ↩ memenuhi layar. Selalu di layar tempat jendela berada. Klik tombol untuk menggantinya.",
+      "windowNote": "Sudut mengisi seperempat layar, Tengah memindah jendela tanpa mengubah ukurannya. Selalu di layar tempat jendela berada. Klik tombol untuk menggantinya.",
       "record": "Tekan tombol baru untuk {cell}. Esc untuk batal.",
       "duplicate": "Sudah dipakai untuk {cell}",
       "shot": "Dipakai Screenshot",
@@ -350,13 +357,13 @@
       "shortcut": "{keys} dipakai pintasan Mac",
       "cells": {
         "topLeft": "Kiri atas",
-        "top": "Atas",
+        "top": "Setengah atas",
         "topRight": "Kanan atas",
-        "left": "Kiri",
+        "left": "Setengah kiri",
         "center": "Tengah",
-        "right": "Kanan",
+        "right": "Setengah kanan",
         "bottomLeft": "Kiri bawah",
-        "bottom": "Bawah",
+        "bottom": "Setengah bawah",
         "bottomRight": "Kanan bawah",
         "fill": "Penuhi layar"
       },
@@ -380,9 +387,39 @@
     },
     "about": {
       "name": "Notching",
-      "version": "Versi",
-      "trust": "Gratis. Tanpa iklan. Tanpa pelacakan.",
-      "later": "Cek update dan tautan donasi hadir saat rilis publik."
+      "tagline": "Notch-mu bekerja lebih. Komputermu hampir tak merasakannya.",
+      "version": "Versi {version}",
+      "update": "Update",
+      "auto": "Cek update otomatis",
+      "autoHint": "Sehari sekali Notching menanyakan versi terbaru ke GitHub. Tidak ada data pribadi yang dikirim.",
+      "check": "Cek versi",
+      "install": "Update & install",
+      "notes": "Apa yang baru",
+      "neverChecked": "Belum pernah dicek",
+      "checkedAt": "Terakhir dicek {when}",
+      "upToDate": "Notching sudah versi terbaru",
+      "available": "Notching {version} tersedia",
+      "availableHint": "Unduhan {size}. Notching akan tertutup sebentar lalu terbuka lagi.",
+      "current": "Versi terpasang {version}",
+      "checking": "Mengecek versi terbaru…",
+      "downloading": "Mengunduh Notching {version}… {percent}",
+      "verifying": "Memeriksa tanda tangan Apple…",
+      "installing": "Memasang…",
+      "restarting": "Membuka ulang Notching…",
+      "errors": {
+        "network": "Tidak bisa menghubungi GitHub. Coba lagi nanti.",
+        "notFound": "Belum ada rilis yang bisa dipasang.",
+        "signature": "Unduhan ditolak: tanda tangannya bukan milik Notching. Tidak ada yang diubah.",
+        "copy": "Notching tidak bisa diganti di folder ini. Unduh dari halaman rilis dan pasang sendiri.",
+        "dev": "Update hanya bisa dipasang dari Notching.app yang terpasang.",
+        "busy": "Update sedang berjalan."
+      },
+      "links": "Tautan",
+      "repo": "Kode sumber di GitHub",
+      "license": "Lisensi MIT",
+      "privacy": "Privasi",
+      "open": "Buka",
+      "trust": "Gratis. Tanpa iklan. Tanpa pelacakan."
     },
     "pages": {
       "sub": "Susun isi notch-mu dari widget.",
@@ -461,7 +498,11 @@
       "seconds": "lama durasi detik tampil",
       "channels": "notifikasi suara bunyi reminder sholat",
       "pages": "halaman widget pil urutan beranda",
-      "shortcuts": "pintasan tombol shortcut keyboard keep awake shelf titipan screenshot potong atur jendela"
+      "shortcuts": "pintasan tombol shortcut keyboard keep awake shelf titipan screenshot potong atur jendela",
+      "theme": "mode tampilan tema terang gelap sistem light dark appearance",
+      "uninstall": "copot hapus uninstall izin lepas cabut permission reset trash sampah",
+      "update": "update perbarui versi baru otomatis cek pasang install upgrade",
+      "whatsNew": "yang baru perubahan changelog versi rilis catatan"
     },
     "shortcuts": {
       "sub": "Tombol pintas Notching di satu tempat. Klik tombolnya untuk mengganti.",
@@ -480,6 +521,30 @@
       "other": "Dipakai app lain",
       "reset": "Kembalikan ke ⌃⌥K dan ⌃⌥V",
       "awakeNote": "Keep awake menyala tanpa batas waktu sampai tombolnya ditekan lagi."
+    },
+    "uninstall": {
+      "sub": "Lepas izin yang pernah kamu berikan, atau hapus Notching dari Mac ini.",
+      "permissionsGroup": "Izin",
+      "permissions": "Lepas semua izin",
+      "permissionsHint": "Aksesibilitas, Rekam Layar, Akses Disk Penuh, dan Kamera dicabut dari Notching. Modul yang butuh izin berhenti bekerja sampai kamu mengizinkannya lagi di Izin.",
+      "release": "Lepas izin",
+      "released": "Semua izin sudah dilepas. macOS akan bertanya lagi saat sebuah modul membutuhkannya.",
+      "releaseFailed": "Izin belum bisa dilepas: {reason}",
+      "appGroup": "Copot",
+      "uninstall": "Copot Notching",
+      "uninstallHint": "Notching berhenti dibuka saat login, semua izin dilepas, lalu setelan, screenshot, dan Notching.app dipindah ke Trash. Notching lalu tertutup.",
+      "devOnly": "Hanya bisa dari Notching.app yang terpasang.",
+      "done": "Notching sudah dicopot. Sampai jumpa.",
+      "failed": "Notching belum bisa dicopot: {reason}",
+      "goes": "Yang dipindah ke Trash",
+      "nothing": "Tidak ada file Notching yang ditemukan.",
+      "trashNote": "Tidak ada yang dihapus permanen. Selama Trash belum dikosongkan, semuanya bisa dikembalikan dengan Put Back."
+    },
+    "whatsNew": {
+      "title": "Yang baru",
+      "sub": "Apa saja yang berubah di setiap versi Notching.",
+      "thisVersion": "Versi ini",
+      "coming": "Akan datang"
     }
   }
 }

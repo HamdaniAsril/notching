@@ -6,6 +6,9 @@ import type { NotchConfig } from '../notch/config';
 
 export type LanguageChoice = 'auto' | 'id' | 'en';
 
+// The settings window's look (ThemeSetting in src-tauri/src/settings.rs).
+export type ThemeChoice = 'system' | 'light' | 'dark';
+
 // Open at login, as macOS reports it; 'unavailable' outside the installed app.
 export type LoginItem = 'on' | 'off' | 'needsApproval' | 'unavailable';
 
@@ -29,6 +32,7 @@ export interface HomeSettingsInfo {
 // Same shape as SettingsDto in src-tauri/src/settings_window.rs.
 export interface SettingsInfo {
   language: LanguageChoice;
+  theme: ThemeChoice; // this window's look; the notch is black either way
   screen: string | null; // null: every screen
   screens: string[]; // connected screens, by name
   login: LoginItem;
@@ -40,7 +44,7 @@ export interface SettingsInfo {
   camera: boolean; // macOS lets Notching use the camera (Cermin)
 }
 
-export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'shortcuts' | 'permissions' | 'about';
+export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'shortcuts' | 'permissions' | 'uninstall' | 'about' | 'whatsnew';
 
 export type Route = { page: SectionId } | { page: 'module'; id: string } | { page: 'catalog'; id?: string } | { page: 'pageEdit'; id: string };
 
@@ -62,6 +66,28 @@ export interface AppKey { action: AppAction; label: string; state: 'ok' | 'off' 
 // Why a recorded key was refused (AppKeyError in src-tauri/src/app_keys.rs).
 export type AppKeyError = { kind: 'invalid' } | { kind: 'duplicate'; action: AppAction } | { kind: 'shot' } | { kind: 'window' };
 
+// What Copot Notching takes (UninstallDto in src-tauri/src/self_uninstall.rs):
+// the installed app, null in a dev build, and Notching's own files, as "~/…".
+export interface UninstallPreview { app: string | null; files: string[] }
+
+// Where an update stands (UpdateDto in src-tauri/src/update_service.rs).
+export type UpdatePhase = 'idle' | 'checking' | 'downloading' | 'verifying' | 'installing' | 'restarting';
+export type UpdateError = 'network' | 'notFound' | 'signature' | 'copy' | 'dev' | 'busy';
+export interface UpdateInfo {
+  current: string;
+  latest: string | null; // the latest published version, once asked for
+  available: boolean; // newer than this one
+  page: string | null;
+  size: number | null; // bytes of its DMG
+  checkedAt: number | null; // ms since 1970
+  auto: boolean; // asked once a day
+  installable: boolean; // the installed Notching.app, which can replace itself
+  phase: UpdatePhase;
+  progress: number | null; // 0 to 1 while downloading
+  error: UpdateError | null;
+}
+export type AboutLink = 'repo' | 'license' | 'privacy';
+
 // What the settings window needs from the native side.
 export interface SettingsBridge {
   moduleState(): Promise<ModuleState>;
@@ -70,6 +96,7 @@ export interface SettingsBridge {
   onSettings(cb: (s: SettingsInfo) => void): () => void;
   onGo(cb: (route: string) => void): () => void; // a page asked for while open (parseRoute)
   setLanguage(language: LanguageChoice): Promise<void>;
+  setTheme(theme: ThemeChoice): Promise<void>;
   setNotchConfig(config: NotchConfig): Promise<void>;
   setAccent(accent: string, custom: string | null): Promise<void>; // custom null keeps the last custom colour
   setScreen(name: string | null): Promise<void>;
@@ -80,6 +107,16 @@ export interface SettingsBridge {
   uninstallModule(id: string): Promise<void>;
   reinstallModule(id: string): Promise<void>;
   quit(): Promise<void>;
+  uninstallPreview(): Promise<UninstallPreview>;
+  updateState(): Promise<UpdateInfo>;
+  onUpdate(cb: (u: UpdateInfo) => void): () => void;
+  updateCheck(): Promise<UpdateInfo>; // asks GitHub now
+  updateInstall(): Promise<void>; // the latest in place of this app, then it opens again; rejects with an UpdateError
+  setAutoUpdate(on: boolean): Promise<void>;
+  openReleaseNotes(): Promise<void>; // the latest release's page on GitHub
+  openLink(link: AboutLink): Promise<void>;
+  releasePermissions(): Promise<void>; // every permission Notching was given; rejects with the reason
+  uninstallNotching(): Promise<void>; // to the Trash, then Notching quits; rejects with the reason, or 'dev'
   searchPlaces(query: string): Promise<Place[]>; // Open-Meteo, only when asked
   setPlace(place: Place | null): Promise<void>;
   setPrayerMethod(method: PrayerMethod): Promise<void>;

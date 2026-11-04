@@ -154,6 +154,6 @@ test('Tentang shows the version in the text font, not the old mono one', async (
   const { root, app } = await mountForTest();
   app.go({ page: 'about' });
   const version = root.querySelector('[data-row="about.version"] .version')!;
-  expect(version.textContent).toBe(TEST_INFO.version);
+  expect(version.textContent).toBe(`Versi ${TEST_INFO.version}`);
   expect(root.querySelector('.mono')).toBeNull();
 });

@@ -83,6 +83,11 @@ mod win_service;
 mod ax;
 mod app_keys;
 mod app_keys_service;
+#[cfg(target_os = "macos")]
+mod self_uninstall;
+mod update_rules;
+#[cfg(target_os = "macos")]
+mod update_service;
 
 #[cfg(target_os = "macos")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -143,6 +148,16 @@ pub fn run() {
             settings_window::set_notch_config,
             settings_window::set_accent,
             settings_window::set_panel_glass,
+            settings_window::set_theme,
+            self_uninstall::uninstall_preview,
+            self_uninstall::release_permissions,
+            self_uninstall::uninstall_notching,
+            update_service::update_state,
+            update_service::update_check,
+            update_service::set_auto_update,
+            update_service::update_open_notes,
+            update_service::update_install,
+            update_service::open_link,
             settings_window::set_screen,
             login_item::set_launch_at_login,
             login_item::open_login_items,
@@ -248,6 +263,7 @@ pub fn run() {
             app.manage(home::HomeState(std::sync::Mutex::new(home)));
             app.manage(prefs::PrefsState(prefs::Prefs::new(paths.app_data_dir()?.join("widget-prefs"))));
             app.manage(shelf_service::ShelfState(std::sync::Mutex::new(shelf::Shelf::default())));
+            app.manage(update_service::UpdateState::new());
             shelf_service::start(app.handle());
             shot_service::start(app.handle());
             cleaner_service::init(app.handle())?;
@@ -260,6 +276,7 @@ pub fn run() {
             media_service::start(app.handle());
             win_service::start(app.handle());
             app_keys_service::start(app.handle());
+            update_service::start(app.handle());
             cut_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());

@@ -362,16 +362,87 @@ select {
   max-width: 420px;
 }
 
-.app-name {
+/* Tentang (about.ts): the wordmark, the tagline and the version on one card. */
+.about-hero {
   margin-top: 18px;
-  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
-  font-size: 20px;
-  font-weight: 600;
+  padding: 26px 20px 22px;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--ring);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  transition: background-color 1.2s;
+}
+
+.about-hero.found {
+  background-color: var(--acc-soft);
+  transition: none;
+}
+
+.about-logo img {
+  display: block;
+  height: 30px;
+  width: auto;
+  user-select: none;
+}
+
+.about-tagline {
+  margin: 0;
+  color: var(--g1);
+  font-size: 13px;
 }
 
 .version {
   font-size: 12px;
-  color: var(--g1);
+  color: var(--g2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A newer version: its row in the accent's soft tint; downloading, a thin bar. */
+.about-update .row.available {
+  background: var(--acc-soft);
+}
+
+.about-progress {
+  flex-basis: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.about-progress i {
+  display: block;
+  height: 100%;
+  background: var(--acc);
+  transition: width 0.2s;
+}
+
+.about-link {
+  cursor: pointer;
+}
+
+.about-link:hover {
+  background: var(--hover);
+}
+
+.about-link .icon-chev svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  color: var(--g2);
+}
+
+/* The sidebar's Tentang with a dot while a newer version waits (shell.ts). */
+.nav .update-dot {
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--acc);
 }
 
 /* Switch 30 × 18: the accent when on. */
@@ -699,7 +770,7 @@ input:focus-visible,
 /* Notch look: a strip of "screen" with the lens on top; the notch is always black. */
 .preview {
   position: relative;
-  height: 150px;
+  height: calc(150px * var(--fit, 1));
   margin-top: 18px;
   border-radius: 12px;
   overflow: hidden;
@@ -713,6 +784,10 @@ input:focus-visible,
   width: 960px;
   height: 560px;
   margin-left: -480px;
+  /* Shrunk to fit a narrow window (preview.ts), from the top centre where the
+     panel hangs. The pointer is read in its own pixels (local-pointer.ts). */
+  transform: scale(var(--fit, 1));
+  transform-origin: 480px 0;
 }
 
 /* The word in the opened preview panel, as the notch writes its small labels. */
@@ -726,16 +801,16 @@ input:focus-visible,
 /* With Beranda's widgets in it (look.ts), the preview is tall enough for the
    opened panel, its 104 px row and the pill under it. */
 .preview.with-widgets {
-  height: 214px;
+  height: calc(214px * var(--fit, 1));
 }
 
 /* Beranda's row in the opened preview, as the notch lays it out (.pg-row):
-   4 columns, 8 px apart, under the lens's 18 px top. Only a picture. */
+   4 columns, 8 px apart, 104 px tall; the panel's content already starts under
+   the lens's 18 px top. Only a picture. */
 .look-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: 8px;
-  margin-top: 18px;
   --w: #fff;
   --g1: rgba(255, 255, 255, 0.68);
   --g2: rgba(255, 255, 255, 0.45);
@@ -834,6 +909,106 @@ input:focus-visible,
 
 /* A small heading over a group, and on Notifikasi the Tampil / Suara column
    names lined up over each row's two switches. */
+/* Potong file folding open on Pintasan (cutFold): the chevron turns down, and its
+   rows sit indented under it, in the same card. */
+.fold-head .icon-chev svg {
+  transition: transform 0.15s;
+}
+
+.fold-head.open .icon-chev svg {
+  transform: rotate(90deg);
+}
+
+.fold-body .row {
+  padding-left: 52px;
+}
+
+/* Atur jendela's rows sit straight in the open card (windowKeysBox, folded). */
+.fold-body > .fold-keys {
+  margin: 0;
+}
+
+.fold-body > .fold-keys > .row,
+.fold-body > .row:first-child,
+.fold-body + .row {
+  border-top: 1px solid var(--rule);
+}
+
+.fold-body .win-foot {
+  padding: 2px 14px 12px 52px;
+  border-top: 1px solid var(--rule);
+}
+
+.fold-body .win-foot .note {
+  margin-top: 10px;
+}
+
+.fold-body .ctl .keycap + .keycap {
+  margin-left: 6px;
+}
+
+/* Yang baru (whats-new.ts): a card per version, newest first. */
+.news {
+  margin-top: 18px;
+  padding: 14px 16px 6px;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--ring);
+}
+
+.news-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.news-version {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.news-tag {
+  padding: 1px 7px;
+  border-radius: 9px;
+  background: var(--sel);
+  color: var(--g1);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.news-tag.on {
+  background: var(--acc-soft);
+  color: var(--acc);
+}
+
+.news-date {
+  margin-left: auto;
+  color: var(--g2);
+  font-size: 12px;
+}
+
+.news-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--g1);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.news-list li {
+  margin-bottom: 6px;
+}
+
+/* Copot Notching (uninstall.ts): what moves to the Trash, as paths. */
+.uninstall-list .row .label {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 400;
+  word-break: break-all;
+}
+
 /* Modul's categories (modules.ts): a head that folds its group open and shut. */
 .cat {
   margin-top: 18px;
@@ -3570,8 +3745,7 @@ body > .ed-ghost.page-row {
   margin-top: 18px;
 }
 
-.tool-keys .keycap,
-.win-keys .keycap {
+.tool-keys .keycap {
   flex: none;
   min-width: 44px;
   cursor: default;
@@ -3579,74 +3753,50 @@ body > .ed-ghost.page-row {
   letter-spacing: 0.04em;
 }
 
-/* Atur jendela's keys where they put the window (owner, 4 Nov): ⌃⌥, then the
-   3×3 grid of the screen, and under it one wide key for the whole screen. */
-.win-keys {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+/* Atur jendela's keys (owner, 4 Nov): a row per position, with a small screen
+   showing the part it fills in the accent, its name and its key. Each key is a
+   button that records a new one: in the accent while it listens, red when
+   someone else holds it. */
+.win-pos {
+  flex: none;
+  display: block;
+  width: 26px;
+  height: 18px;
+  color: var(--g2);
 }
 
-.win-lead {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.win-pos svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.win-plus {
-  color: var(--g3);
+.win-pos .screen {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
 }
 
-.win-keys .keycap {
-  box-sizing: border-box;
-  width: 44px;
-  height: 36px;
-  padding: 0;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
+.win-pos .area {
+  fill: var(--acc);
 }
 
-.win-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 44px);
-  gap: 6px;
-}
-
-.win-keys .win-grid .keycap.fill {
-  grid-column: 1 / -1;
-  width: auto;
-}
-
-.win-grid .keycap.taken {
-  box-shadow: inset 0 0 0 1.5px var(--danger);
-  color: var(--danger);
-}
-
-/* Each of the nine is a button that records a new key (design 4 Nov tombol atur
-   jendela §3): in the accent while it listens. Keys whose modifiers differ show
-   in full, so the boxes grow to fit. */
-.win-grid .btn.keycap {
+.win-row .btn.keycap {
   cursor: pointer;
+  min-width: 56px;
 }
 
-.win-grid .btn.keycap.recording {
+.win-row .btn.keycap.recording {
   box-shadow: inset 0 0 0 1.5px var(--acc);
   color: var(--g1);
 }
 
-.win-grid.full {
-  grid-template-columns: repeat(3, auto);
+.win-row .btn.keycap.taken {
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+  color: var(--danger);
 }
 
-.win-grid.full .keycap {
-  width: auto;
-  min-width: 44px;
-  padding: 0 8px;
-}
-
-.tool-keys .win-hint {
+.tool-keys > div > .note:first-child {
   margin-top: 8px;
 }
 

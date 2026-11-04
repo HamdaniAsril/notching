@@ -2,7 +2,7 @@ import { fill } from '../../i18n';
 import { isTool } from '../../modules/types';
 import { button, el, group, head, row } from '../controls';
 import type { AppAction, AppKey, AppKeyError, PageContext, PageRender } from '../types';
-import { moduleLink, recorder, redraw, screenshotKeys } from './modules';
+import { recorder, redraw, screenshotKeys, toolFold } from './modules';
 
 // The keys until changed.
 const DEFAULT_LABELS: Record<AppAction, string> = { awake: '⌃⌥K', shelf: '⌃⌥V' };
@@ -88,6 +88,7 @@ export const shortcutsPage: PageRender = ctx => {
   page.append(head({ title: ctx.strings.sections.shortcuts, sub: s.sub }), appKeys(ctx));
   if (ctx.state.modules.some(m => m.id === 'screenshot' && m.installed)) page.append(screenshotKeys(ctx, s.screenshot));
   const tools = ctx.state.modules.filter(m => m.installed && isTool(m));
-  if (tools.length) page.append(el('div', 'grp-label', s.tools), group(...tools.map(m => moduleLink(ctx, m))));
+  // Each folds open here instead of opening a page.
+  if (tools.length) page.append(el('div', 'grp-label', s.tools), group(...tools.flatMap(m => toolFold(ctx, m))));
   return page;
 };

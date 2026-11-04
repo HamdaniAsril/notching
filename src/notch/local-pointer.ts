@@ -11,9 +11,12 @@ export function localPointer(root: HTMLElement): Pick<Bridge, 'setHitRects' | 'o
   const pointerSubs = new Set<(p: PointerUpdate) => void>();
   const resignSubs = new Set<() => void>();
 
+  // In the root's own pixels, also when it is drawn scaled (the settings preview
+  // shrinks to fit a narrow window).
   const local = (e: MouseEvent) => {
     const box = root.getBoundingClientRect();
-    return { x: e.clientX - box.left, y: e.clientY - box.top };
+    const k = root.offsetWidth > 0 && box.width > 0 ? box.width / root.offsetWidth : 1;
+    return { x: (e.clientX - box.left) / k, y: (e.clientY - box.top) / k };
   };
   const onMove = (e: MouseEvent) => {
     const { x, y } = local(e);

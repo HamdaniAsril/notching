@@ -6,11 +6,14 @@ import type { ModuleState } from '../modules/types';
 import { el, head, note } from './controls';
 import { icon, type IconName } from './icons';
 import { generalPage } from './pages/general';
-import { aboutPage, permissionsPage } from './pages/info';
+import { aboutPage } from './pages/about';
+import { permissionsPage } from './pages/info';
 import { notificationsPage } from './pages/notifications';
 import { lookPage } from './pages/look';
 import { catalogPage } from './pages/catalog';
 import { shortcutsPage } from './pages/shortcuts';
+import { uninstallPage } from './pages/uninstall';
+import { whatsNewPage } from './pages/whats-new';
 import { modulePage, modulesPage } from './pages/modules';
 import { isOwnEcho, pageEditor } from './pages/page-editor';
 import { pagesPage, waitingFor } from './pages/pages';
@@ -36,19 +39,21 @@ export const PAGES: Partial<Record<Route['page'], PageRender>> = {
   module: modulePage,
   catalog: catalogPage,
   shortcuts: shortcutsPage,
+  uninstall: uninstallPage,
+  whatsnew: whatsNewPage,
   permissions: permissionsPage,
   about: aboutPage,
 };
 
 // The sidebar never grows (spec 8, design 30 Oct §9): six sections on top, About at the bottom.
 const NAV: [SectionId, IconName][] = [
-  ['general', 'gear'], ['look', 'drop'], ['notifications', 'bell'], ['pages', 'layers'], ['modules', 'grid'],
-  ['shortcuts', 'command'], ['permissions', 'shield'],
+  ['general', 'gear'], ['look', 'drop'], ['pages', 'layers'], ['modules', 'grid'],
+  ['shortcuts', 'command'], ['notifications', 'bell'], ['permissions', 'shield'], ['uninstall', 'trash'],
 ];
 
 const FOUND_MS = 1200;
 
-const SECTIONS: SectionId[] = [...NAV.map(([id]) => id), 'about'];
+const SECTIONS: SectionId[] = [...NAV.map(([id]) => id), 'about', 'whatsnew'];
 
 // A page asked for from outside, as lastPage writes it: a section, or
 // "module:<id>" (design 3 Nov tombol §6). Anything else is null.
@@ -112,7 +117,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
     return button;
   };
   side.append(sideDrag, searchLabel, ...NAV.map(([id, name]) => navButton(id, name)), el('div', 'grow'),
-    navButton('about', 'info'));
+    navButton('about', 'info'), navButton('whatsnew', 'spark'));
 
   const pane = el('section', 'pane');
   const paneDrag = el('div', 'drag');
@@ -271,6 +276,16 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
     searchInput.value = '';
     go(to);
   });
+  // A dot on Tentang while a newer version waits.
+  const dot = el('i', 'update-dot');
+  dot.setAttribute('aria-hidden', 'true');
+  const showDot = (u: { available: boolean }) => {
+    const about = navItems.get('about')!.button;
+    if (u.available) about.append(dot);
+    else dot.remove();
+  };
+  const offUpdate = bridge.onUpdate(showDot);
+  bridge.updateState().then(showDot, () => {});
   render();
 
   return {
@@ -281,6 +296,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
       offState();
       offInfo();
       offGo();
+      offUpdate();
       cleanups.splice(0).forEach(fn => fn());
       root.replaceChildren();
     },

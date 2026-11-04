@@ -7,6 +7,10 @@ import type { SettingsEnv } from './types';
 
 // The preview never opens a page; this is just the panel's size if clicked.
 const PREVIEW_CARD = { width: 360, height: 56 };
+// The open panel is the card plus its ears, 12 px each side; it keeps 16 px from
+// the box's edges, shrinking the whole preview when the box is narrower.
+const PANEL_EARS = 24;
+const FIT_MARGIN = 16;
 
 export interface PreviewOptions {
   card?: { width: number; height: number }; // the opened panel's card; PREVIEW_CARD if left out
@@ -30,7 +34,8 @@ export function mountPreview(box: HTMLElement, config: NotchConfig, env: Setting
   root.className = 'preview-root';
   box.append(root);
 
-  const controller = new NotchController({ notch: null, config: clampConfig(config), card: opts.card ?? PREVIEW_CARD, setTimer: env.setTimer });
+  const card = opts.card ?? PREVIEW_CARD;
+  const controller = new NotchController({ notch: null, config: clampConfig(config), card, setTimer: env.setTimer });
   const pointer = localPointer(root);
   const wiring = connect(controller, { ...pointer, setPanelKey: async () => {}, quit: async () => {} }, () => view.kick());
   const view = mountNotch(root, controller, {
@@ -54,6 +59,17 @@ export function mountPreview(box: HTMLElement, config: NotchConfig, env: Setting
   }
   view.kick();
 
+  // Scaled down, never up, so the open panel fits the box (--fit in settings.css).
+  const fit = () => {
+    const avail = box.clientWidth;
+    if (!avail) return;
+    const k = Math.min(1, avail / (card.width + PANEL_EARS + 2 * FIT_MARGIN));
+    box.style.setProperty('--fit', k.toFixed(4));
+  };
+  const watch = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit);
+  watch?.observe(box);
+  fit();
+
   return {
     controller,
     setConfig(c: NotchConfig): void {
@@ -61,6 +77,7 @@ export function mountPreview(box: HTMLElement, config: NotchConfig, env: Setting
       view.kick();
     },
     destroy(): void {
+      watch?.disconnect();
       view.destroy();
       wiring.dispose();
       pointer.dispose();

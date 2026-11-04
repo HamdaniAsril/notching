@@ -155,6 +155,21 @@ pub fn send_sample_notice(app: AppHandle, title: String, detail: String) {
     deliver(&app, dto, true);
 }
 
+/// A notice from Notching itself, not a module (an update, Tentang): silent,
+/// on the screen under the cursor, with the person's glow and length.
+pub fn post_core(app: &AppHandle, title: &str, detail: &str) {
+    let look = app.state::<CoreState>().0.lock().unwrap().notice_look();
+    let dto = NoticeDto {
+        module_id: None,
+        channel: None,
+        title: clip(title, TITLE_MAX),
+        detail: clip(detail, DETAIL_MAX),
+        glow: look.glow,
+        seconds: look.seconds,
+    };
+    deliver(app, dto, false);
+}
+
 // Each overlay window: its label, its screen's frame and the notch's height there.
 fn overlays(app: &AppHandle) -> Vec<(String, Rect, f64)> {
     app.state::<Overlays>()

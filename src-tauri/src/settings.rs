@@ -5,6 +5,19 @@ use std::path::Path;
 use crate::modules::manifest::is_module_id;
 use crate::pages::{beranda, is_route, repair, Page, Placement, HOME_PAGE, MODULE_PAGE_PREFIX};
 
+/// The settings window's look (Umum, owner 4 Nov): the device's, or always light
+/// or dark. The notch is black either way.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ThemeSetting {
+    Light,
+    Dark,
+    // An unknown value reads as the device's, like LanguageSetting's Auto.
+    #[default]
+    #[serde(other)]
+    System,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LanguageSetting {
@@ -197,6 +210,18 @@ pub struct Settings {
     /// Atur jendela's nine keys (design 4 Nov tombol atur jendela).
     #[serde(deserialize_with = "lenient_window_keys")]
     pub window_keys: crate::win_rules::WindowKeys,
+    /// Asks GitHub for the latest version once a day (Tentang, owner 4 Nov).
+    #[serde(deserialize_with = "lenient_true")]
+    pub auto_update: bool,
+    /// When the latest version was last asked for, ms since 1970.
+    #[serde(deserialize_with = "lenient")]
+    pub update_checked_at: Option<i64>,
+    /// The newest version a notice already told about, so it tells once.
+    #[serde(deserialize_with = "lenient")]
+    pub update_noticed: Option<String>,
+    /// The settings window light, dark or as the device (Umum, owner 4 Nov).
+    #[serde(deserialize_with = "lenient")]
+    pub theme: ThemeSetting,
     /// Keep awake's and Shelf's keys on the Pintasan page (owner, 4 Nov).
     #[serde(deserialize_with = "lenient")]
     pub app_keys: crate::app_keys::AppKeys,
@@ -224,6 +249,10 @@ impl Default for Settings {
             shot_keys: crate::shot_keys::ShotKeys::default(),
             shot_notice: false,
             window_keys: crate::win_rules::WindowKeys::default(),
+            auto_update: true,
+            update_checked_at: None,
+            update_noticed: None,
+            theme: ThemeSetting::System,
             app_keys: crate::app_keys::AppKeys::default(),
             panel_glass: true,
         }
@@ -418,6 +447,15 @@ mod tests {
         assert!(s.shot_notice);
         let (_d, s) = load(r#"{"shotKeys":"x","shotNotice":3,"language":"en"}"#);
         assert_eq!((s.shot_keys, s.shot_notice, s.language), (ShotKeys::default(), false, LanguageSetting::En));
+    }
+
+    #[test]
+    fn theme_reads_leniently() {
+        let s: Settings = serde_json::from_str(r#"{"theme":"dark"}"#).unwrap();
+        assert_eq!(s.theme, ThemeSetting::Dark);
+        let s: Settings = serde_json::from_str(r#"{"theme":"sepia","language":"en"}"#).unwrap();
+        assert_eq!((s.theme, s.language), (ThemeSetting::System, LanguageSetting::En));
+        assert_eq!(Settings::default().theme, ThemeSetting::System);
     }
 
     #[test]

@@ -5,7 +5,7 @@ import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
 import type { ShotKeys } from '../bridge';
 import { shotKeys } from '../shot/test-helpers';
-import type { AppAction, AppKey, LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress, WindowCell, WindowKey } from './types';
+import type { AppAction, AppKey, LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress, ThemeChoice, UninstallPreview, UpdateInfo, AboutLink, WindowCell, WindowKey } from './types';
 
 const CELLS: [WindowCell, string][] = [
   ['topLeft', ';'], ['top', '↑'], ['topRight', "'"], ['left', '←'], ['center', '\\'], ['right', '→'],
@@ -23,8 +23,15 @@ export function appKeys(over: Partial<Record<AppAction, AppKey['state']>> = {}, 
     ({ action, label: labels[action] ?? (action === 'awake' ? '⌃⌥K' : '⌃⌥V'), state: over[action] ?? 'ok' }));
 }
 
+// Up to date, never checked, installable.
+export const TEST_UPDATE: UpdateInfo = {
+  current: '0.1.2', latest: null, available: false, page: null, size: null, checkedAt: null,
+  auto: true, installable: true, phase: 'idle', progress: null, error: null,
+};
+
 export const TEST_INFO: SettingsInfo = {
   language: 'auto',
+  theme: 'system',
   screen: null,
   screens: ['Built-in Retina Display', 'DELL U2723QE'],
   login: 'off',
@@ -41,8 +48,10 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();
   const goSubs = new Set<(route: string) => void>();
+  const updateSubs = new Set<(u: UpdateInfo) => void>();
   let state = initialState;
   let info = initialInfo;
+  let update = TEST_UPDATE;
   const bridge = {
     moduleState: vi.fn(async () => state),
     onModuleState: vi.fn((cb: (s: ModuleState) => void) => { stateSubs.add(cb); return () => { stateSubs.delete(cb); }; }),
@@ -50,6 +59,17 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     onSettings: vi.fn((cb: (s: SettingsInfo) => void) => { infoSubs.add(cb); return () => { infoSubs.delete(cb); }; }),
     onGo: vi.fn((cb: (route: string) => void) => { goSubs.add(cb); return () => { goSubs.delete(cb); }; }),
     setLanguage: vi.fn(async (_language: LanguageChoice) => {}),
+    setTheme: vi.fn(async (_theme: ThemeChoice) => {}),
+    uninstallPreview: vi.fn(async (): Promise<UninstallPreview> => ({ app: '/Applications/Notching.app', files: ['~/Library/Caches/id.web.notching'] })),
+    releasePermissions: vi.fn(async () => {}),
+    updateState: vi.fn(async (): Promise<UpdateInfo> => update),
+    onUpdate: vi.fn((cb: (u: UpdateInfo) => void) => { updateSubs.add(cb); return () => { updateSubs.delete(cb); }; }),
+    updateCheck: vi.fn(async (): Promise<UpdateInfo> => update),
+    updateInstall: vi.fn(async () => {}),
+    setAutoUpdate: vi.fn(async (_on: boolean) => {}),
+    openReleaseNotes: vi.fn(async () => {}),
+    openLink: vi.fn(async (_link: AboutLink) => {}),
+    uninstallNotching: vi.fn(async () => {}),
     setNotchConfig: vi.fn(async (_config: NotchConfig) => {}),
     setAccent: vi.fn(async (_accent: string, _custom: string | null) => {}),
     setScreen: vi.fn(async (_name: string | null) => {}),
@@ -94,6 +114,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
     emitGo: (route: string) => goSubs.forEach(cb => cb(route)),
+    emitUpdate: (u: UpdateInfo) => { update = u; updateSubs.forEach(cb => cb(u)); },
   };
   return bridge satisfies SettingsBridge;
 }
