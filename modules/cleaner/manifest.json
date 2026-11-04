@@ -1,6 +1,7 @@
 {
   "id": "cleaner",
   "version": "1.0.0",
+  "category": "app-management",
   "icon": "icon.svg",
   "permissions": ["full-disk-access"],
   "capabilities": ["cleaner", "status"],

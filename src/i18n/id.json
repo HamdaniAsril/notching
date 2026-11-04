@@ -281,7 +281,9 @@
       "uninstallNote": "Salinan aslinya tetap ada di app. Kamu bisa memasangnya lagi kapan saja.",
       "status": "Status di samping notch",
       "statusHint": "Tampil saat panel tertutup.",
-      "tools": "Alat"
+      "tools": "Alat",
+      "categories": {"utilities": "Utilitas", "energy": "Energi & daya", "window": "Jendela & Dock", "app-management": "Kelola aplikasi", "files": "File", "apps": "Aplikasi"},
+      "categoryEmpty": "Belum ada modul di sini."
     },
     "catalog": {
       "title": "Katalog",

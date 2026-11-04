@@ -117,6 +117,7 @@ mod tests {
                 widgets: vec![],
                 action: None,
                 tool: None,
+                category: Default::default(),
             },
             name: id.into(),
             short_name: id.into(),

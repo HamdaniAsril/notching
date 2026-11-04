@@ -74,6 +74,8 @@ pub struct ModuleInfoDto {
     /// A background tool: no tile on the notch's Modul page (design 4 Nov, alat latar §6).
     pub tool: bool,
     pub permissions: Vec<Permission>,
+    /// Its group on Pengaturan's Modul page.
+    pub category: crate::modules::manifest::Category,
 }
 
 /// Broadcast to every window: the notch overlays and the settings window.
@@ -207,6 +209,7 @@ impl AppCore {
                     action: e.manifest.action.clone(),
                     tool: e.manifest.is_tool(),
                     permissions: e.manifest.permissions.clone(),
+                    category: e.manifest.category,
                 })
                 .collect(),
             pages: self.settings.pages.clone(),

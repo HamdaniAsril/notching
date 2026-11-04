@@ -7,7 +7,7 @@ import { fakePrefs } from './bridge-browser-prefs';
 import { fakeTimer } from './bridge-browser-timer';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
-import type { ModuleInfo, ModuleState, Page, WidgetKind } from './modules/types';
+import type { ModuleCategory, ModuleInfo, ModuleState, Page, WidgetKind } from './modules/types';
 import { DEFAULT_CONFIG } from './notch/config';
 import { localPointer } from './notch/local-pointer';
 
@@ -22,6 +22,7 @@ interface ManifestJson {
   action?: { capability: string; method: string };
   tool?: string;
   permissions?: string[];
+  category?: ModuleCategory;
 }
 
 interface LocaleJson {
@@ -58,6 +59,7 @@ export function catalog(lang: Lang, off: string[]): ModuleInfo[] {
       action: m.action ?? null,
       tool: m.tool !== undefined,
       permissions: m.permissions ?? [],
+      category: m.category ?? 'utilities',
     };
   });
 }

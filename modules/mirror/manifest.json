@@ -1,6 +1,7 @@
 {
   "id": "mirror",
   "version": "1.0.0",
+  "category": "utilities",
   "entry": "index.html",
   "icon": "icon.svg",
   "card": { "width": 600, "height": 400 },

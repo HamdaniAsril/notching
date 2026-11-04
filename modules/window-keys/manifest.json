@@ -1,6 +1,7 @@
 {
   "id": "window-keys",
   "version": "1.0.0",
+  "category": "window",
   "icon": "icon.svg",
   "permissions": ["accessibility"],
   "capabilities": ["windows", "notify"],

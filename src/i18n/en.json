@@ -281,7 +281,9 @@
       "uninstallNote": "The original stays in the app. Add it back any time.",
       "status": "Status beside the notch",
       "statusHint": "Shows while the panel is closed.",
-      "tools": "Tools"
+      "tools": "Tools",
+      "categories": {"utilities": "Utilities", "energy": "Energy & power", "window": "Window & Dock", "app-management": "App management", "files": "Files", "apps": "Apps"},
+      "categoryEmpty": "No modules here yet."
     },
     "catalog": {
       "title": "Catalog",

@@ -64,7 +64,13 @@ export interface ModuleInfo {
   action: TileAction | null; // its Modul tile runs this instead of opening a page
   tool: boolean; // a background tool: no tile and no page in the notch (design 4 Nov, alat latar §6)
   permissions: string[]; // system permissions it needs: 'accessibility', 'camera', 'location', 'screen-recording'
+  category: ModuleCategory; // its group on Pengaturan's Modul page
 }
+
+// The Modul page's groups, in order (owner, 4 Nov). Same values as Category in
+// src-tauri/src/modules/manifest.rs; a manifest without one is a utility.
+export const MODULE_CATEGORIES = ['utilities', 'energy', 'window', 'app-management', 'files', 'apps'] as const;
+export type ModuleCategory = typeof MODULE_CATEGORIES[number];
 
 // A call to one of the module's own capabilities (design 31 Oct, Keyboard Cleaning Mode §7).
 export interface TileAction {

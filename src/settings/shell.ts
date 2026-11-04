@@ -142,6 +142,8 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   function highlight(key: string): void {
     const target = find(`[data-row="${key}"]`);
     if (!target) return;
+    const fold = target.closest('details');
+    if (fold) fold.open = true;
     target.classList.add('found');
     target.scrollIntoView?.({ block: 'nearest' });
     env.setTimer(() => target.classList.remove('found'), FOUND_MS);

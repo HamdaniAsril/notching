@@ -1,6 +1,7 @@
 {
   "id": "cut-files",
   "version": "1.0.0",
+  "category": "files",
   "icon": "icon.svg",
   "permissions": ["accessibility"],
   "capabilities": ["cut", "notify"],

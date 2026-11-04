@@ -1,7 +1,7 @@
 import type { ShotKeys } from '../../bridge';
 import { fill, hostStrings } from '../../i18n';
 import { formatBytes } from '../../kit/format';
-import { isModule, isTool, type ModuleInfo } from '../../modules/types';
+import { isModule, MODULE_CATEGORIES, type ModuleCategory, type ModuleInfo } from '../../modules/types';
 import { DEFAULT_LABELS } from '../../shot/keys';
 import { button, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
@@ -375,6 +375,26 @@ export function back(ctx: PageContext): HTMLElement {
   return b;
 }
 
+// The categories folded shut on the Modul page, kept for this Mac only.
+const FOLDED_KEY = 'notching.modules.folded';
+
+function foldedCategories(): Set<ModuleCategory> {
+  try {
+    const list: unknown = JSON.parse(localStorage.getItem(FOLDED_KEY) ?? '[]');
+    return new Set(Array.isArray(list) ? list.filter((c): c is ModuleCategory => MODULE_CATEGORIES.includes(c)) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveFolded(closed: Set<ModuleCategory>): void {
+  try {
+    localStorage.setItem(FOLDED_KEY, JSON.stringify([...closed]));
+  } catch {
+    // Without storage the categories open again next time.
+  }
+}
+
 export const modulesPage: PageRender = ctx => {
   const s = ctx.strings.modules;
   const installed = ctx.state.modules.filter(m => m.installed && isModule(m));
@@ -400,11 +420,25 @@ export const modulesPage: PageRender = ctx => {
     r.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === r) open(); });
     return r;
   };
-  const modules = installed.filter(m => !isTool(m));
-  const tools = installed.filter(isTool);
-  if (modules.length) page.append(group(...modules.map(opening)));
-  // Background tools under their own label (design 4 Nov, alat latar §7).
-  if (tools.length) page.append(el('div', 'grp-label tools', s.tools), group(...tools.map(opening)));
+  // One group per category that folds open and shut (owner, 4 Nov); tools sit in
+  // theirs with the modules. A category stays listed, empty, until a module joins it.
+  const closed = foldedCategories();
+  for (const cat of MODULE_CATEGORIES) {
+    const members = installed.filter(m => m.category === cat);
+    const fold = el('details', 'cat');
+    fold.dataset.cat = cat;
+    fold.open = members.length > 0 && !closed.has(cat);
+    const summary = el('summary', 'cat-head');
+    summary.dataset.key = `modules.cat.${cat}`;
+    summary.append(icon('chev'), el('span', 'cat-name', s.categories[cat]), el('span', 'n', String(members.length)));
+    fold.append(summary, members.length ? group(...members.map(opening)) : note(s.categoryEmpty));
+    fold.addEventListener('toggle', () => {
+      if (fold.open) closed.delete(cat);
+      else closed.add(cat);
+      saveFolded(closed);
+    });
+    page.append(fold);
+  }
   return page;
 };
 

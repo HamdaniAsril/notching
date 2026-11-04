@@ -1,6 +1,7 @@
 {
   "id": "keep-awake",
   "version": "1.0.0",
+  "category": "energy",
   "entry": "index.html",
   "icon": "icon.svg",
   "card": { "width": 440, "height": 104 },

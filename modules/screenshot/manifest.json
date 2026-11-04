@@ -1,6 +1,7 @@
 {
   "id": "screenshot",
   "version": "1.0.0",
+  "category": "utilities",
   "icon": "icon.svg",
   "permissions": ["screen-recording"],
   "capabilities": ["screenshot", "notify"],

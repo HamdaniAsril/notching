@@ -121,6 +121,20 @@ pub struct TileAction {
     pub method: String,
 }
 
+/// Where a module sits on Pengaturan's Modul page (owner, 4 Nov). A manifest
+/// without one is a utility.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Category {
+    #[default]
+    Utilities,
+    Energy,
+    Window,
+    AppManagement,
+    Files,
+    Apps,
+}
+
 /// A package has a module page (`entry` and `card`) or a tile action, widgets,
 /// or both.
 #[derive(Clone, Debug, PartialEq, serde::Deserialize)]
@@ -145,6 +159,8 @@ pub struct Manifest {
     /// capability (design 4 Nov, alat latar §6).
     #[serde(default)]
     pub tool: Option<Capability>,
+    #[serde(default)]
+    pub category: Category,
 }
 
 impl Manifest {
@@ -280,6 +296,15 @@ mod tests {
         let m = parse_manifest(GOOD, "system-stat").unwrap();
         assert_eq!(m.capabilities, vec![Capability::SystemStats]);
         assert_eq!(m.card, Some(CardSize { width: 400, height: 80 }));
+    }
+
+    #[test]
+    fn a_category_is_read_and_defaults_to_utilities() {
+        assert_eq!(parse_manifest(GOOD, "system-stat").unwrap().category, Category::Utilities);
+        let with = GOOD.replace(r#""icon":"#, r#""category":"app-management","icon":"#);
+        assert_eq!(parse_manifest(&with, "system-stat").unwrap().category, Category::AppManagement);
+        let bad = GOOD.replace(r#""icon":"#, r#""category":"games","icon":"#);
+        assert!(matches!(parse_manifest(&bad, "system-stat"), Err(ManifestError::Json(_))));
     }
 
     #[test]

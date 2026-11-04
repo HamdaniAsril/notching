@@ -834,6 +834,63 @@ input:focus-visible,
 
 /* A small heading over a group, and on Notifikasi the Tampil / Suara column
    names lined up over each row's two switches. */
+/* Modul's categories (modules.ts): a head that folds its group open and shut. */
+.cat {
+  margin-top: 18px;
+}
+
+.cat-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 4px 8px 4px 4px;
+  margin-left: -4px;
+  border-radius: 6px;
+  list-style: none;
+  color: var(--g1);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cat-head::-webkit-details-marker {
+  display: none;
+}
+
+.cat-head:hover {
+  background: var(--hover);
+}
+
+.cat-head:focus-visible {
+  outline: 2px solid var(--acc);
+}
+
+.cat-head .icon svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s;
+}
+
+.cat[open] > .cat-head .icon svg {
+  transform: rotate(90deg);
+}
+
+.cat-head .n {
+  color: var(--g2);
+  font-weight: 500;
+}
+
+.cat > .grp {
+  margin-top: 8px;
+}
+
+.cat > .note {
+  margin: 8px 0 0;
+}
+
 .grp-label {
   margin-top: 24px;
   color: var(--g2);

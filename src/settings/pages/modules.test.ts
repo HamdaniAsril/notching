@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import type { ShotKeys } from '../../bridge';
 import type { ModuleState } from '../../modules/types';
 import { homeWidgets, moduleInfo, TEST_STATE, timers } from '../../notch/test-helpers';
@@ -364,19 +364,52 @@ test('open log button', async () => {
 });
 
 // The background tools (design 4 Nov, alat latar §7).
-const cutTool = moduleInfo('cut-files', { name: 'Potong file', description: '⌘X dan ⌘V', entry: null, card: null, tool: true, permissions: ['accessibility'] });
-const winTool = moduleInfo('window-keys', { name: 'Atur jendela', description: '⌃⌥ dan Q–C', entry: null, card: null, tool: true, permissions: ['accessibility'] });
+const cutTool = moduleInfo('cut-files', { name: 'Potong file', description: '⌘X dan ⌘V', entry: null, card: null, tool: true, permissions: ['accessibility'], category: 'files' });
+const winTool = moduleInfo('window-keys', { name: 'Atur jendela', description: '⌃⌥ dan Q–C', entry: null, card: null, tool: true, permissions: ['accessibility'], category: 'window' });
 const TOOLS: ModuleState = { ...STATE, modules: [...STATE.modules, cutTool, winTool] };
 
-test('tools get their own group under the modules', async () => {
+const cats = (root: HTMLElement) => [...root.querySelectorAll<HTMLDetailsElement>('.pane details.cat')];
+// A plain storage for the folded categories: the test environment's own may lack methods.
+function memoryStorage(): void {
+  const items = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (k: string) => items.get(k) ?? null,
+    setItem: (k: string, v: string) => void items.set(k, v),
+  });
+}
+
+const labels = (d: Element) => [...d.querySelectorAll('.module .label')].map(e => e.textContent);
+
+test('modules sit in six categories that fold; an empty one stays, shut, and says so', async () => {
+  memoryStorage();
   const { root, app } = await mountForTest(TOOLS);
   app.go({ page: 'modules' });
-  const groups = [...root.querySelectorAll('.pane .grp')];
-  expect([...groups[0].querySelectorAll('.module .label')].map(e => e.textContent)).toEqual(['Beranda', 'System stat']);
-  expect(root.querySelector('.pane .grp-label.tools')!.textContent).toBe('Alat');
-  expect([...groups[1].querySelectorAll('.module .label')].map(e => e.textContent)).toEqual(['Potong file', 'Atur jendela']);
+  const all = cats(root);
+  expect(all.map(d => d.querySelector('.cat-name')!.textContent))
+    .toEqual(['Utilitas', 'Energi & daya', 'Jendela & Dock', 'Kelola aplikasi', 'File', 'Aplikasi']);
+  expect(labels(all[0])).toEqual(['Beranda', 'System stat']);
+  expect(labels(all[2])).toEqual(['Atur jendela']);
+  expect(labels(all[4])).toEqual(['Potong file']);
+  expect(all.map(d => d.open)).toEqual([true, false, true, false, true, false]);
+  expect(all[5].textContent).toContain('Belum ada modul di sini.');
+  expect(all[4].querySelector('.n')!.textContent).toBe('1');
   click(root, 'module.window-keys');
   expect(app.route).toEqual({ page: 'module', id: 'window-keys' });
+  vi.unstubAllGlobals();
+});
+
+test('a category folded shut stays shut when the page comes back', async () => {
+  memoryStorage();
+  const { root, app } = await mountForTest(TOOLS);
+  app.go({ page: 'modules' });
+  const files = cats(root)[4];
+  files.open = false;
+  files.dispatchEvent(new Event('toggle'));
+  app.go({ page: 'general' });
+  app.go({ page: 'modules' });
+  expect(cats(root)[4].open).toBe(false);
+  expect(cats(root)[0].open).toBe(true);
+  vi.unstubAllGlobals();
 });
 
 test('a tool page shows the permission and the fixed keys', async () => {
@@ -503,5 +536,6 @@ test('tool pages follow the language', async () => {
   expect(root.querySelector('[data-row="tool.cut-files.access"]')!.textContent).toContain('Not allowed');
   bridge.emitModuleState({ ...TOOLS, lang: 'en' });
   app.go({ page: 'modules' });
-  expect(root.querySelector('.pane .grp-label.tools')!.textContent).toBe('Tools');
+  expect(cats(root).map(d => d.querySelector('.cat-name')!.textContent))
+    .toEqual(['Utilities', 'Energy & power', 'Window & Dock', 'App management', 'Files', 'Apps']);
 });
