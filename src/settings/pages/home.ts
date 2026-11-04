@@ -28,7 +28,7 @@ function closeDraft(): void {
 // The page the city and prayer rows sit on (Umum, owner 1 Nov).
 const HOME_ROUTE = { page: 'general' } as const;
 
-function placeRow(ctx: PageContext): HTMLElement {
+export function placeRow(ctx: PageContext): HTMLElement {
   const s = ctx.strings.home;
   const place = ctx.info.home.place;
   const ctl = el('div', 'ctl');
@@ -116,7 +116,8 @@ function finder(ctx: PageContext): HTMLElement {
 // Data the built-in widgets share (design 30 Oct §9): the city, the prayer
 // method and the prayer notice, which runs whether or not a widget shows it.
 // Shown on Umum.
-export function sharedData(ctx: PageContext): HTMLElement {
+// The prayer settings under Umum's own group: the notice first, then the method (owner, 4 Nov).
+export function prayerSettings(ctx: PageContext): HTMLElement {
   const s = ctx.strings.home;
   const home = ctx.info.home;
   const method = select('home.prayerMethod', PRAYER_METHODS.map(m => ({ value: m, label: s.methods[m] })), home.prayerMethod,
@@ -127,8 +128,7 @@ export function sharedData(ctx: PageContext): HTMLElement {
   const prayerNotice = toggle('home.prayerNotice', s.prayerNotice, prayer.on,
     on => ctx.save('home.prayerNotice', ctx.bridge.setChannel('home', 'prayer', { on, sound: prayer.sound })));
   return group(
-    placeRow(ctx),
-    row({ key: 'home.prayerMethod', label: s.prayerMethod, hint: s.prayerMethodHint, control: method }),
     row({ key: 'home.prayerNotice', label: s.prayerNotice, hint: s.prayerNoticeHint, control: prayerNotice }),
+    row({ key: 'home.prayerMethod', label: s.prayerMethod, hint: s.prayerMethodHint, control: method }),
   );
 }

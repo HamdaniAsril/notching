@@ -240,7 +240,7 @@
       "loginOpen": "Open Login Items",
       "glass": "See-through panel",
       "glassHint": "The open panel fades toward its bottom edge. Off, it is solid black.",
-      "cityPrayer": "City & prayer times"
+      "cityPrayer": "Prayer times"
     },
     "look": {
       "accent": "Accent colour",

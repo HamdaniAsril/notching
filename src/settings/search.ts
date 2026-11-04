@@ -23,12 +23,12 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
   const rows: Record<SectionId, [key: string, label: string, keywords: string][]> = {
     general: [
       ['general.language', s.general.language, k.language],
+      ['home.place', s.home.place, k.place],
       ['general.screen', s.general.screen, k.screen],
       ['general.login', s.general.login, k.login],
       ['general.glass', s.general.glass, k.glass],
-      ['home.place', s.home.place, k.place],
-      ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
       ['home.prayerNotice', s.home.prayerNotice, k.channels],
+      ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
     ],
     look: [
       ['look.accent', s.look.accent, k.accent],

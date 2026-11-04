@@ -106,13 +106,21 @@ select {
 
 .side .drag {
   height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 }
 
-/* The wordmark in the title bar, right of the window buttons (shell.ts). */
-.side .logo img {
+/* The wordmark, centred in the window's title bar (shell.ts). */
+.settings > .logo {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.settings > .logo img {
   display: block;
   height: 15px;
   width: auto;
