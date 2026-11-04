@@ -79,11 +79,27 @@ const DEMO: Page = {
 };
 
 // Numbers that drift slowly, for looking at the System stat card.
-function fakeStats() {
+function fakeStats(diskParts: boolean) {
   const t = Date.now() / 1000;
   const wave = (period: number) => (Math.sin(t / period) + 1) / 2;
   const GiB = 1024 ** 3;
-  return { cpu: 5 + 35 * wave(7), memUsed: 9.8 * GiB, memTotal: 16 * GiB, rx: 2_000_000 * wave(5), tx: 200_000 * wave(3) };
+  const cpuAt = (ago: number) => 5 + 35 * ((Math.sin((t - ago) / 7) + 1) / 2);
+  const history = Array.from({ length: 41 }, (_, i) => (40 - i) * 1.5)
+    .map(ago => ({ ago, cpu: cpuAt(ago), pressure: 60 + 4 * Math.sin((t - ago) / 20) }));
+  return {
+    cpu: cpuAt(0), memUsed: 9.8 * GiB, memTotal: 16 * GiB, rx: 48_000_000 * wave(5), tx: 2_400_000 * wave(3),
+    pressure: history[history.length - 1].pressure,
+    history,
+    apps: [
+      { name: 'Xcode', cpu: 18, mem: 3.8 * GiB },
+      { name: 'Google Chrome', cpu: 9, mem: 2.6 * GiB },
+      { name: 'Figma', cpu: 6, mem: 1.4 * GiB },
+      { name: 'Docker', cpu: 4, mem: 2.1 * GiB },
+    ],
+    temps: { chip: 58, other: 31, otherKind: 'battery', state: 'nominal' },
+    // ?disk=0: Cleaner has not measured yet.
+    disk: { total: 512e9, free: 200e9, parts: diskParts ? { apps: 96e9, documents: 74e9, photos: 20e9, cleanable: 8e9 } : null },
+  };
 }
 
 // A made-up screenshot: a grey window on a blue desktop, as an SVG data URL.
@@ -181,7 +197,7 @@ export function browserBridge(root: HTMLElement): Bridge {
       if (!manifestOf(moduleId)?.capabilities.includes(capability)) {
         throw new Error(`module ${moduleId} did not declare ${capability}`);
       }
-      if (capability === 'system.stats' && method === 'read') return fakeStats();
+      if (capability === 'system.stats' && method === 'read') return fakeStats(params.get('disk') !== '0');
       if (capability === 'home.data' || capability === 'reminders') return homeCall(capability, method, args);
       if (capability === 'awake') return awakeCall(method, args);
       if (capability === 'timer') return timerCall(method, args);

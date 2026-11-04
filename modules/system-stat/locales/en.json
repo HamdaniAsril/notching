@@ -1,8 +1,23 @@
 {
   "name": "System stat",
   "shortName": "System",
-  "description": "CPU, memory, network",
-  "cpu": "CPU",
-  "memory": "Memory",
-  "network": "Network"
+  "description": "CPU, memory, heat, network, disk",
+  "cpu": "CPU load",
+  "pressure": "Memory pressure",
+  "minute": "1 min",
+  "apps": "Top apps",
+  "appCpu": "CPU",
+  "appMem": "Memory",
+  "temps": "Temperature",
+  "chip": "Chip",
+  "battery": "Battery",
+  "ssd": "SSD",
+  "state": { "nominal": "Normal", "fair": "Warm", "serious": "Hot", "critical": "Critical" },
+  "network": "Network",
+  "up": "Upload",
+  "down": "Download",
+  "storage": "Storage",
+  "of": "of {total}",
+  "parts": { "apps": "Apps", "documents": "Documents", "photos": "Photos", "other": "Other", "used": "Used", "free": "Free" },
+  "openCleaner": "Open Cleaner for the breakdown"
 }

@@ -1,9 +1,9 @@
 {
   "id": "system-stat",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "entry": "index.html",
   "icon": "icon.svg",
-  "card": { "width": 400, "height": 80 },
+  "card": { "width": 760, "height": 394 },
   "permissions": [],
   "capabilities": ["system.stats"]
 }

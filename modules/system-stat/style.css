@@ -1,38 +1,163 @@
-/* Three black Volt cards side by side (spec §3): the frame is 400 × 80, so each card is a third
-   of it less two 16 px gaps. Equal widths, so changing numbers never move the cards. */
-.sys-row {
+/* System stat's card, after the Pego frame "Notching - System Stats" (design
+   4 Nov): one black card, three rows split by thin rules. The frame is 724 × 394
+   (a 760 card less the panel's 18 px sides). Widths are fixed so changing
+   numbers never move anything. */
+.ss-card {
+  box-sizing: border-box;
   display: flex;
-  gap: 16px;
-  height: 80px;
+  flex-direction: column;
+  height: 394px;
+  overflow: hidden;
+  border-radius: 28px;
+  background: #000;
+  box-shadow: inset 0 0 0 1px var(--v-ring);
 }
 
-.sys-card {
-  flex: 1 1 0;
-  min-width: 0;
+.ss-row {
+  display: flex;
+  align-items: center;
+}
+
+.ss-row-top { height: 176px; }
+.ss-row-mid { height: 124px; }
+
+.ss-hrule { flex: none; height: 1px; background: var(--v-track); }
+.ss-vrule { flex: none; width: 1px; background: var(--v-track); }
+.ss-vrule.tall { height: 128px; }
+.ss-vrule.mid { height: 72px; }
+.ss-cells .ss-vrule { height: 66px; }
+
+.ss-col {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 12px;
-  border-radius: 17px;
-  background: #000;
-  box-shadow: 0 0 0 1px var(--v-ring);
+  height: 100%;
+  padding: 20px;
+  min-width: 0;
 }
 
-.sys-segs .v-segs {
-  margin-bottom: 2px;
+.ss-graph { flex: none; width: 210px; }
+.ss-apps { flex: 1 1 0; }
+.ss-pair { flex: 1 1 0; }
+
+.ss-top { display: flex; flex-direction: column; gap: 4px; }
+
+.ss-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.sys-sub {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sys-rate {
+.ss-lab,
+.ss-meta,
+.ss-sub {
   font-size: 11px;
-  font-weight: 500;
   line-height: 14px;
   white-space: nowrap;
+}
+
+.ss-lab,
+.ss-sub { color: var(--v-muted); }
+.ss-meta { color: var(--v-dim); }
+
+.ss-val {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  min-height: 48px;
+}
+
+.ss-num {
+  font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+  font-weight: 600;
+  font-size: 48px;
+  line-height: 1;
   color: var(--v-ink);
 }
+
+.ss-unit {
+  font-size: 13px;
+  line-height: 23px;
+  color: var(--v-muted);
+  white-space: nowrap;
+}
+
+/* The one-minute charts: lime for CPU, chalk for memory pressure. */
+.ss-chart { display: block; overflow: visible; }
+.ss-grid { stroke: var(--v-track); stroke-width: 1; }
+.ss-line { fill: none; stroke: var(--v-ink2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ss-area { fill: var(--v-ring); }
+.ss-dot { fill: var(--v-ink2); }
+.ss-chart.acc .ss-line { stroke: var(--v-acc); }
+.ss-chart.acc .ss-area { fill: rgba(var(--v-acc-rgb), 0.1); }
+.ss-chart.acc .ss-dot { fill: var(--v-acc); }
+
+/* Top apps: name, CPU and memory columns; the busiest one lit. */
+.ss-grow { flex: 1; }
+.ss-c,
+.ss-cpu { flex: none; width: 40px; text-align: right; }
+.ss-m,
+.ss-mem { flex: none; width: 56px; text-align: right; }
+
+.ss-list { display: flex; flex-direction: column; gap: 10px; }
+
+.ss-app {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 16px;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--v-ink2);
+}
+
+.ss-app.empty { visibility: hidden; }
+.ss-mark { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--v-faint); }
+.ss-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-mem { color: var(--v-muted); }
+.ss-app.top { color: var(--v-ink); font-weight: 500; }
+.ss-app.top .ss-mark { background: var(--v-acc); }
+.ss-app.top .ss-cpu { color: var(--v-acc); }
+.ss-app.top .ss-mem { font-weight: 400; }
+
+/* Heat and network: two readings each. */
+.ss-cells { display: flex; align-items: flex-end; }
+.ss-cell { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ss-cell + .ss-vrule + .ss-cell { padding-left: 20px; }
+
+/* Storage: used of total, then Cleaner's parts. */
+.ss-disk { height: 92px; gap: 24px; padding: 0 20px; }
+.ss-used { flex: none; width: 120px; display: flex; flex-direction: column; gap: 2px; }
+.ss-used .ss-val { min-height: 32px; gap: 4px; }
+.ss-used .ss-num { font-size: 32px; }
+.ss-used .ss-unit { font-size: 11px; line-height: 18px; }
+
+.ss-detail { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.ss-bar { display: flex; gap: 2px; height: 8px; }
+.ss-seg { flex: 0 1 0; min-width: 0; border-radius: 4px; background: var(--v-faint); }
+.ss-seg[data-key="apps"] { background: var(--v-acc); }
+.ss-seg[data-key="documents"] { background: var(--v-ink2); }
+.ss-seg[data-key="photos"],
+.ss-seg[data-key="used"] { background: var(--v-dim); }
+.ss-seg[data-key="free"] { background: var(--v-track); }
+
+.ss-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--v-muted);
+  white-space: nowrap;
+}
+
+.ss-leg { display: flex; align-items: center; gap: 5px; }
+.ss-swatch { width: 6px; height: 6px; border-radius: 50%; background: var(--v-faint); }
+.ss-leg[data-key="apps"] .ss-swatch { background: var(--v-acc); }
+.ss-leg[data-key="documents"] .ss-swatch { background: var(--v-ink2); }
+.ss-leg[data-key="photos"] .ss-swatch,
+.ss-leg[data-key="used"] .ss-swatch { background: var(--v-dim); }
+.ss-leg[data-key="free"] .ss-swatch { background: var(--v-track); }
+.ss-hint { margin-left: auto; color: var(--v-dim); }

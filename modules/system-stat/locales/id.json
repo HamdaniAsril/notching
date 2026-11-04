@@ -1,8 +1,23 @@
 {
   "name": "System stat",
   "shortName": "Sistem",
-  "description": "CPU, memori, jaringan",
-  "cpu": "CPU",
-  "memory": "Memori",
-  "network": "Jaringan"
+  "description": "CPU, memori, suhu, jaringan, disk",
+  "cpu": "Beban CPU",
+  "pressure": "Tekanan memori",
+  "minute": "1 mnt",
+  "apps": "Aplikasi teratas",
+  "appCpu": "CPU",
+  "appMem": "Memori",
+  "temps": "Suhu",
+  "chip": "Chip",
+  "battery": "Baterai",
+  "ssd": "SSD",
+  "state": { "nominal": "Normal", "fair": "Hangat", "serious": "Panas", "critical": "Kritis" },
+  "network": "Jaringan",
+  "up": "Unggah",
+  "down": "Unduh",
+  "storage": "Penyimpanan",
+  "of": "dari {total}",
+  "parts": { "apps": "App", "documents": "Dokumen", "photos": "Foto", "other": "Lainnya", "used": "Terpakai", "free": "Kosong" },
+  "openCleaner": "Buka Cleaner untuk rinciannya"
 }

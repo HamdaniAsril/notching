@@ -99,7 +99,11 @@ pub async fn module_call(
     let value = match call {
         Call::SystemStatsRead => {
             let handle = app.clone();
-            let stats = tauri::async_runtime::spawn_blocking(move || handle.state::<StatsState>().0.lock().unwrap().read())
+            let stats = tauri::async_runtime::spawn_blocking(move || {
+                let stats = handle.state::<StatsState>();
+                let mut stats = stats.0.lock().unwrap();
+                stats.read(|| crate::cleaner_service::disk(&handle))
+            })
                 .await
                 .map_err(|e| e.to_string())?;
             serde_json::to_value(stats)

@@ -165,8 +165,9 @@ pub enum ManifestError {
 }
 
 // The panel and the pill must fit the 960 × 560 notch overlay; Cermin's card is
-// 600 × 400 and its lamp widens the panel by 260 (design 31 Oct, Cermin §3).
-pub const CARD_WIDTH: RangeInclusive<u32> = 280..=600;
+// 600 × 400 and its lamp widens the panel by 260 (design 31 Oct, Cermin §3);
+// System stat's card is 760 wide (design 4 Nov, System stat §3).
+pub const CARD_WIDTH: RangeInclusive<u32> = 280..=760;
 pub const CARD_HEIGHT: RangeInclusive<u32> = 40..=420;
 pub const CHANNELS_MAX: usize = 8;
 pub const WIDGETS_MAX: usize = 8;
@@ -282,7 +283,9 @@ mod tests {
 
     #[test]
     fn card_size_must_fit_the_notch_overlay() {
-        assert_eq!(parse_manifest(&GOOD.replace("400", "700"), "system-stat"), Err(ManifestError::CardSize));
+        assert_eq!(parse_manifest(&GOOD.replace("400", "761"), "system-stat"), Err(ManifestError::CardSize));
+        // System stat's card is 760 wide: the 960-wide overlay still has room.
+        assert!(parse_manifest(&GOOD.replace("400", "760"), "system-stat").is_ok());
         assert_eq!(
             parse_manifest(&GOOD.replace("\"height\":80", "\"height\":440"), "system-stat"),
             Err(ManifestError::CardSize)

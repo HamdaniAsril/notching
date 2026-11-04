@@ -107,6 +107,8 @@ pub struct CleanerState {
     real_home: PathBuf,
     data_dir: PathBuf,
     log_dir: PathBuf,
+    /// The parts the last finished measurement found, for System stat's bar.
+    last_parts: Mutex<Option<PartsDto>>,
 }
 
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
@@ -129,6 +131,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         real_home: home,
         data_dir: paths.app_data_dir()?,
         log_dir: paths.app_log_dir()?,
+        last_parts: Mutex::new(None),
     });
     Ok(())
 }
@@ -313,7 +316,7 @@ pub struct Overview {
     pub free: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PartsDto {
     pub apps: Option<u64>,
@@ -352,6 +355,18 @@ fn volume() -> (String, u64, u64) {
     (name, total, free)
 }
 
+/// The startup volume as Cleaner counts it, with the parts it last measured.
+pub fn disk(app: &AppHandle) -> crate::system_stats::Disk {
+    let (_, total, free) = volume();
+    let parts = app.state::<CleanerState>().last_parts.lock().unwrap().clone().map(|p| crate::system_stats::Parts {
+        apps: p.apps,
+        documents: p.documents,
+        photos: p.photos,
+        cleanable: p.cleanable,
+    });
+    crate::system_stats::Disk { total, free, parts }
+}
+
 fn blocking<R: Send + 'static>(app: AppHandle, f: impl FnOnce(&CleanerState) -> R + Send + 'static) -> tauri::async_runtime::JoinHandle<R> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<CleanerState>();
@@ -379,7 +394,9 @@ pub async fn cleaner_parts(app: AppHandle) -> Result<PartsDto, String> {
         finished(&state.cancel, ())?;
         let apps = fresh_apps(state)?;
         let bytes: u64 = apps.items.iter().map(|a| a.bytes).sum();
-        Ok(PartsDto { apps: Some(bytes), documents, photos, cleanable: Some(cleanable), app_count: apps.items.len() })
+        let parts = PartsDto { apps: Some(bytes), documents, photos, cleanable: Some(cleanable), app_count: apps.items.len() };
+        *state.last_parts.lock().unwrap() = Some(parts.clone());
+        Ok(parts)
     })
     .await
     .map_err(|e| e.to_string())?
