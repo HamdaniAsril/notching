@@ -1,7 +1,7 @@
 # Desain ulang System stat
 
 Tanggal: 4 November 2026
-Status: rancangan visual dari pemilik ide (`~/Pego/notching.pego`, halaman Modules, bingkai "Notching - System Stats"). Pemilik menyetujui dua hal: rincian penyimpanan diambil dari Cleaner, dan grafik pemakaian disk dibuang. Setelah itu pemilik meminta "kerjakan sampai selesai". Semua keputusan lain ditulis sebagai **keputusan penulis** dan dikumpulkan di bagian 8 untuk ditinjau di akhir.
+Status: rancangan visual dari pemilik ide (`~/Pego/notching.pego`, halaman Modules, bingkai "Notching - System Stats"). Pemilik menyetujui dua hal: rincian penyimpanan diambil dari Cleaner, dan grafik pemakaian disk dibuang. Setelah itu pemilik meminta "kerjakan sampai selesai". Semua keputusan lain ditulis sebagai **keputusan penulis** dan dikumpulkan di bagian 8 untuk ditinjau di akhir. Setelah dicoba di app, pemilik menyetujui semuanya ("oke semua").
 
 ## 1. Kenapa
 
@@ -82,7 +82,7 @@ Indonesia dan Inggris, mengikuti app. Nama modul tetap "System stat" dan nama pe
 - TypeScript: susunan kartu, format angka, grafik dan pemutusan celah, aplikasi teratas, suhu "—", penyimpanan dengan dan tanpa hasil Cleaner, serta polling yang tetap sekali jalan.
 - Pemeriksaan di browser (`?notch=1`) dan di app asli. Untuk CPU 0,0% saat diam, diukur dengan `ps` setelah kartu ditutup.
 
-## 8. Daftar keputusan penulis (untuk ditinjau)
+## 8. Daftar keputusan penulis (disetujui pemilik, 4 November 2026)
 
 1. Hanya kartu notch, tanpa widget halaman.
 2. Lebar kartu 760, dan batas lebar kartu modul dinaikkan ke 760.
