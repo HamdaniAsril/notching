@@ -83,8 +83,11 @@ pub fn emit_settings(app: &AppHandle) {
     let _ = app.emit(SETTINGS_EVENT, settings_dto(app));
 }
 
+/// Also asked every 2 s while the Izin page is open: a permission given there
+/// puts Potong file's tap in at once.
 #[tauri::command]
 pub fn get_settings(app: AppHandle) -> SettingsDto {
+    crate::tools::settings_opened(&app);
     settings_dto(&app)
 }
 

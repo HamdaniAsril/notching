@@ -48,6 +48,11 @@ export type Route = { page: SectionId } | { page: 'module'; id: string } | { pag
 // (KeyboardEvent.code) and the modifiers held.
 export interface ShotKeyPress { code: string; cmd: boolean; ctrl: boolean; alt: boolean; shift: boolean }
 
+// Atur jendela's keys (WindowKeyDto in src-tauri/src/win_service.rs): its cell
+// of the 3×3 grid, its label ("⌃⌥Q") and whether it reaches Notching.
+export type WindowCell = 'topLeft' | 'top' | 'topRight' | 'left' | 'center' | 'right' | 'bottomLeft' | 'bottom' | 'bottomRight';
+export interface WindowKey { cell: WindowCell; label: string; state: 'ok' | 'off' | 'other' | 'shortcut' | 'mac' }
+
 // What the settings window needs from the native side.
 export interface SettingsBridge {
   moduleState(): Promise<ModuleState>;
@@ -83,6 +88,7 @@ export interface SettingsBridge {
   shotKeys(): Promise<ShotKeys>; // how the two keys stand, for Screenshot's page
   shotSetKey(which: 'screen' | 'pick', key: ShotKeyPress): Promise<ShotKeys>; // rejects with 'invalid' or 'duplicate'
   shotResetKeys(): Promise<ShotKeys>; // back to ⌘⇧3 and ⌘⇧4
+  windowKeys(): Promise<WindowKey[]>; // Atur jendela's nine keys, in grid order
   shotKeysHold(hold: boolean): Promise<void>; // Notching's keys let go while one is recorded
   openKeyboardShortcuts(): Promise<void>; // System Settings › Keyboard › Keyboard Shortcuts › Screenshots
   openFullDiskAccessSettings(): Promise<void>; // System Settings › Privacy & Security › Full Disk Access

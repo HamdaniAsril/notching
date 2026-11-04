@@ -12,6 +12,7 @@ const STATE: ModuleState = {
     homeWidgets(),
     moduleInfo('system-stat', { name: 'System stat', description: 'CPU, memori, jaringan', size: 140 * 1024 }),
     moduleInfo('mirror', { name: 'Cermin', description: 'Kamera untuk berkaca', permissions: ['camera'], installed: false, enabled: false }),
+    moduleInfo('window-keys', { name: 'Atur jendela', entry: null, card: null, tool: true, permissions: ['accessibility'] }),
     moduleInfo('waktu', {
       name: 'Waktu', description: 'Jam dan kalender', entry: null, card: null, size: 48 * 1024,
       widgets: [widget('clockdate', 'Jam + tanggal', 2), widget('analog', 'Analog'), widget('yearday', 'Hari ke'), widget('zones', 'Zona', 2)],
@@ -46,7 +47,7 @@ test('Modul opens the Katalog', async () => {
 
 test('modules come first, then widget packages, never Beranda', async () => {
   const { root } = await open();
-  expect(ids(root)).toEqual(['catalog.system-stat', 'catalog.mirror', 'catalog.waktu', 'catalog.musik']);
+  expect(ids(root)).toEqual(['catalog.system-stat', 'catalog.mirror', 'catalog.window-keys', 'catalog.waktu', 'catalog.musik']);
   expect(card(root, 'mirror').dataset.kind).toBe('module');
   expect(card(root, 'waktu').dataset.kind).toBe('widgets');
   expect(card(root, 'mirror').querySelector('.cat-kind')!.textContent).toBe('Modul');
@@ -118,10 +119,12 @@ test('the chips show modules or widget packages only', async () => {
   key(root, 'catalog.filter.module').click();
   expect(ids(root)).toEqual(['catalog.system-stat', 'catalog.mirror']);
   expect(key(root, 'catalog.filter.module').getAttribute('aria-pressed')).toBe('true');
+  key(root, 'catalog.filter.tool').click();
+  expect(ids(root)).toEqual(['catalog.window-keys']);
   key(root, 'catalog.filter.widgets').click();
   expect(ids(root)).toEqual(['catalog.waktu', 'catalog.musik']);
   key(root, 'catalog.filter.all').click();
-  expect(ids(root)).toHaveLength(4);
+  expect(ids(root)).toHaveLength(5);
 });
 
 test('the Katalog follows the language', async () => {
@@ -159,4 +162,12 @@ test('a search result is shown even when the filter would hide it', async () => 
   root.querySelector<HTMLElement>('.result')!.click();
   expect(card(root, 'musik').classList.contains('found')).toBe(true);
   expect(key(root, 'catalog.filter.all').getAttribute('aria-pressed')).toBe('true');
+});
+
+test('a tool card is labelled Alat and says what it needs', async () => {
+  const { root } = await open();
+  expect(card(root, 'window-keys').dataset.kind).toBe('tool');
+  expect(card(root, 'window-keys').querySelector('.cat-kind')!.textContent).toBe('Alat');
+  expect(card(root, 'window-keys').textContent).toContain('Butuh izin: Aksesibilitas');
+  expect([...root.querySelectorAll('.cat-filter button')].map(b => b.textContent)).toEqual(['Semua', 'Modul', 'Alat', 'Widget']);
 });

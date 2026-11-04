@@ -1,13 +1,17 @@
 import { fill } from '../../i18n';
 import { formatBytes } from '../../kit/format';
-import { inCatalog, isModule, type ModuleInfo } from '../../modules/types';
+import { inCatalog, isModule, isTool, type ModuleInfo } from '../../modules/types';
 import { STRIP_WIDTH } from '../../pages/layout';
 import { button, el, head } from '../controls';
 import type { PageContext, PageRender } from '../types';
 import { back, moduleIcon, UNINSTALL_CONFIRM_MS } from './modules';
 import { widgetPreview } from './widget-preview';
 
-type Filter = 'all' | 'module' | 'widgets';
+type Kind = 'module' | 'tool' | 'widgets';
+type Filter = 'all' | Kind;
+
+// A module, a background tool (design 4 Nov, alat latar §7) or a widget package.
+const kindOf = (m: ModuleInfo): Kind => (isTool(m) ? 'tool' : isModule(m) ? 'module' : 'widgets');
 
 // Kept while the window is open, like the page editor's filter.
 let filter: Filter = 'all';
@@ -62,14 +66,15 @@ function action(ctx: PageContext, m: ModuleInfo): HTMLElement[] {
 // (a package's widgets, a module's permissions); version, size and its button.
 function card(ctx: PageContext, m: ModuleInfo): HTMLElement {
   const s = ctx.strings.catalog;
-  const module = isModule(m);
+  const kind = kindOf(m);
+  const module = kind !== 'widgets';
   const c = el('div', 'cat-card');
   c.dataset.row = `catalog.${m.id}`;
-  c.dataset.kind = module ? 'module' : 'widgets';
+  c.dataset.kind = kind;
   c.classList.toggle('off', !m.installed);
 
   const top = el('div', 'cat-top');
-  top.append(moduleIcon(m.iconSvg), el('span', 'cat-name', m.name), el('span', 'cat-kind', module ? s.kindModule : s.kindWidgets));
+  top.append(moduleIcon(m.iconSvg), el('span', 'cat-name', m.name), el('span', 'cat-kind', { module: s.kindModule, tool: s.kindTool, widgets: s.kindWidgets }[kind]));
   c.append(top);
   if (m.description) c.append(el('p', 'cat-desc', m.description));
 
@@ -90,21 +95,21 @@ function card(ctx: PageContext, m: ModuleInfo): HTMLElement {
   return c;
 }
 
-// The Katalog (design 4 Nov): every built-in module and widget package but
-// Beranda's, in the app's order, modules first, each with Pasang or Copot.
+// The Katalog (design 4 Nov): every built-in module, tool and widget package but
+// Beranda's, in the app's order, modules first, then tools, each with Pasang or Copot.
 export const catalogPage: PageRender = (ctx, route) => {
   const s = ctx.strings.catalog;
   const all = ctx.state.modules.filter(inCatalog);
-  const ordered = [...all.filter(isModule), ...all.filter(m => !isModule(m))];
+  const ordered = (['module', 'tool', 'widgets'] as const).flatMap(k => all.filter(m => kindOf(m) === k));
   // Opened for one card (a search result): a filter that hides it gives way.
   const wanted = route.page === 'catalog' && route.id ? all.find(m => m.id === route.id) : undefined;
-  if (wanted && filter !== (isModule(wanted) ? 'module' : 'widgets')) filter = 'all';
+  if (wanted && filter !== kindOf(wanted)) filter = 'all';
   const page = el('div');
   page.append(back(ctx), head({ title: s.title, sub: s.sub }));
 
   const grid = el('div', 'cat-grid');
   const chips = el('div', 'ed-filter cat-filter');
-  const labels: Record<Filter, string> = { all: s.all, module: s.modules, widgets: s.widgets };
+  const labels: Record<Filter, string> = { all: s.all, module: s.modules, tool: s.tools, widgets: s.widgets };
   const draw = () => {
     for (const b of chips.querySelectorAll<HTMLElement>('button')) {
       const on = b.dataset.key === `catalog.filter.${filter}`;
@@ -112,10 +117,10 @@ export const catalogPage: PageRender = (ctx, route) => {
       b.setAttribute('aria-pressed', String(on));
     }
     grid.replaceChildren(...ordered
-      .filter(m => filter === 'all' || (filter === 'module') === isModule(m))
+      .filter(m => filter === 'all' || filter === kindOf(m))
       .map(m => card(ctx, m)));
   };
-  for (const f of ['all', 'module', 'widgets'] as const) {
+  for (const f of ['all', 'module', 'tool', 'widgets'] as const) {
     const b = el('button', undefined, labels[f]);
     b.type = 'button';
     b.dataset.key = `catalog.filter.${f}`;

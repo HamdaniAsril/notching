@@ -4,6 +4,7 @@ import type { ShotKeys } from '../../bridge';
 import type { ModuleState } from '../../modules/types';
 import { homeWidgets, moduleInfo, TEST_STATE, timers } from '../../notch/test-helpers';
 import { shotKeys } from '../../shot/test-helpers';
+import { windowKeys } from '../test-helpers';
 import { h1, mountForTest, settle } from '../test-helpers';
 
 const STATE: ModuleState = {
@@ -351,4 +352,57 @@ test('open log button', async () => {
   await settle();
   root.querySelector<HTMLElement>('[data-key="module.cleaner.log"]')!.click();
   expect(bridge.cleanerOpenLog).toHaveBeenCalled();
+});
+
+// The background tools (design 4 Nov, alat latar §7).
+const cutTool = moduleInfo('cut-files', { name: 'Potong file', description: '⌘X dan ⌘V', entry: null, card: null, tool: true, permissions: ['accessibility'] });
+const winTool = moduleInfo('window-keys', { name: 'Atur jendela', description: '⌃⌥ dan Q–C', entry: null, card: null, tool: true, permissions: ['accessibility'] });
+const TOOLS: ModuleState = { ...STATE, modules: [...STATE.modules, cutTool, winTool] };
+
+test('tools get their own group under the modules', async () => {
+  const { root, app } = await mountForTest(TOOLS);
+  app.go({ page: 'modules' });
+  const groups = [...root.querySelectorAll('.pane .grp')];
+  expect([...groups[0].querySelectorAll('.module .label')].map(e => e.textContent)).toEqual(['Beranda', 'System stat']);
+  expect(root.querySelector('.pane .grp-label.tools')!.textContent).toBe('Alat');
+  expect([...groups[1].querySelectorAll('.module .label')].map(e => e.textContent)).toEqual(['Potong file', 'Atur jendela']);
+  click(root, 'module.window-keys');
+  expect(app.route).toEqual({ page: 'module', id: 'window-keys' });
+});
+
+test('a tool page shows the permission and the fixed keys', async () => {
+  const { root, app, bridge } = await mountForTest(TOOLS);
+  app.go({ page: 'module', id: 'cut-files' });
+  expect(h1(root)).toBe('Potong file');
+  const perm = root.querySelector<HTMLElement>('[data-row="tool.cut-files.access"]')!;
+  expect(perm.textContent).toContain('Aksesibilitas');
+  expect(perm.textContent).toContain('Belum diizinkan');
+  click(root, 'tool.cut-files.open');
+  expect(bridge.openAccessibility).toHaveBeenCalled();
+  expect([...root.querySelectorAll('.tool-keys .keycap')].map(e => e.textContent)).toEqual(['⌘X', '⌘V']);
+  expect(root.querySelector('.tool-keys')!.textContent).toContain('Hanya di Finder.');
+  expect(root.textContent).not.toContain('Modul ini belum punya pengaturan.');
+});
+
+test('Atur jendela shows its nine keys as a grid and says which are taken', async () => {
+  const { root, app, bridge } = await mountForTest({ ...TOOLS, lang: 'id' });
+  bridge.windowKeys.mockResolvedValueOnce(windowKeys({ bottomRight: 'other', center: 'shortcut' }));
+  app.go({ page: 'module', id: 'window-keys' });
+  await settle();
+  const caps = [...root.querySelectorAll<HTMLElement>('.win-grid .keycap')];
+  expect(caps.map(e => e.textContent)).toEqual(['Q', 'W', 'E', 'A', 'S', 'D', 'Z', 'X', 'C']);
+  expect(caps[0].getAttribute('aria-label')).toBe('⌃⌥Q · Kiri atas');
+  expect(caps.filter(c => c.classList.contains('taken')).map(e => e.textContent)).toEqual(['S', 'C']);
+  const text = root.querySelector('.tool-keys')!.textContent!;
+  expect(text).toContain('⌃⌥C dipakai app lain');
+  expect(text).toContain('⌃⌥S dipakai pintasan Mac');
+});
+
+test('tool pages follow the language', async () => {
+  const { root, app, bridge } = await mountForTest({ ...TOOLS, lang: 'en' });
+  app.go({ page: 'module', id: 'cut-files' });
+  expect(root.querySelector('[data-row="tool.cut-files.access"]')!.textContent).toContain('Not allowed');
+  bridge.emitModuleState({ ...TOOLS, lang: 'en' });
+  app.go({ page: 'modules' });
+  expect(root.querySelector('.pane .grp-label.tools')!.textContent).toBe('Tools');
 });

@@ -1,11 +1,11 @@
 import type { ShotKeys } from '../../bridge';
 import { fill, hostStrings } from '../../i18n';
 import { formatBytes } from '../../kit/format';
-import { isModule, type ModuleInfo } from '../../modules/types';
+import { isModule, isTool, type ModuleInfo } from '../../modules/types';
 import { DEFAULT_LABELS } from '../../shot/keys';
 import { button, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
-import type { PageContext, PageRender } from '../types';
+import type { PageContext, PageRender, SettingsInfo, WindowKey } from '../types';
 
 export const UNINSTALL_CONFIRM_MS = 4000;
 
@@ -175,10 +175,87 @@ function cleanerSettings(ctx: PageContext): HTMLElement {
   return box;
 }
 
+// A tool's permission row (design 4 Nov, alat latar §7): what macOS says now and
+// the way to System Settings. Asked again as the window hears new settings.
+function toolAccess(ctx: PageContext, m: ModuleInfo): HTMLElement {
+  const s = ctx.strings.tools;
+  const state = el('span', 'perm-state');
+  state.append(el('i', 'perm-dot'), el('span'));
+  const show = (info: SettingsInfo) => {
+    state.lastChild!.textContent = info.accessibility ? s.granted : s.missing;
+    state.classList.toggle('on', info.accessibility);
+  };
+  show(ctx.info);
+  ctx.onCleanup(ctx.bridge.onSettings(show));
+  const ctl = el('div', 'ctl');
+  ctl.append(state, button(`tool.${m.id}.open`, s.open, () => void ctx.bridge.openAccessibility()));
+  return wrap('perms tool-access', el('div', 'grp-label', s.access),
+    group(row({ key: `tool.${m.id}.access`, label: s.accessibility, hint: s.accessibilityHint, control: ctl })));
+}
+
+// A div holding `children`.
+function wrap(className: string | undefined, ...children: HTMLElement[]): HTMLElement {
+  const d = el('div', className);
+  d.append(...children);
+  return d;
+}
+
+function keycap(text: string, label?: string): HTMLElement {
+  const cap = el('span', 'btn keycap', text);
+  if (label) cap.setAttribute('aria-label', label);
+  return cap;
+}
+
+// Potong file's page: its permission and its two fixed keys.
+function cutSettings(ctx: PageContext): HTMLElement {
+  const s = ctx.strings.tools;
+  const m = ctx.state.modules.find(x => x.id === 'cut-files')!;
+  const keys = wrap('tool-keys', el('div', 'grp-label', s.keys), group(
+    row({ key: 'tool.cut-files.cut', label: s.cut, control: keycap('⌘X') }),
+    row({ key: 'tool.cut-files.paste', label: s.paste, control: keycap('⌘V') }),
+  ), note(s.cutNote));
+  return wrap(undefined, toolAccess(ctx, m), keys);
+}
+
+// Atur jendela's page: its permission and its nine keys drawn as the 3×3 grid
+// they make on the keyboard. A key someone else holds is marked and named below.
+function windowSettings(ctx: PageContext): HTMLElement {
+  const s = ctx.strings.tools;
+  const m = ctx.state.modules.find(x => x.id === 'window-keys')!;
+  const box = el('div', 'tool-keys');
+  let gone = false;
+  const draw = (keys: WindowKey[]) => {
+    if (gone) return;
+    const grid = el('div', 'win-grid');
+    grid.append(...keys.map(k => {
+      const cap = keycap(k.label.replace('⌃⌥', ''), `${k.label} · ${s.cells[k.cell]}`);
+      cap.dataset.cell = k.cell;
+      cap.classList.toggle('taken', k.state === 'other' || k.state === 'shortcut' || k.state === 'mac');
+      return cap;
+    }));
+    const lead = wrap('win-lead', keycap('⌃'), keycap('⌥'), el('span', 'win-plus', '+'));
+    const taken = (state: WindowKey['state']) => keys.filter(k => k.state === state).map(k => k.label).join(', ');
+    const notes = [
+      taken('other') && fill(s.other, { keys: taken('other') }),
+      [taken('shortcut'), taken('mac')].filter(Boolean).join(', ') && fill(s.shortcut, { keys: [taken('shortcut'), taken('mac')].filter(Boolean).join(', ') }),
+    ].filter(Boolean).map(t => {
+      const p = note(t);
+      p.classList.add('err');
+      return p;
+    });
+    box.replaceChildren(el('div', 'grp-label', s.keys), group(wrap('win-keys', lead, grid)), note(s.windowNote), ...notes);
+  };
+  ctx.onCleanup(() => { gone = true; });
+  ctx.bridge.windowKeys().then(draw, () => {});
+  return wrap(undefined, toolAccess(ctx, m), box);
+}
+
 // Each module's own settings, shown on its page; the rest say they have none.
 export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {
   screenshot: screenshotKeys,
   cleaner: cleanerSettings,
+  'cut-files': cutSettings,
+  'window-keys': windowSettings,
 };
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never
@@ -227,7 +304,7 @@ export const modulesPage: PageRender = ctx => {
     page.append(note(s.none));
     return page;
   }
-  page.append(group(...installed.map(m => {
+  const opening = (m: ModuleInfo) => {
     const r = moduleRow(ctx, m, onSwitch(ctx, m), icon('chev'));
     // The row opens the module's page; the switch stops its own clicks.
     r.dataset.key = `module.${m.id}`;
@@ -237,7 +314,12 @@ export const modulesPage: PageRender = ctx => {
     r.addEventListener('click', open);
     r.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === r) open(); });
     return r;
-  })));
+  };
+  const modules = installed.filter(m => !isTool(m));
+  const tools = installed.filter(isTool);
+  if (modules.length) page.append(group(...modules.map(opening)));
+  // Background tools under their own label (design 4 Nov, alat latar §7).
+  if (tools.length) page.append(el('div', 'grp-label tools', s.tools), group(...tools.map(opening)));
   return page;
 };
 

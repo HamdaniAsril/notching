@@ -5,7 +5,17 @@ import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
 import type { ShotKeys } from '../bridge';
 import { shotKeys } from '../shot/test-helpers';
-import type { LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress } from './types';
+import type { LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress, WindowCell, WindowKey } from './types';
+
+const CELLS: [WindowCell, string][] = [
+  ['topLeft', 'Q'], ['top', 'W'], ['topRight', 'E'], ['left', 'A'], ['center', 'S'], ['right', 'D'],
+  ['bottomLeft', 'Z'], ['bottom', 'X'], ['bottomRight', 'C'],
+];
+
+// Atur jendela's nine keys, all reaching Notching unless named otherwise.
+export function windowKeys(over: Partial<Record<WindowCell, WindowKey['state']>> = {}): WindowKey[] {
+  return CELLS.map(([cell, k]) => ({ cell, label: `⌃⌥${k}`, state: over[cell] ?? 'ok' }));
+}
 
 export const TEST_INFO: SettingsInfo = {
   language: 'auto',
@@ -62,6 +72,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     shotSetKey: vi.fn(async (_which: 'screen' | 'pick', _key: ShotKeyPress): Promise<ShotKeys> => shotKeys()),
     shotResetKeys: vi.fn(async (): Promise<ShotKeys> => shotKeys()),
     shotKeysHold: vi.fn(async (_hold: boolean) => {}),
+    windowKeys: vi.fn(async (): Promise<WindowKey[]> => windowKeys()),
     openKeyboardShortcuts: vi.fn(async () => {}),
     openFullDiskAccessSettings: vi.fn(async () => {}),
     openCameraSettings: vi.fn(async () => {}),

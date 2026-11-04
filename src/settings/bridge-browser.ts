@@ -116,6 +116,13 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
       return browserKeys('ok');
     },
     shotKeysHold: async hold => console.info('shotKeysHold', hold),
+    // ?winkeys=taken: ⌃⌥C is taken by another app.
+    windowKeys: async () => ([
+      ['topLeft', 'Q'], ['top', 'W'], ['topRight', 'E'], ['left', 'A'], ['center', 'S'], ['right', 'D'],
+      ['bottomLeft', 'Z'], ['bottom', 'X'], ['bottomRight', 'C'],
+    ] as const).map(([cell, k]) => ({
+      cell, label: `⌃⌥${k}`, state: params.get('winkeys') === 'taken' && k === 'C' ? 'other' as const : 'ok' as const,
+    })),
     openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
     openFullDiskAccessSettings: async () => console.info('openFullDiskAccessSettings'),
     openCameraSettings: async () => console.info('openCameraSettings'),

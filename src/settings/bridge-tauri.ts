@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { syncUnlisten, type ShotKeys } from '../bridge';
 import type { ModuleState } from '../modules/types';
-import type { Place, SettingsBridge, SettingsInfo } from './types';
+import type { Place, SettingsBridge, SettingsInfo, WindowKey } from './types';
 
 // The native side: commands in src-tauri/src/settings_window.rs,
 // module_commands.rs and page_commands.rs; both broadcasts reach every window.
@@ -42,6 +42,7 @@ export function tauriSettingsBridge(): SettingsBridge {
     shotSetKey: (which, key) => invoke<ShotKeys>('shot_set_key', { which, ...key }),
     shotResetKeys: () => invoke<ShotKeys>('shot_reset_keys'),
     shotKeysHold: hold => invoke('shot_keys_hold', { hold }),
+    windowKeys: () => invoke<WindowKey[]>('window_keys'),
     openKeyboardShortcuts: () => invoke('open_keyboard_shortcuts'),
     openFullDiskAccessSettings: () => invoke('open_full_disk_access_settings'),
     openCameraSettings: () => invoke('open_camera_settings'),

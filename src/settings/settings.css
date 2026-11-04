@@ -3464,6 +3464,74 @@ body > .ed-ghost.page-row {
   margin-top: 10px;
 }
 
+/* A tool's page (design 4 Nov, alat latar §7): its permission, then its keys.
+   Keys here are fixed, so they are drawn as key boxes, not buttons. */
+.tool-access,
+.tool-keys {
+  margin-top: 18px;
+}
+
+.tool-keys .keycap,
+.win-keys .keycap {
+  flex: none;
+  min-width: 44px;
+  cursor: default;
+  justify-content: center;
+  letter-spacing: 0.04em;
+}
+
+/* Atur jendela's nine keys as they sit on the keyboard: ⌃⌥, then Q W E over
+   A S D over Z X C, each row a little further right. */
+.win-keys {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.win-lead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.win-plus {
+  color: var(--g3);
+}
+
+.win-keys .keycap {
+  box-sizing: border-box;
+  width: 44px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.win-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  gap: 6px;
+}
+
+.win-grid .keycap:nth-child(n + 4):nth-child(-n + 6) {
+  transform: translateX(12px);
+}
+
+.win-grid .keycap:nth-child(n + 7) {
+  transform: translateX(24px);
+}
+
+.win-grid .keycap.taken {
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+  color: var(--danger);
+}
+
+.tool-keys .note.err {
+  color: var(--danger);
+}
+
 /* Cleaner's page: the never-clean list under its own small heading, like a group label. */
 .cl-ex {
   margin-top: 24px;

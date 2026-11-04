@@ -147,7 +147,7 @@ test('two modules that need the same permission share its row', async () => {
   const { root, app } = await mountForTest({ ...TEST_STATE, modules: [...TEST_STATE.modules, CLEAN, second] }, TEST_INFO);
   app.go({ page: 'permissions' });
   expect(root.querySelectorAll('[data-row="permission.accessibility"]')).toHaveLength(1);
-  expect(row(root, 'permission.accessibility')!.querySelector('.hint')!.textContent).toBe('Keyboard Cleaning Mode, Kunci Lain · Untuk mengunci keyboard.');
+  expect(row(root, 'permission.accessibility')!.querySelector('.hint')!.textContent).toBe('Keyboard Cleaning Mode, Kunci Lain · Untuk mengunci keyboard, memotong file, dan mengatur jendela.');
 });
 
 test('Tentang shows the version in the text font, not the old mono one', async () => {
