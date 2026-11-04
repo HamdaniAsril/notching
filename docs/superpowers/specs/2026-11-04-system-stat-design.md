@@ -35,7 +35,7 @@ Kartu berukuran 760 × 394. **(keputusan penulis)** Batas lebar kartu modul dina
   - Baris pertama ditandai lime (titik dan angka CPU), baris lain abu-abu, sesuai rancangan.
 
 **Grafik "1 mnt"**
-- Rust menyimpan pembacaan 60 detik terakhir (CPU dan tekanan memori), tetapi hanya pembacaan yang terjadi saat kartu terbuka. Saat dibuka pertama kali, grafik kosong lalu terisi dari kanan. Kalau kartu dibuka lagi dalam semenit, bagian yang tadi masih tampil. Celah lebih dari 4 detik memutus garis, jadi waktu kartu tertutup tidak digambar sebagai garis lurus. **(keputusan penulis)**
+- Rust menyimpan pembacaan 60 detik terakhir (CPU dan tekanan memori), tetapi hanya pembacaan yang terjadi saat kartu terbuka. Saat dibuka pertama kali, grafik kosong lalu terisi dari kanan. Kalau kartu dibuka lagi dalam semenit, bagian yang tadi masih tampil. Celah lebih dari 5 detik (sama dengan batas basi di Rust) memutus garis, jadi waktu kartu tertutup tidak digambar sebagai garis lurus. **(keputusan penulis)**
 
 **Baris tengah (tinggi 124)**
 - **Suhu:** dua angka °C.

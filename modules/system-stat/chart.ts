@@ -3,7 +3,8 @@
 // is open, so a longer gap is time it was shut and is left blank.
 
 export const WINDOW_S = 60;
-const GAP_S = 4;
+// The same as STALE_AFTER in system_stats.rs: past it Rust starts afresh too.
+const GAP_S = 5;
 
 export interface Pt {
   ago: number;

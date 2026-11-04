@@ -129,7 +129,7 @@
 
 /* Storage: used of total, then Cleaner's parts. */
 .ss-disk { height: 92px; gap: 24px; padding: 0 20px; }
-.ss-used { flex: none; width: 120px; display: flex; flex-direction: column; gap: 2px; }
+.ss-used { flex: none; width: 132px; display: flex; flex-direction: column; gap: 2px; }
 .ss-used .ss-val { min-height: 32px; gap: 4px; }
 .ss-used .ss-num { font-size: 32px; }
 .ss-used .ss-unit { font-size: 11px; line-height: 18px; }

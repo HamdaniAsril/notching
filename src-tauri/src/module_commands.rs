@@ -101,7 +101,8 @@ pub async fn module_call(
             let handle = app.clone();
             let stats = tauri::async_runtime::spawn_blocking(move || {
                 let stats = handle.state::<StatsState>();
-                let mut stats = stats.0.lock().unwrap();
+                // A read that once panicked must not stop every later one.
+                let mut stats = stats.0.lock().unwrap_or_else(|e| e.into_inner());
                 stats.read(|| crate::cleaner_service::disk(&handle))
             })
                 .await

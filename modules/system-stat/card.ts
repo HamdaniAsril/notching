@@ -209,7 +209,8 @@ export function renderCard(root: HTMLElement, strings: StatStrings): { update(s:
       net.cells[0].v.set(...split(formatRate(s.tx, lang)));
       net.cells[1].v.set(...split(formatRate(s.rx, lang)));
 
-      if (s.disk) drawDisk(disk, s.disk, strings, lang);
+      // A volume macOS would not size reads as total 0: keep the row empty.
+      if (s.disk && s.disk.total > 0) drawDisk(disk, s.disk, strings, lang);
     },
   };
 }
@@ -221,11 +222,12 @@ function drawDisk(d: ReturnType<typeof storage>, disk: NonNullable<Stats['disk']
   const of = strings.of.replace('{total}', total);
   d.v.set(usedNum, usedUnit === split(total)[1] ? of : `${usedUnit} ${of}`);
 
+  // Exact shares, so a nearly full disk still shows its last sliver of free space.
   const segs = diskSegs(disk);
-  d.bar.replaceChildren(...segs.map(s => {
+  d.bar.replaceChildren(...segs.filter(s => s.bytes > 0).map(s => {
     const seg = el('span', 'ss-seg');
     seg.dataset.key = s.key;
-    seg.style.flexGrow = String(Math.round(s.bytes / 1e9));
+    seg.style.flexGrow = String(s.bytes / disk.total);
     return seg;
   }));
   const names = strings.parts as Record<string, string>;

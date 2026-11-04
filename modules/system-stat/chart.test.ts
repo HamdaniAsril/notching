@@ -11,7 +11,7 @@ test('one unbroken run is one segment', () => {
   expect(segments([p(3, 10), p(1.5, 20), p(0, 30)])).toEqual([[p(3, 10), p(1.5, 20), p(0, 30)]]);
 });
 
-test('a gap of more than 4 s, while the card was shut, breaks the line', () => {
+test('a gap of more than 5 s, while the card was shut, breaks the line', () => {
   const s = segments([p(50, 1), p(48.5, 2), p(10, 3), p(8.5, 4), p(0, 5)]);
   expect(s).toEqual([[p(50, 1), p(48.5, 2)], [p(10, 3), p(8.5, 4)], [p(0, 5)]]);
 });
@@ -19,6 +19,7 @@ test('a gap of more than 4 s, while the card was shut, breaks the line', () => {
 test('a missing reading breaks the line too', () => {
   expect(segments([p(3, 1), p(1.5, null), p(0, 2)])).toEqual([[p(3, 1)], [p(0, 2)]]);
   expect(segments([])).toEqual([]);
+  expect(segments([p(9, 1), p(4, 2)])).toHaveLength(1);
 });
 
 test('now is the right edge, a minute ago the left; 100 % is the top', () => {

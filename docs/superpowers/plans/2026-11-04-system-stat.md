@@ -24,7 +24,7 @@ File: `modules/manifest.rs`.
 
 ## Tugas 4 — Kartu baru (TDD)
 File: `modules/system-stat/{card.ts,chart.ts,style.css,manifest.json,locales/*}`, `src/bridge-browser.ts` (data palsu).
-- `chart.ts`: `segments(history, now)` (memutus celah > 4 detik) dan `pathFor(points, w, h)`. Test dulu.
+- `chart.ts`: `segments(history, now)` (memutus celah > 5 detik) dan `pathFor(points, w, h)`. Test dulu.
 - `card.ts`: tiga baris sesuai Pego. Test dulu untuk susunan, angka, aplikasi, suhu "—", disk dengan dan tanpa parts, serta angka kosong sebelum pembacaan pertama.
 - Manifest kartu 760 × 394, deskripsi baru.
 - `npm test`, `npm run build` (atau typecheck).

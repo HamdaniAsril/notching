@@ -112,7 +112,7 @@ test('storage: Cleaner\'s parts, the rest as Other, then free', () => {
   const parts = [...root.querySelectorAll('.ss-seg')].map(e => (e as HTMLElement).dataset.key);
   expect(parts).toEqual(['apps', 'documents', 'photos', 'other', 'free']);
   expect(all(root, '.ss-leg')).toEqual(['App 96 GB', 'Dokumen 74 GB', 'Foto 20 GB', 'Lainnya 122 GB']);
-  expect(q(root, '.ss-seg[data-key="apps"]').style.flexGrow).toBe('96');
+  expect(Number(q(root, '.ss-seg[data-key="apps"]').style.flexGrow)).toBeCloseTo(96 / 512);
   expect(root.querySelector('.ss-hint')).toBeNull();
 });
 
@@ -140,4 +140,22 @@ test('labels follow the language', () => {
   expect(root.textContent).toContain('CPU load');
   expect(root.textContent).toContain('Memory pressure');
   expect(text(root, '[data-k="disk"] .ss-unit')).toBe('of 512 GB');
+});
+
+test('a nearly full disk keeps its sliver of free space; empty parts take no room', () => {
+  const root = shown({ ...S, disk: { total: 512e9, free: 0.2e9, parts: { apps: 96e9, documents: 0, photos: 0, cleanable: 0 } } });
+  expect([...root.querySelectorAll('.ss-seg')].map(e => (e as HTMLElement).dataset.key)).toEqual(['apps', 'other', 'free']);
+  expect(Number(q(root, '.ss-seg[data-key="free"]').style.flexGrow)).toBeGreaterThan(0);
+});
+
+test('a disk macOS would not size leaves the row empty', () => {
+  const root = shown({ ...S, disk: { total: 0, free: 0, parts: null } });
+  expect(text(root, '[data-k="disk"] .ss-num')).toBe('');
+  expect(root.querySelectorAll('.ss-seg')).toHaveLength(0);
+});
+
+test('used and total in different units both carry theirs', () => {
+  const root = shown({ ...S, disk: { total: 1.9e12, free: 1.03e12, parts: null } });
+  expect(text(root, '[data-k="disk"] .ss-num')).toBe('870');
+  expect(text(root, '[data-k="disk"] .ss-unit')).toBe('GB dari 1,9 TB');
 });
