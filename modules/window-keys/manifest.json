@@ -1,0 +1,9 @@
+{
+  "id": "window-keys",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "permissions": ["accessibility"],
+  "capabilities": ["windows", "notify"],
+  "tool": "windows",
+  "notifications": [{ "id": "access", "on": true, "sound": false }]
+}

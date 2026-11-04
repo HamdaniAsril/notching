@@ -1,0 +1,9 @@
+{
+  "id": "cut-files",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "permissions": ["accessibility"],
+  "capabilities": ["cut", "notify"],
+  "tool": "cut",
+  "notifications": [{ "id": "moves", "on": true, "sound": false }]
+}

@@ -75,6 +75,10 @@ mod shot_pick;
 mod shot_service;
 #[cfg(target_os = "macos")]
 mod timer_service;
+mod tools;
+mod win_rules;
+mod win_service;
+mod ax;
 
 #[cfg(target_os = "macos")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -168,6 +172,7 @@ pub fn run() {
             shot_hotkey::shot_keys_hold,
             shot_hotkey::shot_set_key,
             shot_hotkey::shot_reset_keys,
+            win_service::window_keys,
             shot_pick::shot_pick,
             shot_pick::shot_pick_state,
             shot_pick::shot_pick_done,
@@ -243,6 +248,7 @@ pub fn run() {
             keyclean_service::start(app.handle().clone());
             lamp_service::start(app.handle());
             media_service::start(app.handle());
+            win_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());

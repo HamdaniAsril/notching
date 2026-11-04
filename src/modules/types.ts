@@ -62,6 +62,7 @@ export interface ModuleInfo {
   status: boolean; // declares "status": may show a status beside the notch
   statusShown: boolean; // its status switch in Pengaturan
   action: TileAction | null; // its Modul tile runs this instead of opening a page
+  tool: boolean; // a background tool: no tile and no page in the notch (design 4 Nov, alat latar §6)
   permissions: string[]; // system permissions it needs: 'accessibility', 'camera', 'location', 'screen-recording'
 }
 
@@ -76,7 +77,11 @@ export const hasPage = (m: ModuleInfo): boolean => m.entry !== null && m.card !=
 
 // A module the person sees as one, with a tile on the Modul page: it has a page
 // or a tile action. Anything else is a package of widgets only.
-export const isModule = (m: ModuleInfo): boolean => hasPage(m) || m.action !== null;
+export const isModule = (m: ModuleInfo): boolean => hasPage(m) || m.action !== null || m.tool;
+
+// A background tool (design 4 Nov, alat latar): switched on and off like a
+// module, but with no tile on the notch's Modul page.
+export const isTool = (m: ModuleInfo): boolean => m.tool;
 
 export interface ModuleState {
   lang: Lang;

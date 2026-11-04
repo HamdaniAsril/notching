@@ -350,7 +350,7 @@ fn mac_held(keys: &ShotKeys) -> [MacHold; 2] {
 }
 
 // `defaults export com.apple.symbolichotkeys -` piped through `plutil -convert json`.
-fn read_symbolic_hotkeys() -> Result<serde_json::Value, String> {
+pub fn read_symbolic_hotkeys() -> Result<serde_json::Value, String> {
     let mut defaults = Command::new("/usr/bin/defaults")
         .args(["export", "com.apple.symbolichotkeys", "-"])
         .stdout(Stdio::piped())

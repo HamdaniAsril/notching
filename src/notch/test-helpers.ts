@@ -89,7 +89,7 @@ export function moduleInfo(id: string, over: Partial<ModuleInfo> = {}): ModuleIn
   return {
     id, name: id, shortName: id, description: '', version: '1.0.0', entry: 'index.html', icon: 'icon.svg',
     card: MODULE_CARDS[id] ?? { width: 400, height: 90 }, installed: true, enabled: true, size: 0, iconSvg: '',
-    channels: [], widgets: [], activity: null, status: false, statusShown: true, action: null, permissions: [], ...over,
+    channels: [], widgets: [], activity: null, status: false, statusShown: true, action: null, tool: false, permissions: [], ...over,
   };
 }
 

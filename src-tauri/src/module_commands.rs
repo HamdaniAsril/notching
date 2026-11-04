@@ -52,6 +52,7 @@ pub fn set_module_enabled(app: AppHandle, core: State<CoreState>, id: String, en
         crate::shot_hotkey::module_on(&app, &id);
         crate::media_service::module_on(&app, &id);
     }
+    crate::tools::module_changed(&app, &id, enabled);
     crate::status::publish(&app);
     Ok(())
 }
@@ -68,6 +69,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     crate::cleaner_service::module_gone(&app, &id);
     crate::media_service::module_gone(&app, &id);
     crate::shot_service::uninstalled(&app, &id);
+    crate::tools::module_changed(&app, &id, false);
     crate::status::publish(&app);
     Ok(())
 }
@@ -77,6 +79,7 @@ pub fn reinstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     change(&app, &core, |c| c.reinstall(&id))?;
     crate::shot_hotkey::module_on(&app, &id);
     crate::media_service::module_on(&app, &id);
+    crate::tools::module_changed(&app, &id, true);
     crate::status::publish(&app);
     Ok(())
 }

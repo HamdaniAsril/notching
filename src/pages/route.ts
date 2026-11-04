@@ -1,6 +1,6 @@
 import type { ShelfState, Shot, ShotSetup } from '../bridge';
 import { fill, type HostStrings } from '../i18n';
-import { hasPage, isModule, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
+import { hasPage, isModule, isTool, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import type { CardSize } from '../notch/controller';
 import { type CatalogWidget, stripSlot, widgetCatalog } from './layout';
 
@@ -69,9 +69,10 @@ export type PageView =
   // Full Disk Access line; `height`: the start view as drawn, when it is taller.
   | { kind: 'cleaner'; key: typeof CLEANER_KEY; screen: 'home' | 'list'; note: boolean; height?: number };
 
-// The Modul page's modules: installed, on, with a page or a tile action; in catalog order.
+// The Modul page's modules: installed, on, with a page or a tile action; in
+// catalog order. Background tools have neither (design 4 Nov, alat latar §2).
 export function pageModules(s: ModuleState): ModuleInfo[] {
-  return s.modules.filter(m => m.installed && m.enabled && isModule(m));
+  return s.modules.filter(m => m.installed && m.enabled && isModule(m) && !isTool(m));
 }
 
 export function resolvePage(s: ModuleState, key: string | null): PageView | null {

@@ -1,0 +1,11 @@
+{
+  "name": "Potong file",
+  "shortName": "Potong",
+  "description": "⌘X dan ⌘V untuk memindah file di Finder",
+  "channels": { "moves": "Potong dan pindah" },
+  "notice": {
+    "cut": { "title": "{n} file dipotong", "titleOne": "{n} file dipotong", "detail": "Tekan ⌘V di folder tujuan" },
+    "moved": { "title": "{n} file dipindah ke {folder}", "titleOne": "{n} file dipindah ke {folder}" },
+    "desktop": "Desktop"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Arrange windows",
+  "shortName": "Windows",
+  "description": "⌃⌥ with Q–C places windows on their screen",
+  "channels": { "access": "Access" },
+  "notice": {
+    "access": { "title": "Arrange windows needs Accessibility access", "detail": "Open Settings → Permissions" }
+  }
+}

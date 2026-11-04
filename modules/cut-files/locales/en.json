@@ -1,0 +1,11 @@
+{
+  "name": "Cut files",
+  "shortName": "Cut",
+  "description": "⌘X and ⌘V move files in Finder",
+  "channels": { "moves": "Cut and move" },
+  "notice": {
+    "cut": { "title": "{n} files cut", "titleOne": "{n} file cut", "detail": "Press ⌘V in the destination folder" },
+    "moved": { "title": "{n} files moved to {folder}", "titleOne": "{n} file moved to {folder}" },
+    "desktop": "Desktop"
+  }
+}

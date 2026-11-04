@@ -200,3 +200,10 @@ test('Cleaner: the start view, taller with its note, and the lists', () => {
   expect(viewSize({ ...home, screen: 'list', height: 199 })).toEqual({ width: 520, height: CLEANER.list });
   expect([CLEANER.home, CLEANER.homeNote, CLEANER.list]).toEqual([188, 28, 440]);
 });
+
+test('background tools get no tile and no page in the notch', () => {
+  const tool = moduleInfo('window-keys', { entry: null, card: null, tool: true });
+  const s = state({ modules: [homeWidgets(), moduleInfo('system-stat'), tool] });
+  expect(pageModules(s).map(m => m.id)).toEqual(['system-stat']);
+  expect(resolvePage(s, 'module:window-keys')).toBeNull();
+});

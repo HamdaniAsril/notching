@@ -20,6 +20,7 @@ interface ManifestJson {
   notifications?: { id: string; on: boolean; sound: boolean; widget?: string }[];
   widgets?: { id: string; entry: string; width: number; kind: WidgetKind }[];
   action?: { capability: string; method: string };
+  tool?: string;
   permissions?: string[];
 }
 
@@ -43,7 +44,7 @@ export function catalog(lang: Lang, off: string[]): ModuleInfo[] {
   return (index as string[]).map(id => {
     const m = manifestOf(id);
     const t = locales[`../modules/${id}/locales/${lang}.json`] ?? {};
-    const module = (m.entry !== undefined && m.card !== undefined) || m.action !== undefined;
+    const module = (m.entry !== undefined && m.card !== undefined) || m.action !== undefined || m.tool !== undefined;
     return {
       id, name: t.name ?? id, shortName: t.shortName ?? t.name ?? id, description: t.description ?? '',
       version: m.version, entry: m.entry ?? null, icon: m.icon, card: m.card ?? null,
@@ -55,6 +56,7 @@ export function catalog(lang: Lang, off: string[]): ModuleInfo[] {
       status: (m.capabilities ?? []).includes('status'),
       statusShown: true,
       action: m.action ?? null,
+      tool: m.tool !== undefined,
       permissions: m.permissions ?? [],
     };
   });
