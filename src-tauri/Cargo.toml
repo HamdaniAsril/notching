@@ -1,6 +1,6 @@
 [package]
 name = "notching"
-version = "0.1.2"
+version = "0.1.3"
 description = "Notching: a calm notch for daily tools"
 authors = ["HamdaniAsril"]
 license = "MIT"

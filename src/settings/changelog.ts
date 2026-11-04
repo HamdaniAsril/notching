@@ -12,7 +12,7 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.3',
-    date: null,
+    date: '2026-11-04',
     items: {
       id: [
         'Ikon app baru: simbol nøtching.',
