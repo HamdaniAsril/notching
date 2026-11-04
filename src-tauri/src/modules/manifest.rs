@@ -49,6 +49,12 @@ pub enum Capability {
     /// The package's own small settings, one JSON object kept by the notch.
     #[serde(rename = "prefs")]
     Prefs,
+    /// Potong file: ⌘X and ⌘V move files in Finder, run by the core (design 4 Nov, alat latar §4).
+    #[serde(rename = "cut")]
+    Cut,
+    /// Atur jendela: ⌃⌥ with Q–C places the focused window (design 4 Nov, alat latar §5).
+    #[serde(rename = "windows")]
+    Windows,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).
@@ -135,6 +141,10 @@ pub struct Manifest {
     pub widgets: Vec<WidgetSpec>,
     #[serde(default)]
     pub action: Option<TileAction>,
+    /// A background tool: no tile and no page, it works through the core's own
+    /// capability (design 4 Nov, alat latar §6).
+    #[serde(default)]
+    pub tool: Option<Capability>,
 }
 
 impl Manifest {
@@ -145,7 +155,12 @@ impl Manifest {
     /// A module has a tile on the Modul page: it opens a page or runs an action.
     /// A package with neither only offers widgets, and is always on.
     pub fn is_module(&self) -> bool {
-        self.has_page() || self.action.is_some()
+        self.has_page() || self.action.is_some() || self.is_tool()
+    }
+
+    /// A background tool: switched on and off like a module, but with no tile.
+    pub fn is_tool(&self) -> bool {
+        self.tool.is_some()
     }
 }
 
@@ -215,10 +230,13 @@ pub fn parse_manifest(json: &str, folder: &str) -> Result<Manifest, ManifestErro
     if m.entry.is_some() != m.card.is_some() {
         return Err(ManifestError::HalfPage);
     }
-    if !m.has_page() && m.widgets.is_empty() && m.action.is_none() {
+    if !m.has_page() && m.widgets.is_empty() && m.action.is_none() && m.tool.is_none() {
         return Err(ManifestError::Empty);
     }
     if m.action.as_ref().is_some_and(|a| m.has_page() || a.method.is_empty() || !m.capabilities.contains(&a.capability)) {
+        return Err(ManifestError::BadAction);
+    }
+    if m.tool.is_some_and(|t| m.has_page() || m.action.is_some() || !m.capabilities.contains(&t)) {
         return Err(ManifestError::BadAction);
     }
     for path in m.entry.iter().chain([&m.icon]) {
@@ -350,6 +368,23 @@ mod tests {
     fn a_package_with_nothing_is_refused() {
         let bare = r#"{"id":"home","version":"1.0.0","icon":"icon.svg","permissions":[],"capabilities":[]}"#;
         assert_eq!(parse_manifest(bare, "home"), Err(ManifestError::Empty));
+    }
+
+    #[test]
+    fn a_tool_package_needs_no_page_or_action() {
+        let m = |extra: &str, caps: &str| format!(
+            r#"{{"id":"cut-files","version":"1.0.0","icon":"icon.svg","permissions":["accessibility"],
+            "capabilities":[{caps}]{extra}}}"#
+        );
+        let parsed = parse_manifest(&m(r#","tool":"cut""#, r#""cut","notify""#), "cut-files").unwrap();
+        assert_eq!(parsed.tool, Some(Capability::Cut));
+        assert!(parsed.is_tool() && parsed.is_module() && !parsed.has_page());
+        // Its capability must be declared, and a tool has no tile: no page, no action.
+        assert_eq!(parse_manifest(&m(r#","tool":"cut""#, r#""notify""#), "cut-files"), Err(ManifestError::BadAction));
+        let page = r#","tool":"windows","entry":"index.html","card":{"width":400,"height":80}"#;
+        assert_eq!(parse_manifest(&m(page, r#""windows""#), "cut-files"), Err(ManifestError::BadAction));
+        let action = r#","tool":"cut","action":{"capability":"cut","method":"x"}"#;
+        assert_eq!(parse_manifest(&m(action, r#""cut""#), "cut-files"), Err(ManifestError::BadAction));
     }
 
     #[test]

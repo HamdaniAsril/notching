@@ -116,6 +116,7 @@ mod tests {
                 notifications: vec![],
                 widgets: vec![],
                 action: None,
+                tool: None,
             },
             name: id.into(),
             short_name: id.into(),

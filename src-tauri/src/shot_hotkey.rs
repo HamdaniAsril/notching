@@ -15,6 +15,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, EventTarget, Manager, WebviewWindow};
 
 use crate::app_core::CoreState;
+use crate::carbon_keys::*;
 use crate::geometry::Rect;
 use crate::locale::Lang;
 use crate::notify::{window_list, WindowBox};
@@ -23,56 +24,6 @@ use crate::shot::{pick_screen, KeyState, Kind, Target};
 use crate::shot_keys::{from_web, label, mac_holds, set_key, Combo, MacHold, SetKeyError, ShotKeys, Which};
 use crate::shot_service::{self, MODULE_ID};
 
-#[link(name = "Carbon", kind = "framework")]
-unsafe extern "C" {
-    fn GetApplicationEventTarget() -> *mut c_void;
-    fn InstallEventHandler(
-        target: *mut c_void,
-        handler: extern "C" fn(*mut c_void, *mut c_void, *mut c_void) -> i32,
-        num_types: usize,
-        types: *const EventTypeSpec,
-        user_data: *mut c_void,
-        out_ref: *mut *mut c_void,
-    ) -> i32;
-    fn RegisterEventHotKey(
-        key_code: u32,
-        modifiers: u32,
-        id: EventHotKeyID,
-        target: *mut c_void,
-        options: u32,
-        out_ref: *mut *mut c_void,
-    ) -> i32;
-    fn UnregisterEventHotKey(hot_key: *mut c_void) -> i32;
-    fn GetEventParameter(
-        event: *mut c_void,
-        name: u32,
-        desired_type: u32,
-        actual_type: *mut u32,
-        size: usize,
-        actual_size: *mut usize,
-        data: *mut c_void,
-    ) -> i32;
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct EventHotKeyID {
-    signature: u32,
-    id: u32,
-}
-
-#[repr(C)]
-struct EventTypeSpec {
-    event_class: u32,
-    event_kind: u32,
-}
-
-const EVENT_CLASS_KEYBOARD: u32 = u32::from_be_bytes(*b"keyb"); // kEventClassKeyboard
-const EVENT_HOT_KEY_PRESSED: u32 = 5; // kEventHotKeyPressed
-const PARAM_DIRECT_OBJECT: u32 = u32::from_be_bytes(*b"----"); // kEventParamDirectObject
-const TYPE_HOT_KEY_ID: u32 = u32::from_be_bytes(*b"hkid"); // typeEventHotKeyID
-const NO_ERR: i32 = 0;
-const EVENT_NOT_HANDLED: i32 = -9874; // eventNotHandledErr
 // Marks Notching's hot keys among any others the app target sees.
 const SIGNATURE: u32 = u32::from_be_bytes(*b"ncsh");
 const KEYBOARD_SHORTCUTS_PANE: &str = "x-apple.systempreferences:com.apple.Keyboard-Settings.extension?Shortcuts";

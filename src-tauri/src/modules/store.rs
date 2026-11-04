@@ -529,6 +529,27 @@ mod tests {
     }
 
     #[test]
+    fn a_tool_can_be_switched_off_and_uninstalled() {
+        let (d, store) = setup();
+        let bundle = d.path().join("bundle");
+        std::fs::write(bundle.join("index.json"), r#"["a","b","w","t"]"#).unwrap();
+        let t = bundle.join("t");
+        std::fs::create_dir_all(&t).unwrap();
+        std::fs::write(
+            t.join("manifest.json"),
+            r#"{"id":"t","version":"1.0.0","icon":"icon.svg","permissions":["accessibility"],
+               "capabilities":["windows"],"tool":"windows"}"#,
+        )
+        .unwrap();
+        let mut s = Settings::default();
+        assert_eq!(store.set_enabled("t", false, &mut s), Ok(()));
+        let e = store.list(&s, Lang::Id).into_iter().find(|e| e.manifest.id == "t").unwrap();
+        assert!(e.installed && !e.enabled && e.manifest.is_tool());
+        assert_eq!(store.uninstall("t", &mut s), Ok(()));
+        assert_eq!(store.reinstall("t", &mut s), Ok(()));
+    }
+
+    #[test]
     fn widget_packages_cannot_be_switched_off() {
         let (_d, store) = setup();
         let mut s = Settings::default();

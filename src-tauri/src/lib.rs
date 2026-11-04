@@ -30,6 +30,7 @@ mod awake_hold;
 mod awake_service;
 #[cfg(target_os = "macos")]
 mod camera_access;
+mod carbon_keys;
 #[cfg(target_os = "macos")]
 mod cleaner_service;
 #[cfg(target_os = "macos")]

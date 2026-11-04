@@ -71,6 +71,8 @@ pub struct ModuleInfoDto {
     pub status_shown: bool,
     /// What its Modul tile runs instead of opening a page.
     pub action: Option<TileAction>,
+    /// A background tool: no tile on the notch's Modul page (design 4 Nov, alat latar §6).
+    pub tool: bool,
     pub permissions: Vec<Permission>,
 }
 
@@ -201,6 +203,7 @@ impl AppCore {
                     status: e.manifest.capabilities.contains(&Capability::Status),
                     status_shown: !self.settings.status_off.contains(&e.manifest.id),
                     action: e.manifest.action.clone(),
+                    tool: e.manifest.is_tool(),
                     permissions: e.manifest.permissions.clone(),
                 })
                 .collect(),
