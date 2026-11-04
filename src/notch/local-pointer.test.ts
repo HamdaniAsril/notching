@@ -50,3 +50,22 @@ test('a root drawn scaled down reads the pointer in its own pixels', async () =>
   expect(cb).toHaveBeenLastCalledWith({ inside: true, x: 480, y: 20 });
   p.dispose();
 });
+
+test('with an area, only a click inside it but outside the rects resigns', async () => {
+  const area = document.createElement('div');
+  const root = document.createElement('div');
+  const beside = document.createElement('button');
+  area.append(root);
+  document.body.append(area, beside);
+  const p = localPointer(root, area);
+  const resign = vi.fn();
+  p.onResignKey(resign);
+  await p.setHitRects([{ x: 0, y: 0, w: 10, h: 10 }]);
+  beside.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 50, clientY: 50 }));
+  expect(resign).not.toHaveBeenCalled();
+  root.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 50, clientY: 50 }));
+  expect(resign).toHaveBeenCalledTimes(1);
+  root.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 5, clientY: 5 }));
+  expect(resign).toHaveBeenCalledTimes(1);
+  p.dispose();
+});

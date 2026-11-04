@@ -25,6 +25,26 @@ test('hovering the preview lens grows the droplet; a click opens the panel', () 
   preview.destroy();
 });
 
+test('the open panel stays open for a click beside the frame, and closes for one inside it', () => {
+  const { box, r, preview } = setup();
+  const beside = document.createElement('button');
+  document.body.append(beside);
+  document.dispatchEvent(new MouseEvent('mousemove', { clientX: 480, clientY: 5 }));
+  r.runAll(5);
+  document.dispatchEvent(new MouseEvent('click', { clientX: 480, clientY: 5 }));
+  r.runAll(60);
+  expect(preview.controller.phase).toBe('open');
+  // A colour picked beside the preview.
+  beside.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 900, clientY: 500 }));
+  r.runAll(5);
+  expect(preview.controller.phase).toBe('open');
+  // The frame, away from the panel.
+  box.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 900, clientY: 500 }));
+  r.runAll(5);
+  expect(preview.controller.phase).not.toBe('open');
+  preview.destroy();
+});
+
 test('a new config reshapes the lens', () => {
   const { box, r, preview } = setup();
   const lens = () => box.querySelector('.notch-svg path')!.getAttribute('d');

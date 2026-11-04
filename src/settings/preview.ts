@@ -36,7 +36,7 @@ export function mountPreview(box: HTMLElement, config: NotchConfig, env: Setting
 
   const card = opts.card ?? PREVIEW_CARD;
   const controller = new NotchController({ notch: null, config: clampConfig(config), card, setTimer: env.setTimer });
-  const pointer = localPointer(root);
+  const pointer = localPointer(root, box);
   const wiring = connect(controller, { ...pointer, setPanelKey: async () => {}, quit: async () => {} }, () => view.kick());
   const view = mountNotch(root, controller, {
     raf: env.raf,

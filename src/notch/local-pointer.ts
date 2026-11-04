@@ -3,8 +3,10 @@ import { containsPoint, type Rect } from './hit';
 
 // Pointer tracking inside a page, standing in for the native pointer router: the
 // browser preview and the settings window's notch preview. A click outside the
-// hit rects plays the part of the panel losing key status.
-export function localPointer(root: HTMLElement): Pick<Bridge, 'setHitRects' | 'onPointer' | 'onResignKey'> & { dispose(): void } {
+// hit rects plays the part of the panel losing key status; with `area`, only a
+// click inside it does (the settings preview's frame: picking a colour beside it
+// leaves the panel open, owner 4 Nov).
+export function localPointer(root: HTMLElement, area?: HTMLElement): Pick<Bridge, 'setHitRects' | 'onPointer' | 'onResignKey'> & { dispose(): void } {
   const doc = root.ownerDocument;
   let rects: Rect[] = [];
   let inside = false;
@@ -31,6 +33,7 @@ export function localPointer(root: HTMLElement): Pick<Bridge, 'setHitRects' | 'o
     pointerSubs.forEach(cb => cb({ inside: false, x: 0, y: 0 }));
   };
   const onClick = (e: MouseEvent) => {
+    if (area && !(e.target instanceof Node && area.contains(e.target))) return;
     const { x, y } = local(e);
     if (!containsPoint(rects, x, y)) resignSubs.forEach(cb => cb());
   };
