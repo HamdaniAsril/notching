@@ -3,6 +3,8 @@
 Tanggal: 4 November 2026
 Status: permintaan pemilik saat menyetujui alat latar ("tombol Q–C nanti harus bisa diganti sendiri", spec alat latar §10 no. 1). Pemilik biasa minta dikerjakan dulu, jadi yang belum diputuskan ditandai **keputusan penulis** dan dikumpulkan di bagian 6 untuk ditinjau.
 
+> **Diganti 4 November 2026:** tombol bawaan bukan lagi ⌃⌥ Q–C, dan "Kembalikan" kembali ke tombol baru: ⌃⌥ panah, `;` `'` `.` `/`, `\` dan Return (isi layar, posisi kesepuluh). Tombolnya kini diatur di Pengaturan → Pintasan. Lihat `docs/superpowers/verification/2026-11-04-pengaturan-dan-update.md`. Isi di bawah dibiarkan sebagai catatan keputusan saat itu.
+
 ## 1. Maksud
 
 Sembilan tombol Atur jendela (⌃⌥ Q W E / A S D / Z X C) sekarang tetap. Orang yang sudah memakai ⌃⌥ huruf itu untuk app lain, atau lebih suka tombol lain, harus bisa menggantinya di Pengaturan, dengan cara yang sama seperti tombol Screenshot: klik tombolnya, tekan yang baru.

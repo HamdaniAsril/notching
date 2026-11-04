@@ -3,6 +3,8 @@
 Tanggal: 4 November 2026
 Status: bentuk dan kedua alat disetujui pemilik ide (lihat bagian 2 dan 4–5, ditandai **pemilik**). Pemilik meminta dikerjakan dulu, jadi semua hal yang belum diputuskan ditulis sebagai **keputusan penulis** dan dikumpulkan di bagian 10. Setelah dicoba di app, pemilik menyetujui semuanya ("setuju semua", 4 November 2026), dengan satu catatan: tombol Q–C Atur jendela nanti harus bisa diganti sendiri (bagian 10, no. 1).
 
+> **Diganti 4 November 2026:** tombol Atur jendela bukan lagi ⌃⌥ Q–C. Tombolnya sekarang ⌃⌥ panah, `;` `'` `.` `/`, `\` dan Return (isi layar, posisi kesepuluh), dan ada di Pengaturan → Pintasan. Lihat `docs/superpowers/verification/2026-11-04-pengaturan-dan-update.md`. Isi di bawah dibiarkan sebagai catatan keputusan saat itu.
+
 ## 1. Kenapa
 
 Sampai sekarang setiap modul Notching punya kotak di notch: halaman sendiri atau satu tombol. Ada pekerjaan kecil yang tidak butuh kotak sama sekali, cukup shortcut yang selalu siap. Contohnya memotong file di Finder, yang tidak bisa dilakukan Mac, dan menata jendela dengan keyboard. Alat latar adalah jenis modul untuk itu: bekerja di belakang layar, tanpa panel.
