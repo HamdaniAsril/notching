@@ -265,6 +265,22 @@ test('the open panel fades toward its bottom; a notice stays solid like the notc
   expect(panel.style.fill).toMatch(/^url\("?#notch-fade-\d+"?\)$/);
 });
 
+test('with the glass off the open panel is solid black, and turning it back on shows the fade at once', () => {
+  const { r, root, c, v } = noticeView(false);
+  const panel = root.querySelector<SVGPathElement>('.notch-panel')!;
+  r.runAll(60);
+  timers.advance(3640);
+  r.runAll(600);
+  v.setGlass(false);
+  c.click();
+  v.kick();
+  r.runAll(5);
+  expect(c.phase).toBe('open');
+  expect(panel.style.fill).toMatch(/^(#000|rgb\(0, 0, 0\))$/);
+  v.setGlass(true);
+  expect(panel.style.fill).toMatch(/^url\("?#notch-fade-\d+"?\)$/);
+});
+
 const shown = (root: HTMLElement, sel: string) => root.querySelector(sel)?.getAttribute('display') === 'inline';
 
 const st = (text: string, icon: string | null = null) => ({ text, icon });

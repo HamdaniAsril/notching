@@ -164,3 +164,11 @@ test('a status change elsewhere does not take the picker away', async () => {
   expect(root.querySelector('[data-row="look.accent"] input[type="color"]')).toBe(input);
   expect(document.documentElement.style.getPropertyValue('--v-acc')).toBe(accentPalette('#224466').acc);
 });
+
+test('the opened preview shows Beranda\'s widgets', async () => {
+  const { root } = await mountForTest({ ...TEST_STATE, panelGlass: false }, undefined, { page: 'look' });
+  const box = root.querySelector('.preview')!;
+  expect(box.classList.contains('with-widgets')).toBe(true);
+  expect(box.querySelectorAll('.look-row .ed-slot').length).toBeGreaterThan(0);
+  expect(box.querySelector('.preview-label')).toBeNull();
+});

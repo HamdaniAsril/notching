@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
+import { TEST_STATE } from '../../notch/test-helpers';
 import { mountForTest, TEST_INFO } from '../test-helpers';
 
 const screenSelect = (root: HTMLElement) => root.querySelector<HTMLSelectElement>('select[data-key="general.screen"]')!;
@@ -45,4 +46,13 @@ test('open at login follows the system state', async () => {
   const ask = await mountForTest(undefined, { ...TEST_INFO, login: 'needsApproval' });
   ask.root.querySelector<HTMLElement>('[data-key="general.loginOpen"]')!.click();
   expect(ask.bridge.openLoginItems).toHaveBeenCalledTimes(1);
+});
+
+test('the see-through panel switch shows the saved choice and saves a change', async () => {
+  const { root, bridge } = await mountForTest({ ...TEST_STATE, panelGlass: false });
+  const sw = root.querySelector<HTMLButtonElement>('[data-key="general.glass"]')!;
+  expect(sw.getAttribute('aria-checked')).toBe('false');
+  sw.click();
+  expect(bridge.setPanelGlass).toHaveBeenCalledWith(true);
+  expect(root.querySelector('[data-row="general.glass"]')!.textContent).toContain('Panel tembus pandang');
 });

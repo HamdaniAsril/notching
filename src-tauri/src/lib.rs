@@ -140,6 +140,7 @@ pub fn run() {
             settings_window::set_language,
             settings_window::set_notch_config,
             settings_window::set_accent,
+            settings_window::set_panel_glass,
             settings_window::set_screen,
             login_item::set_launch_at_login,
             login_item::open_login_items,

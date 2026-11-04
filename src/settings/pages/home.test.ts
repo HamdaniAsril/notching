@@ -26,7 +26,7 @@ test('the Umum page holds the city, the prayer method and the prayer notice', as
   const { root, text } = await open();
   expect(root.querySelector('.pane h1')!.textContent).toBe('Umum');
   const rows = [...root.querySelectorAll<HTMLElement>('[data-row]')].map(r => r.dataset.row);
-  expect(rows).toEqual(['general.language', 'general.screen', 'general.login', 'home.place', 'home.prayerMethod', 'home.prayerNotice']);
+  expect(rows).toEqual(['general.language', 'general.screen', 'general.login', 'general.glass', 'home.place', 'home.prayerMethod', 'home.prayerNotice']);
   expect(text()).toContain('Kota & waktu sholat');
   expect(text()).toContain('Belum diatur');
 });

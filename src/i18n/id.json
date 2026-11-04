@@ -238,6 +238,8 @@
       "loginUnavailable": "Hanya bisa diatur dari Notching.app yang terpasang.",
       "loginNeedsApproval": "macOS menunggu persetujuanmu di Login Items.",
       "loginOpen": "Buka Login Items",
+      "glass": "Panel tembus pandang",
+      "glassHint": "Panel yang terbuka memudar ke bawah. Kalau mati, panelnya hitam penuh.",
       "cityPrayer": "Kota & waktu sholat"
     },
     "look": {
@@ -434,6 +436,7 @@
       "language": "bahasa indonesia inggris english language otomatis",
       "screen": "layar monitor eksternal display screen",
       "login": "login masuk mulai startup otomatis",
+      "glass": "kaca transparan tembus pandang buram hitam panel glass frosted",
       "bounce": "kenyal pegas pantul bounce",
       "speed": "kecepatan cepat lambat animasi speed",
       "dropDepth": "tetesan hover turun jarak drop",

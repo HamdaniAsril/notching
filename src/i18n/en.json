@@ -238,6 +238,8 @@
       "loginUnavailable": "Only available in the installed Notching.app.",
       "loginNeedsApproval": "macOS is waiting for your OK in Login Items.",
       "loginOpen": "Open Login Items",
+      "glass": "See-through panel",
+      "glassHint": "The open panel fades toward its bottom edge. Off, it is solid black.",
       "cityPrayer": "City & prayer times"
     },
     "look": {
@@ -434,6 +436,7 @@
       "language": "language english indonesian bahasa automatic",
       "screen": "screen display monitor external",
       "login": "login startup launch automatic",
+      "glass": "glass transparent see-through frosted black solid panel kaca transparan",
       "bounce": "bounce spring",
       "speed": "speed fast slow animation",
       "dropDepth": "drop hover depth droplet",

@@ -8,6 +8,12 @@ import type { SettingsEnv } from './types';
 // The preview never opens a page; this is just the panel's size if clicked.
 const PREVIEW_CARD = { width: 360, height: 56 };
 
+export interface PreviewOptions {
+  card?: { width: number; height: number }; // the opened panel's card; PREVIEW_CARD if left out
+  body?: HTMLElement; // what the opened panel shows instead of the label
+  glass?: boolean; // the panel's fade (Umum); on if left out
+}
+
 export interface Preview {
   readonly controller: NotchController;
   setConfig(c: NotchConfig): void;
@@ -17,14 +23,14 @@ export interface Preview {
 // A lens without a notch, driven by the same controller and view as the real one,
 // so the sliders feel exactly as they will on screen. The 960 × 560 root sits
 // centred in the box without a transform, so click coordinates stay true.
-export function mountPreview(box: HTMLElement, config: NotchConfig, env: SettingsEnv, label: string): Preview {
+export function mountPreview(box: HTMLElement, config: NotchConfig, env: SettingsEnv, label: string, opts: PreviewOptions = {}): Preview {
   const doc = box.ownerDocument;
   box.classList.add('preview');
   const root = doc.createElement('div');
   root.className = 'preview-root';
   box.append(root);
 
-  const controller = new NotchController({ notch: null, config: clampConfig(config), card: PREVIEW_CARD, setTimer: env.setTimer });
+  const controller = new NotchController({ notch: null, config: clampConfig(config), card: opts.card ?? PREVIEW_CARD, setTimer: env.setTimer });
   const pointer = localPointer(root);
   const wiring = connect(controller, { ...pointer, setPanelKey: async () => {}, quit: async () => {} }, () => view.kick());
   const view = mountNotch(root, controller, {
@@ -37,10 +43,15 @@ export function mountPreview(box: HTMLElement, config: NotchConfig, env: Setting
     onMore: () => {},
   });
   view.setPill([], null, label);
-  const text = doc.createElement('div');
-  text.className = 'preview-label';
-  text.textContent = label;
-  view.content.append(text);
+  view.setGlass(opts.glass ?? true);
+  if (opts.body) {
+    view.content.append(opts.body);
+  } else {
+    const text = doc.createElement('div');
+    text.className = 'preview-label';
+    text.textContent = label;
+    view.content.append(text);
+  }
   view.kick();
 
   return {

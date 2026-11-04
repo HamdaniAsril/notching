@@ -106,6 +106,19 @@ select {
 
 .side .drag {
   height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* The wordmark in the title bar, right of the window buttons (shell.ts). */
+.side .logo img {
+  display: block;
+  height: 15px;
+  width: auto;
+  margin-top: 2px;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Sidebar */
@@ -704,6 +717,31 @@ input:focus-visible,
   font-size: 11px;
   color: var(--v-ink2);
   white-space: nowrap;
+}
+
+/* With Beranda's widgets in it (look.ts), the preview is tall enough for the
+   opened panel, its 104 px row and the pill under it. */
+.preview.with-widgets {
+  height: 214px;
+}
+
+/* Beranda's row in the opened preview, as the notch lays it out (.pg-row):
+   4 columns, 8 px apart, under the lens's 18 px top. Only a picture. */
+.look-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: 8px;
+  margin-top: 18px;
+  --w: #fff;
+  --g1: rgba(255, 255, 255, 0.68);
+  --g2: rgba(255, 255, 255, 0.45);
+  --g3: rgba(255, 255, 255, 0.16);
+}
+
+.look-row .ed-slot,
+.look-row .ed-slot:hover {
+  cursor: default;
+  box-shadow: 0 0 0 1px var(--v-ring);
 }
 
 .preview-hint {

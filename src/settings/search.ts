@@ -25,6 +25,7 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
       ['general.language', s.general.language, k.language],
       ['general.screen', s.general.screen, k.screen],
       ['general.login', s.general.login, k.login],
+      ['general.glass', s.general.glass, k.glass],
       ['home.place', s.home.place, k.place],
       ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
       ['home.prayerNotice', s.home.prayerNotice, k.channels],

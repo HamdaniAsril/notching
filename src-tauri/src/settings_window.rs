@@ -109,6 +109,11 @@ pub fn set_accent(app: AppHandle, core: State<CoreState>, accent: String, custom
     change(&app, &core, |c| c.set_accent(accent, custom))
 }
 
+#[tauri::command]
+pub fn set_panel_glass(app: AppHandle, core: State<CoreState>, on: bool) -> Result<(), String> {
+    change(&app, &core, |c| c.set_panel_glass(on))
+}
+
 /// Saves the choice, then rebuilds the overlays so only the chosen screen keeps one.
 #[tauri::command]
 pub fn set_screen(app: AppHandle, core: State<CoreState>, name: Option<String>) -> Result<(), String> {

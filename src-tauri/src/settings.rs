@@ -197,6 +197,9 @@ pub struct Settings {
     /// Atur jendela's nine keys (design 4 Nov tombol atur jendela).
     #[serde(deserialize_with = "lenient")]
     pub window_keys: crate::win_rules::WindowKeys,
+    /// The open panel fades toward its bottom; off, it is solid black (Umum, 4 Nov).
+    #[serde(deserialize_with = "lenient_true")]
+    pub panel_glass: bool,
 }
 
 impl Default for Settings {
@@ -218,6 +221,7 @@ impl Default for Settings {
             shot_keys: crate::shot_keys::ShotKeys::default(),
             shot_notice: false,
             window_keys: crate::win_rules::WindowKeys::default(),
+            panel_glass: true,
         }
     }
 }

@@ -42,10 +42,18 @@ export const generalPage: PageRender = ctx => {
     on => ctx.save('general.login', bridge.setLaunchAtLogin(on)), info.login === 'unavailable'));
   const login = row({ key: 'general.login', label: s.login, hint: loginHint[info.login], control: loginControl });
 
+  const glass = row({
+    key: 'general.glass',
+    label: s.glass,
+    hint: s.glassHint,
+    control: toggle('general.glass', s.glass, ctx.state.panelGlass,
+      on => ctx.save('general.glass', bridge.setPanelGlass(on))),
+  });
+
   const page = el('div');
   page.append(
     head({ title: ctx.strings.sections.general }),
-    group(language, screen, login),
+    group(language, screen, login, glass),
     el('div', 'grp-label', s.cityPrayer),
     sharedData(ctx),
   );

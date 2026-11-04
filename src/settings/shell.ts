@@ -1,4 +1,6 @@
 import { settingsStrings } from '../i18n';
+import logoDark from './assets/logo-dark.png';
+import logoLight from './assets/logo-light.png';
 import { applyAccent } from '../kit/accent';
 import type { ModuleState } from '../modules/types';
 import { el, head, note } from './controls';
@@ -69,6 +71,19 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   const side = el('nav', 'side');
   const sideDrag = el('div', 'drag');
   sideDrag.setAttribute('data-tauri-drag-region', '');
+  // The wordmark beside the window buttons, in the device's light or dark (brand kit:
+  // always an image; black on light, the lime ø on dark).
+  const logo = el('picture', 'logo');
+  const dark = doc.createElement('source');
+  dark.media = '(prefers-color-scheme: dark)';
+  dark.srcset = logoDark;
+  const img = doc.createElement('img');
+  img.src = logoLight;
+  img.alt = 'Notching';
+  img.draggable = false;
+  img.setAttribute('data-tauri-drag-region', '');
+  logo.append(dark, img);
+  sideDrag.append(logo);
   const searchLabel = el('label', 'search-box');
   const searchInput = el('input', 'search');
   searchInput.type = 'search';

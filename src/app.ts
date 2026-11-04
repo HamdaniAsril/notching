@@ -107,6 +107,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     onLamp: (spec, on, color, glow) => setLamp(spec, on, color, glow),
   }, doc);
   frames.setAccent(accent);
+  view.setGlass(state.panelGlass);
   const pages = mountPageView(view.content, {
     frames,
     notch: controller.notch,
@@ -458,6 +459,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       applyAccent(doc.documentElement, accent);
       frames.setAccent(accent);
     }
+    view.setGlass(next.panelGlass);
     if (!shelfOn()) dropping = false;
     const onShelfPage = page.kind === 'shelf';
     const picked = onShelfPage && shelfOn() ? shelfPage()

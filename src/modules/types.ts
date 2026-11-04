@@ -94,6 +94,7 @@ export interface ModuleState {
   sampleStatus: boolean; // the sample status from Notifikasi is showing
   accent: string; // "#rrggbb", the Volt accent picked in Tampilan
   accentCustom: string | null; // the last custom colour, kept while a preset is chosen
+  panelGlass: boolean; // the open panel fades toward its bottom; false: solid black
 }
 
 // Beranda's package: always installed, so the Katalog leaves it out (design 4 Nov §3).

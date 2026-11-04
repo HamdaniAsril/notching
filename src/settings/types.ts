@@ -66,6 +66,7 @@ export interface SettingsBridge {
   setNotchConfig(config: NotchConfig): Promise<void>;
   setAccent(accent: string, custom: string | null): Promise<void>; // custom null keeps the last custom colour
   setScreen(name: string | null): Promise<void>;
+  setPanelGlass(on: boolean): Promise<void>; // off: the open panel is solid black
   setLaunchAtLogin(on: boolean): Promise<void>;
   openLoginItems(): Promise<void>;
   setModuleEnabled(id: string, enabled: boolean): Promise<void>;

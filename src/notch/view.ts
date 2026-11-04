@@ -51,6 +51,7 @@ export interface NotchView {
   setMissed(on: boolean): void; // the dot under the notch while idle
   setStatus(items: StatusView[]): void; // beside the notch, or in a pill on a lens; [] hides it
   setLamp(lamp: LampView | null): void; // Cermin's lamp; null: the usual panel
+  setGlass(on: boolean): void; // the open panel fades toward its bottom; off: solid black
   setMedia(m: MediaView | null): void; // the cover and soundwave beside the notch, or in the lens's pill
 }
 
@@ -328,6 +329,14 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
 
   let panelFill = '';
   let lamp: LampView | null = null;
+  let glass = true;
+
+  // An open panel takes the new fill at once; otherwise the next opening does.
+  function setGlass(on: boolean): void {
+    if (glass === on) return;
+    glass = on;
+    if (c.phase === 'open' && !lamp) panel.style.fill = panelFill = on ? `url(#${fade.id})` : '#000';
+  }
 
   function setLamp(next: LampView | null): void {
     lamp = next;
@@ -357,7 +366,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     panel.setAttribute('d', c.panelVisible ? panelPath(s.pw.x, s.ph.x) : '');
     // A notice stays solid beside the physical notch; closing keeps the last fill.
     if (c.phase === 'open' || c.phase === 'notify') {
-      const fill = c.phase !== 'open' ? '#000' : lamp ? `url(#${lampFill.id})` : `url(#${fade.id})`;
+      const fill = c.phase !== 'open' ? '#000' : lamp ? `url(#${lampFill.id})` : glass ? `url(#${fade.id})` : '#000';
       if (panelFill !== fill) panel.style.fill = panelFill = fill;
     }
     setStyle(content, 'width', `${c.panelSize().w}px`);
@@ -732,6 +741,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     setMissed,
     setStatus,
     setLamp,
+    setGlass,
     setMedia,
     destroy(): void {
       cancelLinger?.();

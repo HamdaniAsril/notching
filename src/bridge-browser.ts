@@ -144,6 +144,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     sampleStatus: false,
     accent: '#c8f04a',
     accentCustom: null,
+    panelGlass: params.get('glass') !== 'off',
   };
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);

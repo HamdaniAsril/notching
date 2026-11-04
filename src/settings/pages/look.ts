@@ -1,19 +1,41 @@
 import { CONFIG_RANGES, DEFAULT_CONFIG, type NotchConfig } from '../../notch/config';
 import { ACCENT_PRESETS, accentPalette, applyAccent, DEFAULT_ACCENT } from '../../kit/accent';
 import { button, el, group, head, slider, swatches } from '../controls';
+import { CUSTOM_PAGE } from '../../pages/route';
+import { slots, widgetCatalog } from '../../pages/layout';
 import { mountPreview } from '../preview';
-import type { PageRender } from '../types';
+import { widgetSample } from './widget-preview';
+import type { PageContext, PageRender } from '../types';
 
 // The four sliders (spec 4.3): the preview follows every move, the real notch
 // follows on release, when the value is saved.
 const CUSTOM_SAVE_MS = 300;
+
+// Beranda's row as the opened preview shows it: each widget's sample on its black
+// card, in its columns. Null when Beranda has no widget whose package is on.
+function homeRow(ctx: PageContext): HTMLElement | null {
+  const home = ctx.state.pages[0];
+  if (!home) return null;
+  const row = el('div', 'look-row');
+  for (const { placement, widget } of slots(home, widgetCatalog(ctx.state))) {
+    if (!widget) continue;
+    const slot = el('div', 'ed-slot');
+    slot.style.gridColumn = `${placement.col + 1} / span ${placement.width}`;
+    slot.append(...widgetSample(widget, ctx.lang));
+    row.append(slot);
+  }
+  return row.childElementCount ? row : null;
+}
 
 export const lookPage: PageRender = ctx => {
   const s = ctx.strings.look;
   let local: NotchConfig = { ...ctx.state.notch };
 
   const box = el('div');
-  const preview = mountPreview(box, local, ctx.env, s.preview);
+  const row = homeRow(ctx);
+  if (row) box.classList.add('with-widgets');
+  const preview = mountPreview(box, local, ctx.env, s.preview,
+    { card: row ? CUSTOM_PAGE : undefined, body: row ?? undefined, glass: ctx.state.panelGlass });
   ctx.onCleanup(() => preview.destroy());
 
   const plain = (v: number) => String(v);

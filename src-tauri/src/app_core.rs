@@ -93,6 +93,8 @@ pub struct ModuleStateDto {
     /// The Volt accent and the last custom colour, "#rrggbb".
     pub accent: String,
     pub accent_custom: Option<String>,
+    /// The open panel fades toward its bottom; false: solid black.
+    pub panel_glass: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -215,6 +217,7 @@ impl AppCore {
             sample_status: self.live.has_sample(),
             accent: self.settings.accent.clone(),
             accent_custom: self.settings.accent_custom.clone(),
+            panel_glass: self.settings.panel_glass,
         }
     }
 
@@ -380,6 +383,11 @@ impl AppCore {
         };
         self.settings.accent = accent;
         self.settings.accent_custom = custom;
+        self.save()
+    }
+
+    pub fn set_panel_glass(&mut self, on: bool) -> Result<(), CoreError> {
+        self.settings.panel_glass = on;
         self.save()
     }
 
@@ -638,6 +646,14 @@ mod tests {
         core.set_accent("#c8f04a".into(), None).unwrap();
         let s = core.state();
         assert_eq!((s.accent.as_str(), s.accent_custom.as_deref()), ("#c8f04a", Some("#123456")));
+    }
+
+    #[test]
+    fn panel_glass_is_on_until_turned_off() {
+        let d = setup();
+        assert!(open(&d, None).state().panel_glass);
+        open(&d, None).set_panel_glass(false).unwrap();
+        assert!(!open(&d, None).state().panel_glass);
     }
 
     #[test]
