@@ -25,6 +25,8 @@
   ·
   <a href="#whats-inside">What's inside</a>
   ·
+  <a href="#shortcuts">Shortcuts</a>
+  ·
   <a href="#light-by-design">Light by design</a>
   ·
   <a href="#private-by-default">Privacy</a>
@@ -78,7 +80,25 @@ The pill under the notch holds your pages. Home comes first. Add as many of your
 - **Cleaner.** Clears caches and removes apps with their leftovers. Everything goes to the Trash first.
 - **Mirror.** Check your camera before a meeting.
 - **Keyboard Cleaning Mode.** Locks the keyboard so you can wipe it.
-- **System stat.** CPU, memory and network.
+- **System stat.** CPU and memory charts, the apps using the most, heat, network and storage.
+
+Add or remove any of them, and any widget pack, from the Catalog in Settings. Nothing to download: it's all in the app already.
+
+**2 background tools, no panel needed.**
+
+- **Cut files.** ⌘X and ⌘V move files in Finder, just as they move text.
+- **Arrange windows.** `⌃⌥` with an arrow key snaps the front window to half of its screen, with `;` `'` `.` `/` to a corner, with `\` to the centre, and with Return it fills the screen.
+
+## Shortcuts
+
+Every key Notching listens for sits on one page in Settings. Click one to change it:
+
+- ⌃⌥K turns Keep awake on and off.
+- ⌃⌥V opens Shelf on the screen your pointer is on.
+- ⌘⇧3 and ⌘⇧4 for Screenshot, once you hand them over from macOS.
+- The ten keys of Arrange windows.
+
+Notching won't let two of its shortcuts share a key, and tells you when another app already has one.
 
 ## Lives beside the notch
 
@@ -88,7 +108,13 @@ When the panel is closed, the notch still tells you what's going on: the album c
   <img src=".github/assets/status.png" alt="The closed notch with album art on the left, a soundwave and 18:42 countdown on the right" width="70%">
 </p>
 
-Pick your own accent color in Settings. It also works on screens without a notch and on external displays.
+Pick your own accent color in Settings, and a light or dark Settings window. It also works on screens without a notch and on external displays.
+
+## Keeps itself current, leaves cleanly
+
+- **Updates from inside the app.** Settings → About checks for a new version once a day, and installs it in one click once Notching has checked Apple's signature.
+- **What's new** in every version, right in Settings.
+- **Uninstall from Settings.** Release every permission you gave Notching, or move Notching and all its files to the Trash in one go.
 
 ## Light by design
 
@@ -111,7 +137,7 @@ A notch app is open all day, so it has to cost you almost nothing. We spent a lo
 
 On macOS, some modules need a permission, which you grant once in System Settings:
 - Screen Recording for Screenshot.
-- Accessibility for Keyboard Cleaning Mode.
+- Accessibility for Keyboard Cleaning Mode, Cut files and Arrange windows.
 - Full Disk Access for Cleaner.
 - Camera for Mirror.
 
