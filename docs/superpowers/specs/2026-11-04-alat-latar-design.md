@@ -1,7 +1,7 @@
 # Desain alat latar: Potong file dan Atur jendela
 
 Tanggal: 4 November 2026
-Status: bentuk dan kedua alat disetujui pemilik ide (lihat bagian 2 dan 4–5, ditandai **pemilik**). Pemilik meminta dikerjakan dulu, jadi semua hal yang belum diputuskan ditulis sebagai **keputusan penulis** dan dikumpulkan di bagian 10 untuk ditinjau di akhir.
+Status: bentuk dan kedua alat disetujui pemilik ide (lihat bagian 2 dan 4–5, ditandai **pemilik**). Pemilik meminta dikerjakan dulu, jadi semua hal yang belum diputuskan ditulis sebagai **keputusan penulis** dan dikumpulkan di bagian 10. Setelah dicoba di app, pemilik menyetujui semuanya ("setuju semua", 4 November 2026), dengan satu catatan: tombol Q–C Atur jendela nanti harus bisa diganti sendiri (bagian 10, no. 1).
 
 ## 1. Kenapa
 
@@ -150,7 +150,7 @@ Dalam bahasa Inggris "file" dan "files" dipilih sesuai jumlah.
 
 ## 10. Keputusan penulis untuk diperiksa pemilik ide
 
-1. Shortcut kedua alat tetap di versi ini. ⌘X dan ⌘V memang tombol Finder, dan kotak 3×3 adalah pilihan pemilik. Mengganti shortcut bisa ditambah nanti.
+1. Shortcut kedua alat tetap di versi ini. ⌘X dan ⌘V memang tombol Finder, dan kotak 3×3 adalah pilihan pemilik. **Pemilik:** tombol Q–C Atur jendela nanti bisa diganti sendiri, sebagai pekerjaan lanjutan.
 2. Nama: **Potong file** (Cut files) dan **Atur jendela** (Arrange windows). Id paket `cut-files` dan `window-keys`.
 3. Teks notifikasi di bagian 8. Atur jendela diam kalau berhasil.
 4. "File" dipakai untuk file maupun folder.
