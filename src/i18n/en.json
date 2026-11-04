@@ -327,7 +327,12 @@
       "cut": "Cut",
       "paste": "Move here",
       "cutNote": "Only in Finder. While you type, ⌘X and ⌘V work as usual.",
-      "windowNote": "Corners fill a quarter of the screen, sides fill half, S moves to the centre. Always on the window’s own screen.",
+      "windowNote": "Corners fill a quarter of the screen, sides fill half, the centre key moves the window to the centre. Always on the window’s own screen. Click a key to change it.",
+      "record": "Press a new key for {cell}. Esc to cancel.",
+      "duplicate": "Already used for {cell}",
+      "shot": "Used by Screenshot",
+      "invalid": "Use ⌘, ⌃ or ⌥ with one key",
+      "reset": "Back to ⌃⌥ Q–C",
       "other": "{keys} taken by another app",
       "shortcut": "{keys} taken by a Mac shortcut",
       "cells": {

@@ -392,6 +392,15 @@ impl AppCore {
         self.save()
     }
 
+    pub fn window_keys(&self) -> crate::win_rules::WindowKeys {
+        self.settings.window_keys
+    }
+
+    pub fn set_window_keys(&mut self, keys: crate::win_rules::WindowKeys) -> Result<(), CoreError> {
+        self.settings.window_keys = keys;
+        self.save()
+    }
+
     pub fn shot_notice(&self) -> bool {
         self.settings.shot_notice
     }
@@ -482,11 +491,15 @@ impl AppCore {
         self.changed()
     }
 
-    /// Uninstalling Screenshot also puts its keys back (design 3 Nov tombol §6).
+    /// Uninstalling Screenshot or Atur jendela also puts its keys back (design 3 Nov
+    /// tombol §6, design 4 Nov tombol atur jendela §2).
     pub fn uninstall(&mut self, id: &str) -> Result<(), CoreError> {
         self.store.uninstall(id, &mut self.settings).map_err(CoreError::Store)?;
         if id == crate::shot::MODULE_ID {
             self.settings.shot_keys = crate::shot_keys::ShotKeys::default();
+        }
+        if id == crate::win_service::MODULE_ID {
+            self.settings.window_keys = crate::win_rules::WindowKeys::default();
         }
         self.changed()
     }
@@ -549,16 +562,39 @@ mod tests {
 
     // The fake bundle with the real Screenshot module beside it.
     fn setup_with_screenshot() -> tempfile::TempDir {
+        setup_with("screenshot")
+    }
+
+    // The fake bundle with one real module of the app's beside it.
+    fn setup_with(id: &str) -> tempfile::TempDir {
         let d = setup();
         let bundle = d.path().join("bundle");
-        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../modules/screenshot");
-        let dst = bundle.join("screenshot");
+        let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../modules").join(id);
+        let dst = bundle.join(id);
         std::fs::create_dir_all(dst.join("locales")).unwrap();
         for f in ["manifest.json", "icon.svg", "locales/id.json", "locales/en.json"] {
             std::fs::copy(src.join(f), dst.join(f)).unwrap();
         }
-        std::fs::write(bundle.join("index.json"), r#"["a","b","w","screenshot"]"#).unwrap();
+        std::fs::write(bundle.join("index.json"), format!(r#"["a","b","w","{id}"]"#)).unwrap();
         d
+    }
+
+    #[test]
+    fn window_keys_save_and_uninstall_resets_them() {
+        use crate::shot_keys::{Combo, CONTROL, SHIFT};
+        use crate::win_rules::{set_key, Cell, WindowKeys};
+        let d = setup_with("window-keys");
+        let mine = set_key(WindowKeys::default(), Cell::Top, Some(Combo { code: 1, mods: CONTROL | SHIFT }), None).unwrap();
+        open(&d, None).set_window_keys(mine).unwrap();
+        assert_eq!(open(&d, None).window_keys(), mine);
+        let mut core = open(&d, None);
+        core.set_enabled("window-keys", false).unwrap();
+        assert_eq!(core.window_keys(), mine);
+        core.uninstall("a").unwrap();
+        assert_eq!(core.window_keys(), mine);
+        core.uninstall("window-keys").unwrap();
+        assert_eq!(core.window_keys(), WindowKeys::default());
+        assert_eq!(open(&d, None).window_keys(), WindowKeys::default());
     }
 
     #[test]

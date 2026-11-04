@@ -175,6 +175,8 @@ pub fn run() {
             shot_hotkey::shot_set_key,
             shot_hotkey::shot_reset_keys,
             win_service::window_keys,
+            win_service::window_set_key,
+            win_service::window_reset_keys,
             shot_pick::shot_pick,
             shot_pick::shot_pick_state,
             shot_pick::shot_pick_done,

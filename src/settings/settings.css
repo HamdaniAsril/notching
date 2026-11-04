@@ -3528,6 +3528,32 @@ body > .ed-ghost.page-row {
   color: var(--danger);
 }
 
+/* Each of the nine is a button that records a new key (design 4 Nov tombol atur
+   jendela §3): in the accent while it listens. Keys whose modifiers differ show
+   in full, so the boxes grow to fit. */
+.win-grid .btn.keycap {
+  cursor: pointer;
+}
+
+.win-grid .btn.keycap.recording {
+  box-shadow: inset 0 0 0 1.5px var(--acc);
+  color: var(--g1);
+}
+
+.win-grid.full {
+  grid-template-columns: repeat(3, auto);
+}
+
+.win-grid.full .keycap {
+  width: auto;
+  min-width: 44px;
+  padding: 0 8px;
+}
+
+.tool-keys .win-hint {
+  margin-top: 8px;
+}
+
 .tool-keys .note.err {
   color: var(--danger);
 }

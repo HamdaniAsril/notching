@@ -1,6 +1,7 @@
 //! Atur jendela in the core (design 4 Nov, alat latar §5): nine Carbon hot keys,
-//! ⌃⌥ with Q–C, while the tool is on, and the focused window placed through the
-//! Accessibility API. Nothing runs until a key is pressed.
+//! ⌃⌥ with Q–C until changed in Settings (design 4 Nov tombol atur jendela), while
+//! the tool is on, and the focused window placed through the Accessibility API.
+//! Nothing runs until a key is pressed.
 
 use std::ffi::c_void;
 use std::sync::{Mutex, Once, OnceLock};
@@ -15,11 +16,10 @@ use crate::app_core::CoreState;
 use crate::carbon_keys::{self, EVENT_NOT_HANDLED, NO_ERR};
 use crate::geometry::Rect;
 use crate::shot::KeyState;
-use crate::shot_keys::{label, mac_holds, Combo, MacHold, CONTROL, OPTION};
-use crate::win_rules::{flip, place, screen_for, Cell};
+use crate::shot_keys::{from_web, label, mac_holds, Combo, MacHold};
+use crate::win_rules::{flip, place, screen_for, set_key, Cell, WinKeyError, WindowKeys};
 
 pub const MODULE_ID: &str = "window-keys";
-const MODS: u32 = CONTROL | OPTION;
 // Marks Atur jendela's hot keys among the others on the app target.
 const SIGNATURE: u32 = u32::from_be_bytes(*b"ncwa");
 // The no-permission notice, at most once a minute (§5).
@@ -35,8 +35,8 @@ static APP: OnceLock<AppHandle> = OnceLock::new();
 static HANDLER: Once = Once::new();
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
 
-fn combo(cell: Cell) -> Combo {
-    Combo { code: cell.code(), mods: MODS }
+fn saved_keys(app: &AppHandle) -> WindowKeys {
+    app.state::<CoreState>().0.lock().unwrap().window_keys()
 }
 
 pub fn enabled(app: &AppHandle) -> bool {
@@ -110,9 +110,10 @@ fn register(app: &AppHandle) {
         }
     });
     unregister();
+    let keys = saved_keys(app);
     let mut hot_keys = HOT_KEYS.lock().unwrap();
     let states = Cell::ALL.map(|cell| {
-        let c = combo(cell);
+        let c = keys.get(cell);
         match carbon_keys::register(c.code, c.mods, SIGNATURE, cell.id()) {
             Some(hot_key) => {
                 hot_keys.0[cell.id() as usize - 1] = hot_key;
@@ -137,21 +138,32 @@ fn unregister() {
     *REGISTERED.lock().unwrap() = [KeyState::Off; 9];
 }
 
-// The keys as the tool's state says, on the main thread.
+// `run` on the main thread; off it, waits until that is done.
+fn on_main(app: &AppHandle, run: impl FnOnce() + Send + 'static) {
+    if MainThreadMarker::new().is_some() {
+        run();
+        return;
+    }
+    let (done, wait) = std::sync::mpsc::sync_channel(1);
+    let sent = app.run_on_main_thread(move || {
+        run();
+        let _ = done.send(());
+    });
+    if sent.is_ok() {
+        let _ = wait.recv();
+    }
+}
+
+// The keys as the tool's state says.
 fn sync(app: &AppHandle) {
     let handle = app.clone();
-    let run = move || {
+    on_main(app, move || {
         if enabled(&handle) {
             register(&handle);
         } else {
             unregister();
         }
-    };
-    if MainThreadMarker::new().is_some() {
-        run();
-    } else {
-        let _ = app.run_on_main_thread(run);
-    }
+    });
 }
 
 /// At launch, on the main thread.
@@ -166,9 +178,33 @@ pub fn module_changed(app: &AppHandle, id: &str) {
     }
 }
 
-/// One of the nine keys: Screenshot may not take it while the tool is on.
-pub fn is_grid_key(c: Combo) -> bool {
-    c.mods == MODS && Cell::ALL.iter().any(|cell| cell.code() == c.code)
+/// One of the nine keys while the tool is on: Screenshot may not take it.
+pub fn holds(app: &AppHandle, c: Combo) -> bool {
+    enabled(app) && saved_keys(app).cell_of(c).is_some()
+}
+
+/// While Settings records a key, the nine keys let go; then they come back.
+pub fn hold(app: &AppHandle, hold: bool) {
+    if hold {
+        let _ = app.run_on_main_thread(unregister);
+    } else {
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            if enabled(&handle) {
+                register(&handle);
+            }
+        });
+    }
+}
+
+/// The settings window closed: keys a recording there let go of come back.
+pub fn settings_closed(app: &AppHandle) {
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        if enabled(&handle) && *REGISTERED.lock().unwrap() == [KeyState::Off; 9] {
+            register(&handle);
+        }
+    });
 }
 
 #[derive(Serialize, Clone, PartialEq, Debug)]
@@ -193,7 +229,12 @@ pub fn key_state(enabled: bool, registered: KeyState, mac: MacHold) -> KeyState 
 /// it runs off the main thread.
 #[tauri::command]
 pub async fn window_keys(app: AppHandle) -> Vec<WindowKeyDto> {
-    let on = enabled(&app);
+    keys(&app)
+}
+
+fn keys(app: &AppHandle) -> Vec<WindowKeyDto> {
+    let on = enabled(app);
+    let saved = saved_keys(app);
     let registered = *REGISTERED.lock().unwrap();
     let mac = crate::shot_hotkey::read_symbolic_hotkeys().unwrap_or_else(|_| serde_json::json!({}));
     Cell::ALL
@@ -201,10 +242,45 @@ pub async fn window_keys(app: AppHandle) -> Vec<WindowKeyDto> {
         .zip(registered)
         .map(|(&cell, reg)| WindowKeyDto {
             cell,
-            label: label(combo(cell)),
-            state: key_state(on, reg, mac_holds(&mac, combo(cell))),
+            label: label(saved.get(cell)),
+            state: key_state(on, reg, mac_holds(&mac, saved.get(cell))),
         })
         .collect()
+}
+
+/// A key recorded in Settings for one cell: the key's place (`KeyboardEvent.code`)
+/// and its modifiers. Refuses another cell's key and, while Screenshot is on, its two.
+#[tauri::command]
+pub async fn window_set_key(
+    app: AppHandle,
+    cell: Cell,
+    code: String,
+    cmd: bool,
+    ctrl: bool,
+    alt: bool,
+    shift: bool,
+) -> Result<Vec<WindowKeyDto>, WinKeyError> {
+    let combo = from_web(&code, cmd, ctrl, alt, shift);
+    let shot = crate::shot_service::enabled(&app).then(|| app.state::<CoreState>().0.lock().unwrap().shot_keys());
+    let next = set_key(saved_keys(&app), cell, combo, shot)?;
+    save_keys(&app, next);
+    Ok(keys(&app))
+}
+
+/// Back to ⌃⌥ with Q–C.
+#[tauri::command]
+pub async fn window_reset_keys(app: AppHandle) -> Vec<WindowKeyDto> {
+    save_keys(&app, WindowKeys::default());
+    keys(&app)
+}
+
+fn save_keys(app: &AppHandle, next: WindowKeys) {
+    if let Err(e) = app.state::<CoreState>().0.lock().unwrap().set_window_keys(next) {
+        eprintln!("notching: arrange-windows keys not saved: {e:?}");
+    }
+    let labels: Vec<String> = Cell::ALL.iter().map(|&c| label(next.get(c))).collect();
+    eprintln!("notching: arrange-windows keys set to {}", labels.join(" "));
+    sync(app);
 }
 
 #[cfg(test)]
@@ -220,17 +296,9 @@ mod tests {
     }
 
     #[test]
-    fn grid_keys_are_control_option_with_q_to_c() {
-        assert!(is_grid_key(Combo { code: 0x0C, mods: CONTROL | OPTION }));
-        assert!(is_grid_key(Combo { code: 0x08, mods: CONTROL | OPTION }));
-        assert!(!is_grid_key(Combo { code: 0x08, mods: CONTROL | OPTION | crate::shot_keys::SHIFT }));
-        assert!(!is_grid_key(Combo { code: 0x0B, mods: CONTROL | OPTION }));
-    }
-
-    #[test]
     fn labels_read_like_the_mac() {
-        assert_eq!(label(combo(Cell::TopLeft)), "⌃⌥Q");
-        assert_eq!(label(combo(Cell::BottomRight)), "⌃⌥C");
+        assert_eq!(label(WindowKeys::default().get(Cell::TopLeft)), "⌃⌥Q");
+        assert_eq!(label(WindowKeys::default().get(Cell::BottomRight)), "⌃⌥C");
     }
 
     #[test]

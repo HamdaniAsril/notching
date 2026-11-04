@@ -43,6 +43,8 @@ export function tauriSettingsBridge(): SettingsBridge {
     shotResetKeys: () => invoke<ShotKeys>('shot_reset_keys'),
     shotKeysHold: hold => invoke('shot_keys_hold', { hold }),
     windowKeys: () => invoke<WindowKey[]>('window_keys'),
+    windowSetKey: (cell, key) => invoke<WindowKey[]>('window_set_key', { cell, ...key }),
+    windowResetKeys: () => invoke<WindowKey[]>('window_reset_keys'),
     openKeyboardShortcuts: () => invoke('open_keyboard_shortcuts'),
     openFullDiskAccessSettings: () => invoke('open_full_disk_access_settings'),
     openCameraSettings: () => invoke('open_camera_settings'),

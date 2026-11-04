@@ -52,6 +52,8 @@ export interface ShotKeyPress { code: string; cmd: boolean; ctrl: boolean; alt: 
 // of the 3×3 grid, its label ("⌃⌥Q") and whether it reaches Notching.
 export type WindowCell = 'topLeft' | 'top' | 'topRight' | 'left' | 'center' | 'right' | 'bottomLeft' | 'bottom' | 'bottomRight';
 export interface WindowKey { cell: WindowCell; label: string; state: 'ok' | 'off' | 'other' | 'shortcut' | 'mac' }
+// Why a recorded key was refused (WinKeyError in src-tauri/src/win_rules.rs).
+export type WindowKeyError = { kind: 'invalid' } | { kind: 'duplicate'; cell: WindowCell } | { kind: 'shot' };
 
 // What the settings window needs from the native side.
 export interface SettingsBridge {
@@ -89,7 +91,9 @@ export interface SettingsBridge {
   shotSetKey(which: 'screen' | 'pick', key: ShotKeyPress): Promise<ShotKeys>; // rejects with 'invalid' or 'duplicate'
   shotResetKeys(): Promise<ShotKeys>; // back to ⌘⇧3 and ⌘⇧4
   windowKeys(): Promise<WindowKey[]>; // Atur jendela's nine keys, in grid order
-  shotKeysHold(hold: boolean): Promise<void>; // Notching's keys let go while one is recorded
+  windowSetKey(cell: WindowCell, key: ShotKeyPress): Promise<WindowKey[]>; // rejects with a WindowKeyError
+  windowResetKeys(): Promise<WindowKey[]>; // back to ⌃⌥ with Q–C
+  shotKeysHold(hold: boolean): Promise<void>; // Notching's keys (Screenshot's and Atur jendela's) let go while one is recorded
   openKeyboardShortcuts(): Promise<void>; // System Settings › Keyboard › Keyboard Shortcuts › Screenshots
   openFullDiskAccessSettings(): Promise<void>; // System Settings › Privacy & Security › Full Disk Access
   openCameraSettings(): Promise<void>; // System Settings › Privacy & Security › Camera

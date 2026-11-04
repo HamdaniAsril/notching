@@ -194,6 +194,9 @@ pub struct Settings {
     /// Screenshot's first-use notice has shown, or was not needed (§3).
     #[serde(deserialize_with = "lenient")]
     pub shot_notice: bool,
+    /// Atur jendela's nine keys (design 4 Nov tombol atur jendela).
+    #[serde(deserialize_with = "lenient")]
+    pub window_keys: crate::win_rules::WindowKeys,
 }
 
 impl Default for Settings {
@@ -214,6 +217,7 @@ impl Default for Settings {
             accent_custom: None,
             shot_keys: crate::shot_keys::ShotKeys::default(),
             shot_notice: false,
+            window_keys: crate::win_rules::WindowKeys::default(),
         }
     }
 }
@@ -401,6 +405,19 @@ mod tests {
         assert!(s.shot_notice);
         let (_d, s) = load(r#"{"shotKeys":"x","shotNotice":3,"language":"en"}"#);
         assert_eq!((s.shot_keys, s.shot_notice, s.language), (ShotKeys::default(), false, LanguageSetting::En));
+    }
+
+    #[test]
+    fn window_keys_default_and_read_leniently() {
+        use crate::shot_keys::{Combo, CONTROL, SHIFT};
+        use crate::win_rules::{Cell, WindowKeys};
+        let (_d, s) = load(r#"{"version":2,"language":"en"}"#);
+        assert_eq!(s.window_keys, WindowKeys::default());
+        let (_d, s) = load(r#"{"windowKeys":{"center":{"code":1,"mods":4608}}}"#);
+        assert_eq!(s.window_keys.get(Cell::Center), Combo { code: 1, mods: CONTROL | SHIFT });
+        assert_eq!(s.window_keys.get(Cell::Left), WindowKeys::default().get(Cell::Left));
+        let (_d, s) = load(r#"{"windowKeys":[1,2],"language":"en"}"#);
+        assert_eq!((s.window_keys, s.language), (WindowKeys::default(), LanguageSetting::En));
     }
 
     #[test]

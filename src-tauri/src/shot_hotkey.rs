@@ -571,9 +571,11 @@ fn watch(app: &AppHandle) {
 }
 
 /// While Settings records a key, Notching's own keys let go, so pressing ⌘⇧4 there
-/// does not open the picker (§6).
+/// does not open the picker (§6). Atur jendela's keys too, so ⌃⌥Q does not move the
+/// settings window and can be refused as taken.
 #[tauri::command]
 pub fn shot_keys_hold(app: AppHandle, hold: bool) {
+    crate::win_service::hold(&app, hold);
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         if hold {
@@ -596,7 +598,7 @@ pub async fn shot_set_key(
     shift: bool,
 ) -> Result<KeysDto, SetKeyError> {
     let combo = from_web(&code, cmd, ctrl, alt, shift);
-    if combo.is_some_and(crate::win_service::is_grid_key) && crate::win_service::enabled(&app) {
+    if combo.is_some_and(|c| crate::win_service::holds(&app, c)) {
         return Err(SetKeyError::Tool);
     }
     let next = set_key(saved_keys(&app), which, combo)?;

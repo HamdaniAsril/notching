@@ -5,7 +5,7 @@ import { isModule, isTool, type ModuleInfo } from '../../modules/types';
 import { DEFAULT_LABELS } from '../../shot/keys';
 import { button, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
-import type { PageContext, PageRender, SettingsInfo, WindowKey } from '../types';
+import type { PageContext, PageRender, SettingsInfo, ShotKeyPress, WindowCell, WindowKey, WindowKeyError } from '../types';
 
 export const UNINSTALL_CONFIRM_MS = 4000;
 
@@ -14,23 +14,31 @@ type Which = 'screen' | 'pick';
 // Keys that only modify: pressed alone while recording, they wait for the rest.
 const MODIFIER = /^(Shift|Control|Alt|Meta|CapsLock|Fn)/;
 
-// Screenshot's page (design 1 Nov §4, §10; design 3 Nov tombol §6): its two keys,
-// each recorded by clicking it and pressing new ones. Under a key, who holds it
-// when it does not reach Notching; the Mac's own shortcuts can be changed in
-// System Settings, so they get a button there. While a key is recorded,
-// Notching's keys let go, so ⌘⇧4 does not open the picker here.
-function screenshotKeys(ctx: PageContext): HTMLElement {
-  const box = el('div', 'shot-keys');
-  const s = ctx.strings.shotKeys;
-  const names: Record<Which, string> = { screen: s.screen, pick: s.pick };
-  let keys: ShotKeys = { screen: 'off', pick: 'off', labels: { ...DEFAULT_LABELS }, custom: false };
-  let recording: Which | null = null;
-  let pending: Which | null = null; // a key on its way to the core
+// Records new keys for one of a page's keys at a time (design 3 Nov tombol §6):
+// while it listens, Notching's keys let go, so pressing one of them here reaches
+// the page; Esc, a press elsewhere or leaving the window cancels; a refused key
+// keeps it listening, with the reason.
+interface Recorder<W> {
+  at(): W | null; // the key listening
+  error(): string;
+  start(which: W): void;
+  stop(): void;
+}
+
+function recorder<W, R>(ctx: PageContext, box: HTMLElement, o: {
+  save(which: W, key: ShotKeyPress): Promise<R>;
+  saved(next: R): void;
+  refused(which: W, reason: unknown): string;
+  draw(): void;
+  gone(): boolean;
+}): Recorder<W> {
+  let recording: W | null = null;
+  let pending = false; // a key on its way to the core
   let error = '';
-  let gone = false;
+  const doc = () => box.ownerDocument;
 
   function stop(): void {
-    if (!recording) return;
+    if (recording === null) return;
     recording = null;
     error = '';
     doc().removeEventListener('keydown', onKey, true);
@@ -41,33 +49,33 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
 
   function stopAndDraw(): void {
     stop();
-    draw();
+    o.draw();
   }
 
-  function start(which: Which): void {
+  function start(which: W): void {
     stop();
     recording = which;
     doc().addEventListener('keydown', onKey, true);
     doc().addEventListener('mousedown', onDown, true);
     window.addEventListener('blur', stopAndDraw);
     void ctx.bridge.shotKeysHold(true).catch(() => {});
-    draw();
+    o.draw();
   }
 
   // A press elsewhere ends the recording, but the page is redrawn only after the
   // button under the pointer got its click: replaced at mousedown, it would get none.
   function onDown(e: MouseEvent): void {
-    if (e.target instanceof Element && e.target.closest('.keycap.recording')) return;
+    if (e.target instanceof Element && box.contains(e.target) && e.target.closest('.keycap.recording')) return;
     stop();
-    doc().addEventListener('mouseup', () => setTimeout(draw, 0), { once: true });
+    doc().addEventListener('mouseup', () => setTimeout(o.draw, 0), { once: true });
   }
 
   function onKey(e: KeyboardEvent): void {
     const which = recording;
-    if (!which) return;
+    if (which === null) return;
     e.preventDefault();
     e.stopPropagation();
-    // One key at a time: what was pressed is being saved, so the row shows that.
+    // One key at a time: what was pressed is being saved, so the key shows that.
     if (pending) return;
     const plain = !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey;
     if (e.key === 'Escape' && plain) {
@@ -75,26 +83,47 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
       return;
     }
     if (MODIFIER.test(e.code)) return;
-    pending = which;
-    ctx.bridge.shotSetKey(which, { code: e.code, cmd: e.metaKey, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey }).then(next => {
-      pending = null;
-      if (gone) return;
-      keys = next;
+    pending = true;
+    o.save(which, { code: e.code, cmd: e.metaKey, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey }).then(next => {
+      pending = false;
+      if (o.gone()) return;
+      o.saved(next);
       if (recording === which) {
         stopAndDraw();
         return;
       }
-      // The core put the keys back for the new key; the other row still records.
-      if (recording) void ctx.bridge.shotKeysHold(true).catch(() => {});
-      draw();
+      // The core put the keys back for the new key; another key still records.
+      if (recording !== null) void ctx.bridge.shotKeysHold(true).catch(() => {});
+      o.draw();
     }, reason => {
-      pending = null;
-      if (gone || recording !== which) return;
-      error = reason === 'duplicate' ? fill(s.duplicate, { row: names[which === 'screen' ? 'pick' : 'screen'] })
-        : reason === 'tool' ? s.tool : s.invalid;
-      draw();
+      pending = false;
+      if (o.gone() || recording !== which) return;
+      error = o.refused(which, reason);
+      o.draw();
     });
   }
+
+  return { at: () => recording, error: () => error, start, stop };
+}
+
+// Screenshot's page (design 1 Nov §4, §10; design 3 Nov tombol §6): its two keys,
+// each recorded by clicking it and pressing new ones. Under a key, who holds it
+// when it does not reach Notching; the Mac's own shortcuts can be changed in
+// System Settings, so they get a button there.
+function screenshotKeys(ctx: PageContext): HTMLElement {
+  const box = el('div', 'shot-keys');
+  const s = ctx.strings.shotKeys;
+  const names: Record<Which, string> = { screen: s.screen, pick: s.pick };
+  let keys: ShotKeys = { screen: 'off', pick: 'off', labels: { ...DEFAULT_LABELS }, custom: false };
+  let gone = false;
+  const rec = recorder<Which, ShotKeys>(ctx, box, {
+    save: (which, key) => ctx.bridge.shotSetKey(which, key),
+    saved: next => { keys = next; },
+    refused: (which, reason) => (reason === 'duplicate' ? fill(s.duplicate, { row: names[which === 'screen' ? 'pick' : 'screen'] })
+      : reason === 'tool' ? s.tool : s.invalid),
+    draw: () => draw(),
+    gone: () => gone,
+  });
 
   function held(which: Which): string {
     const state = keys[which];
@@ -104,12 +133,12 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
 
   function keyRow(which: Which): HTMLElement {
     const key = `module.screenshot.key.${which}`;
-    const on = recording === which;
-    const cap = button(key, on ? s.recording : keys.labels[which], () => (on ? undefined : start(which)));
+    const on = rec.at() === which;
+    const cap = button(key, on ? s.recording : keys.labels[which], () => (on ? undefined : rec.start(which)));
     cap.classList.add('keycap');
     cap.classList.toggle('recording', on);
-    const r = row({ key, label: names[which], hint: (on && error) || held(which) || undefined, control: cap });
-    if (on && error) r.querySelector('small')?.classList.add('err');
+    const r = row({ key, label: names[which], hint: (on && rec.error()) || held(which) || undefined, control: cap });
+    if (on && rec.error()) r.querySelector('small')?.classList.add('err');
     return r;
   }
 
@@ -129,18 +158,12 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
       }));
     }
     if (foot.childElementCount) parts.push(foot);
-    const focused = box.contains(doc().activeElement) ? (doc().activeElement as HTMLElement).dataset.key : undefined;
-    box.replaceChildren(...parts);
-    if (focused) box.querySelector<HTMLElement>(`[data-key="${focused}"]`)?.focus();
-  }
-
-  function doc(): Document {
-    return box.ownerDocument;
+    redraw(box, parts);
   }
 
   ctx.onCleanup(() => {
     gone = true;
-    stop();
+    rec.stop();
   });
   draw();
   ctx.bridge.shotKeys().then(next => {
@@ -148,6 +171,14 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
     draw();
   }, () => {});
   return box;
+}
+
+// `box` holding `parts` now, keeping the focus on the same key.
+function redraw(box: HTMLElement, parts: HTMLElement[]): void {
+  const active = box.ownerDocument.activeElement;
+  const focused = active instanceof HTMLElement && box.contains(active) ? active.dataset.key : undefined;
+  box.replaceChildren(...parts);
+  if (focused) box.querySelector<HTMLElement>(`[data-key="${focused}"]`)?.focus();
 }
 
 // Cleaner's page (design 1 Nov §9): the never-clean list, each with a way off
@@ -218,38 +249,91 @@ function cutSettings(ctx: PageContext): HTMLElement {
   return wrap(undefined, toolAccess(ctx, m), keys);
 }
 
+// The modifiers in front of a label ("⌃⌥" of "⌃⌥Q").
+const mods = (label: string) => /^[⌃⌥⌘⇧]*/.exec(label)![0];
+
 // Atur jendela's page: its permission and its nine keys drawn as the 3×3 grid
 // they make on the keyboard. A key someone else holds is marked and named below.
+// Clicking a key records a new one for that cell (design 4 Nov tombol atur
+// jendela §3); when all nine share their modifiers, those stand in front.
 function windowSettings(ctx: PageContext): HTMLElement {
   const s = ctx.strings.tools;
   const m = ctx.state.modules.find(x => x.id === 'window-keys')!;
   const box = el('div', 'tool-keys');
+  let keys: WindowKey[] | null = null;
   let gone = false;
-  const draw = (keys: WindowKey[]) => {
-    if (gone) return;
-    const grid = el('div', 'win-grid');
+  const rec = recorder<WindowCell, WindowKey[]>(ctx, box, {
+    save: (cell, key) => ctx.bridge.windowSetKey(cell, key),
+    saved: next => { keys = next; },
+    refused: (_cell, reason) => {
+      const r = reason as WindowKeyError | undefined;
+      return r?.kind === 'duplicate' ? fill(s.duplicate, { cell: s.cells[r.cell] }) : r?.kind === 'shot' ? s.shot : s.invalid;
+    },
+    draw: () => draw(),
+    gone: () => gone,
+  });
+
+  function draw(): void {
+    if (gone || !keys) return;
+    const shared = keys.every(k => mods(k.label) === mods(keys![0].label)) ? mods(keys[0].label) : '';
+    const grid = el('div', shared ? 'win-grid' : 'win-grid full');
     grid.append(...keys.map(k => {
-      const cap = keycap(k.label.replace('⌃⌥', ''), `${k.label} · ${s.cells[k.cell]}`);
+      const on = rec.at() === k.cell;
+      const cap = button(`tool.window-keys.${k.cell}`, on ? '…' : k.label.slice(shared.length), () => (on ? undefined : rec.start(k.cell)));
+      cap.classList.add('keycap');
+      cap.setAttribute('aria-label', `${k.label} · ${s.cells[k.cell]}`);
       cap.dataset.cell = k.cell;
-      cap.classList.toggle('taken', k.state === 'other' || k.state === 'shortcut' || k.state === 'mac');
+      cap.classList.toggle('recording', on);
+      cap.classList.toggle('taken', !on && (k.state === 'other' || k.state === 'shortcut' || k.state === 'mac'));
       return cap;
     }));
-    const lead = wrap('win-lead', keycap('⌃'), keycap('⌥'), el('span', 'win-plus', '+'));
-    const taken = (state: WindowKey['state']) => keys.filter(k => k.state === state).map(k => k.label).join(', ');
-    const notes = [
-      taken('other') && fill(s.other, { keys: taken('other') }),
-      [taken('shortcut'), taken('mac')].filter(Boolean).join(', ') && fill(s.shortcut, { keys: [taken('shortcut'), taken('mac')].filter(Boolean).join(', ') }),
-    ].filter(Boolean).map(t => {
+    const keyRow = shared
+      ? wrap('win-keys', wrap('win-lead', ...[...shared].map(g => keycap(g)), el('span', 'win-plus', '+')), grid)
+      : wrap('win-keys', grid);
+    const parts: HTMLElement[] = [el('div', 'grp-label', s.keys), group(keyRow)];
+    const at = rec.at();
+    if (at) {
+      const hint = note(rec.error() || fill(s.record, { cell: s.cells[at] }));
+      hint.classList.add('win-hint');
+      if (rec.error()) hint.classList.add('err');
+      parts.push(hint);
+    }
+    parts.push(note(s.windowNote));
+    const taken = (state: WindowKey['state']) => keys!.filter(k => k.state === state).map(k => k.label).join(', ');
+    const held = [taken('shortcut'), taken('mac')].filter(Boolean).join(', ');
+    for (const t of [taken('other') && fill(s.other, { keys: taken('other') }), held && fill(s.shortcut, { keys: held })]) {
+      if (!t) continue;
       const p = note(t);
       p.classList.add('err');
-      return p;
-    });
-    box.replaceChildren(el('div', 'grp-label', s.keys), group(wrap('win-keys', lead, grid)), note(s.windowNote), ...notes);
-  };
-  ctx.onCleanup(() => { gone = true; });
-  ctx.bridge.windowKeys().then(draw, () => {});
+      parts.push(p);
+    }
+    if (keys.some((k, i) => k.label !== DEFAULT_WINDOW_LABELS[i])) {
+      const foot = el('div', 'shot-keys-foot');
+      foot.append(button('tool.window-keys.reset', s.reset, () => {
+        rec.stop();
+        ctx.bridge.windowResetKeys().then(next => {
+          keys = next;
+          draw();
+        }, () => {});
+      }));
+      parts.push(foot);
+    }
+    redraw(box, parts);
+  }
+
+  ctx.onCleanup(() => {
+    gone = true;
+    rec.stop();
+  });
+  ctx.bridge.windowKeys().then(next => {
+    keys = next;
+    draw();
+  }, () => {});
   return wrap(undefined, toolAccess(ctx, m), box);
 }
+
+// The nine keys until changed, in grid order.
+const DEFAULT_WINDOW_LABELS = [...'QWEASDZXC'].map(k => `⌃⌥${k}`);
 
 // Each module's own settings, shown on its page; the rest say they have none.
 export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {

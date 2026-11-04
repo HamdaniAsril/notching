@@ -3,7 +3,7 @@ import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
 import type { ModuleInfo, ModuleState, Page } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
-import type { LanguageChoice, Place, SettingsBridge, SettingsInfo } from './types';
+import type { LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
 
 const city = (name: string, region: string, latitude: number, longitude: number): Place =>
   ({ name, region, country: 'Indonesia', latitude, longitude });
@@ -23,6 +23,13 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   const deviceLang: Lang = params.get('lang') === 'en' ? 'en' : 'id';
   // Screenshot's keys as recorded here; labels made up from the key's code.
   let labels = { screen: '⌘⇧3', pick: '⌘⇧4' };
+  let windowLabels: Partial<Record<WindowCell, string>> = {};
+  const browserWindowKeys = (): WindowKey[] => ([
+    ['topLeft', 'Q'], ['top', 'W'], ['topRight', 'E'], ['left', 'A'], ['center', 'S'], ['right', 'D'],
+    ['bottomLeft', 'Z'], ['bottom', 'X'], ['bottomRight', 'C'],
+  ] as const).map(([cell, k]) => ({
+    cell, label: windowLabels[cell] ?? `⌃⌥${k}`, state: params.get('winkeys') === 'taken' && k === 'C' ? 'other' as const : 'ok' as const,
+  }));
   const browserKeys = (k: KeyState): ShotKeys => ({ screen: k, pick: k, labels, custom: labels.screen !== '⌘⇧3' || labels.pick !== '⌘⇧4' });
   let info: SettingsInfo = {
     language: 'auto',
@@ -117,12 +124,20 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     },
     shotKeysHold: async hold => console.info('shotKeysHold', hold),
     // ?winkeys=taken: ⌃⌥C is taken by another app.
-    windowKeys: async () => ([
-      ['topLeft', 'Q'], ['top', 'W'], ['topRight', 'E'], ['left', 'A'], ['center', 'S'], ['right', 'D'],
-      ['bottomLeft', 'Z'], ['bottom', 'X'], ['bottomRight', 'C'],
-    ] as const).map(([cell, k]) => ({
-      cell, label: `⌃⌥${k}`, state: params.get('winkeys') === 'taken' && k === 'C' ? 'other' as const : 'ok' as const,
-    })),
+    windowKeys: async () => browserWindowKeys(),
+    windowSetKey: async (cell, key) => {
+      const mods = `${key.ctrl ? '⌃' : ''}${key.alt ? '⌥' : ''}${key.cmd ? '⌘' : ''}${key.shift ? '⇧' : ''}`;
+      const label = mods + key.code.replace(/^(Key|Digit)/, '');
+      if (!mods || mods === '⇧') throw { kind: 'invalid' };
+      const other = browserWindowKeys().find(k => k.label === label && k.cell !== cell);
+      if (other) throw { kind: 'duplicate', cell: other.cell };
+      windowLabels = { ...windowLabels, [cell]: label };
+      return browserWindowKeys();
+    },
+    windowResetKeys: async () => {
+      windowLabels = {};
+      return browserWindowKeys();
+    },
     openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
     openFullDiskAccessSettings: async () => console.info('openFullDiskAccessSettings'),
     openCameraSettings: async () => console.info('openCameraSettings'),

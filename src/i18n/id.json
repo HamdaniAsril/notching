@@ -327,7 +327,12 @@
       "cut": "Potong",
       "paste": "Pindahkan ke sini",
       "cutNote": "Hanya di Finder. Saat mengetik, ⌘X dan ⌘V tetap seperti biasa.",
-      "windowNote": "Sudut mengisi seperempat layar, sisi mengisi setengah, S memindah ke tengah. Selalu di layar tempat jendela berada.",
+      "windowNote": "Sudut mengisi seperempat layar, sisi mengisi setengah, tengah memindah jendela ke tengah. Selalu di layar tempat jendela berada. Klik tombol untuk menggantinya.",
+      "record": "Tekan tombol baru untuk {cell}. Esc untuk batal.",
+      "duplicate": "Sudah dipakai untuk {cell}",
+      "shot": "Dipakai Screenshot",
+      "invalid": "Pakai ⌘, ⌃, atau ⌥ dengan satu tombol",
+      "reset": "Kembalikan ke ⌃⌥ Q–C",
       "other": "{keys} dipakai app lain",
       "shortcut": "{keys} dipakai pintasan Mac",
       "cells": {

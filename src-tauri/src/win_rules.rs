@@ -1,11 +1,15 @@
-//! Atur jendela's rules (design 4 Nov, alat latar §5): the nine keys, where each
-//! puts a window, and which screen a window is on. Free of AppKit. Rects here are
-//! in screen coordinates with the origin at the top left of the main screen.
+//! Atur jendela's rules (design 4 Nov, alat latar §5; design 4 Nov tombol atur
+//! jendela): the nine keys, as one sets them in Settings, where each puts a
+//! window, and which screen a window is on. Free of AppKit. Rects here are in
+//! screen coordinates with the origin at the top left of the main screen.
+
+use serde::{Deserialize, Serialize};
 
 use crate::geometry::Rect;
+use crate::shot_keys::{Combo, ShotKeys, CONTROL, OPTION};
 
-/// A cell of the 3×3 key grid, ⌃⌥ with Q W E / A S D / Z X C.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Serialize)]
+/// A cell of the 3×3 key grid, ⌃⌥ with Q W E / A S D / Z X C until changed.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Cell {
     TopLeft,
@@ -33,7 +37,7 @@ impl Cell {
         Cell::BottomRight,
     ];
 
-    /// The macOS virtual key code of its letter.
+    /// The macOS virtual key code of its letter, the key until changed.
     pub fn code(self) -> u32 {
         match self {
             Cell::TopLeft => 0x0C,     // Q
@@ -56,6 +60,90 @@ impl Cell {
     pub fn from_id(id: u32) -> Option<Cell> {
         Cell::ALL.get((id as usize).checked_sub(1)?).copied()
     }
+}
+
+/// The nine keys, one combo per cell; a cell missing from the settings keeps ⌃⌥
+/// and its letter.
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct WindowKeys {
+    pub top_left: Combo,
+    pub top: Combo,
+    pub top_right: Combo,
+    pub left: Combo,
+    pub center: Combo,
+    pub right: Combo,
+    pub bottom_left: Combo,
+    pub bottom: Combo,
+    pub bottom_right: Combo,
+}
+
+impl Default for WindowKeys {
+    fn default() -> Self {
+        let d = |cell: Cell| Combo { code: cell.code(), mods: CONTROL | OPTION };
+        WindowKeys {
+            top_left: d(Cell::TopLeft),
+            top: d(Cell::Top),
+            top_right: d(Cell::TopRight),
+            left: d(Cell::Left),
+            center: d(Cell::Center),
+            right: d(Cell::Right),
+            bottom_left: d(Cell::BottomLeft),
+            bottom: d(Cell::Bottom),
+            bottom_right: d(Cell::BottomRight),
+        }
+    }
+}
+
+impl WindowKeys {
+    fn slot(&mut self, cell: Cell) -> &mut Combo {
+        match cell {
+            Cell::TopLeft => &mut self.top_left,
+            Cell::Top => &mut self.top,
+            Cell::TopRight => &mut self.top_right,
+            Cell::Left => &mut self.left,
+            Cell::Center => &mut self.center,
+            Cell::Right => &mut self.right,
+            Cell::BottomLeft => &mut self.bottom_left,
+            Cell::Bottom => &mut self.bottom,
+            Cell::BottomRight => &mut self.bottom_right,
+        }
+    }
+
+    pub fn get(mut self, cell: Cell) -> Combo {
+        *self.slot(cell)
+    }
+
+    /// The cell whose key `combo` is.
+    pub fn cell_of(self, combo: Combo) -> Option<Cell> {
+        Cell::ALL.into_iter().find(|&c| self.get(c) == combo)
+    }
+}
+
+/// Why a key recorded for a cell was refused.
+#[derive(Serialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum WinKeyError {
+    /// Not a key that can be recorded, or no ⌘, ⌃ or ⌥.
+    Invalid,
+    /// Another cell's key.
+    Duplicate { cell: Cell },
+    /// One of Screenshot's two keys while Screenshot is on.
+    Shot,
+}
+
+/// One cell set to `combo`. `shot` is Screenshot's keys while it is on.
+pub fn set_key(keys: WindowKeys, cell: Cell, combo: Option<Combo>, shot: Option<ShotKeys>) -> Result<WindowKeys, WinKeyError> {
+    let combo = combo.ok_or(WinKeyError::Invalid)?;
+    if let Some(other) = keys.cell_of(combo).filter(|&c| c != cell) {
+        return Err(WinKeyError::Duplicate { cell: other });
+    }
+    if shot.is_some_and(|s| s.screen == combo || s.pick == combo) {
+        return Err(WinKeyError::Shot);
+    }
+    let mut next = keys;
+    *next.slot(cell) = combo;
+    Ok(next)
 }
 
 // One axis: 0 the first half, 1 the second, None the whole length.
@@ -124,6 +212,7 @@ pub fn flip(appkit: Rect, primary_height: f64) -> Rect {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::shot_keys::{CONTROL, OPTION, SHIFT};
 
     fn r(x: f64, y: f64, w: f64, h: f64) -> Rect {
         Rect { x, y, w, h }
@@ -184,6 +273,54 @@ mod tests {
         assert_eq!(flip(r(0.0, 0.0, 1440.0, 875.0), 900.0), r(0.0, 25.0, 1440.0, 875.0));
         // A screen above the main one.
         assert_eq!(flip(r(0.0, 900.0, 1920.0, 1080.0), 900.0), r(0.0, -1080.0, 1920.0, 1080.0));
+    }
+
+    fn ctl_opt(code: u32) -> Combo {
+        Combo { code, mods: CONTROL | OPTION }
+    }
+
+    #[test]
+    fn window_keys_default_to_control_option_q_to_c() {
+        let keys = WindowKeys::default();
+                assert_eq!(keys.get(Cell::TopLeft), ctl_opt(0x0C));
+        assert_eq!(keys.get(Cell::BottomRight), ctl_opt(0x08));
+        assert_eq!(keys.cell_of(ctl_opt(0x01)), Some(Cell::Center));
+        assert_eq!(keys.cell_of(Combo { code: 0x01, mods: CONTROL }), None);
+    }
+
+    #[test]
+    fn window_keys_read_per_cell_and_missing_cells_keep_theirs() {
+        let keys: WindowKeys = serde_json::from_str(r#"{"top":{"code":17,"mods":4608}}"#).unwrap();
+        assert_eq!(keys.get(Cell::Top), Combo { code: 17, mods: CONTROL | SHIFT });
+        assert_eq!(keys.get(Cell::Left), ctl_opt(0x00));
+        assert_ne!(keys, WindowKeys::default());
+        let json = serde_json::to_value(WindowKeys::default()).unwrap();
+        assert_eq!(json["topLeft"], serde_json::json!({"code":12,"mods":6144}));
+        assert_eq!(json["bottomRight"], serde_json::json!({"code":8,"mods":6144}));
+    }
+
+    #[test]
+    fn set_key_refuses_another_cells_key_and_screenshots() {
+        let keys = WindowKeys::default();
+        let t = Combo { code: 0x11, mods: CONTROL | OPTION };
+        let next = set_key(keys, Cell::TopLeft, Some(t), None).unwrap();
+        assert_eq!(next.get(Cell::TopLeft), t);
+        assert_eq!(next.get(Cell::Top), keys.get(Cell::Top));
+        // Its own key again is fine.
+        assert_eq!(set_key(keys, Cell::Top, Some(ctl_opt(0x0D)), None), Ok(keys));
+        assert_eq!(set_key(keys, Cell::TopLeft, Some(ctl_opt(0x08)), None), Err(WinKeyError::Duplicate { cell: Cell::BottomRight }));
+        assert_eq!(set_key(keys, Cell::TopLeft, None, None), Err(WinKeyError::Invalid));
+        let shot = ShotKeys::default();
+        assert_eq!(set_key(keys, Cell::Top, Some(shot.pick), Some(shot)), Err(WinKeyError::Shot));
+        // Screenshot off: its keys are free.
+        assert!(set_key(keys, Cell::Top, Some(shot.pick), None).is_ok());
+    }
+
+    #[test]
+    fn errors_name_the_cell() {
+        let e = serde_json::to_value(WinKeyError::Duplicate { cell: Cell::BottomLeft }).unwrap();
+        assert_eq!(e, serde_json::json!({"kind":"duplicate","cell":"bottomLeft"}));
+        assert_eq!(serde_json::to_value(WinKeyError::Shot).unwrap(), serde_json::json!({"kind":"shot"}));
     }
 
     #[test]

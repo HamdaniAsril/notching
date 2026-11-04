@@ -407,6 +407,96 @@ test('Atur jendela shows its nine keys as a grid and says which are taken', asyn
   expect(text).toContain('⌃⌥S dipakai pintasan Mac');
 });
 
+const winCap = (root: HTMLElement, cell: string) => root.querySelector<HTMLElement>(`[data-key="tool.window-keys.${cell}"]`)!;
+const winHint = (root: HTMLElement) => root.querySelector<HTMLElement>('.tool-keys .win-hint');
+const winCaps = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('.win-grid .keycap')].map(e => e.textContent);
+
+async function onWindowPage(keys = windowKeys(), lang: 'id' | 'en' = 'id') {
+  const t = await mountForTest({ ...TOOLS, lang });
+  t.bridge.windowKeys.mockResolvedValue(keys);
+  t.app.go({ page: 'module', id: 'window-keys' });
+  await settle();
+  return t;
+}
+
+// The nine keys with some cells' labels changed.
+const relabel = (labels: Record<string, string>) => windowKeys().map(k => ({ ...k, label: labels[k.cell] ?? k.label }));
+
+test('Atur jendela: clicking a key records a new one for that cell', async () => {
+  const { root, bridge } = await onWindowPage();
+  expect(winHint(root)).toBeNull();
+  expect(root.querySelector('[data-key="tool.window-keys.reset"]')).toBeNull();
+  bridge.windowSetKey.mockResolvedValue(relabel({ topLeft: '⌃⇧T' }));
+  winCap(root, 'topLeft').click();
+  expect(winCap(root, 'topLeft').textContent).toBe('…');
+  expect(winCap(root, 'topLeft').classList.contains('recording')).toBe(true);
+  expect(winHint(root)!.textContent).toBe('Tekan tombol baru untuk Kiri atas. Esc untuk batal.');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(true);
+  press({ key: 'Control', code: 'ControlLeft', ctrlKey: true });
+  expect(bridge.windowSetKey).not.toHaveBeenCalled();
+  press({ key: 'T', code: 'KeyT', ctrlKey: true, shiftKey: true });
+  expect(bridge.windowSetKey).toHaveBeenCalledWith('topLeft', { code: 'KeyT', cmd: false, ctrl: true, alt: false, shift: true });
+  await settle();
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
+  expect(winHint(root)).toBeNull();
+  // The modifiers differ now: no ⌃⌥ in front, each key in full.
+  expect(root.querySelector('.win-lead')).toBeNull();
+  expect(winCaps(root)).toEqual(['⌃⇧T', '⌃⌥W', '⌃⌥E', '⌃⌥A', '⌃⌥S', '⌃⌥D', '⌃⌥Z', '⌃⌥X', '⌃⌥C']);
+  expect(root.querySelector('[data-key="tool.window-keys.reset"]')!.textContent).toBe('Kembalikan ke ⌃⌥ Q–C');
+});
+
+test('Atur jendela: the same modifiers for all keep them in front of the grid', async () => {
+  const { root } = await onWindowPage(relabel({ center: '⌃⌥G' }));
+  expect(root.querySelector('.win-lead')!.textContent).toBe('⌃⌥+');
+  expect(winCaps(root)).toEqual(['Q', 'W', 'E', 'A', 'G', 'D', 'Z', 'X', 'C']);
+  expect(root.querySelector('[data-key="tool.window-keys.reset"]')).not.toBeNull();
+});
+
+test('Atur jendela: a refused key keeps recording and says why', async () => {
+  const { root, bridge } = await onWindowPage();
+  winCap(root, 'top').click();
+  bridge.windowSetKey.mockRejectedValueOnce({ kind: 'duplicate', cell: 'bottomRight' });
+  press({ key: 'c', code: 'KeyC', ctrlKey: true, altKey: true });
+  await settle();
+  expect(winHint(root)!.textContent).toBe('Sudah dipakai untuk Kanan bawah');
+  expect(winHint(root)!.classList.contains('err')).toBe(true);
+  expect(winCap(root, 'top').textContent).toBe('…');
+  bridge.windowSetKey.mockRejectedValueOnce({ kind: 'shot' });
+  press({ key: '3', code: 'Digit3', metaKey: true, shiftKey: true });
+  await settle();
+  expect(winHint(root)!.textContent).toBe('Dipakai Screenshot');
+  bridge.windowSetKey.mockRejectedValueOnce({ kind: 'invalid' });
+  press({ key: 'q', code: 'KeyQ' });
+  await settle();
+  expect(winHint(root)!.textContent).toBe('Pakai ⌘, ⌃, atau ⌥ dengan satu tombol');
+  expect(bridge.shotKeysHold).not.toHaveBeenCalledWith(false);
+});
+
+test('Atur jendela: Esc cancels, leaving the page lets the keys come back', async () => {
+  const { root, app, bridge } = await onWindowPage();
+  winCap(root, 'center').click();
+  press({ key: 'Escape', code: 'Escape' });
+  expect(winCap(root, 'center').textContent).toBe('S');
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
+  winCap(root, 'center').click();
+  app.go({ page: 'modules' });
+  expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
+  press({ key: 'G', code: 'KeyG', ctrlKey: true });
+  expect(bridge.windowSetKey).not.toHaveBeenCalled();
+});
+
+test('Atur jendela: changed keys go back to ⌃⌥ Q–C', async () => {
+  const { root, bridge } = await onWindowPage(relabel({ topLeft: '⌃⇧T' }), 'en');
+  bridge.windowResetKeys.mockResolvedValue(windowKeys());
+  const reset = root.querySelector<HTMLElement>('[data-key="tool.window-keys.reset"]')!;
+  expect(reset.textContent).toBe('Back to ⌃⌥ Q–C');
+  reset.click();
+  await settle();
+  expect(bridge.windowResetKeys).toHaveBeenCalledTimes(1);
+  expect(winCaps(root)).toEqual(['Q', 'W', 'E', 'A', 'S', 'D', 'Z', 'X', 'C']);
+  expect(root.querySelector('[data-key="tool.window-keys.reset"]')).toBeNull();
+});
+
 test('tool pages follow the language', async () => {
   const { root, app, bridge } = await mountForTest({ ...TOOLS, lang: 'en' });
   app.go({ page: 'module', id: 'cut-files' });
