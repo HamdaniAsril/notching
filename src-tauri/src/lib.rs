@@ -75,6 +75,8 @@ mod shot_pick;
 mod shot_service;
 #[cfg(target_os = "macos")]
 mod timer_service;
+mod cut_rules;
+mod cut_service;
 mod tools;
 mod win_rules;
 mod win_service;
@@ -249,6 +251,7 @@ pub fn run() {
             lamp_service::start(app.handle());
             media_service::start(app.handle());
             win_service::start(app.handle());
+            cut_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());

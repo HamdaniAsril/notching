@@ -147,6 +147,7 @@ pub fn settings_url(route: Option<&str>) -> String {
 
 fn open(app: AppHandle, window: WebviewWindow, route: Option<String>) -> Result<(), String> {
     let _opening = OPENING.lock().unwrap_or_else(|e| e.into_inner());
+    crate::tools::settings_opened(&app);
     if let Some(existing) = app.get_webview_window(SETTINGS_LABEL) {
         let _ = app.set_activation_policy(ActivationPolicy::Regular);
         let _ = existing.unminimize();
