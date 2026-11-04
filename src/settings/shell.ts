@@ -71,9 +71,9 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   const side = el('nav', 'side');
   const sideDrag = el('div', 'drag');
   sideDrag.setAttribute('data-tauri-drag-region', '');
-  // The wordmark centred in the title bar, in the device's light or dark (brand kit:
-  // always an image; black on light, the lime ø on dark). Clicks pass through to
-  // the drag regions under it.
+  // The wordmark at the sidebar's right edge in the title bar, in the device's light or
+  // dark (brand kit: always an image; black on light, the lime ø on dark). Clicks pass
+  // through to the drag region.
   const logo = el('picture', 'logo');
   const dark = doc.createElement('source');
   dark.media = '(prefers-color-scheme: dark)';
@@ -83,6 +83,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   img.alt = 'Notching';
   img.draggable = false;
   logo.append(dark, img);
+  sideDrag.append(logo);
   const searchLabel = el('label', 'search-box');
   const searchInput = el('input', 'search');
   searchInput.type = 'search';
@@ -117,7 +118,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   const body = el('div', 'pane-body');
   pane.append(paneDrag, body);
   root.classList.add('settings');
-  root.replaceChildren(side, pane, logo);
+  root.replaceChildren(side, pane);
 
   const strings = () => settingsStrings(state.lang);
 
