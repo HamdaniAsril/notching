@@ -46,18 +46,19 @@ Pengaturan pemilik dicadangkan di `~/Library/Application Support/id.web.notching
 | CPU 0,0% saat diam, kedua alat menyala | Lulus | `ps` 5 sampel 0,0; waktu CPU 0:00,27 setelah menyala. |
 | Tanpa izin Aksesibilitas, event tap tidak dipasang (⌘X di Finder tetap seperti biasa) | Lulus | Tidak ada baris "cut-files tap installed" di log. Build uji belum diberi izin. |
 
-### Menunggu uji pemilik
+### Dicoba pemilik
 
-Build uji perlu izin Aksesibilitas sendiri (lihat catatan build uji). Setelah izin diberikan:
+Build uji tidak ditandatangani, jadi izin Aksesibilitasnya harus ditambahkan sendiri. Dua laporan pertama ("udah jalan kok cut nya", lalu "Diizinkan") belum cocok dengan log: tidak ada baris "cut-files tap installed" dan tidak ada thread tap di proses. Setelah entri izin diganti ke build uji, log mencatat `cut-files tap installed: true`. macOS lalu menutup build uji dan membuka Notching di /Applications ("Keluar & Buka Lagi"), jadi build uji dijalankan lagi. Saat menyala, tap langsung terpasang.
 
-| Cek | Hasil |
-|---|---|
-| Finder: pilih 3 file, ⌘X → notch "3 file dipotong" | belum |
-| ⌘V di folder lain → file pindah, notch "3 file dipindah ke <folder>" | belum |
-| ⌘X lalu ⌘V di desktop → notch menyebut "Desktop" | belum |
-| Saat mengganti nama file di Finder, ⌘X dan ⌘V memotong dan menempel teks | belum |
-| ⌘X di app lain (misalnya Notes) tetap memotong teks | belum |
-| ⌘X tanpa file terpilih, lalu ⌘V → tidak ada yang dipindah | belum |
-| Sembilan tombol ⌃⌥ Q–C di layar MacBook | belum |
-| Tombol yang sama di layar kedua (kalau ada) | belum |
-| CPU kembali 0,0% setelah dipakai | belum |
+| Cek | Hasil | Bukti |
+|---|---|---|
+| ⌘X di Finder menandai file, notch memberi tahu | Lulus | Log: `2 files cut`, `1 files cut`, `1 files cut`. |
+| ⌘V di folder lain memindah file | Lulus | Log: `2 of 2`, `1 of 1`, `1 of 1 cut files moved` (file asal benar-benar hilang dari tempatnya). |
+| Mengganti nama file, ⌘X di app lain, tempel di desktop | Dilaporkan pemilik | "udah aku coba semua, berhasil semua". Tidak meninggalkan jejak di log. |
+| Sembilan tombol ⌃⌥ Q–C | Dilaporkan pemilik, belum terbukti di file | Atur jendela diam kalau berhasil, dan tidak ada baris "window not moved" di log. Dua jendela Finder yang dibaca setelahnya masih berukuran penuh (0, 33, 1470, 956), jadi bukan jendela yang dicoba. Tombol tidak bisa ditekan dari sesi ini (osascript tidak diizinkan). |
+| Layar kedua | Tidak diuji | Hanya satu layar tersambung (1470 × 956). |
+| CPU kembali 0,0% setelah dipakai | Lulus | Pencatat setiap 2 detik: saat diam 0,0. Waktu CPU 0:04,68 setelah sekitar 9 menit, termasuk pemakaian. |
+| Pengaturan sama dengan sebelum pengujian | Lulus | `settings.json` sama persis dengan cadangan `before-alat-latar/settings.json`. |
+| v0.1.2 resmi kembali di /Applications | Lulus | Build uji ditutup lewat `osascript`. Notching 0.1.2 dibuka lagi dengan satu proses perl. |
+
+Catatan: folder `cut-files` dan `window-keys` tetap ada di folder modul aktif. v0.1.2 tidak mengenalnya, jadi keduanya diabaikan sampai versi berikutnya.
