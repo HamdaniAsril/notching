@@ -97,14 +97,16 @@ A notch app is open all day, so it has to cost you almost nothing. We spent a lo
 - **6.5 MB download.** No Electron, no bundled browser. Notching is Rust and Tauri, and it draws with the web view your system already has.
 - **Sleeps when you're not looking.** With the panel closed, every widget and module is unloaded. They come back only when you open the panel.
 - **0.0% CPU at rest.** In our overnight test, 877 samples with the panel closed, Notching never went above 0.2%.
-- **Quiet on the network.** Nothing goes out until you open a page with weather on it, and then only to Open-Meteo.
+- **Quiet on the network.** Weather goes to Open-Meteo, and only when a page shows it. Once a day Notching asks GitHub for the latest version number. That's all.
 
 ## Private by default
 
 - No account. No ads. No analytics.
-- The only network calls go to [Open-Meteo](https://open-meteo.com) for weather, air quality and city search.
+- Network calls go to two places only:
+  - [Open-Meteo](https://open-meteo.com), for weather, air quality and city search.
+  - GitHub, once a day, for the latest version number. Nothing about you is sent. Turn it off in Settings → About.
 - Everything else stays on your computer.
-- The Mac app is signed with an Apple Developer ID and notarized by Apple.
+- The Mac app is signed with an Apple Developer ID and notarized by Apple. Before an update installs itself, Notching checks that the new app carries the same signature and passes Apple's Gatekeeper.
 - MIT licensed. Read every line.
 
 On macOS, some modules need a permission, which you grant once in System Settings:
@@ -142,6 +144,7 @@ The output lands in `src-tauri/target/release/bundle/`.
 Releases are built by [GitHub Actions](.github/workflows/release.yml) from a version tag:
 
 1. Bump the version in `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and the `notching` entry in `src-tauri/Cargo.lock`.
+   Give the version its date in `src/settings/changelog.ts` (Settings → What's new), and start the next one on top when work on it begins.
 2. Commit, then `git tag vX.Y.Z && git push origin main vX.Y.Z`. The tag must equal the version.
 3. CI runs the tests, builds for Apple Silicon, signs with Developer ID, notarizes, and attaches the DMG to a draft release.
 4. When the run is green, publish it: `gh release edit vX.Y.Z --draft=false`.
