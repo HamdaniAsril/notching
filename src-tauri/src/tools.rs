@@ -8,6 +8,8 @@ const TOOLS: [&str; 2] = [crate::cut_service::MODULE_ID, crate::win_service::MOD
 /// A module changed. A tool switched on without Accessibility asks macOS to
 /// show its own request (§4).
 pub fn module_changed(app: &AppHandle, id: &str, on: bool) {
+    // Keep awake's and Shelf's keys follow their modules too.
+    crate::app_keys_service::module_changed(app, id);
     if !TOOLS.contains(&id) {
         return;
     }

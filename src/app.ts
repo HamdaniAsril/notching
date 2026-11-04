@@ -561,6 +561,21 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     bridge.shotSetupShown().catch(e => console.error('notching: shot_setup_shown failed', e));
   });
 
+  // Shelf's key (Pintasan): opens the shelf here, under the cursor; pressed again
+  // while the shelf is open, it closes the panel.
+  const offShelfKey = bridge.onShelfKey(() => {
+    if (!shelfOn()) return;
+    if (isOpen() && page.kind === 'shelf') {
+      closePanel();
+      return;
+    }
+    openShelf();
+    if (!isOpen()) {
+      controller.click();
+      view.kick();
+    }
+  });
+
   // One history for every screen.
   const offShots = bridge.onShots(list => {
     shots = list;
@@ -605,6 +620,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
       offShot();
       offShots();
       offShotSetup();
+      offShelfKey();
       offShotDrag();
       offPeek();
       frames.destroy();

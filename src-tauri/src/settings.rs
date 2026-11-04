@@ -195,8 +195,11 @@ pub struct Settings {
     #[serde(deserialize_with = "lenient")]
     pub shot_notice: bool,
     /// Atur jendela's nine keys (design 4 Nov tombol atur jendela).
-    #[serde(deserialize_with = "lenient")]
+    #[serde(deserialize_with = "lenient_window_keys")]
     pub window_keys: crate::win_rules::WindowKeys,
+    /// Keep awake's and Shelf's keys on the Pintasan page (owner, 4 Nov).
+    #[serde(deserialize_with = "lenient")]
+    pub app_keys: crate::app_keys::AppKeys,
     /// The open panel fades toward its bottom; off, it is solid black (Umum, 4 Nov).
     #[serde(deserialize_with = "lenient_true")]
     pub panel_glass: bool,
@@ -221,6 +224,7 @@ impl Default for Settings {
             shot_keys: crate::shot_keys::ShotKeys::default(),
             shot_notice: false,
             window_keys: crate::win_rules::WindowKeys::default(),
+            app_keys: crate::app_keys::AppKeys::default(),
             panel_glass: true,
         }
     }
@@ -260,6 +264,11 @@ where
     T: serde::de::DeserializeOwned + Default,
 {
     lenient_or(d, T::default())
+}
+
+// Keys never changed since ⌃⌥ Q–C take the keys of 4 Nov.
+fn lenient_window_keys<'de, D: serde::Deserializer<'de>>(d: D) -> Result<crate::win_rules::WindowKeys, D::Error> {
+    lenient::<D, crate::win_rules::WindowKeys>(d).map(crate::win_rules::WindowKeys::upgraded)
 }
 
 // Switches that are on unless turned off.

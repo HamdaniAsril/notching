@@ -3579,8 +3579,8 @@ body > .ed-ghost.page-row {
   letter-spacing: 0.04em;
 }
 
-/* Atur jendela's nine keys as they sit on the keyboard: ⌃⌥, then Q W E over
-   A S D over Z X C, each row a little further right. */
+/* Atur jendela's keys where they put the window (owner, 4 Nov): ⌃⌥, then the
+   3×3 grid of the screen, and under it one wide key for the whole screen. */
 .win-keys {
   display: flex;
   align-items: center;
@@ -3614,12 +3614,9 @@ body > .ed-ghost.page-row {
   gap: 6px;
 }
 
-.win-grid .keycap:nth-child(n + 4):nth-child(-n + 6) {
-  transform: translateX(12px);
-}
-
-.win-grid .keycap:nth-child(n + 7) {
-  transform: translateX(24px);
+.win-keys .win-grid .keycap.fill {
+  grid-column: 1 / -1;
+  width: auto;
 }
 
 .win-grid .keycap.taken {

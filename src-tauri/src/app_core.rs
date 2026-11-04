@@ -412,6 +412,15 @@ impl AppCore {
         self.save()
     }
 
+    pub fn app_keys(&self) -> crate::app_keys::AppKeys {
+        self.settings.app_keys
+    }
+
+    pub fn set_app_keys(&mut self, keys: crate::app_keys::AppKeys) -> Result<(), CoreError> {
+        self.settings.app_keys = keys;
+        self.save()
+    }
+
     pub fn shot_notice(&self) -> bool {
         self.settings.shot_notice
     }

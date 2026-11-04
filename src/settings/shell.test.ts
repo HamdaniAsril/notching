@@ -29,9 +29,9 @@ const type = (input: HTMLInputElement, text: string) => {
   input.dispatchEvent(new Event('input'));
 };
 
-test('opens on Umum, with seven sections, Halaman before Modul, and the module count', async () => {
+test('opens on Umum, with eight sections, Halaman before Modul and Pintasan after it, and the module count', async () => {
   const { root } = await mountForTest();
-  expect(navLabels(root)).toEqual(['Umum', 'Tampilan notch', 'Notifikasi', 'Halaman', 'Modul', 'Izin', 'Tentang']);
+  expect(navLabels(root)).toEqual(['Umum', 'Tampilan notch', 'Notifikasi', 'Halaman', 'Modul', 'Pintasan', 'Izin', 'Tentang']);
   expect(root.querySelector('.nav.on .label')!.textContent).toBe('Umum');
   expect(h1(root)).toBe('Umum');
   // The widget package is not a module.

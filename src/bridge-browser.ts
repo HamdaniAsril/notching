@@ -278,6 +278,7 @@ export function browserBridge(root: HTMLElement): Bridge {
       const t = setTimeout(() => cb({ holder, keys: holder === 'mac' ? '⌘⇧3 dan ⌘⇧4' : '⌘⇧4' }), 1000);
       return () => clearTimeout(t);
     },
+    onShelfKey: () => () => {},
     onShots: cb => { shotsSubs.add(cb); return () => shotsSubs.delete(cb); },
     onShotDrag: () => () => {},
     shotReady: async () => {},

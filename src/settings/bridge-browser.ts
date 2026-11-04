@@ -3,7 +3,7 @@ import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
 import type { ModuleInfo, ModuleState, Page } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
-import type { LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
+import type { AppAction, AppKey, LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
 
 const city = (name: string, region: string, latitude: number, longitude: number): Place =>
   ({ name, region, country: 'Indonesia', latitude, longitude });
@@ -25,10 +25,17 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   let labels = { screen: '⌘⇧3', pick: '⌘⇧4' };
   let windowLabels: Partial<Record<WindowCell, string>> = {};
   const browserWindowKeys = (): WindowKey[] => ([
-    ['topLeft', 'Q'], ['top', 'W'], ['topRight', 'E'], ['left', 'A'], ['center', 'S'], ['right', 'D'],
-    ['bottomLeft', 'Z'], ['bottom', 'X'], ['bottomRight', 'C'],
+    ['topLeft', ';'], ['top', '↑'], ['topRight', "'"], ['left', '←'], ['center', '\\'], ['right', '→'],
+    ['bottomLeft', '.'], ['bottom', '↓'], ['bottomRight', '/'], ['fill', '↩'],
   ] as const).map(([cell, k]) => ({
-    cell, label: windowLabels[cell] ?? `⌃⌥${k}`, state: params.get('winkeys') === 'taken' && k === 'C' ? 'other' as const : 'ok' as const,
+    cell, label: windowLabels[cell] ?? `⌃⌥${k}`, state: params.get('winkeys') === 'taken' && k === '/' ? 'other' as const : 'ok' as const,
+  }));
+  let appLabels: Partial<Record<AppAction, string>> = {};
+  // A key is off while its module is.
+  const browserAppKeys = (): AppKey[] => (['awake', 'shelf'] as const).map(action => ({
+    action,
+    label: appLabels[action] ?? (action === 'awake' ? '⌃⌥K' : '⌃⌥V'),
+    state: state.modules.find(m => m.id === (action === 'awake' ? 'keep-awake' : 'shelf'))?.enabled === false ? 'off' as const : 'ok' as const,
   }));
   const browserKeys = (k: KeyState): ShotKeys => ({ screen: k, pick: k, labels, custom: labels.screen !== '⌘⇧3' || labels.pick !== '⌘⇧4' });
   let info: SettingsInfo = {
@@ -124,7 +131,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
       return browserKeys('ok');
     },
     shotKeysHold: async hold => console.info('shotKeysHold', hold),
-    // ?winkeys=taken: ⌃⌥C is taken by another app.
+    // ?winkeys=taken: ⌃⌥/ is taken by another app.
     windowKeys: async () => browserWindowKeys(),
     windowSetKey: async (cell, key) => {
       const mods = `${key.ctrl ? '⌃' : ''}${key.alt ? '⌥' : ''}${key.cmd ? '⌘' : ''}${key.shift ? '⇧' : ''}`;
@@ -138,6 +145,20 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     windowResetKeys: async () => {
       windowLabels = {};
       return browserWindowKeys();
+    },
+    appKeys: async () => browserAppKeys(),
+    appSetKey: async (action, key) => {
+      const mods = `${key.ctrl ? '⌃' : ''}${key.alt ? '⌥' : ''}${key.cmd ? '⌘' : ''}${key.shift ? '⇧' : ''}`;
+      const label = mods + key.code.replace(/^(Key|Digit)/, '');
+      if (!mods || mods === '⇧') throw { kind: 'invalid' };
+      const other = browserAppKeys().find(k => k.label === label && k.action !== action);
+      if (other) throw { kind: 'duplicate', action: other.action };
+      appLabels = { ...appLabels, [action]: label };
+      return browserAppKeys();
+    },
+    appResetKeys: async () => {
+      appLabels = {};
+      return browserAppKeys();
     },
     openKeyboardShortcuts: async () => console.info('openKeyboardShortcuts'),
     openFullDiskAccessSettings: async () => console.info('openFullDiskAccessSettings'),

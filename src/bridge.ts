@@ -138,6 +138,7 @@ export interface Bridge {
   openEditor(id: number): Promise<void>;
   onShot(cb: (e: ShotEvent) => void): () => void;
   onShotSetup(cb: (e: ShotSetup) => void): () => void;
+  onShelfKey(cb: () => void): () => void; // Shelf's key on Pintasan was pressed with the cursor on this screen
   onShots(cb: (list: Shot[]) => void): () => void;
   onShotDrag(cb: (e: ShotDrag) => void): () => void;
   shotReady(): Promise<void>; // this overlay hears notices now: the launch key notice can go out
@@ -257,6 +258,8 @@ export function tauriBridge(): Bridge {
     onShot: cb => syncUnlisten(win.listen<ShotEvent>('notching://shot', e => cb(e.payload))),
     // To the overlay under the cursor only, once ever.
     onShotSetup: cb => syncUnlisten(win.listen<ShotSetup>('notching://shot-setup', e => cb(e.payload))),
+    // Sent to the overlay under the cursor only.
+    onShelfKey: cb => syncUnlisten(win.listen('notching://shelf-key', () => cb())),
     // Broadcast to every window: one history for every screen.
     onShots: cb => syncUnlisten(listen<Shot[]>('notching://shots', e => cb(e.payload))),
     // Sent to this overlay only.

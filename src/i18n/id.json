@@ -220,6 +220,7 @@
       "notifications": "Notifikasi",
       "pages": "Halaman",
       "modules": "Modul",
+      "shortcuts": "Pintasan",
       "permissions": "Izin",
       "about": "Tentang"
     },
@@ -282,7 +283,14 @@
       "status": "Status di samping notch",
       "statusHint": "Tampil saat panel tertutup.",
       "tools": "Alat",
-      "categories": {"utilities": "Utilitas", "energy": "Energi & daya", "window": "Jendela & Dock", "app-management": "Kelola aplikasi", "files": "File", "apps": "Aplikasi"},
+      "categories": {
+        "utilities": "Utilitas",
+        "energy": "Energi & daya",
+        "window": "Jendela & Dock",
+        "app-management": "Kelola aplikasi",
+        "files": "File",
+        "apps": "Aplikasi"
+      },
       "categoryEmpty": "Belum ada modul di sini."
     },
     "catalog": {
@@ -318,7 +326,8 @@
       "mac": "Dipakai screenshot bawaan Mac",
       "shortcut": "Dipakai pintasan Mac",
       "other": "Dipakai app lain",
-      "open": "Buka Pengaturan Sistem"
+      "open": "Buka Pengaturan Sistem",
+      "app": "Dipakai pintasan Keep awake atau Shelf"
     },
     "tools": {
       "access": "Izin",
@@ -331,12 +340,12 @@
       "cut": "Potong",
       "paste": "Pindahkan ke sini",
       "cutNote": "Hanya di Finder. Saat mengetik, ⌘X dan ⌘V tetap seperti biasa.",
-      "windowNote": "Sudut mengisi seperempat layar, sisi mengisi setengah, tengah memindah jendela ke tengah. Selalu di layar tempat jendela berada. Klik tombol untuk menggantinya.",
+      "windowNote": "Sudut mengisi seperempat layar, sisi mengisi setengah, tengah memindah jendela ke tengah, ↩ memenuhi layar. Selalu di layar tempat jendela berada. Klik tombol untuk menggantinya.",
       "record": "Tekan tombol baru untuk {cell}. Esc untuk batal.",
       "duplicate": "Sudah dipakai untuk {cell}",
       "shot": "Dipakai Screenshot",
       "invalid": "Pakai ⌘, ⌃, atau ⌥ dengan satu tombol",
-      "reset": "Kembalikan ke ⌃⌥ Q–C",
+      "reset": "Kembalikan ke tombol bawaan",
       "other": "{keys} dipakai app lain",
       "shortcut": "{keys} dipakai pintasan Mac",
       "cells": {
@@ -348,8 +357,10 @@
         "right": "Kanan",
         "bottomLeft": "Kiri bawah",
         "bottom": "Bawah",
-        "bottomRight": "Kanan bawah"
-      }
+        "bottomRight": "Kanan bawah",
+        "fill": "Penuhi layar"
+      },
+      "app": "Dipakai pintasan Keep awake atau Shelf"
     },
     "permissions": {
       "sub": "Belum ada modul yang butuh izin sistem.",
@@ -449,7 +460,26 @@
       "glow": "cahaya pelangi glow warna",
       "seconds": "lama durasi detik tampil",
       "channels": "notifikasi suara bunyi reminder sholat",
-      "pages": "halaman widget pil urutan beranda"
+      "pages": "halaman widget pil urutan beranda",
+      "shortcuts": "pintasan tombol shortcut keyboard keep awake shelf titipan screenshot potong atur jendela"
+    },
+    "shortcuts": {
+      "sub": "Tombol pintas Notching di satu tempat. Klik tombolnya untuk mengganti.",
+      "apps": "Modul",
+      "awake": "Nyalakan atau matikan Keep awake",
+      "shelf": "Buka Shelf",
+      "screenshot": "Screenshot",
+      "tools": "Alat latar",
+      "recording": "Tekan tombol…",
+      "off": "{name} sedang mati. Nyalakan di Modul supaya tombolnya bekerja.",
+      "invalid": "Pakai ⌘, ⌃, atau ⌥ dengan satu tombol",
+      "duplicate": "Sudah dipakai untuk {row}",
+      "shot": "Dipakai Screenshot",
+      "window": "Dipakai Atur jendela",
+      "shortcut": "Dipakai pintasan Mac",
+      "other": "Dipakai app lain",
+      "reset": "Kembalikan ke ⌃⌥K dan ⌃⌥V",
+      "awakeNote": "Keep awake menyala tanpa batas waktu sampai tombolnya ditekan lagi."
     }
   }
 }

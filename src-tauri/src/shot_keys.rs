@@ -54,6 +54,8 @@ pub enum SetKeyError {
     Duplicate,
     /// One of Atur jendela's nine keys while that tool is on (design 4 Nov, alat latar).
     Tool,
+    /// Keep awake's or Shelf's key while its module is on (Pintasan, owner 4 Nov).
+    App,
 }
 
 // The keys that can be recorded: (virtual key code, KeyboardEvent.code, label).
@@ -74,6 +76,8 @@ const KEYS: &[(u32, &str, &str)] = &[
     (0x7A, "F1", "F1"), (0x78, "F2", "F2"), (0x63, "F3", "F3"), (0x76, "F4", "F4"),
     (0x60, "F5", "F5"), (0x61, "F6", "F6"), (0x62, "F7", "F7"), (0x64, "F8", "F8"),
     (0x65, "F9", "F9"), (0x6D, "F10", "F10"), (0x67, "F11", "F11"), (0x6F, "F12", "F12"),
+    (0x7B, "ArrowLeft", "←"), (0x7C, "ArrowRight", "→"), (0x7E, "ArrowUp", "↑"), (0x7D, "ArrowDown", "↓"),
+    (0x24, "Enter", "↩"), (0x31, "Space", "Space"),
 ];
 
 /// "⌘⇧3", "⌃⇧S": the modifiers as ⌃ ⌥ ⌘ ⇧, then the key.
@@ -218,7 +222,10 @@ mod tests {
         assert_eq!(from_web("KeyS", false, false, false, true), None);
         assert_eq!(from_web("KeyS", false, false, false, false), None);
         assert_eq!(from_web("ShiftLeft", true, false, false, true), None);
-        assert_eq!(from_web("Space", true, false, false, false), None);
+        assert_eq!(from_web("Tab", true, false, false, false), None);
+        assert_eq!(from_web("Space", true, false, false, false), Some(combo(0x31, CMD)));
+        assert_eq!(from_web("ArrowLeft", false, true, true, false), Some(combo(0x7B, CONTROL | OPTION)));
+        assert_eq!(label(combo(0x24, CONTROL | OPTION)), "⌃⌥↩");
         assert_eq!(from_web("F12", false, false, true, false), Some(combo(0x6F, OPTION)));
         assert_eq!(from_web("Slash", true, false, true, false), Some(combo(0x2C, CMD | OPTION)));
     }

@@ -25,9 +25,10 @@ test("Screenshot's keys are found by key words, in both languages", () => {
   expect(search(idx(withShot), 'tombol')[0]).toMatchObject({ key: 'module.screenshot.keys', route: { page: 'module', id: 'screenshot' } });
   expect(search(idx(withShot), 'shortcut')[0].key).toBe('module.screenshot.keys');
   expect(search(idx(withShot, 'en'), 'keys')[0].key).toBe('module.screenshot.keys');
-  expect(search(idx(), 'shortcut')).toEqual([]);
+  const shotKeys = (entries: { key: string }[]) => entries.filter(e => e.key.startsWith('module.screenshot'));
+  expect(shotKeys(search(idx(), 'shortcut'))).toEqual([]);
   const off = moduleInfo('screenshot', { name: 'Screenshot', installed: false, enabled: false });
-  expect(search(idx([...mods, off]), 'shortcut')).toEqual([]);
+  expect(shotKeys(search(idx([...mods, off]), 'shortcut'))).toEqual([]);
 });
 
 test('an uninstalled module leads to its card in the Katalog', () =>

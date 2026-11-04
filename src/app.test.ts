@@ -547,6 +547,22 @@ test('the Modul tile opens the shelf', async () => {
   expect(root.querySelector('.mods-grid')).not.toBeNull();
 });
 
+test('Shelf\'s key opens the shelf on a closed panel; pressed again, it closes', async () => {
+  const { app, r, root, bridge } = await startShelf(1);
+  bridge.emitShelfKey();
+  expect(app.controller.phase).toBe('open');
+  r.runAll(60);
+  expect(onShelf(root)).toBe(true);
+  bridge.emitShelfKey();
+  expect(app.controller.phase).not.toBe('open');
+});
+
+test('Shelf\'s key does nothing while Shelf is off', async () => {
+  const { app, bridge } = await startShelf(0, { ...SHELF_STATE, modules: [...TEST_STATE.modules, shelfInfo({ enabled: false })] });
+  bridge.emitShelfKey();
+  expect(app.controller.phase).not.toBe('open');
+});
+
 test('a drop start opens the panel in drop mode', async () => {
   const { app, r, root, bridge } = await startShelf();
   bridge.emitShelfDrop({ phase: 'start' });

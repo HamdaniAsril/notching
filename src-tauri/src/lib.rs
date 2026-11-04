@@ -81,6 +81,8 @@ mod tools;
 mod win_rules;
 mod win_service;
 mod ax;
+mod app_keys;
+mod app_keys_service;
 
 #[cfg(target_os = "macos")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -178,6 +180,9 @@ pub fn run() {
             win_service::window_keys,
             win_service::window_set_key,
             win_service::window_reset_keys,
+            app_keys_service::app_keys,
+            app_keys_service::app_set_key,
+            app_keys_service::app_reset_keys,
             shot_pick::shot_pick,
             shot_pick::shot_pick_state,
             shot_pick::shot_pick_done,
@@ -254,6 +259,7 @@ pub fn run() {
             lamp_service::start(app.handle());
             media_service::start(app.handle());
             win_service::start(app.handle());
+            app_keys_service::start(app.handle());
             cut_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());

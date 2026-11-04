@@ -1,5 +1,5 @@
 //! Atur jendela in the core (design 4 Nov, alat latar §5): nine Carbon hot keys,
-//! ⌃⌥ with Q–C until changed in Settings (design 4 Nov tombol atur jendela), while
+//! ⌃⌥ with arrows, ; ' . / \\ and Return until changed in Settings (design 4 Nov tombol atur jendela), while
 //! the tool is on, and the focused window placed through the Accessibility API.
 //! Nothing runs until a key is pressed.
 
@@ -24,13 +24,14 @@ pub const MODULE_ID: &str = "window-keys";
 const SIGNATURE: u32 = u32::from_be_bytes(*b"ncwa");
 // The no-permission notice, at most once a minute (§5).
 const NOTICE_EVERY: Duration = Duration::from_secs(60);
+const N: usize = Cell::ALL.len();
 
-struct HotKeys([*mut c_void; 9]);
+struct HotKeys([*mut c_void; N]);
 // SAFETY: the refs are only used on the main thread; the Mutex just holds them.
 unsafe impl Send for HotKeys {}
 
-static HOT_KEYS: Mutex<HotKeys> = Mutex::new(HotKeys([std::ptr::null_mut(); 9]));
-static REGISTERED: Mutex<[KeyState; 9]> = Mutex::new([KeyState::Off; 9]);
+static HOT_KEYS: Mutex<HotKeys> = Mutex::new(HotKeys([std::ptr::null_mut(); N]));
+static REGISTERED: Mutex<[KeyState; N]> = Mutex::new([KeyState::Off; N]);
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static HANDLER: Once = Once::new();
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
@@ -135,7 +136,7 @@ fn unregister() {
         carbon_keys::unregister(*hot_key);
         *hot_key = std::ptr::null_mut();
     }
-    *REGISTERED.lock().unwrap() = [KeyState::Off; 9];
+    *REGISTERED.lock().unwrap() = [KeyState::Off; N];
 }
 
 // `run` on the main thread; off it, waits until that is done.
@@ -201,7 +202,7 @@ pub fn hold(app: &AppHandle, hold: bool) {
 pub fn settings_closed(app: &AppHandle) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
-        if enabled(&handle) && *REGISTERED.lock().unwrap() == [KeyState::Off; 9] {
+        if enabled(&handle) && *REGISTERED.lock().unwrap() == [KeyState::Off; N] {
             register(&handle);
         }
     });
@@ -261,13 +262,16 @@ pub async fn window_set_key(
     shift: bool,
 ) -> Result<Vec<WindowKeyDto>, WinKeyError> {
     let combo = from_web(&code, cmd, ctrl, alt, shift);
+    if combo.is_some_and(|c| crate::app_keys_service::holds(&app, c)) {
+        return Err(WinKeyError::App);
+    }
     let shot = crate::shot_service::enabled(&app).then(|| app.state::<CoreState>().0.lock().unwrap().shot_keys());
     let next = set_key(saved_keys(&app), cell, combo, shot)?;
     save_keys(&app, next);
     Ok(keys(&app))
 }
 
-/// Back to ⌃⌥ with Q–C.
+/// Back to the keys until changed.
 #[tauri::command]
 pub async fn window_reset_keys(app: AppHandle) -> Vec<WindowKeyDto> {
     save_keys(&app, WindowKeys::default());
@@ -297,8 +301,9 @@ mod tests {
 
     #[test]
     fn labels_read_like_the_mac() {
-        assert_eq!(label(WindowKeys::default().get(Cell::TopLeft)), "⌃⌥Q");
-        assert_eq!(label(WindowKeys::default().get(Cell::BottomRight)), "⌃⌥C");
+        assert_eq!(label(WindowKeys::default().get(Cell::TopLeft)), "⌃⌥;");
+        assert_eq!(label(WindowKeys::default().get(Cell::Left)), "⌃⌥←");
+        assert_eq!(label(WindowKeys::default().get(Cell::Fill)), "⌃⌥↩");
     }
 
     #[test]

@@ -1,7 +1,7 @@
 {
   "name": "Atur jendela",
   "shortName": "Jendela",
-  "description": "⌃⌥ dan Q–C untuk menata jendela di layarnya",
+  "description": "⌃⌥ dengan panah dan tanda baca untuk menata jendela",
   "channels": { "access": "Izin" },
   "notice": {
     "access": { "title": "Atur jendela butuh izin Aksesibilitas", "detail": "Buka Pengaturan → Izin" }

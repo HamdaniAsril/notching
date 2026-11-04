@@ -212,6 +212,7 @@ fn open(app: AppHandle, window: WebviewWindow, route: Option<String>) -> Result<
         if let WindowEvent::Destroyed = event {
             crate::shot_hotkey::settings_closed(&handle);
             crate::win_service::settings_closed(&handle);
+            crate::app_keys_service::settings_closed(&handle);
             if !keep_regular(false, handle.get_webview_window(EDITOR_LABEL).is_some()) {
                 let _ = handle.set_activation_policy(ActivationPolicy::Accessory);
             }

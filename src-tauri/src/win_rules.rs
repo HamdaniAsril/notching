@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 use crate::geometry::Rect;
 use crate::shot_keys::{Combo, ShotKeys, CONTROL, OPTION};
 
-/// A cell of the 3×3 key grid, ⌃⌥ with Q W E / A S D / Z X C until changed.
+/// Where a key puts the window: a cell of the 3×3 grid, or the whole screen.
+/// ⌃⌥ with the arrows for the sides, ; ' . / for the corners, \ for the centre
+/// and Return for the whole screen, until changed (owner, 4 Nov).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Cell {
@@ -21,11 +23,12 @@ pub enum Cell {
     BottomLeft,
     Bottom,
     BottomRight,
+    Fill,
 }
 
 impl Cell {
-    /// In key order, row by row.
-    pub const ALL: [Cell; 9] = [
+    /// The grid row by row, then the whole screen.
+    pub const ALL: [Cell; 10] = [
         Cell::TopLeft,
         Cell::Top,
         Cell::TopRight,
@@ -35,21 +38,39 @@ impl Cell {
         Cell::BottomLeft,
         Cell::Bottom,
         Cell::BottomRight,
+        Cell::Fill,
     ];
 
-    /// The macOS virtual key code of its letter, the key until changed.
+    /// The macOS virtual key code of its key until changed, with ⌃⌥.
     pub fn code(self) -> u32 {
         match self {
-            Cell::TopLeft => 0x0C,     // Q
-            Cell::Top => 0x0D,         // W
-            Cell::TopRight => 0x0E,    // E
-            Cell::Left => 0x00,        // A
-            Cell::Center => 0x01,      // S
-            Cell::Right => 0x02,       // D
-            Cell::BottomLeft => 0x06,  // Z
-            Cell::Bottom => 0x07,      // X
-            Cell::BottomRight => 0x08, // C
+            Cell::TopLeft => 0x29,     // ;
+            Cell::Top => 0x7E,         // ↑
+            Cell::TopRight => 0x27,    // '
+            Cell::Left => 0x7B,        // ←
+            Cell::Center => 0x2A,      // \
+            Cell::Right => 0x7C,       // →
+            Cell::BottomLeft => 0x2F,  // .
+            Cell::Bottom => 0x7D,      // ↓
+            Cell::BottomRight => 0x2C, // /
+            Cell::Fill => 0x24,        // Return
         }
+    }
+
+    /// The key before 4 Nov: ⌃⌥ with Q W E / A S D / Z X C.
+    fn old_code(self) -> Option<u32> {
+        Some(match self {
+            Cell::TopLeft => 0x0C,
+            Cell::Top => 0x0D,
+            Cell::TopRight => 0x0E,
+            Cell::Left => 0x00,
+            Cell::Center => 0x01,
+            Cell::Right => 0x02,
+            Cell::BottomLeft => 0x06,
+            Cell::Bottom => 0x07,
+            Cell::BottomRight => 0x08,
+            Cell::Fill => return None,
+        })
     }
 
     /// Its hot key id: the index in ALL plus one.
@@ -62,8 +83,8 @@ impl Cell {
     }
 }
 
-/// The nine keys, one combo per cell; a cell missing from the settings keeps ⌃⌥
-/// and its letter.
+/// The ten keys, one combo per cell; a cell missing from the settings keeps its
+/// key until changed.
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct WindowKeys {
@@ -76,6 +97,7 @@ pub struct WindowKeys {
     pub bottom_left: Combo,
     pub bottom: Combo,
     pub bottom_right: Combo,
+    pub fill: Combo,
 }
 
 impl Default for WindowKeys {
@@ -91,6 +113,7 @@ impl Default for WindowKeys {
             bottom_left: d(Cell::BottomLeft),
             bottom: d(Cell::Bottom),
             bottom_right: d(Cell::BottomRight),
+            fill: d(Cell::Fill),
         }
     }
 }
@@ -107,11 +130,22 @@ impl WindowKeys {
             Cell::BottomLeft => &mut self.bottom_left,
             Cell::Bottom => &mut self.bottom,
             Cell::BottomRight => &mut self.bottom_right,
+            Cell::Fill => &mut self.fill,
         }
     }
 
     pub fn get(mut self, cell: Cell) -> Combo {
         *self.slot(cell)
+    }
+
+    /// Keys saved before 4 Nov that were never changed (all nine still ⌃⌥ Q–C)
+    /// move to the new keys; keys someone set stay theirs.
+    pub fn upgraded(self) -> WindowKeys {
+        let untouched = Cell::ALL.iter().all(|&c| match c.old_code() {
+            Some(code) => self.get(c) == Combo { code, mods: CONTROL | OPTION },
+            None => true,
+        });
+        if untouched { WindowKeys::default() } else { self }
     }
 
     /// The cell whose key `combo` is.
@@ -130,6 +164,8 @@ pub enum WinKeyError {
     Duplicate { cell: Cell },
     /// One of Screenshot's two keys while Screenshot is on.
     Shot,
+    /// Keep awake's or Shelf's key while its module is on (Pintasan, owner 4 Nov).
+    App,
 }
 
 /// One cell set to `combo`. `shot` is Screenshot's keys while it is on.
@@ -176,6 +212,7 @@ pub fn place(cell: Cell, window: Rect, visible: Rect) -> Rect {
         Cell::BottomLeft => (Some(0), Some(1)),
         Cell::Bottom => (None, Some(1)),
         Cell::BottomRight => (Some(1), Some(1)),
+        Cell::Fill => (None, None),
     };
     let (x, w) = span(visible.x, visible.w, col);
     let (y, h) = span(visible.y, visible.h, row);
@@ -280,23 +317,38 @@ mod tests {
     }
 
     #[test]
-    fn window_keys_default_to_control_option_q_to_c() {
+    fn window_keys_default_to_control_option_with_arrows_and_punctuation() {
         let keys = WindowKeys::default();
-                assert_eq!(keys.get(Cell::TopLeft), ctl_opt(0x0C));
-        assert_eq!(keys.get(Cell::BottomRight), ctl_opt(0x08));
-        assert_eq!(keys.cell_of(ctl_opt(0x01)), Some(Cell::Center));
-        assert_eq!(keys.cell_of(Combo { code: 0x01, mods: CONTROL }), None);
+        let labels: Vec<String> = Cell::ALL.iter().map(|&c| crate::shot_keys::label(keys.get(c))).collect();
+        assert_eq!(labels, ["⌃⌥;", "⌃⌥↑", "⌃⌥'", "⌃⌥←", "⌃⌥\\", "⌃⌥→", "⌃⌥.", "⌃⌥↓", "⌃⌥/", "⌃⌥↩"]);
+        assert_eq!(keys.cell_of(ctl_opt(0x24)), Some(Cell::Fill));
+        assert_eq!(keys.cell_of(Combo { code: 0x24, mods: CONTROL }), None);
+    }
+
+    #[test]
+    fn untouched_old_keys_move_to_the_new_ones_and_changed_ones_stay() {
+        let old: WindowKeys = serde_json::from_str(
+            r#"{"topLeft":{"code":12,"mods":6144},"top":{"code":13,"mods":6144},"topRight":{"code":14,"mods":6144},
+               "left":{"code":0,"mods":6144},"center":{"code":1,"mods":6144},"right":{"code":2,"mods":6144},
+               "bottomLeft":{"code":6,"mods":6144},"bottom":{"code":7,"mods":6144},"bottomRight":{"code":8,"mods":6144}}"#,
+        )
+        .unwrap();
+        assert_eq!(old.upgraded(), WindowKeys::default());
+        let mut mine = old;
+        *mine.slot(Cell::Top) = Combo { code: 0x11, mods: CONTROL | SHIFT };
+        assert_eq!(mine.upgraded(), mine);
+        assert_eq!(WindowKeys::default().upgraded(), WindowKeys::default());
     }
 
     #[test]
     fn window_keys_read_per_cell_and_missing_cells_keep_theirs() {
         let keys: WindowKeys = serde_json::from_str(r#"{"top":{"code":17,"mods":4608}}"#).unwrap();
         assert_eq!(keys.get(Cell::Top), Combo { code: 17, mods: CONTROL | SHIFT });
-        assert_eq!(keys.get(Cell::Left), ctl_opt(0x00));
+        assert_eq!(keys.get(Cell::Left), ctl_opt(0x7B));
         assert_ne!(keys, WindowKeys::default());
         let json = serde_json::to_value(WindowKeys::default()).unwrap();
-        assert_eq!(json["topLeft"], serde_json::json!({"code":12,"mods":6144}));
-        assert_eq!(json["bottomRight"], serde_json::json!({"code":8,"mods":6144}));
+        assert_eq!(json["topLeft"], serde_json::json!({"code":41,"mods":6144}));
+        assert_eq!(json["fill"], serde_json::json!({"code":36,"mods":6144}));
     }
 
     #[test]
@@ -307,8 +359,8 @@ mod tests {
         assert_eq!(next.get(Cell::TopLeft), t);
         assert_eq!(next.get(Cell::Top), keys.get(Cell::Top));
         // Its own key again is fine.
-        assert_eq!(set_key(keys, Cell::Top, Some(ctl_opt(0x0D)), None), Ok(keys));
-        assert_eq!(set_key(keys, Cell::TopLeft, Some(ctl_opt(0x08)), None), Err(WinKeyError::Duplicate { cell: Cell::BottomRight }));
+        assert_eq!(set_key(keys, Cell::Top, Some(ctl_opt(0x7E)), None), Ok(keys));
+        assert_eq!(set_key(keys, Cell::TopLeft, Some(ctl_opt(0x2C)), None), Err(WinKeyError::Duplicate { cell: Cell::BottomRight }));
         assert_eq!(set_key(keys, Cell::TopLeft, None, None), Err(WinKeyError::Invalid));
         let shot = ShotKeys::default();
         assert_eq!(set_key(keys, Cell::Top, Some(shot.pick), Some(shot)), Err(WinKeyError::Shot));
@@ -326,11 +378,11 @@ mod tests {
     #[test]
     fn keys_are_the_grid_and_ids_round_trip() {
         let codes: Vec<u32> = Cell::ALL.iter().map(|c| c.code()).collect();
-        assert_eq!(codes, vec![0x0C, 0x0D, 0x0E, 0x00, 0x01, 0x02, 0x06, 0x07, 0x08]);
+        assert_eq!(codes, vec![0x29, 0x7E, 0x27, 0x7B, 0x2A, 0x7C, 0x2F, 0x7D, 0x2C, 0x24]);
         for c in Cell::ALL {
             assert_eq!(Cell::from_id(c.id()), Some(c));
         }
         assert_eq!(Cell::from_id(0), None);
-        assert_eq!(Cell::from_id(10), None);
+        assert_eq!(Cell::from_id(11), None);
     }
 }

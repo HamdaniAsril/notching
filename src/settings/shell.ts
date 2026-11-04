@@ -10,10 +10,11 @@ import { aboutPage, permissionsPage } from './pages/info';
 import { notificationsPage } from './pages/notifications';
 import { lookPage } from './pages/look';
 import { catalogPage } from './pages/catalog';
+import { shortcutsPage } from './pages/shortcuts';
 import { modulePage, modulesPage } from './pages/modules';
 import { isOwnEcho, pageEditor } from './pages/page-editor';
 import { pagesPage, waitingFor } from './pages/pages';
-import { isModule } from '../modules/types';
+import { isModule, isTool } from '../modules/types';
 import { search, searchIndex } from './search';
 import type {
   PageContext, PageRender, Route, SectionId, SettingsBridge, SettingsEnv, SettingsInfo,
@@ -34,6 +35,7 @@ export const PAGES: Partial<Record<Route['page'], PageRender>> = {
   modules: modulesPage,
   module: modulePage,
   catalog: catalogPage,
+  shortcuts: shortcutsPage,
   permissions: permissionsPage,
   about: aboutPage,
 };
@@ -41,7 +43,7 @@ export const PAGES: Partial<Record<Route['page'], PageRender>> = {
 // The sidebar never grows (spec 8, design 30 Oct §9): six sections on top, About at the bottom.
 const NAV: [SectionId, IconName][] = [
   ['general', 'gear'], ['look', 'drop'], ['notifications', 'bell'], ['pages', 'layers'], ['modules', 'grid'],
-  ['permissions', 'shield'],
+  ['shortcuts', 'command'], ['permissions', 'shield'],
 ];
 
 const FOUND_MS = 1200;
@@ -124,7 +126,12 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
 
   function section(): SectionId {
     if (route.page === 'pageEdit') return 'pages';
-    return route.page === 'module' || route.page === 'catalog' ? 'modules' : route.page;
+    // A background tool's page is reached from Pintasan.
+    if (route.page === 'module') {
+      const id = route.id;
+      return state.modules.some(m => m.id === id && isTool(m)) ? 'shortcuts' : 'modules';
+    }
+    return route.page === 'catalog' ? 'modules' : route.page;
   }
 
   function find(selector: string): HTMLElement | null {
@@ -200,7 +207,7 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
       item.button.classList.toggle('on', on);
       if (on) item.button.setAttribute('aria-current', 'page');
       else item.button.removeAttribute('aria-current');
-      if (item.count) item.count.textContent = String(state.modules.filter(m => m.installed && isModule(m)).length);
+      if (item.count) item.count.textContent = String(state.modules.filter(m => m.installed && isModule(m) && !isTool(m)).length);
     }
 
     const active = doc.activeElement as HTMLElement | null;

@@ -220,6 +220,7 @@
       "notifications": "Notifications",
       "pages": "Pages",
       "modules": "Modules",
+      "shortcuts": "Shortcuts",
       "permissions": "Permissions",
       "about": "About"
     },
@@ -282,7 +283,14 @@
       "status": "Status beside the notch",
       "statusHint": "Shows while the panel is closed.",
       "tools": "Tools",
-      "categories": {"utilities": "Utilities", "energy": "Energy & power", "window": "Window & Dock", "app-management": "App management", "files": "Files", "apps": "Apps"},
+      "categories": {
+        "utilities": "Utilities",
+        "energy": "Energy & power",
+        "window": "Window & Dock",
+        "app-management": "App management",
+        "files": "Files",
+        "apps": "Apps"
+      },
       "categoryEmpty": "No modules here yet."
     },
     "catalog": {
@@ -318,7 +326,8 @@
       "mac": "Taken by the Mac's screenshots",
       "shortcut": "Taken by a Mac shortcut",
       "other": "Taken by another app",
-      "open": "Open System Settings"
+      "open": "Open System Settings",
+      "app": "Used by the Keep awake or Shelf shortcut"
     },
     "tools": {
       "access": "Permission",
@@ -331,12 +340,12 @@
       "cut": "Cut",
       "paste": "Move here",
       "cutNote": "Only in Finder. While you type, ⌘X and ⌘V work as usual.",
-      "windowNote": "Corners fill a quarter of the screen, sides fill half, the centre key moves the window to the centre. Always on the window’s own screen. Click a key to change it.",
+      "windowNote": "Corners fill a quarter of the screen, sides fill half, the centre key moves the window to the centre, ↩ fills the screen. Always on the window’s own screen. Click a key to change it.",
       "record": "Press a new key for {cell}. Esc to cancel.",
       "duplicate": "Already used for {cell}",
       "shot": "Used by Screenshot",
       "invalid": "Use ⌘, ⌃ or ⌥ with one key",
-      "reset": "Back to ⌃⌥ Q–C",
+      "reset": "Back to the default keys",
       "other": "{keys} taken by another app",
       "shortcut": "{keys} taken by a Mac shortcut",
       "cells": {
@@ -348,8 +357,10 @@
         "right": "Right",
         "bottomLeft": "Bottom left",
         "bottom": "Bottom",
-        "bottomRight": "Bottom right"
-      }
+        "bottomRight": "Bottom right",
+        "fill": "Fill screen"
+      },
+      "app": "Used by the Keep awake or Shelf shortcut"
     },
     "permissions": {
       "sub": "No module needs a system permission yet.",
@@ -449,7 +460,26 @@
       "glow": "glow rainbow light",
       "seconds": "duration seconds time",
       "channels": "notification sound reminder prayer",
-      "pages": "pages widgets pill order home"
+      "pages": "pages widgets pill order home",
+      "shortcuts": "shortcuts keys keyboard hotkey keep awake shelf screenshot cut files arrange windows"
+    },
+    "shortcuts": {
+      "sub": "Notching's keyboard shortcuts in one place. Click a key to change it.",
+      "apps": "Modules",
+      "awake": "Turn Keep awake on or off",
+      "shelf": "Open Shelf",
+      "screenshot": "Screenshot",
+      "tools": "Background tools",
+      "recording": "Press keys…",
+      "off": "{name} is off. Turn it on in Modules for its key to work.",
+      "invalid": "Use ⌘, ⌃ or ⌥ with one key",
+      "duplicate": "Already used for {row}",
+      "shot": "Used by Screenshot",
+      "window": "Used by Arrange windows",
+      "shortcut": "Used by a Mac shortcut",
+      "other": "Used by another app",
+      "reset": "Back to ⌃⌥K and ⌃⌥V",
+      "awakeNote": "Keep awake stays on with no time limit until you press its key again."
     }
   }
 }

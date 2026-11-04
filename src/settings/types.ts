@@ -40,7 +40,7 @@ export interface SettingsInfo {
   camera: boolean; // macOS lets Notching use the camera (Cermin)
 }
 
-export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'permissions' | 'about';
+export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'shortcuts' | 'permissions' | 'about';
 
 export type Route = { page: SectionId } | { page: 'module'; id: string } | { page: 'catalog'; id?: string } | { page: 'pageEdit'; id: string };
 
@@ -50,10 +50,17 @@ export interface ShotKeyPress { code: string; cmd: boolean; ctrl: boolean; alt: 
 
 // Atur jendela's keys (WindowKeyDto in src-tauri/src/win_service.rs): its cell
 // of the 3×3 grid, its label ("⌃⌥Q") and whether it reaches Notching.
-export type WindowCell = 'topLeft' | 'top' | 'topRight' | 'left' | 'center' | 'right' | 'bottomLeft' | 'bottom' | 'bottomRight';
+export type WindowCell = 'topLeft' | 'top' | 'topRight' | 'left' | 'center' | 'right' | 'bottomLeft' | 'bottom' | 'bottomRight' | 'fill';
 export interface WindowKey { cell: WindowCell; label: string; state: 'ok' | 'off' | 'other' | 'shortcut' | 'mac' }
 // Why a recorded key was refused (WinKeyError in src-tauri/src/win_rules.rs).
-export type WindowKeyError = { kind: 'invalid' } | { kind: 'duplicate'; cell: WindowCell } | { kind: 'shot' };
+export type WindowKeyError = { kind: 'invalid' } | { kind: 'duplicate'; cell: WindowCell } | { kind: 'shot' } | { kind: 'app' };
+
+// Keep awake's and Shelf's keys on the Pintasan page (AppKeyDto in
+// src-tauri/src/app_keys_service.rs).
+export type AppAction = 'awake' | 'shelf';
+export interface AppKey { action: AppAction; label: string; state: 'ok' | 'off' | 'other' | 'shortcut' | 'mac' }
+// Why a recorded key was refused (AppKeyError in src-tauri/src/app_keys.rs).
+export type AppKeyError = { kind: 'invalid' } | { kind: 'duplicate'; action: AppAction } | { kind: 'shot' } | { kind: 'window' };
 
 // What the settings window needs from the native side.
 export interface SettingsBridge {
@@ -93,7 +100,10 @@ export interface SettingsBridge {
   shotResetKeys(): Promise<ShotKeys>; // back to ⌘⇧3 and ⌘⇧4
   windowKeys(): Promise<WindowKey[]>; // Atur jendela's nine keys, in grid order
   windowSetKey(cell: WindowCell, key: ShotKeyPress): Promise<WindowKey[]>; // rejects with a WindowKeyError
-  windowResetKeys(): Promise<WindowKey[]>; // back to ⌃⌥ with Q–C
+  windowResetKeys(): Promise<WindowKey[]>; // back to the keys until changed
+  appKeys(): Promise<AppKey[]>; // Keep awake's and Shelf's keys, awake first
+  appSetKey(action: AppAction, key: ShotKeyPress): Promise<AppKey[]>; // rejects with an AppKeyError
+  appResetKeys(): Promise<AppKey[]>; // back to ⌃⌥K and ⌃⌥V
   shotKeysHold(hold: boolean): Promise<void>; // Notching's keys (Screenshot's and Atur jendela's) let go while one is recorded
   openKeyboardShortcuts(): Promise<void>; // System Settings › Keyboard › Keyboard Shortcuts › Screenshots
   openFullDiskAccessSettings(): Promise<void>; // System Settings › Privacy & Security › Full Disk Access

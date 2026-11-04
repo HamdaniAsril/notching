@@ -5,16 +5,22 @@ import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
 import type { ShotKeys } from '../bridge';
 import { shotKeys } from '../shot/test-helpers';
-import type { LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress, WindowCell, WindowKey } from './types';
+import type { AppAction, AppKey, LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress, WindowCell, WindowKey } from './types';
 
 const CELLS: [WindowCell, string][] = [
-  ['topLeft', 'Q'], ['top', 'W'], ['topRight', 'E'], ['left', 'A'], ['center', 'S'], ['right', 'D'],
-  ['bottomLeft', 'Z'], ['bottom', 'X'], ['bottomRight', 'C'],
+  ['topLeft', ';'], ['top', '↑'], ['topRight', "'"], ['left', '←'], ['center', '\\'], ['right', '→'],
+  ['bottomLeft', '.'], ['bottom', '↓'], ['bottomRight', '/'], ['fill', '↩'],
 ];
 
 // Atur jendela's nine keys, all reaching Notching unless named otherwise.
 export function windowKeys(over: Partial<Record<WindowCell, WindowKey['state']>> = {}): WindowKey[] {
   return CELLS.map(([cell, k]) => ({ cell, label: `⌃⌥${k}`, state: over[cell] ?? 'ok' }));
+}
+
+// Keep awake's and Shelf's keys, both reaching Notching unless named otherwise.
+export function appKeys(over: Partial<Record<AppAction, AppKey['state']>> = {}, labels: Partial<Record<AppAction, string>> = {}): AppKey[] {
+  return (['awake', 'shelf'] as const).map(action =>
+    ({ action, label: labels[action] ?? (action === 'awake' ? '⌃⌥K' : '⌃⌥V'), state: over[action] ?? 'ok' }));
 }
 
 export const TEST_INFO: SettingsInfo = {
@@ -76,6 +82,9 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     windowKeys: vi.fn(async (): Promise<WindowKey[]> => windowKeys()),
     windowSetKey: vi.fn(async (_cell: WindowCell, _key: ShotKeyPress): Promise<WindowKey[]> => windowKeys()),
     windowResetKeys: vi.fn(async (): Promise<WindowKey[]> => windowKeys()),
+    appKeys: vi.fn(async (): Promise<AppKey[]> => appKeys()),
+    appSetKey: vi.fn(async (_action: AppAction, _key: ShotKeyPress): Promise<AppKey[]> => appKeys()),
+    appResetKeys: vi.fn(async (): Promise<AppKey[]> => appKeys()),
     openKeyboardShortcuts: vi.fn(async () => {}),
     openFullDiskAccessSettings: vi.fn(async () => {}),
     openCameraSettings: vi.fn(async () => {}),

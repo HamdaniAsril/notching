@@ -1,5 +1,5 @@
 import type { SettingsStrings } from '../i18n';
-import { inCatalog, isModule, type ModuleInfo, type Page } from '../modules/types';
+import { inCatalog, isModule, isTool, type ModuleInfo, type Page } from '../modules/types';
 import type { Route, SectionId } from './types';
 
 export interface SearchEntry {
@@ -15,7 +15,7 @@ export function normalize(s: string): string {
   return s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-const SECTIONS: SectionId[] = ['general', 'look', 'notifications', 'pages', 'modules', 'permissions', 'about'];
+const SECTIONS: SectionId[] = ['general', 'look', 'notifications', 'pages', 'modules', 'shortcuts', 'permissions', 'about'];
 
 // Every searchable setting, in sidebar order; modules and pages follow their section.
 export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Page[] = []): SearchEntry[] {
@@ -43,6 +43,10 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
     ],
     pages: [],
     modules: [],
+    shortcuts: [
+      ['shortcuts.awake', s.shortcuts.awake, k.shortcuts],
+      ['shortcuts.shelf', s.shortcuts.shelf, k.shortcuts],
+    ],
     permissions: [],
     about: [['about.version', s.about.version, k.version]],
   };
@@ -58,14 +62,20 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
         m.channels.map(c => entry(`channel.${m.id}.${c.id}`, c.name, where, { page }, `${m.name} ${k.channels}`)))
       : [];
     // An installed module opens its page; anything else in the Katalog, its card there.
-    const mods = page === 'modules'
-      ? modules.filter(m => isModule(m) || inCatalog(m)).map(m => (isModule(m) && m.installed
+    // Background tools are found under Pintasan, where they are listed.
+    const listed = (m: ModuleInfo) => (isTool(m) && m.installed ? page === 'shortcuts' : page === 'modules');
+    const mods = page === 'modules' || page === 'shortcuts'
+      ? modules.filter(m => (isModule(m) || inCatalog(m)) && listed(m)).map(m => (isModule(m) && m.installed
         ? entry(`module.${m.id}`, m.name, where, { page: 'module', id: m.id }, m.description)
         : entry(`catalog.${m.id}`, m.name, where, { page: 'catalog', id: m.id }, m.description)))
       : [];
     // Screenshot's keys, on its own page (design 3 Nov tombol §6).
     if (page === 'modules' && modules.some(m => m.id === 'screenshot' && m.installed)) {
       mods.push(entry('module.screenshot.keys', s.shotKeys.title, where, { page: 'module', id: 'screenshot' }, k.shotKeys));
+    }
+    if (page === 'shortcuts' && modules.some(m => m.id === 'screenshot' && m.installed)) {
+      mods.push(entry('module.screenshot.key.screen', s.shotKeys.screen, where, { page: 'shortcuts' }, `${s.shortcuts.screenshot} ${k.shotKeys}`));
+      mods.push(entry('module.screenshot.key.pick', s.shotKeys.pick, where, { page: 'shortcuts' }, `${s.shortcuts.screenshot} ${k.shotKeys}`));
     }
     const named = page === 'pages'
       ? pages.filter(p => p.name !== null).map(p => entry(`page.${p.id}`, p.name!, where, { page: 'pages' }, k.pages))

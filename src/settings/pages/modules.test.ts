@@ -380,7 +380,7 @@ function memoryStorage(): void {
 
 const labels = (d: Element) => [...d.querySelectorAll('.module .label')].map(e => e.textContent);
 
-test('modules sit in six categories that fold; an empty one stays, shut, and says so', async () => {
+test('modules sit in six categories that fold; an empty one stays, shut, and says so; tools are not listed', async () => {
   memoryStorage();
   const { root, app } = await mountForTest(TOOLS);
   app.go({ page: 'modules' });
@@ -388,13 +388,12 @@ test('modules sit in six categories that fold; an empty one stays, shut, and say
   expect(all.map(d => d.querySelector('.cat-name')!.textContent))
     .toEqual(['Utilitas', 'Energi & daya', 'Jendela & Dock', 'Kelola aplikasi', 'File', 'Aplikasi']);
   expect(labels(all[0])).toEqual(['Beranda', 'System stat']);
-  expect(labels(all[2])).toEqual(['Atur jendela']);
-  expect(labels(all[4])).toEqual(['Potong file']);
-  expect(all.map(d => d.open)).toEqual([true, false, true, false, true, false]);
+  expect(labels(all[2])).toEqual([]);
+  expect(labels(all[4])).toEqual([]);
+  expect(all.map(d => d.open)).toEqual([true, false, false, false, false, false]);
   expect(all[5].textContent).toContain('Belum ada modul di sini.');
-  expect(all[4].querySelector('.n')!.textContent).toBe('1');
-  click(root, 'module.window-keys');
-  expect(app.route).toEqual({ page: 'module', id: 'window-keys' });
+  expect(all[0].querySelector('.n')!.textContent).toBe('2');
+  expect(root.querySelector('[data-key="nav.modules"] .n')!.textContent).toBe('2');
   vi.unstubAllGlobals();
 });
 
@@ -402,13 +401,12 @@ test('a category folded shut stays shut when the page comes back', async () => {
   memoryStorage();
   const { root, app } = await mountForTest(TOOLS);
   app.go({ page: 'modules' });
-  const files = cats(root)[4];
-  files.open = false;
-  files.dispatchEvent(new Event('toggle'));
+  const utilities = cats(root)[0];
+  utilities.open = false;
+  utilities.dispatchEvent(new Event('toggle'));
   app.go({ page: 'general' });
   app.go({ page: 'modules' });
-  expect(cats(root)[4].open).toBe(false);
-  expect(cats(root)[0].open).toBe(true);
+  expect(cats(root)[0].open).toBe(false);
   vi.unstubAllGlobals();
 });
 
@@ -426,18 +424,20 @@ test('a tool page shows the permission and the fixed keys', async () => {
   expect(root.textContent).not.toContain('Modul ini belum punya pengaturan.');
 });
 
-test('Atur jendela shows its nine keys as a grid and says which are taken', async () => {
+test('Atur jendela shows its keys as the screen\'s grid plus the whole screen, and says which are taken', async () => {
   const { root, app, bridge } = await mountForTest({ ...TOOLS, lang: 'id' });
   bridge.windowKeys.mockResolvedValueOnce(windowKeys({ bottomRight: 'other', center: 'shortcut' }));
   app.go({ page: 'module', id: 'window-keys' });
   await settle();
   const caps = [...root.querySelectorAll<HTMLElement>('.win-grid .keycap')];
-  expect(caps.map(e => e.textContent)).toEqual(['Q', 'W', 'E', 'A', 'S', 'D', 'Z', 'X', 'C']);
-  expect(caps[0].getAttribute('aria-label')).toBe('⌃⌥Q · Kiri atas');
-  expect(caps.filter(c => c.classList.contains('taken')).map(e => e.textContent)).toEqual(['S', 'C']);
+  expect(caps.map(e => e.textContent)).toEqual([';', '↑', "'", '←', '\\', '→', '.', '↓', '/', '↩']);
+  expect(caps[0].getAttribute('aria-label')).toBe('⌃⌥; · Kiri atas');
+  expect(caps[9].getAttribute('aria-label')).toBe('⌃⌥↩ · Penuhi layar');
+  expect(caps[9].classList.contains('fill')).toBe(true);
+  expect(caps.filter(c => c.classList.contains('taken')).map(e => e.textContent)).toEqual(['\\', '/']);
   const text = root.querySelector('.tool-keys')!.textContent!;
-  expect(text).toContain('⌃⌥C dipakai app lain');
-  expect(text).toContain('⌃⌥S dipakai pintasan Mac');
+  expect(text).toContain('⌃⌥/ dipakai app lain');
+  expect(text).toContain('⌃⌥\\ dipakai pintasan Mac');
 });
 
 const winCap = (root: HTMLElement, cell: string) => root.querySelector<HTMLElement>(`[data-key="tool.window-keys.${cell}"]`)!;
@@ -474,14 +474,14 @@ test('Atur jendela: clicking a key records a new one for that cell', async () =>
   expect(winHint(root)).toBeNull();
   // The modifiers differ now: no ⌃⌥ in front, each key in full.
   expect(root.querySelector('.win-lead')).toBeNull();
-  expect(winCaps(root)).toEqual(['⌃⇧T', '⌃⌥W', '⌃⌥E', '⌃⌥A', '⌃⌥S', '⌃⌥D', '⌃⌥Z', '⌃⌥X', '⌃⌥C']);
-  expect(root.querySelector('[data-key="tool.window-keys.reset"]')!.textContent).toBe('Kembalikan ke ⌃⌥ Q–C');
+  expect(winCaps(root)).toEqual(['⌃⇧T', '⌃⌥↑', "⌃⌥'", '⌃⌥←', '⌃⌥\\', '⌃⌥→', '⌃⌥.', '⌃⌥↓', '⌃⌥/', '⌃⌥↩']);
+  expect(root.querySelector('[data-key="tool.window-keys.reset"]')!.textContent).toBe('Kembalikan ke tombol bawaan');
 });
 
 test('Atur jendela: the same modifiers for all keep them in front of the grid', async () => {
   const { root } = await onWindowPage(relabel({ center: '⌃⌥G' }));
   expect(root.querySelector('.win-lead')!.textContent).toBe('⌃⌥+');
-  expect(winCaps(root)).toEqual(['Q', 'W', 'E', 'A', 'G', 'D', 'Z', 'X', 'C']);
+  expect(winCaps(root)).toEqual([';', '↑', "'", '←', 'G', '→', '.', '↓', '/', '↩']);
   expect(root.querySelector('[data-key="tool.window-keys.reset"]')).not.toBeNull();
 });
 
@@ -509,7 +509,7 @@ test('Atur jendela: Esc cancels, leaving the page lets the keys come back', asyn
   const { root, app, bridge } = await onWindowPage();
   winCap(root, 'center').click();
   press({ key: 'Escape', code: 'Escape' });
-  expect(winCap(root, 'center').textContent).toBe('S');
+  expect(winCap(root, 'center').textContent).toBe('\\');
   expect(bridge.shotKeysHold).toHaveBeenLastCalledWith(false);
   winCap(root, 'center').click();
   app.go({ page: 'modules' });
@@ -518,15 +518,15 @@ test('Atur jendela: Esc cancels, leaving the page lets the keys come back', asyn
   expect(bridge.windowSetKey).not.toHaveBeenCalled();
 });
 
-test('Atur jendela: changed keys go back to ⌃⌥ Q–C', async () => {
+test('Atur jendela: changed keys go back to the default keys', async () => {
   const { root, bridge } = await onWindowPage(relabel({ topLeft: '⌃⇧T' }), 'en');
   bridge.windowResetKeys.mockResolvedValue(windowKeys());
   const reset = root.querySelector<HTMLElement>('[data-key="tool.window-keys.reset"]')!;
-  expect(reset.textContent).toBe('Back to ⌃⌥ Q–C');
+  expect(reset.textContent).toBe('Back to the default keys');
   reset.click();
   await settle();
   expect(bridge.windowResetKeys).toHaveBeenCalledTimes(1);
-  expect(winCaps(root)).toEqual(['Q', 'W', 'E', 'A', 'S', 'D', 'Z', 'X', 'C']);
+  expect(winCaps(root)).toEqual([';', '↑', "'", '←', '\\', '→', '.', '↓', '/', '↩']);
   expect(root.querySelector('[data-key="tool.window-keys.reset"]')).toBeNull();
 });
 

@@ -153,6 +153,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
   const shotsSubs = new Set<(list: Shot[]) => void>();
   const shotDragSubs = new Set<(e: ShotDrag) => void>();
   const setupSubs = new Set<(e: ShotSetup) => void>();
+  const shelfKeySubs = new Set<() => void>();
   const cleanerSubs = new Set<(e: CleanerEvent) => void>();
   const mediaSubs = new Set<(m: MediaSummary) => void>();
   let state = initial;
@@ -197,6 +198,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     shotTurnOffMac: vi.fn(async () => {}),
     openShotKeySettings: vi.fn(async () => {}),
     onShotSetup: vi.fn((cb: (e: ShotSetup) => void) => { setupSubs.add(cb); return () => { setupSubs.delete(cb); }; }),
+    onShelfKey: vi.fn((cb: () => void) => { shelfKeySubs.add(cb); return () => { shelfKeySubs.delete(cb); }; }),
     openScreenRecordingSettings: vi.fn(async () => {}),
     openEditor: vi.fn(async (_id: number) => {}),
     onShot: vi.fn((cb: (e: ShotEvent) => void) => { shotSubs.add(cb); return () => { shotSubs.delete(cb); }; }),
@@ -225,6 +227,7 @@ export function fakeBridge(initial: ModuleState = TEST_STATE) {
     emitShots: (list: Shot[]) => shotsSubs.forEach(cb => cb(list)),
     emitShotDrag: (e: ShotDrag) => shotDragSubs.forEach(cb => cb(e)),
     emitShotSetup: (e: ShotSetup) => setupSubs.forEach(cb => cb(e)),
+    emitShelfKey: () => shelfKeySubs.forEach(cb => cb()),
     emitShelf: (s: ShelfState) => shelfSubs.forEach(cb => cb(s)),
     emitShelfDrop: (e: ShelfDrop) => dropSubs.forEach(cb => cb(e)),
     emitShelfDrag: (e: ShelfDrag) => dragSubs.forEach(cb => cb(e)),

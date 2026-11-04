@@ -1,7 +1,7 @@
 import type { ShotKeys } from '../../bridge';
 import { fill, hostStrings } from '../../i18n';
 import { formatBytes } from '../../kit/format';
-import { isModule, MODULE_CATEGORIES, type ModuleCategory, type ModuleInfo } from '../../modules/types';
+import { isModule, isTool, MODULE_CATEGORIES, type ModuleCategory, type ModuleInfo } from '../../modules/types';
 import { DEFAULT_LABELS } from '../../shot/keys';
 import { button, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
@@ -18,14 +18,14 @@ const MODIFIER = /^(Shift|Control|Alt|Meta|CapsLock|Fn)/;
 // while it listens, Notching's keys let go, so pressing one of them here reaches
 // the page; Esc, a press elsewhere or leaving the window cancels; a refused key
 // keeps it listening, with the reason.
-interface Recorder<W> {
+export interface Recorder<W> {
   at(): W | null; // the key listening
   error(): string;
   start(which: W): void;
   stop(): void;
 }
 
-function recorder<W, R>(ctx: PageContext, box: HTMLElement, o: {
+export function recorder<W, R>(ctx: PageContext, box: HTMLElement, o: {
   save(which: W, key: ShotKeyPress): Promise<R>;
   saved(next: R): void;
   refused(which: W, reason: unknown): string;
@@ -110,7 +110,7 @@ function recorder<W, R>(ctx: PageContext, box: HTMLElement, o: {
 // each recorded by clicking it and pressing new ones. Under a key, who holds it
 // when it does not reach Notching; the Mac's own shortcuts can be changed in
 // System Settings, so they get a button there.
-function screenshotKeys(ctx: PageContext): HTMLElement {
+export function screenshotKeys(ctx: PageContext, title?: string): HTMLElement {
   const box = el('div', 'shot-keys');
   const s = ctx.strings.shotKeys;
   const names: Record<Which, string> = { screen: s.screen, pick: s.pick };
@@ -120,7 +120,7 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
     save: (which, key) => ctx.bridge.shotSetKey(which, key),
     saved: next => { keys = next; },
     refused: (which, reason) => (reason === 'duplicate' ? fill(s.duplicate, { row: names[which === 'screen' ? 'pick' : 'screen'] })
-      : reason === 'tool' ? s.tool : s.invalid),
+      : reason === 'tool' ? s.tool : reason === 'app' ? s.app : s.invalid),
     draw: () => draw(),
     gone: () => gone,
   });
@@ -144,7 +144,7 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
 
   function draw(): void {
     if (gone) return;
-    const parts: HTMLElement[] = [el('div', 'grp-label', s.title), group(keyRow('screen'), keyRow('pick'))];
+    const parts: HTMLElement[] = [el('div', 'grp-label', title ?? s.title), group(keyRow('screen'), keyRow('pick'))];
     const foot = el('div', 'shot-keys-foot');
     if ([keys.screen, keys.pick].some(k => k === 'mac' || k === 'shortcut')) {
       foot.append(button('module.screenshot.keys', s.open, () => void ctx.bridge.openKeyboardShortcuts()));
@@ -174,7 +174,7 @@ function screenshotKeys(ctx: PageContext): HTMLElement {
 }
 
 // `box` holding `parts` now, keeping the focus on the same key.
-function redraw(box: HTMLElement, parts: HTMLElement[]): void {
+export function redraw(box: HTMLElement, parts: HTMLElement[]): void {
   const active = box.ownerDocument.activeElement;
   const focused = active instanceof HTMLElement && box.contains(active) ? active.dataset.key : undefined;
   box.replaceChildren(...parts);
@@ -267,7 +267,8 @@ function windowSettings(ctx: PageContext): HTMLElement {
     saved: next => { keys = next; },
     refused: (_cell, reason) => {
       const r = reason as WindowKeyError | undefined;
-      return r?.kind === 'duplicate' ? fill(s.duplicate, { cell: s.cells[r.cell] }) : r?.kind === 'shot' ? s.shot : s.invalid;
+      return r?.kind === 'duplicate' ? fill(s.duplicate, { cell: s.cells[r.cell] }) : r?.kind === 'shot' ? s.shot
+        : r?.kind === 'app' ? s.app : s.invalid;
     },
     draw: () => draw(),
     gone: () => gone,
@@ -277,6 +278,7 @@ function windowSettings(ctx: PageContext): HTMLElement {
     if (gone || !keys) return;
     const shared = keys.every(k => mods(k.label) === mods(keys![0].label)) ? mods(keys[0].label) : '';
     const grid = el('div', shared ? 'win-grid' : 'win-grid full');
+    // The grid row by row, then the whole screen as one wide key under it.
     grid.append(...keys.map(k => {
       const on = rec.at() === k.cell;
       const cap = button(`tool.window-keys.${k.cell}`, on ? '…' : k.label.slice(shared.length), () => (on ? undefined : rec.start(k.cell)));
@@ -285,6 +287,7 @@ function windowSettings(ctx: PageContext): HTMLElement {
       cap.dataset.cell = k.cell;
       cap.classList.toggle('recording', on);
       cap.classList.toggle('taken', !on && (k.state === 'other' || k.state === 'shortcut' || k.state === 'mac'));
+      cap.classList.toggle('fill', k.cell === 'fill');
       return cap;
     }));
     const keyRow = shared
@@ -332,8 +335,8 @@ function windowSettings(ctx: PageContext): HTMLElement {
   return wrap(undefined, toolAccess(ctx, m), box);
 }
 
-// The nine keys until changed, in grid order.
-const DEFAULT_WINDOW_LABELS = [...'QWEASDZXC'].map(k => `⌃⌥${k}`);
+// The keys until changed, in grid order, then the whole screen (owner, 4 Nov).
+const DEFAULT_WINDOW_LABELS = [';', '↑', "'", '←', '\\', '→', '.', '↓', '/', '↩'].map(k => `⌃⌥${k}`);
 
 // Each module's own settings, shown on its page; the rest say they have none.
 export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {
@@ -366,13 +369,26 @@ function moduleRow(ctx: PageContext, m: ModuleInfo, ...controls: HTMLElement[]):
   return r;
 }
 
-export function back(ctx: PageContext): HTMLElement {
+// Back to where the page was listed: Pintasan for a background tool, else Modul.
+export function back(ctx: PageContext, to: 'modules' | 'shortcuts' = 'modules'): HTMLElement {
   const b = el('button', 'back');
   b.type = 'button';
   b.dataset.key = 'module.back';
-  b.append(icon('back'), el('span', undefined, ctx.strings.sections.modules));
-  b.addEventListener('click', () => ctx.go({ page: 'modules' }));
+  b.append(icon('back'), el('span', undefined, ctx.strings.sections[to]));
+  b.addEventListener('click', () => ctx.go({ page: to }));
   return b;
+}
+
+// A module's row that opens its page; its switch stops its own clicks.
+export function moduleLink(ctx: PageContext, m: ModuleInfo): HTMLElement {
+  const r = moduleRow(ctx, m, onSwitch(ctx, m), icon('chev'));
+  r.dataset.key = `module.${m.id}`;
+  r.setAttribute('role', 'button');
+  r.tabIndex = 0;
+  const open = () => ctx.go({ page: 'module', id: m.id });
+  r.addEventListener('click', open);
+  r.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === r) open(); });
+  return r;
 }
 
 // The categories folded shut on the Modul page, kept for this Mac only.
@@ -397,7 +413,8 @@ function saveFolded(closed: Set<ModuleCategory>): void {
 
 export const modulesPage: PageRender = ctx => {
   const s = ctx.strings.modules;
-  const installed = ctx.state.modules.filter(m => m.installed && isModule(m));
+  // Background tools are listed on Pintasan instead (owner, 4 Nov).
+  const installed = ctx.state.modules.filter(m => m.installed && isModule(m) && !isTool(m));
   const total = installed.reduce((sum, m) => sum + m.size, 0);
   const page = el('div');
   page.append(head({
@@ -409,17 +426,7 @@ export const modulesPage: PageRender = ctx => {
     page.append(note(s.none));
     return page;
   }
-  const opening = (m: ModuleInfo) => {
-    const r = moduleRow(ctx, m, onSwitch(ctx, m), icon('chev'));
-    // The row opens the module's page; the switch stops its own clicks.
-    r.dataset.key = `module.${m.id}`;
-    r.setAttribute('role', 'button');
-    r.tabIndex = 0;
-    const open = () => ctx.go({ page: 'module', id: m.id });
-    r.addEventListener('click', open);
-    r.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === r) open(); });
-    return r;
-  };
+  const opening = (m: ModuleInfo) => moduleLink(ctx, m);
   // One group per category that folds open and shut (owner, 4 Nov); tools sit in
   // theirs with the modules. A category stays listed, empty, until a module joins it.
   const closed = foldedCategories();
@@ -484,7 +491,7 @@ export const modulePage: PageRender = (ctx, route) => {
     }))
     : null;
   // "No settings" only when there is not even the status switch.
-  page.append(back(ctx), top);
+  page.append(back(ctx, isTool(m) ? 'shortcuts' : 'modules'), top);
   if (status) page.append(status);
   if (own) page.append(own(ctx));
   else if (!status) page.append(note(s.noSettings));
