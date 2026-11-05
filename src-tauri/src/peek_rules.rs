@@ -165,6 +165,10 @@ pub struct DockPress {
 }
 
 impl DockPress {
+    pub const fn new() -> Self {
+        DockPress { state: PressState::Idle }
+    }
+
     pub fn on(&mut self, ev: PressEvent) -> PressAction {
         match (self.state, ev) {
             (_, PressEvent::Down { on_app: Some(pid), at, ms }) => {

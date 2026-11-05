@@ -2,12 +2,13 @@
 //! Accessibility observer on the Dock's icon list, told by the Dock itself when
 //! the icon under the pointer changes. Nothing is polled. A restarted Dock
 //! (`killall Dock`, a Dock setting changed) is followed through the workspace's
-//! launch notices. Main thread, except `item_at` and `dock_pid`.
+//! launch notices. Main thread, except `hovered_at` and `dock_pid`.
 
 use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::Mutex;
 
 use block2::RcBlock;
 use objc2::rc::Retained;
@@ -31,6 +32,8 @@ pub struct DockItem {
 }
 
 static DOCK_PID: AtomicI32 = AtomicI32::new(0);
+// The app icon under the pointer, as the Dock last said; for the click tap.
+static HOVERED: Mutex<Option<DockItem>> = Mutex::new(None);
 
 type Launches = Option<Retained<ProtocolObject<dyn NSObjectProtocol>>>;
 
@@ -78,18 +81,16 @@ fn item(element: &Cf) -> Option<DockItem> {
     Some(DockItem { pid, name: ax::title(element).unwrap_or_default(), frame })
 }
 
-/// The app icon at a point in global CG points, if any. Safe from any thread.
-pub fn item_at(x: f64, y: f64) -> Option<DockItem> {
-    let dock = ax::app(dock_pid()?)?;
-    let element = ax::element_at(&dock, x, y)?;
-    if ax::pid(&element) != dock_pid() {
-        return None;
-    }
-    item(&element)
+/// The app icon the pointer is on, if it contains this point (global CG
+/// points). Asks nothing of the Dock, so a click elsewhere costs nothing.
+/// Safe from any thread.
+pub fn hovered_at(x: f64, y: f64) -> Option<DockItem> {
+    HOVERED.lock().unwrap().clone().filter(|i| i.frame.contains(x, y))
 }
 
 unsafe extern "C" fn on_selected(_observer: *const c_void, _element: *const c_void, _name: *const c_void, _refcon: *mut c_void) {
     let hovered = WATCH.with(|w| w.borrow().as_ref().and_then(|w| ax::selected_children(&w.list).first().and_then(item)));
+    *HOVERED.lock().unwrap() = hovered.clone();
     if let Some(on_hover) = ON_HOVER.get() {
         on_hover(hovered);
     }
@@ -148,4 +149,5 @@ pub fn start(on_hover: fn(Option<DockItem>)) {
 pub fn stop() {
     ON_HOVER.set(None);
     WATCH.with(|w| *w.borrow_mut() = None);
+    *HOVERED.lock().unwrap() = None;
 }

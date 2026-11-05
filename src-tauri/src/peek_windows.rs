@@ -38,6 +38,12 @@ pub fn app_windows(pid: i32) -> Vec<WinInfo> {
     merge(pid, ax_windows(pid).into_iter().map(|(w, _)| w).collect(), &z)
 }
 
+/// The app has any window at all, minimized ones too: one quick question, for
+/// the click tap, which must not keep a click waiting.
+pub fn has_windows(pid: i32) -> bool {
+    ax::app(pid).is_some_and(|app| ax::windows(&app).iter().any(ax::is_standard))
+}
+
 /// The owner of the front shown window, other than Notching (design §6).
 pub fn front_pid() -> Option<i32> {
     let own = std::process::id() as i32;

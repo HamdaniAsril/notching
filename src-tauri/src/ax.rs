@@ -19,8 +19,6 @@ unsafe extern "C" {
     fn AXValueCreate(kind: u32, value: *const c_void) -> *const c_void;
     fn AXValueGetValue(value: *const c_void, kind: u32, out: *mut c_void) -> u8;
     fn AXUIElementPerformAction(element: *const c_void, action: *const c_void) -> i32;
-    fn AXUIElementCopyElementAtPosition(app: *const c_void, x: f32, y: f32, out: *mut *const c_void) -> i32;
-    fn AXUIElementGetPid(element: *const c_void, pid: *mut i32) -> i32;
     // Not documented by Apple, but stable for years and used by window tools
     // such as AltTab: the window server's number for a window element.
     fn _AXUIElementGetWindow(element: *const c_void, id: *mut u32) -> i32;
@@ -307,24 +305,6 @@ pub fn url(element: &Cf) -> Option<String> {
         }
         (*(value.0 as *const objc2_foundation::NSURL)).path().map(|p| p.to_string())
     }
-}
-
-/// The element of `app` at a point in screen coordinates (top left of the main screen).
-pub fn element_at(app: &Cf, x: f64, y: f64) -> Option<Cf> {
-    let mut out = std::ptr::null();
-    // SAFETY: an element and an out pointer for a +1 element.
-    let status = unsafe { AXUIElementCopyElementAtPosition(app.0, x as f32, y as f32, &mut out) };
-    if status != AX_OK {
-        return None;
-    }
-    owned(out)
-}
-
-/// The process an element belongs to.
-pub fn pid(element: &Cf) -> Option<i32> {
-    let mut pid = 0;
-    // SAFETY: an element and an i32 out.
-    (unsafe { AXUIElementGetPid(element.0, &mut pid) } == AX_OK).then_some(pid)
 }
 
 /// Accessibility notifications from one app, heard on the main run loop until
