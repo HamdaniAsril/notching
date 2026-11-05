@@ -24,6 +24,9 @@ unsafe extern "C" {
     // Not documented by Apple, but stable for years and used by window tools
     // such as AltTab: the window server's number for a window element.
     fn _AXUIElementGetWindow(element: *const c_void, id: *mut u32) -> i32;
+    fn AXObserverCreate(pid: i32, callback: ObserverCallback, out: *mut *const c_void) -> i32;
+    fn AXObserverAddNotification(observer: *const c_void, element: *const c_void, name: *const c_void, refcon: *mut c_void) -> i32;
+    fn AXObserverGetRunLoopSource(observer: *const c_void) -> *mut c_void;
 }
 
 #[link(name = "CoreFoundation", kind = "framework")]
@@ -40,7 +43,14 @@ unsafe extern "C" {
     fn CFRetain(cf: *const c_void) -> *const c_void;
     static kCFBooleanTrue: *const c_void;
     static kCFBooleanFalse: *const c_void;
+    fn CFRunLoopGetMain() -> *mut c_void;
+    fn CFRunLoopAddSource(rl: *mut c_void, source: *mut c_void, mode: *const c_void);
+    fn CFRunLoopRemoveSource(rl: *mut c_void, source: *mut c_void, mode: *const c_void);
+    static kCFRunLoopDefaultMode: *const c_void;
 }
+
+/// An AX observer's callback: observer, element, notification name, refcon.
+pub type ObserverCallback = unsafe extern "C" fn(*const c_void, *const c_void, *const c_void, *mut c_void);
 
 const AX_OK: i32 = 0;
 const AX_NO_VALUE: i32 = -25212; // kAXErrorNoValue: the attribute is empty
@@ -315,4 +325,40 @@ pub fn pid(element: &Cf) -> Option<i32> {
     let mut pid = 0;
     // SAFETY: an element and an i32 out.
     (unsafe { AXUIElementGetPid(element.0, &mut pid) } == AX_OK).then_some(pid)
+}
+
+/// Accessibility notifications from one app, heard on the main run loop until
+/// dropped (Intip jendela's Dock watch). Main thread only.
+pub struct Observer {
+    observer: Cf,
+    source: *mut c_void,
+}
+
+impl Observer {
+    pub fn new(pid: i32, callback: ObserverCallback) -> Option<Observer> {
+        let mut out = std::ptr::null();
+        // SAFETY: a pid, a callback with AX's signature and an out pointer for a +1 observer.
+        let observer = owned(unsafe { if AXObserverCreate(pid, callback, &mut out) == AX_OK { out } else { std::ptr::null() } })?;
+        // SAFETY: the observer's own source (not retained by us), added to the main run loop.
+        let source = unsafe { AXObserverGetRunLoopSource(observer.0) };
+        if source.is_null() {
+            return None;
+        }
+        unsafe { CFRunLoopAddSource(CFRunLoopGetMain(), source, kCFRunLoopDefaultMode) };
+        Some(Observer { observer, source })
+    }
+
+    /// Hears `notification` ("AXSelectedChildrenChanged", …) on `element`.
+    pub fn watch(&self, element: &Cf, notification: &str) -> bool {
+        let name = attr(notification);
+        // SAFETY: the observer, an element of its app and a CFString name.
+        unsafe { AXObserverAddNotification(self.observer.0, element.0, name_ptr(&name), std::ptr::null_mut()) == AX_OK }
+    }
+}
+
+impl Drop for Observer {
+    fn drop(&mut self) {
+        // SAFETY: the source added in `new`, removed once; the observer is released by Cf.
+        unsafe { CFRunLoopRemoveSource(CFRunLoopGetMain(), self.source, kCFRunLoopDefaultMode) };
+    }
 }
