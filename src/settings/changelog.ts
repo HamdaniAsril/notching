@@ -17,10 +17,12 @@ export const CHANGELOG: ChangelogEntry[] = [
       id: [
         'Shelf terbuka begitu kamu mulai menyeret file, dari mana saja. Bisa dimatikan di pengaturan Shelf.',
         'Panel tembus pandang pindah ke Tampilan notch, dan preview-nya langsung ikut berubah.',
+        'Intip jendela (pasang dari Katalog): arahkan kursor ke ikon Dock untuk melihat semua jendela app, termasuk yang di-minimize, dan klik ikon Dock untuk me-minimize atau memunculkan semuanya.',
       ],
       en: [
         'Shelf opens as soon as you start dragging a file, from anywhere. Turn it off in Shelf’s settings.',
         'See-through panel moved to Notch look, and its preview follows at once.',
+        'Window peek (install it from the Catalog): point at a Dock icon to see every window of the app, minimized ones too, and click the icon to minimize or bring them all back.',
       ],
     },
   },

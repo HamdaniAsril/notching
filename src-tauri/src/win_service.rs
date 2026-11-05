@@ -55,7 +55,7 @@ extern "C" fn on_hot_key(_next: *mut c_void, event: *mut c_void, _data: *mut c_v
 }
 
 /// The screens' full and visible frames in screen coordinates, main screen first.
-fn screens(mtm: MainThreadMarker) -> Vec<(Rect, Rect)> {
+pub(crate) fn screens(mtm: MainThreadMarker) -> Vec<(Rect, Rect)> {
     let all = NSScreen::screens(mtm);
     let rect = |r: objc2_foundation::NSRect| Rect { x: r.origin.x, y: r.origin.y, w: r.size.width, h: r.size.height };
     let primary = all.iter().next().map_or(0.0, |s| s.frame().size.height);

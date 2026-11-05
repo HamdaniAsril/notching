@@ -291,9 +291,9 @@ impl PictureCache {
         Some(png)
     }
 
-    /// Drops the pictures of windows that are gone.
-    pub fn forget_missing(&mut self, alive: &[u32]) {
-        self.items.retain(|(i, _)| alive.contains(i));
+    /// Drops the pictures of these windows.
+    pub fn remove(&mut self, ids: &[u32]) {
+        self.items.retain(|(i, _)| !ids.contains(i));
     }
 }
 
@@ -439,11 +439,11 @@ mod tests {
     }
 
     #[test]
-    fn picture_cache_forgets_closed_windows() {
+    fn picture_cache_drops_named_windows() {
         let mut c = PictureCache::default();
         c.put(1, png(1));
         c.put(2, png(2));
-        c.forget_missing(&[2]);
+        c.remove(&[1, 9]);
         assert!(c.get(1).is_none() && c.get(2).is_some());
     }
 

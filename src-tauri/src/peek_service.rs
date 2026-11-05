@@ -1,11 +1,544 @@
-//! Intip jendela's native side (design 5 Nov): the peek panels, their commands,
-//! and keeping the Dock watch and the Dock click tap in line with the tool, its
-//! settings and the Accessibility permission. Filled in by Task 11 of plan 1.
+//! Intip jendela's native side (design 5 Nov): the peek card and the peek
+//! layer, their commands, and keeping the Dock watch and the Dock click tap in
+//! line with the tool, its settings and the Accessibility permission.
+//!
+//! The card shows 350 ms after the pointer stops on a running app's icon and
+//! changes at once to another icon while it is up; it hides 220 ms after the
+//! pointer leaves both the icon and the card. Both panels are never closed,
+//! only ordered out (main thread).
 
-use tauri::AppHandle;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
-/// Brings the Dock watch and the click tap in line with the tool and its settings.
-pub fn sync(_app: &AppHandle) {}
+use base64::Engine;
+use block2::RcBlock;
+use objc2::rc::Retained;
+use objc2::runtime::ProtocolObject;
+use objc2::MainThreadMarker;
+use objc2_app_kit::{NSRunningApplication, NSWindowAnimationBehavior};
+use objc2_foundation::{NSDistributedNotificationCenter, NSNotification, NSObjectProtocol, NSOperationQueue, NSPoint, NSRect, NSSize, NSString};
+use serde::Serialize;
+use tauri::window::{Effect, EffectState, EffectsBuilder};
+use tauri::{AppHandle, Emitter, EventTarget, LogicalSize, Manager, Size, Theme, WebviewUrl};
+use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask};
 
-/// Hides the peek panels.
-pub fn hide() {}
+use crate::app_core::CoreState;
+use crate::geometry::Rect;
+use crate::locale::Lang;
+use crate::peek_capture::{self, PictureSize};
+use crate::peek_dock::{self, DockItem};
+use crate::peek_rules::{dock_edge, find_window, peek_frame, CardColor, DockClick, Material, PeekSettings, WinInfo, WindowAct};
+use crate::peek_windows;
+
+pub const MODULE_ID: &str = "window-peek";
+const CARD: &str = "peek";
+const STAGE: &str = "peek-stage";
+const VIEW_EVENT: &str = "notching://peek";
+const STAGE_EVENT: &str = "notching://peek-stage";
+/// Above the Dock (20) and the notch panels (25).
+const CARD_LEVEL: i32 = 26;
+/// Above app windows, under the notch panels and the card.
+const STAGE_LEVEL: i32 = 24;
+const OPEN_MS: u64 = 350;
+const CLOSE_MS: u64 = 220;
+const ACCESS_CHANGED: &str = "com.apple.accessibility.api";
+const ACCESS_SETTLE: Duration = Duration::from_millis(1500);
+const NOTICE_EVERY: Duration = Duration::from_secs(60);
+
+mod panel {
+    tauri_nspanel::tauri_panel! {
+        panel!(PeekPanel {
+            config: {
+                can_become_key_window: false,
+                is_floating_panel: true
+            }
+        })
+    }
+}
+use panel::PeekPanel;
+
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PeekWindowDto {
+    pub id: u32,
+    pub title: String,
+    pub minimized: bool,
+    pub front: bool,
+}
+
+/// What the card shows; same shape as PeekView in src/peek/view.ts.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PeekViewDto {
+    pub app: String,
+    pub icon: Option<String>,
+    pub windows: Vec<PeekWindowDto>,
+    pub card: CardColor,
+    pub material: Material,
+    pub accent: String,
+    pub lang: Lang,
+    pub max_width: f64,
+}
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+pub struct FrameDto {
+    pub x: f64,
+    pub y: f64,
+    pub w: f64,
+    pub h: f64,
+}
+
+/// What the layer shows; same shape as StageView in src/peek/stage.ts.
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct StageViewDto {
+    pub frame: FrameDto,
+    pub minimized: bool,
+    pub picture: Option<String>,
+    pub accent: String,
+    pub lang: Lang,
+}
+
+// What the card is up for: the icon, its app, its windows and its screen (CG).
+#[derive(Clone)]
+struct Shown {
+    item: DockItem,
+    pid: i32,
+    windows: Vec<WinInfo>,
+    screen: Rect,
+    visible: Rect,
+    view: PeekViewDto,
+}
+
+static APP: OnceLock<AppHandle> = OnceLock::new();
+static SHOWN: Mutex<Option<Shown>> = Mutex::new(None);
+// The running app's icon under the pointer, as the Dock last said.
+static HOVER: Mutex<Option<DockItem>> = Mutex::new(None);
+static OVER_CARD: AtomicBool = AtomicBool::new(false);
+// Bumped by every timer and every change, so an older timer does nothing.
+static GENERATION: AtomicU64 = AtomicU64::new(0);
+static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
+static ACCESS_OBSERVER: Mutex<Option<Observer>> = Mutex::new(None);
+
+struct Observer(#[allow(dead_code)] Retained<ProtocolObject<dyn NSObjectProtocol>>);
+// SAFETY: kept only to stay alive; never used from another thread.
+unsafe impl Send for Observer {}
+
+fn settings(app: &AppHandle) -> PeekSettings {
+    app.state::<CoreState>().0.lock().unwrap().peek_settings()
+}
+
+fn installed_and_on(app: &AppHandle) -> bool {
+    app.state::<CoreState>().0.lock().unwrap().module(MODULE_ID).is_some_and(|e| e.installed && e.enabled)
+}
+
+fn on_main(app: &AppHandle, run: impl FnOnce(&AppHandle) + Send + 'static) {
+    let handle = app.clone();
+    if MainThreadMarker::new().is_some() {
+        run(&handle);
+    } else {
+        let _ = app.run_on_main_thread(move || run(&handle));
+    }
+}
+
+// Runs `run` on the main thread after `ms`, unless something changed meanwhile.
+fn later(ms: u64, run: impl FnOnce(&AppHandle) + Send + 'static) {
+    let Some(app) = APP.get().cloned() else { return };
+    let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(ms));
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            if GENERATION.load(Ordering::SeqCst) == generation {
+                run(&handle);
+            }
+        });
+    });
+}
+
+fn later_hide() {
+    later(CLOSE_MS, |app| {
+        if HOVER.lock().unwrap().is_none() && !OVER_CARD.load(Ordering::SeqCst) {
+            hide_now(app);
+        }
+    });
+}
+
+// The Dock watch's word, on the main thread: which running app's icon the
+// pointer is on, if any.
+fn on_hover(item: Option<DockItem>) {
+    let Some(app) = APP.get().cloned() else { return };
+    if !settings(&app).dock {
+        return;
+    }
+    match item.filter(|i| i.pid.is_some()) {
+        Some(item) => {
+            *HOVER.lock().unwrap() = Some(item.clone());
+            if SHOWN.lock().unwrap().is_some() {
+                GENERATION.fetch_add(1, Ordering::SeqCst);
+                show_for(&app, item);
+            } else {
+                later(OPEN_MS, move |app| {
+                    if HOVER.lock().unwrap().as_ref() == Some(&item) {
+                        show_for(app, item);
+                    }
+                });
+            }
+        }
+        None => {
+            *HOVER.lock().unwrap() = None;
+            later_hide();
+        }
+    }
+}
+
+fn data_url(png: &[u8]) -> String {
+    format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png))
+}
+
+fn app_icon(pid: i32) -> Option<String> {
+    let app = NSRunningApplication::runningApplicationWithProcessIdentifier(pid)?;
+    let icon = app.icon()?;
+    let png = crate::shelf_service::image_png(&icon)?;
+    Some(data_url(&png))
+}
+
+// The screen (full, visible; CG) holding a point, else the main one.
+fn screen_at(screens: &[(Rect, Rect)], x: f64, y: f64) -> (Rect, Rect) {
+    screens.iter().copied().find(|(full, _)| full.contains(x, y)).or_else(|| screens.first().copied()).unwrap_or((
+        Rect { x: 0.0, y: 0.0, w: 1440.0, h: 900.0 },
+        Rect { x: 0.0, y: 0.0, w: 1440.0, h: 900.0 },
+    ))
+}
+
+// Lists the app's windows on a thread of its own (an app may answer slowly),
+// then shows them on the card, if the pointer still wants this app.
+fn show_for(app: &AppHandle, item: DockItem) {
+    let Some(pid) = item.pid else { return };
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    let screens = crate::win_service::screens(mtm);
+    let (screen, visible) = screen_at(&screens, item.frame.x + item.frame.w / 2.0, item.frame.y + item.frame.h / 2.0);
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        let s = settings(&handle);
+        let mut windows = peek_windows::app_windows(pid);
+        if !s.minimized {
+            windows.retain(|w| !w.minimized);
+        }
+        let front = (peek_windows::front_pid() == Some(pid)).then(|| windows.iter().find(|w| !w.minimized).map(|w| w.id)).flatten();
+        let (accent, lang) = {
+            let core = handle.state::<CoreState>();
+            let core = core.0.lock().unwrap();
+            (core.accent(), core.lang())
+        };
+        let view = PeekViewDto {
+            app: item.name.clone(),
+            icon: app_icon(pid),
+            windows: windows
+                .iter()
+                .map(|w| PeekWindowDto { id: w.id, title: w.title.clone(), minimized: w.minimized, front: Some(w.id) == front })
+                .collect(),
+            card: s.card,
+            material: s.material,
+            accent,
+            lang,
+            max_width: (visible.w - 24.0).max(220.0),
+        };
+        on_main(&handle, move |app| {
+            let wanted = HOVER.lock().unwrap().as_ref().is_some_and(|h| h.pid == item.pid) || OVER_CARD.load(Ordering::SeqCst);
+            if !wanted {
+                return;
+            }
+            let mut shown = SHOWN.lock().unwrap();
+            // Pictures of this app's windows that are gone since last time.
+            if let Some(old) = shown.as_ref().filter(|o| o.pid == pid) {
+                let gone: Vec<u32> = old.windows.iter().map(|w| w.id).filter(|id| !windows.iter().any(|w| w.id == *id)).collect();
+                peek_capture::forget(&gone);
+            }
+            *shown = Some(Shown { item, pid, windows, screen, visible, view: view.clone() });
+            drop(shown);
+            ensure_panels(app);
+            let _ = app.emit_to(EventTarget::webview_window(CARD), VIEW_EVENT, &view);
+        });
+    });
+}
+
+fn make_panel(app: &AppHandle, label: &str, url: &str, level: i32) -> Option<std::sync::Arc<dyn tauri_nspanel::Panel>> {
+    if let Ok(panel) = app.get_webview_panel(label) {
+        return Some(panel);
+    }
+    let panel = PanelBuilder::<_, PeekPanel>::new(app, label)
+        .url(WebviewUrl::App(url.into()))
+        .size(Size::Logical(LogicalSize::new(800.0, 300.0)))
+        .level(PanelLevel::Custom(level))
+        .collection_behavior(
+            CollectionBehavior::new().can_join_all_spaces().stationary().ignores_cycle().full_screen_auxiliary(),
+        )
+        .style_mask(StyleMask::empty().borderless().nonactivating_panel())
+        .transparent(true)
+        .has_shadow(label == CARD)
+        .no_activate(true)
+        .hides_on_deactivate(false)
+        .accepts_mouse_moved_events(true)
+        .with_window(|w| {
+            w.accept_first_mouse(true).transparent(true).decorations(false).visible(false).focused(false).skip_taskbar(true)
+        })
+        .build()
+        .map_err(|e| eprintln!("notching: peek panel {label} not made: {e}"))
+        .ok()?;
+    panel.as_panel().setAnimationBehavior(NSWindowAnimationBehavior::None);
+    if label == STAGE {
+        panel.set_ignores_mouse_events(true);
+    }
+    Some(panel)
+}
+
+fn ensure_panels(app: &AppHandle) {
+    make_panel(app, CARD, "peek.html", CARD_LEVEL);
+    make_panel(app, STAGE, "peek-stage.html", STAGE_LEVEL);
+}
+
+// A CG rect (top-left of the main screen) as an AppKit frame.
+fn appkit(r: Rect, primary_height: f64) -> NSRect {
+    NSRect::new(NSPoint::new(r.x, primary_height - r.y - r.h), NSSize::new(r.w, r.h))
+}
+
+fn primary_height() -> f64 {
+    MainThreadMarker::new()
+        .and_then(|mtm| crate::win_service::screens(mtm).first().map(|(full, _)| full.h))
+        .unwrap_or(0.0)
+}
+
+// The card's look: Liquid glass is the panel's own macOS effect under the page.
+fn dress(app: &AppHandle, s: PeekSettings) {
+    let Some(window) = app.get_webview_window(CARD) else { return };
+    let theme = match s.card {
+        CardColor::System => None,
+        CardColor::Light => Some(Theme::Light),
+        CardColor::Dark => Some(Theme::Dark),
+    };
+    let _ = window.set_theme(theme);
+    let dark = match s.card {
+        CardColor::Dark => true,
+        CardColor::Light => false,
+        CardColor::System => window.theme().map_or(true, |t| t == Theme::Dark),
+    };
+    let effects = (s.material == Material::Glass).then(|| {
+        EffectsBuilder::new()
+            .effect(if dark { Effect::HudWindow } else { Effect::Popover })
+            .state(EffectState::Active)
+            .radius(20.0)
+            .build()
+    });
+    let _ = window.set_effects(effects);
+}
+
+/// The page's size: the card is placed beside its icon and shown.
+#[tauri::command]
+pub fn peek_size(app: AppHandle, width: f64, height: f64) {
+    on_main(&app, move |app| {
+        let Some(shown) = SHOWN.lock().unwrap().clone() else { return };
+        let icon = shown.item.frame;
+        let frame = peek_frame(icon, dock_edge(icon, shown.screen), (width, height), shown.visible);
+        let Ok(panel) = app.get_webview_panel(CARD) else { return };
+        dress(app, settings(app));
+        panel.as_panel().setFrame_display(appkit(frame, primary_height()), true);
+        panel.as_panel().invalidateShadow();
+        panel.as_panel().orderFrontRegardless();
+    });
+}
+
+/// The pointer came onto the card, or left it.
+#[tauri::command]
+pub fn peek_pointer(inside: bool) {
+    OVER_CARD.store(inside, Ordering::SeqCst);
+    if inside {
+        GENERATION.fetch_add(1, Ordering::SeqCst);
+    } else {
+        later_hide();
+    }
+}
+
+/// A card clicked: that window comes forward, restored if minimized.
+#[tauri::command]
+pub fn peek_open(app: AppHandle, id: u32) {
+    let Some(pid) = SHOWN.lock().unwrap().as_ref().map(|s| s.pid) else { return };
+    hide();
+    let _ = app;
+    std::thread::spawn(move || {
+        peek_windows::raise(pid, id);
+    });
+}
+
+/// A window button; the card stays and shows the result.
+#[tauri::command]
+pub fn peek_act(app: AppHandle, id: u32, act: WindowAct) {
+    let Some((pid, item)) = SHOWN.lock().unwrap().as_ref().map(|s| (s.pid, s.item.clone())) else { return };
+    std::thread::spawn(move || {
+        let found = find_window(&peek_windows::app_windows(pid), id).is_some();
+        if found {
+            match act {
+                WindowAct::Minimize => {
+                    peek_capture::remember_before_minimize(id);
+                    peek_windows::minimize(pid, id);
+                }
+                WindowAct::Restore => {
+                    peek_windows::restore(pid, id);
+                }
+                WindowAct::Close => {
+                    peek_windows::close(pid, id);
+                }
+                WindowAct::Quit => {
+                    peek_windows::quit(pid);
+                }
+            }
+        }
+        // Give the app a moment to act, then show what is there now.
+        std::thread::sleep(Duration::from_millis(250));
+        let running = NSRunningApplication::runningApplicationWithProcessIdentifier(pid).is_some_and(|a| !a.isTerminated());
+        on_main(&app, move |app| {
+            if running {
+                show_for(app, item);
+            } else {
+                hide_now(app);
+            }
+        });
+    });
+}
+
+/// The pointer on a card (Some) or off it (None): the window is peeked at in
+/// its place on the layer.
+#[tauri::command]
+pub fn peek_hover(app: AppHandle, id: Option<u32>) {
+    let Some(id) = id else {
+        on_main(&app, |app| {
+            let _ = app.emit_to(EventTarget::webview_window(STAGE), STAGE_EVENT, None::<StageViewDto>);
+            if let Ok(stage) = app.get_webview_panel(STAGE) {
+                stage.hide();
+            }
+        });
+        return;
+    };
+    let Some(shown) = SHOWN.lock().unwrap().clone() else { return };
+    let Some(window) = find_window(&shown.windows, id).cloned() else { return };
+    std::thread::spawn(move || {
+        let picture = peek_capture::picture(id, window.minimized, PictureSize::Full).map(|png| data_url(&png));
+        on_main(&app, move |app| {
+            // Still over this window's card?
+            if SHOWN.lock().unwrap().as_ref().is_none_or(|s| s.pid != shown.pid) {
+                return;
+            }
+            let screen = shown.screen;
+            let view = StageViewDto {
+                frame: FrameDto { x: window.frame.x - screen.x, y: window.frame.y - screen.y, w: window.frame.w, h: window.frame.h },
+                minimized: window.minimized,
+                picture,
+                accent: shown.view.accent.clone(),
+                lang: shown.view.lang,
+            };
+            let Ok(stage) = app.get_webview_panel(STAGE) else { return };
+            stage.as_panel().setFrame_display(appkit(screen, primary_height()), true);
+            let _ = app.emit_to(EventTarget::webview_window(STAGE), STAGE_EVENT, &view);
+            stage.as_panel().orderFrontRegardless();
+        });
+    });
+}
+
+/// A window's picture for its card, as a PNG data URL; None: the app's icon stays.
+#[tauri::command]
+pub async fn peek_picture(id: u32, full: bool) -> Option<String> {
+    let minimized = SHOWN.lock().unwrap().as_ref().and_then(|s| s.windows.iter().find(|w| w.id == id).map(|w| w.minimized))?;
+    let size = if full { PictureSize::Full } else { PictureSize::Thumb };
+    tauri::async_runtime::spawn_blocking(move || peek_capture::picture(id, minimized, size).map(|png| data_url(&png)))
+        .await
+        .ok()
+        .flatten()
+}
+
+/// The card's view, for a page that loaded after it went out.
+#[tauri::command]
+pub fn peek_view() -> Option<PeekViewDto> {
+    SHOWN.lock().unwrap().as_ref().map(|s| s.view.clone())
+}
+
+fn hide_now(app: &AppHandle) {
+    GENERATION.fetch_add(1, Ordering::SeqCst);
+    *SHOWN.lock().unwrap() = None;
+    OVER_CARD.store(false, Ordering::SeqCst);
+    for label in [CARD, STAGE] {
+        if let Ok(panel) = app.get_webview_panel(label) {
+            panel.hide();
+        }
+    }
+    let _ = app.emit_to(EventTarget::webview_window(CARD), VIEW_EVENT, None::<PeekViewDto>);
+    let _ = app.emit_to(EventTarget::webview_window(STAGE), STAGE_EVENT, None::<StageViewDto>);
+}
+
+/// Hides the card and the layer. Safe from any thread.
+pub fn hide() {
+    if let Some(app) = APP.get() {
+        on_main(app, hide_now);
+    }
+}
+
+/// The tool switched on or installed without Accessibility: the notch says
+/// so, at most once a minute.
+pub fn no_access(app: &AppHandle) {
+    {
+        let mut last = LAST_NOTICE.lock().unwrap();
+        if last.is_some_and(|t| t.elapsed() < NOTICE_EVERY) {
+            return;
+        }
+        *last = Some(Instant::now());
+    }
+    let text = |key: &str| app.state::<CoreState>().0.lock().unwrap().module_text(MODULE_ID, key).unwrap_or_default();
+    if let Err(e) = crate::notify::post(app, MODULE_ID, "access", &text("notice.access.title"), &text("notice.access.detail")) {
+        eprintln!("notching: the window-peek access notice was not sent: {e}");
+    }
+}
+
+/// The Dock watch and the click tap as the tool, its settings and the
+/// permission say. Safe from any thread.
+pub fn sync(app: &AppHandle) {
+    let _ = APP.set(app.clone());
+    on_main(app, |app| {
+        let want = installed_and_on(app) && crate::keyclean_tap::trusted(false);
+        let s = settings(app);
+        if want && (s.dock || s.dock_click == DockClick::Toggle) {
+            peek_dock::start(on_hover);
+        } else {
+            peek_dock::stop();
+        }
+        if !want || !s.dock {
+            hide_now(app);
+        }
+        crate::peek_tap::sync(want && s.dock_click == DockClick::Toggle);
+    });
+}
+
+/// At launch, on the main thread: the watch and the tap, and a watch on the
+/// Accessibility list so a permission given later works without a restart.
+pub fn start(app: &AppHandle) {
+    let _ = APP.set(app.clone());
+    sync(app);
+    let handle = app.clone();
+    let block = RcBlock::new(move |_: std::ptr::NonNull<NSNotification>| {
+        let handle = handle.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(ACCESS_SETTLE);
+            sync(&handle);
+        });
+    });
+    let center = NSDistributedNotificationCenter::defaultCenter();
+    // SAFETY: the block lives as long as its observer, kept for the app's life.
+    let observer = unsafe {
+        center.addObserverForName_object_queue_usingBlock(
+            Some(&NSString::from_str(ACCESS_CHANGED)),
+            None,
+            Some(&NSOperationQueue::mainQueue()),
+            &block,
+        )
+    };
+    *ACCESS_OBSERVER.lock().unwrap() = Some(Observer(observer));
+}

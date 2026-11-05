@@ -164,6 +164,13 @@ pub fn run() {
             settings_window::set_shelf_open_on_drag,
             settings_window::set_peek_settings,
             settings_window::open_dock_settings,
+            peek_service::peek_size,
+            peek_service::peek_pointer,
+            peek_service::peek_open,
+            peek_service::peek_act,
+            peek_service::peek_hover,
+            peek_service::peek_picture,
+            peek_service::peek_view,
             settings_window::set_theme,
             self_uninstall::uninstall_preview,
             self_uninstall::release_permissions,
@@ -294,6 +301,7 @@ pub fn run() {
             app_keys_service::start(app.handle());
             update_service::start(app.handle());
             cut_service::start(app.handle());
+            peek_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());

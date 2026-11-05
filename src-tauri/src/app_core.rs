@@ -440,6 +440,11 @@ impl AppCore {
         self.settings.shelf_open_on_drag
     }
 
+    /// The Volt accent, "#rrggbb".
+    pub fn accent(&self) -> String {
+        self.settings.accent.clone()
+    }
+
     pub fn peek_settings(&self) -> crate::peek_rules::PeekSettings {
         self.settings.window_peek
     }

@@ -59,8 +59,8 @@ pub fn remember_before_minimize(id: u32) {
 }
 
 /// Drops the pictures of windows that are gone.
-pub fn forget(alive: &[u32]) {
-    CACHE.lock().unwrap().forget_missing(alive);
+pub fn forget(gone: &[u32]) {
+    CACHE.lock().unwrap().remove(gone);
 }
 
 fn macos_14() -> bool {

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "peek",
+  "description": "Capability for Intip jendela's card and layer panels",
+  "windows": ["peek", "peek-stage"],
+  "permissions": ["core:default"]
+}

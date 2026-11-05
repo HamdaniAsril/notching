@@ -14,6 +14,13 @@ pub fn module_changed(app: &AppHandle, id: &str, on: bool) {
     if id == crate::shelf_service::MODULE_ID {
         crate::shelf_watch::sync(app);
     }
+    if id == crate::peek_service::MODULE_ID {
+        crate::peek_service::sync(app);
+        if on && !crate::keyclean_tap::trusted(false) {
+            crate::keyclean_tap::trusted(true);
+            crate::peek_service::no_access(app);
+        }
+    }
     if !TOOLS.contains(&id) {
         return;
     }
@@ -29,4 +36,5 @@ pub fn module_changed(app: &AppHandle, id: &str, on: bool) {
 /// Settings opened, often right after the permission was given: the tap again.
 pub fn settings_opened(app: &AppHandle) {
     crate::cut_service::sync(app);
+    crate::peek_service::sync(app);
 }

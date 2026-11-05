@@ -36,6 +36,7 @@ static DOCK_PID: AtomicI32 = AtomicI32::new(0);
 static HOVERED: Mutex<Option<DockItem>> = Mutex::new(None);
 
 type Launches = Option<Retained<ProtocolObject<dyn NSObjectProtocol>>>;
+type OnHover = fn(Option<DockItem>);
 
 struct Watch {
     _observer: Observer,
@@ -44,7 +45,7 @@ struct Watch {
 
 thread_local! {
     static WATCH: RefCell<Option<Watch>> = const { RefCell::new(None) };
-    static ON_HOVER: Cell<Option<fn(Option<DockItem>)>> = const { Cell::new(None) };
+    static ON_HOVER: Cell<Option<OnHover>> = const { Cell::new(None) };
     static LAUNCHES: RefCell<Launches> = const { RefCell::new(None) };
 }
 
@@ -117,7 +118,7 @@ fn attach() {
 
 /// Starts telling `on_hover` which app icon the pointer is on (None: none).
 /// Main thread.
-pub fn start(on_hover: fn(Option<DockItem>)) {
+pub fn start(on_hover: OnHover) {
     ON_HOVER.set(Some(on_hover));
     attach();
     LAUNCHES.with(|l| {
