@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intip jendela · prototipe 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #f3f5f0; --ink2: #c4c8bf; --muted: #8c9187; --faint: #454941; --track: #23251f;
+    --acc: #c8f04a; --acc-soft: #1d260b; --on-acc: #0f1404; --ring: #ffffff14;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #0a0b09; color: var(--ink); font: 13px/1.4 "Inter", -apple-system, sans-serif; }
+  .cond { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+
+  /* Bar above the fake screen */
+  #bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 14px 18px; }
+  #bar h1 { margin: 0; font: 700 22px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .04em; }
+  #bar h1 i { font-style: normal; color: var(--acc); }
+  .ctl { display: flex; align-items: center; gap: 8px; }
+  .ctl > span { color: var(--muted); font-size: 12px; }
+  .seg { display: inline-flex; background: var(--track); border-radius: 9px; padding: 2px; }
+  .seg button { all: unset; cursor: pointer; padding: 5px 11px; border-radius: 7px; color: var(--ink2); font-size: 12px; }
+  .seg button.on { background: var(--acc); color: var(--on-acc); font-weight: 600; }
+  .btn { all: unset; cursor: pointer; padding: 6px 12px; border-radius: 8px; background: var(--track); color: var(--ink); font-size: 12px; }
+  .btn:hover { background: #2f322a; }
+  #tip { width: 100%; color: var(--muted); font-size: 12px; }
+  #tip b { color: var(--ink2); font-weight: 600; }
+  kbd { font: 600 11px "Inter", sans-serif; background: var(--track); border: 1px solid #ffffff1f; border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; color: var(--ink); }
+
+  /* The fake Mac screen, drawn at 1280×800 and scaled to fit */
+  #stage { position: relative; margin: 0 18px 18px; }
+  #screen { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform-origin: 0 0; overflow: hidden; border-radius: 14px;
+    background: radial-gradient(120% 90% at 20% 10%, #3a4a3a 0%, #1d2620 45%, #101411 100%); outline: none; box-shadow: 0 0 0 1px #ffffff14; }
+  #menubar { position: absolute; inset: 0 0 auto 0; height: 30px; background: rgba(0,0,0,.28); backdrop-filter: blur(20px); display: flex; align-items: center; gap: 18px; padding: 0 16px; font-size: 13px; color: #fff; z-index: 500; }
+  #menubar .appname { font-weight: 600; }
+  #menubar .clock { margin-left: auto; }
+  #notch { position: absolute; top: 0; left: 50%; width: 196px; height: 32px; transform: translateX(-50%); background: #000; border-radius: 0 0 14px 14px; z-index: 900; }
+
+  /* Windows on the desktop */
+  .win { position: absolute; border-radius: 11px; overflow: hidden; background: #f5f5f3; color: #222; box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.25);
+    transition: opacity .18s, filter .18s, transform .22s; display: flex; flex-direction: column; }
+  .win.back { filter: brightness(.96); }
+  .tb { height: 30px; flex: none; display: flex; align-items: center; gap: 7px; padding: 0 11px; background: #e9e9e6; border-bottom: 1px solid #d6d6d2; font-size: 12px; font-weight: 600; color: #444; }
+  .tb .lt { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; }
+  .tb .lt:nth-child(2) { background: #febc2e; } .tb .lt:nth-child(3) { background: #28c840; }
+  .tb .tt { flex: 1; text-align: center; margin-right: 50px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .body { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+  #screen.peeking #wins > .win:not(.peek-target) { opacity: .1; filter: blur(2px); }
+  #screen.peeking #wins > .win.peek-target { transform: scale(1.01); box-shadow: 0 0 0 3px var(--acc), 0 24px 60px rgba(0,0,0,.6); }
+  .win.ghost { opacity: .92; }
+  .win.ghost::after { content: "DIMINIMIZE"; position: absolute; top: 40px; right: 12px; font: 700 12px "Barlow Condensed", sans-serif; letter-spacing: .08em; background: #000; color: var(--acc); padding: 3px 8px; border-radius: 5px; }
+  .win.pop { animation: pop .28s ease-out; }
+  @keyframes pop { from { transform: translateY(260px) scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* Window contents */
+  .doc { background: #dcdcd8; height: 100%; padding: 0; display: flex; flex-direction: column; }
+  .doc .ribbon { height: 34px; background: #2b5797; flex: none; }
+  .doc .page { background: #fff; margin: 16px auto 0; width: 76%; flex: 1; padding: 26px 30px; box-shadow: 0 0 0 1px #0000000f; }
+  .doc h2 { margin: 0 0 14px; font: 700 22px/1.2 Georgia, serif; color: #1c2a44; }
+  .ln { height: 7px; background: #e2e2de; border-radius: 4px; margin: 0 0 9px; }
+  .web { height: 100%; display: flex; flex-direction: column; background: #fff; }
+  .web .url { height: 30px; flex: none; display: flex; align-items: center; justify-content: center; background: #f0f0ee; border-bottom: 1px solid #ddd; }
+  .web .url span { background: #e2e2df; border-radius: 6px; padding: 3px 40px; font-size: 11px; color: #555; }
+  .web .hero { margin: 18px; height: 42%; border-radius: 10px; display: flex; align-items: flex-end; padding: 18px; font: 700 28px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; }
+  .web .cards { display: flex; gap: 12px; margin: 0 18px; }
+  .web .cards div { flex: 1; height: 70px; background: #eeeeec; border-radius: 8px; }
+  .finder { height: 100%; display: flex; }
+  .finder .side { width: 130px; background: #ecece9; padding: 14px 12px; }
+  .finder .grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 20px; align-content: start; background: #fff; }
+  .finder .file { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 10px; color: #444; }
+  .finder .file i { width: 42px; height: 52px; border-radius: 4px; background: #d7e6f8; display: block; }
+  .finder .file:nth-child(3n) i { background: #f3d9c2; } .finder .file:nth-child(4n) i { background: #dfe8cf; }
+  .notes { height: 100%; background: #fffbe8; padding: 22px; }
+  .notes h3 { margin: 0 0 12px; font-size: 18px; color: #6b5300; }
+  .notes .ln { background: #f1e7b8; }
+  .mail { height: 100%; display: flex; background: #fff; }
+  .mail .list { width: 42%; border-right: 1px solid #e3e3e0; }
+  .mail .msg { padding: 10px 14px; border-bottom: 1px solid #efefec; }
+  .mail .msg b { display: block; font-size: 12px; margin-bottom: 6px; }
+  .mail .msg:first-child { background: #dbe9ff; }
+  .mail .read { flex: 1; padding: 20px; }
+
+  /* Dock */
+  #dock { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; align-items: flex-end; gap: 10px; padding: 8px 12px 10px;
+    background: rgba(255,255,255,.16); backdrop-filter: blur(24px); border-radius: 20px; box-shadow: 0 0 0 1px rgba(255,255,255,.18); z-index: 600; }
+  .di { position: relative; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; font: 700 26px/1 "Inter", sans-serif; cursor: default;
+    transition: transform .15s; box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+  .di:hover { transform: translateY(-6px); }
+  .di.run::after { content: ""; position: absolute; bottom: -7px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: rgba(255,255,255,.85); }
+  .sep { width: 1px; height: 44px; background: rgba(255,255,255,.3); margin: 0 2px 4px; }
+  .tip { position: absolute; bottom: 78px; padding: 4px 10px; background: rgba(30,30,30,.9); color: #fff; border-radius: 6px; font-size: 12px; white-space: nowrap; transform: translateX(-50%); z-index: 700; pointer-events: none; }
+
+  /* Peek above the Dock: a black Notching panel */
+  #peek { position: absolute; bottom: 86px; z-index: 800; background: #000; border-radius: 20px; padding: 14px 14px 12px; box-shadow: 0 0 0 1px var(--ring), 0 24px 60px rgba(0,0,0,.55);
+    color: var(--ink); animation: rise .16s ease-out; max-width: 1180px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .ph { display: flex; align-items: baseline; gap: 10px; margin: 0 4px 10px; }
+  .ph .nm { font: 700 18px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .05em; }
+  .ph .ct { color: var(--muted); font-size: 12px; }
+  .thumbs { display: flex; gap: 10px; }
+  .th { position: relative; width: 196px; border-radius: 12px; padding: 6px; cursor: pointer; }
+  .th:hover { background: #ffffff12; }
+  .th .box { position: relative; width: 184px; height: 118px; border-radius: 8px; background: #111210; overflow: hidden; display: grid; place-items: center; }
+  .win.mini { position: absolute; transform-origin: 0 0; pointer-events: none; transition: none; }
+  .th .cap { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 12px; color: var(--ink2); }
+  .th .cap span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .th.min .mini { opacity: .45; filter: grayscale(.6); }
+  .chip { flex: none; font: 600 11px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 3px 6px; border-radius: 5px; background: var(--track); color: var(--ink2); }
+  .chip.acc { background: var(--acc-soft); color: var(--acc); }
+  .th .x { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border-radius: 50%; background: #2a2c27; color: var(--ink); display: none; place-items: center; font-size: 13px; line-height: 1; box-shadow: 0 0 0 2px #000; }
+  .th:hover .x { display: grid; }
+  .th .x:hover { background: #e5484d; }
+  .empty { color: var(--muted); padding: 10px 6px 14px; font-size: 12px; }
+
+  /* The switcher */
+  #sw { position: absolute; z-index: 950; color: var(--ink); width: max-content; max-width: 1240px; }
+  #sw.center { left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(14,15,13,.82); backdrop-filter: blur(30px); border-radius: 26px; padding: 18px; box-shadow: 0 0 0 1px #ffffff1c, 0 30px 80px rgba(0,0,0,.6); animation: fade .12s ease-out; }
+  #sw.notch { left: 50%; top: 0; transform: translateX(-50%); background: #000; border-radius: 0 0 30px 30px; padding: 44px 18px 18px; transform-origin: 50% 0; animation: drop .26s cubic-bezier(.2,.9,.3,1.15); box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes drop { from { clip-path: inset(0 40% 92% 40% round 0 0 14px 14px); } to { clip-path: inset(0 0 0 0 round 0 0 30px 30px); } }
+  .swh { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; margin: 0 6px 12px; }
+  .swh .cond { font-size: 13px; color: var(--muted); }
+  .swh .keys { color: var(--muted); font-size: 11px; }
+  .swgrid { display: flex; flex-wrap: wrap; gap: 8px; max-width: 1060px; justify-content: center; }
+  .sc { width: 200px; border-radius: 14px; padding: 7px; cursor: pointer; position: relative; }
+  .sc:hover { background: #ffffff0d; }
+  .sc.sel { background: #ffffff17; box-shadow: inset 0 0 0 2px var(--acc); }
+  .sc .box { position: relative; width: 186px; height: 116px; border-radius: 8px; background: #111210; overflow: hidden; }
+  .sc .cap { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 12px; color: var(--ink2); }
+  .sc .cap span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex: 1; }
+  .sc.min .mini { opacity: .45; filter: grayscale(.6); }
+  .ico { flex: none; width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; font: 700 10px/1 "Inter", sans-serif; }
+  .badge { position: absolute; left: 6px; bottom: 6px; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font: 700 15px/1 "Inter"; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+  .apps { display: flex; gap: 6px; justify-content: center; }
+  .ap { width: 96px; border-radius: 16px; padding: 10px 8px 8px; display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; position: relative; }
+  .ap .di { width: 62px; height: 62px; font-size: 30px; border-radius: 15px; }
+  .ap .di:hover { transform: none; }
+  .ap .nm { font-size: 12px; color: var(--ink2); max-width: 88px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .ap .n { position: absolute; top: 4px; right: 10px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--acc); color: var(--on-acc); font: 700 11px/18px "Inter"; text-align: center; }
+  .ap.sel { background: #ffffff17; box-shadow: inset 0 0 0 2px var(--acc); }
+  .ap.sel .nm { color: var(--ink); }
+  .subwins { display: flex; gap: 8px; justify-content: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid #ffffff14; flex-wrap: wrap; max-width: 1060px; }
+  .subwins .sc { width: 176px; } .subwins .sc .box { width: 162px; height: 100px; }
+
+  /* Settings mock */
+  #settings { display: none; margin: 0 18px 18px; }
+  body.show-settings #settings { display: block; }
+  body.show-settings #stage, body.show-settings #tip { display: none; }
+  .sw-win { display: flex; max-width: 980px; margin: 0 auto; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px #ffffff1a; background: #171815; min-height: 640px; }
+  .sw-side { width: 210px; background: #1d1e1b; padding: 46px 10px 10px; }
+  .sw-nav { padding: 7px 10px; border-radius: 8px; color: var(--ink2); font-size: 13px; }
+  .sw-nav.on { background: #ffffff1c; color: var(--ink); font-weight: 600; }
+  .sw-content { flex: 1; padding: 30px 34px; }
+  .sw-content h2 { margin: 0 0 4px; font: 700 26px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .03em; }
+  .sw-content > p { margin: 0 0 18px; color: var(--muted); }
+  .glabel { margin: 18px 4px 8px; font: 600 13px "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .grp { background: #0f100e; border-radius: 12px; box-shadow: 0 0 0 1px var(--ring); }
+  .rw { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-top: 1px solid #ffffff14; }
+  .rw:first-child { border-top: 0; }
+  .rw .lb { flex: 1; } .rw .lb small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .rw.sub { padding-left: 52px; }
+  .fold { cursor: pointer; }
+  .fold .chev { color: var(--muted); transition: transform .15s; }
+  .fold.open .chev { transform: rotate(90deg); }
+  .tg { width: 36px; height: 22px; border-radius: 11px; background: var(--acc); position: relative; flex: none; cursor: pointer; }
+  .tg::after { content: ""; position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--on-acc); transition: right .15s; }
+  .tg.off { background: #3a3d36; } .tg.off::after { right: 17px; background: #c4c8bf; }
+  .new { font: 700 10px/1 "Barlow Condensed", sans-serif; letter-spacing: .08em; background: var(--acc); color: var(--on-acc); padding: 3px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 2px; }
+  .ok { color: var(--acc); font-size: 12px; }
+  .mi { width: 26px; height: 26px; border-radius: 7px; background: var(--track); display: grid; place-items: center; color: var(--ink2); flex: none; font-size: 14px; }
+  .note { color: var(--muted); font-size: 12px; margin: 10px 4px 0; }
+
+  /* ---- v2: card colour, material, wallpaper, window buttons ---- */
+  #screen { --c-bg: #000; --c-ink: #f3f5f0; --c-ink2: #c4c8bf; --c-muted: #8c9187; --c-box: #111210; --c-hover: #ffffff12; --c-sel: #ffffff17;
+    --c-ring: #ffffff14; --c-acc: #c8f04a; --c-acc-soft: #1d260b; --c-on-acc: #0f1404; --c-chip: #23251f; --c-btn: #22241f; --c-btn-ink: #f3f5f0;
+    --c-shadow: 0 24px 60px rgba(0,0,0,.55); --c-sheen: rgba(255,255,255,.16); --c-sheen2: rgba(255,255,255,.06); --c-edge: rgba(255,255,255,.35); --c-edge2: rgba(255,255,255,.12); }
+  #screen[data-card="light"] { --c-bg: #f7f7f5; --c-ink: #111210; --c-ink2: #33352f; --c-muted: #6b7066; --c-box: #e3e3df; --c-hover: #0000000b; --c-sel: #00000012;
+    --c-ring: #0000001a; --c-acc: #4c6b12; --c-acc-soft: #e5f0c6; --c-on-acc: #fff; --c-chip: #e3e3df; --c-btn: #fff; --c-btn-ink: #111210;
+    --c-shadow: 0 24px 60px rgba(0,0,0,.22); --c-sheen: rgba(255,255,255,.7); --c-sheen2: rgba(255,255,255,.3); --c-edge: rgba(255,255,255,.95); --c-edge2: rgba(255,255,255,.5); }
+  #screen[data-mat="glass"][data-card="dark"] { --c-glass-fx: brightness(.72); --c-bg: rgba(16,17,15,.5); --c-box: rgba(0,0,0,.3); --c-chip: rgba(255,255,255,.12); --c-btn: rgba(34,36,31,.9); --c-hover: #ffffff17; --c-sel: #ffffff22; }
+  #screen[data-mat="glass"][data-card="light"] { --c-glass-fx: brightness(1.12); --c-bg: rgba(255,255,255,.34); --c-box: rgba(255,255,255,.45); --c-chip: rgba(255,255,255,.6); --c-hover: rgba(255,255,255,.35); --c-sel: rgba(255,255,255,.5); }
+  #peek { background: var(--c-bg); color: var(--c-ink); box-shadow: 0 0 0 1px var(--c-ring), var(--c-shadow); }
+  #sw.center, #sw.notch { background: var(--c-bg); color: var(--c-ink); backdrop-filter: none; box-shadow: 0 0 0 1px var(--c-ring), var(--c-shadow); }
+  #screen[data-mat="glass"] #peek, #screen[data-mat="glass"] #sw {
+    background: linear-gradient(135deg, var(--c-sheen), transparent 40%, transparent 70%, var(--c-sheen2)), var(--c-bg);
+    backdrop-filter: blur(22px) saturate(1.9) var(--c-glass-fx); -webkit-backdrop-filter: blur(22px) saturate(1.9) var(--c-glass-fx);
+    box-shadow: inset 0 1px 0 var(--c-edge), inset 0 0 0 1px var(--c-edge2), var(--c-shadow); }
+  #screen[data-place="notch"] #notch { z-index: 960; }
+  #screen.peeking #wins > .win.peek-target { z-index: 300 !important; }
+  .ph .ct, .empty, .swh .cond, .swh .keys { color: var(--c-muted); }
+  .th:hover, .sc:hover { background: var(--c-hover); }
+  .th .box, .sc .box { background: var(--c-box); }
+  .th .cap, .sc .cap, .ap .nm { color: var(--c-ink2); }
+  .chip { background: var(--c-chip); color: var(--c-ink2); }
+  .chip.acc { background: var(--c-acc-soft); color: var(--c-acc); }
+  .sc.sel, .ap.sel { background: var(--c-sel); box-shadow: inset 0 0 0 2px var(--c-acc); }
+  .ap.sel .nm { color: var(--c-ink); }
+  .ap .n { background: var(--c-acc); color: var(--c-on-acc); }
+  .subwins { border-top-color: var(--c-ring); }
+  .acts { position: absolute; top: 11px; right: 11px; display: none; gap: 2px; padding: 3px; border-radius: 999px; background: var(--c-btn); color: var(--c-btn-ink);
+    box-shadow: 0 0 0 1px var(--c-ring), 0 4px 14px rgba(0,0,0,.3); z-index: 2; }
+  .th:hover .acts, .sc:hover .acts, .sc.sel .acts { display: flex; }
+  .ab { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+  .ab svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .ab:hover { background: var(--c-hover); }
+  .ab.close:hover { background: rgba(229,72,77,.18); color: #e5484d; }
+  .ab.quit:hover { background: #e5484d; color: #fff; }
+  .th .x { display: none !important; }
+  #screen[data-wall="light"] { background: radial-gradient(120% 90% at 20% 10%, #f6f8f2 0%, #e2e8dc 50%, #cdd6c6 100%); }
+  #screen[data-wall="light"] #menubar { color: #111; background: rgba(255,255,255,.4); }
+  #screen[data-wall="color"] { background: radial-gradient(38% 50% at 18% 28%, #c8f04a 0%, transparent 70%), radial-gradient(42% 55% at 82% 22%, #5ac8fa 0%, transparent 70%),
+    radial-gradient(48% 60% at 58% 88%, #ff5e8a 0%, transparent 70%), radial-gradient(40% 50% at 35% 70%, #8e6bff 0%, transparent 70%), #1b1d33; }
+  .win.pop2 { animation: pop2 .34s cubic-bezier(.2,.9,.3,1); }
+  @keyframes pop2 { from { transform: translate(var(--dx), var(--dy)) scale(.06); opacity: 0; } to { transform: none; opacity: 1; } }
+  .win.sink { transition: transform .3s cubic-bezier(.55,0,.8,.3), opacity .3s ease-in; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <h1>Intip <i>jendela</i></h1>
+  <div class="ctl"><span>Lihat</span><div class="seg" data-key="view"><button data-v="proto" class="on">Prototipe</button><button data-v="settings">Di Pengaturan</button></div></div>
+  <div class="ctl"><span>Pengalih</span><div class="seg" data-key="layout"><button data-v="windows" class="on">Per jendela</button><button data-v="apps">Per app</button></div></div>
+  <div class="ctl"><span>Muncul di</span><div class="seg" data-key="place"><button data-v="center" class="on">Tengah layar</button><button data-v="notch">Dari notch</button></div></div>
+  <div class="ctl"><span>Warna kartu</span><div class="seg" data-key="card"><button data-v="system" class="on">Sistem</button><button data-v="light">Terang</button><button data-v="dark">Gelap</button></div></div>
+  <div class="ctl"><span>Bahan</span><div class="seg" data-key="mat"><button data-v="solid" class="on">Pekat</button><button data-v="glass">Liquid glass</button></div></div>
+  <div class="ctl"><span>Wallpaper</span><div class="seg" data-key="wall"><button data-v="dark" class="on">Gelap</button><button data-v="light">Terang</button><button data-v="color">Warna</button></div></div>
+  <div class="ctl"><span>Klik ikon Dock</span><div class="seg" data-key="dockClick"><button data-v="toggle" class="on">Minimize / munculkan</button><button data-v="mac">Bawaan macOS</button></div></div>
+  <div class="ctl"><button class="btn" id="open-sw">Buka pengalih</button><button class="btn" id="reset">Atur ulang jendela</button></div>
+  <div id="tip"><b>Klik ikon Dock:</b> kalau app itu sedang di depan, semua jendelanya diminimize; klik lagi untuk memunculkan semuanya. Klik gambar di intip Dock tetap hanya membuka jendela itu. <b>Dock:</b> arahkan kursor ke ikon app, tunggu sebentar, lalu arahkan ke salah satu jendela untuk mengintip, klik untuk membukanya. <b>Pengalih:</b> klik layar dulu, lalu tahan <kbd>⌥</kbd> dan tekan <kbd>Tab</kbd> (pengganti <kbd>⌘</kbd><kbd>Tab</kbd>, karena browser tidak bisa menangkap ⌘Tab). Lepas <kbd>⌥</kbd> untuk membuka. Di mode Per app, <kbd>↓</kbd> atau <kbd>`</kbd> pindah antar jendela app itu. <b>Tombol jendela:</b> arahkan kursor ke gambar jendela untuk minimize, tutup, atau keluar dari app. Di pengalih, tekan juga <kbd>M</kbd> minimize, <kbd>W</kbd> tutup, <kbd>Q</kbd> keluar.</div>
+</div>
+
+<div id="stage"><div id="screen" tabindex="0">
+  <div id="menubar"><span></span><span class="appname" id="appname">Word</span><span>File</span><span>Edit</span><span>View</span><span>Window</span><span class="clock">Kam 5 Nov 09.41</span></div>
+  <div id="notch"></div>
+  <div id="wins"></div>
+  <div id="dock"></div>
+</div></div>
+
+<div id="settings">
+  <div class="sw-win">
+    <div class="sw-side">
+      <div class="sw-nav">Umum</div><div class="sw-nav">Tampilan notch</div><div class="sw-nav">Halaman</div><div class="sw-nav">Modul</div>
+      <div class="sw-nav on">Pintasan</div><div class="sw-nav">Notifikasi</div><div class="sw-nav">Izin</div><div class="sw-nav">Copot Notching</div>
+    </div>
+    <div class="sw-content">
+      <h2>Pintasan</h2>
+      <p>Semua tombol yang didengar Notching, di satu tempat.</p>
+      <div class="grp">
+        <div class="rw"><div class="lb">Keep awake</div><kbd>⌃⌥K</kbd></div>
+        <div class="rw"><div class="lb">Buka Shelf</div><kbd>⌃⌥V</kbd></div>
+      </div>
+      <div class="glabel">Screenshot</div>
+      <div class="grp"><div class="rw"><div class="lb">Layar, jendela, area</div><kbd>⌘⇧3</kbd><kbd>⌘⇧4</kbd></div></div>
+      <div class="glabel">Alat latar</div>
+      <div class="grp">
+        <div class="rw fold"><span class="mi">✂</span><div class="lb">Potong file</div><span class="chev">›</span></div>
+        <div class="rw fold"><span class="mi">▦</span><div class="lb">Atur jendela</div><span class="chev">›</span></div>
+        <div class="rw fold open"><span class="mi">◫</span><div class="lb">Intip jendela<span class="new">BARU</span><small>Lihat semua jendela app dari Dock dan dari pengalih jendela.</small></div><div class="tg" data-tg="tool"></div><span class="chev">›</span></div>
+        <div class="rw sub"><div class="lb">Izin<small>Rekam Layar untuk gambar jendela, Aksesibilitas untuk membuka jendela yang dipilih.</small></div><span class="ok">Diizinkan</span></div>
+        <div class="rw sub"><div class="lb">Intip dari Dock<small>Arahkan kursor ke ikon app di Dock.</small></div><div class="tg" data-tg="dock"></div></div>
+        <div class="rw sub"><div class="lb">Klik ikon Dock<small>Klik sekali menyembunyikan semua jendela app yang sedang di depan, klik lagi memunculkan semuanya.</small></div><div class="seg" data-key="dockClick"><button data-v="toggle" class="on">Minimize / munculkan</button><button data-v="mac">Bawaan macOS</button></div></div>
+        <div class="rw sub"><div class="lb">Pengalih jendela<small>Menggantikan ⌘Tab bawaan macOS. Klik tombolnya untuk mengganti.</small></div><kbd>⌘⇥</kbd><div class="tg" data-tg="switcher"></div></div>
+        <div class="rw sub"><div class="lb">Tampilkan</div><div class="seg" data-key="layout"><button data-v="windows" class="on">Per jendela</button><button data-v="apps">Per app</button></div></div>
+        <div class="rw sub"><div class="lb">Muncul di</div><div class="seg" data-key="place"><button data-v="center" class="on">Tengah layar</button><button data-v="notch">Dari notch</button></div></div>
+        <div class="rw sub"><div class="lb">Warna kartu</div><div class="seg" data-key="card"><button data-v="system" class="on">Sistem</button><button data-v="light">Terang</button><button data-v="dark">Gelap</button></div></div>
+        <div class="rw sub"><div class="lb">Bahan<small>Pekat: kartu tidak tembus pandang. Liquid glass: yang di belakangnya terlihat samar.</small></div><div class="seg" data-key="mat"><button data-v="solid" class="on">Pekat</button><button data-v="glass">Liquid glass</button></div></div>
+        <div class="rw sub"><div class="lb">Jendela yang diminimize<small>Ikut ditampilkan, dengan tanda.</small></div><div class="tg" data-tg="minimized"></div></div>
+      </div>
+      <p class="note">Usulan: dipasang dari Katalog sebagai alat (kategori Jendela dan Dock), diatur di sini seperti Potong file dan Atur jendela. Pilihan Tampilkan dan Muncul di di halaman ini ikut mengubah prototipe.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const APPS_START = [
+  { id: 'finder', name: 'Finder', bg: 'linear-gradient(#6cc4ff,#1f7ae0)', fg: '#fff', l: 'F', run: true },
+  { id: 'safari', name: 'Safari', bg: 'linear-gradient(#e9f6ff,#bfe3ff)', fg: '#1f7ae0', l: 'S', run: true },
+  { id: 'word', name: 'Word', bg: 'linear-gradient(#3b78d0,#1d4f9e)', fg: '#fff', l: 'W', run: true },
+  { id: 'mail', name: 'Mail', bg: 'linear-gradient(#7cc7ff,#2a8df0)', fg: '#fff', l: 'M', run: true },
+  { id: 'notes', name: 'Notes', bg: 'linear-gradient(#fff6c9,#f5c542)', fg: '#7a5a00', l: 'N', run: true },
+  { id: 'music', name: 'Musik', bg: 'linear-gradient(#ff6b81,#e3264a)', fg: '#fff', l: '♪', run: true },
+  { id: 'calendar', name: 'Kalender', bg: '#fff', fg: '#e5484d', l: '5', run: false },
+];
+let APPS = APPS_START.map(a => ({ ...a }));
+const app = id => APPS.find(a => a.id === id);
+const START = [
+  { id: 1, app: 'word', title: 'Laporan Q3.docx', kind: 'doc', x: 330, y: 70, w: 600, h: 560 },
+  { id: 2, app: 'word', title: 'Proposal Klien.docx', kind: 'doc', x: 170, y: 110, w: 580, h: 540 },
+  { id: 3, app: 'word', title: 'Surat Undangan.docx', kind: 'doc', x: 450, y: 90, w: 560, h: 520, min: true },
+  { id: 4, app: 'safari', title: 'notching.web.id', kind: 'web', x: 60, y: 54, w: 760, h: 540, hero: '#c8f04a' },
+  { id: 5, app: 'safari', title: 'GitHub · notching', kind: 'web', x: 470, y: 150, w: 720, h: 480, hero: '#24292f' },
+  { id: 6, app: 'finder', title: 'Unduhan', kind: 'finder', x: 720, y: 84, w: 520, h: 360 },
+  { id: 7, app: 'mail', title: 'Kotak Masuk', kind: 'mail', x: 110, y: 210, w: 700, h: 440 },
+  { id: 8, app: 'notes', title: 'Belanja bulanan', kind: 'notes', x: 890, y: 290, w: 340, h: 360, min: true },
+];
+let wins, order; // order: most recent first, minimized windows included
+function reset() { APPS = APPS_START.map(a => ({ ...a })); wins = START.map(w => ({ ...w })); order = [1, 6, 2, 4, 7, 5, 3, 8]; closePeek(); drawWins(); }
+
+const opt = { view: 'proto', layout: 'windows', place: 'center', card: 'system', mat: 'solid', wall: 'dark', dockClick: 'toggle', tool: true, dock: true, switcher: true, minimized: true };
+
+// ---- window drawing ----
+function content(w) {
+  const lines = n => Array.from({ length: n }, (_, i) => `<div class="ln" style="width:${[96, 88, 92, 70, 84, 60, 90, 78][i % 8]}%"></div>`).join('');
+  if (w.kind === 'doc') return `<div class="doc"><div class="ribbon"></div><div class="page"><h2>${w.title.replace('.docx', '')}</h2>${lines(14)}</div></div>`;
+  if (w.kind === 'web') return `<div class="web"><div class="url"><span>${w.title}</span></div><div class="hero" style="background:${w.hero};color:${w.hero === '#24292f' ? '#fff' : '#0f1404'}">${w.title.split(' ')[0]}</div><div class="cards"><div></div><div></div><div></div></div></div>`;
+  if (w.kind === 'finder') return `<div class="finder"><div class="side">${lines(6)}</div><div class="grid">${['laporan.pdf', 'foto.jpg', 'Notching.dmg', 'nota.png', 'data.xlsx', 'logo.svg', 'video.mov', 'catatan.txt'].map(f => `<div class="file"><i></i>${f}</div>`).join('')}</div></div>`;
+  if (w.kind === 'notes') return `<div class="notes"><h3>${w.title}</h3>${lines(10)}</div>`;
+  return `<div class="mail"><div class="list">${['Ari Padrian', 'GitHub', 'Bank', 'Rina', 'Tim Notching'].map(s => `<div class="msg"><b>${s}</b><div class="ln" style="width:80%"></div></div>`).join('')}</div><div class="read">${lines(9)}</div></div>`;
+}
+function winEl(w) {
+  const e = document.createElement('div');
+  e.className = 'win';
+  e.style.cssText = `left:${w.x}px;top:${w.y}px;width:${w.w}px;height:${w.h}px`;
+  e.innerHTML = `<div class="tb"><i class="lt"></i><i class="lt"></i><i class="lt"></i><div class="tt">${w.title}</div></div><div class="body">${content(w)}</div>`;
+  return e;
+}
+function mini(w, bw, bh) {
+  const e = winEl(w);
+  const s = Math.min(bw / w.w, bh / w.h);
+  e.classList.add('mini');
+  e.style.left = `${(bw - w.w * s) / 2}px`; e.style.top = `${(bh - w.h * s) / 2}px`;
+  e.style.transform = `scale(${s})`; e.style.boxShadow = 'none';
+  return e;
+}
+const winsBox = document.getElementById('wins');
+let popId = null;
+let pops = new Map(); // window id -> where its Dock icon is, for the restore animation
+function drawWins() {
+  winsBox.innerHTML = '';
+  const shown = order.map(id => wins.find(w => w.id === id)).filter(w => w && !w.min).reverse();
+  shown.forEach((w, i) => {
+    const e = winEl(w); e.dataset.id = w.id; e.style.zIndex = 10 + i;
+    if (i < shown.length - 1) e.classList.add('back');
+    if (w.id === popId) e.classList.add('pop');
+    const p = pops.get(w.id);
+    if (p) { e.classList.add('pop2'); e.style.setProperty('--dx', `${p.dx}px`); e.style.setProperty('--dy', `${p.dy}px`); }
+    e.addEventListener('mousedown', () => activate(w.id, false));
+    winsBox.append(e);
+  });
+  popId = null; pops = new Map();
+  const front = shown[shown.length - 1];
+  document.getElementById('appname').textContent = front ? app(front.app).name : 'Finder';
+  drawDock();
+}
+function activate(id, redraw = true) {
+  const w = wins.find(x => x.id === id); if (!w) return;
+  if (w.min) { w.min = false; popId = id; }
+  order = [id, ...order.filter(x => x !== id)];
+  if (redraw || popId) drawWins(); else { drawWins(); }
+}
+function closeWin(id) { wins = wins.filter(w => w.id !== id); order = order.filter(x => x !== id); drawWins(); }
+const appWins = a => order.map(id => wins.find(w => w.id === id)).filter(w => w && w.app === a && (opt.minimized || !w.min));
+
+
+const ICON = {
+  min: '<svg viewBox="0 0 16 16"><path d="M4 8.5h8"/></svg>',
+  restore: '<svg viewBox="0 0 16 16"><path d="M5 11l6-6M6.5 5H11v4.5"/></svg>',
+  close: '<svg viewBox="0 0 16 16"><path d="M5 5l6 6M11 5l-6 6"/></svg>',
+  quit: '<svg viewBox="0 0 16 16"><path d="M8 2.8v5"/><path d="M5 4.8a4.4 4.4 0 1 0 6 0"/></svg>',
+};
+function acts(w) {
+  const a = app(w.app).name;
+  return `<div class="acts"><i class="ab min" data-act="min" title="${w.min ? 'Pulihkan' : 'Minimize'}">${w.min ? ICON.restore : ICON.min}</i>`
+    + `<i class="ab close" data-act="close" title="Tutup jendela">${ICON.close}</i>`
+    + `<i class="ab quit" data-act="quit" title="Keluar dari ${a}">${ICON.quit}</i></div>`;
+}
+// A button on a window's picture: minimize or restore, close the window, quit its app.
+// The panel stays open and redraws, so the result shows at once.
+function doAct(act, w, appId) {
+  unpeek();
+  if (act === 'min' && w) { if (w.min) activate(w.id); else { w.min = true; drawWins(); } }
+  if (act === 'close' && w) closeWin(w.id);
+  if (act === 'quit') {
+    const id = w ? w.app : appId;
+    wins = wins.filter(x => x.app !== id); order = order.filter(x => wins.some(y => y.id === x));
+    app(id).run = false; drawWins();
+  }
+  if (peekApp) { const a = app(peekApp); if (a.run) openPeek(a, dock.querySelector(`[data-app="${a.id}"]`), true); else closePeek(); }
+  if (sw) refreshSwitcher();
+}
+function refreshSwitcher() {
+  const was = sw.items[sw.sel];
+  sw.items = swItems();
+  if (!sw.items.length) { closeSwitcher(); return; }
+  const again = sw.items.indexOf(was);
+  sw.sel = again >= 0 ? again : Math.min(sw.sel, sw.items.length - 1);
+  if (opt.layout === 'apps') sw.win = Math.min(sw.win, Math.max(0, appWins(sw.items[sw.sel].id).length - 1));
+  drawSwitcher();
+}
+function selected() {
+  if (opt.layout === 'windows') return { w: sw.items[sw.sel], appId: sw.items[sw.sel]?.app };
+  const a = sw.items[sw.sel]; return { w: appWins(a.id)[sw.win], appId: a.id };
+}
+
+// ---- Dock ----
+const dock = document.getElementById('dock');
+let hoverT, leaveT, peekApp = null, tipEl = null;
+function drawDock() {
+  dock.innerHTML = '';
+  APPS.forEach(a => {
+    const e = document.createElement('div');
+    e.className = 'di' + (a.run ? ' run' : '');
+    e.style.background = a.bg; e.style.color = a.fg; e.textContent = a.l; e.dataset.app = a.id;
+    e.addEventListener('mouseenter', () => enterIcon(a, e));
+    e.addEventListener('mouseleave', () => { clearTimeout(hoverT); hideTip(); leaveT = setTimeout(closePeek, 220); });
+    e.addEventListener('click', () => { clearTimeout(hoverT); hideTip(); closePeek(); dockClick(a); });
+    dock.append(e);
+  });
+  const s = document.createElement('div'); s.className = 'sep'; dock.append(s);
+  const t = document.createElement('div'); t.className = 'di'; t.style.background = 'rgba(255,255,255,.25)'; t.style.color = '#fff'; t.textContent = '🗑'; t.style.fontSize = '22px'; dock.append(t);
+}
+// Clicking an app's Dock icon (owner, 5 Nov): when the app is in front, every
+// window it shows goes down into the icon; otherwise every window comes up, the
+// minimized ones too, and the app comes to the front. A click on a picture in the
+// peek still opens only that window.
+let sinking = false;
+function iconCenter(appId) {
+  const r = dock.querySelector(`[data-app="${appId}"]`).getBoundingClientRect(), sr = screen_.getBoundingClientRect();
+  return { x: (r.left + r.width / 2 - sr.left) / scale, y: (r.top + r.height / 2 - sr.top) / scale };
+}
+const toIcon = (w, c) => ({ dx: c.x - (w.x + w.w / 2), dy: c.y - (w.y + w.h / 2) });
+function dockClick(a) {
+  if (sinking) return;
+  if (!a.run) { a.run = true; drawWins(); return; }
+  const ws = order.map(id => wins.find(w => w.id === id)).filter(w => w && w.app === a.id);
+  if (!ws.length) return;
+  const shown = ws.filter(w => !w.min);
+  if (opt.dockClick === 'mac') { activate((shown[0] || ws[0]).id); return; }
+  const front = order.map(id => wins.find(w => w.id === id)).find(w => w && !w.min);
+  const c = iconCenter(a.id);
+  if (front && front.app === a.id && shown.length) {
+    sinking = true;
+    shown.forEach(w => {
+      const el = winsBox.querySelector(`[data-id="${w.id}"]`); if (!el) return;
+      const { dx, dy } = toIcon(w, c);
+      el.classList.add('sink');
+      el.style.transform = `translate(${dx}px, ${dy}px) scale(.06)`; el.style.opacity = '0';
+    });
+    setTimeout(() => { shown.forEach(w => { w.min = true; }); sinking = false; drawWins(); }, 300);
+    return;
+  }
+  ws.forEach(w => { if (w.min) { w.min = false; pops.set(w.id, toIcon(w, c)); } });
+  order = [...ws.map(w => w.id), ...order.filter(id => !ws.some(w => w.id === id))];
+  drawWins();
+}
+function iconX(e) { const r = e.getBoundingClientRect(), sr = screen_.getBoundingClientRect(); return (r.left + r.width / 2 - sr.left) / scale; }
+function enterIcon(a, e) {
+  clearTimeout(leaveT); clearTimeout(hoverT);
+  if (peekApp && peekApp !== a.id && opt.tool && opt.dock && a.run) { openPeek(a, e); return; }
+  if (!opt.tool || !opt.dock || !a.run) { showTip(a, e); return; }
+  if (!peekApp) showTip(a, e);
+  hoverT = setTimeout(() => { hideTip(); openPeek(a, e); }, 350);
+}
+function showTip(a, e) { hideTip(); tipEl = document.createElement('div'); tipEl.className = 'tip'; tipEl.textContent = a.name; tipEl.style.left = iconX(e) + 'px'; screen_.append(tipEl); }
+function hideTip() { tipEl?.remove(); tipEl = null; }
+let peekEl = null;
+function openPeek(a, iconEl, quiet) {
+  closePeek();
+  peekApp = a.id;
+  const ws = appWins(a.id);
+  peekEl = document.createElement('div'); peekEl.id = 'peek';
+  if (quiet) peekEl.style.animation = 'none';
+  peekEl.innerHTML = `<div class="ph"><span class="nm">${a.name}</span><span class="ct">${ws.length ? ws.length + ' jendela' : ''}</span></div>`;
+  if (!ws.length) peekEl.insertAdjacentHTML('beforeend', `<div class="empty">Tidak ada jendela yang terbuka.</div>`);
+  const row = document.createElement('div'); row.className = 'thumbs';
+  const frontId = order.find(id => { const w = wins.find(x => x.id === id); return w && !w.min; });
+  ws.forEach(w => {
+    const t = document.createElement('div'); t.className = 'th' + (w.min ? ' min' : '');
+    const box = document.createElement('div'); box.className = 'box'; box.append(mini(w, 184, 118));
+    const chip = w.min ? '<i class="chip">Diminimize</i>' : (w.id === frontId ? '<i class="chip acc">Di depan</i>' : '');
+    t.append(box);
+    t.insertAdjacentHTML('beforeend', `<div class="cap"><span>${w.title}</span>${chip}</div>${acts(w)}`);
+    t.addEventListener('mouseenter', () => peekAt(w));
+    t.addEventListener('mouseleave', unpeek);
+    t.addEventListener('click', ev => {
+      const b = ev.target.closest('[data-act]');
+      if (b) { ev.stopPropagation(); doAct(b.dataset.act, w); return; }
+      unpeek(); closePeek(); activate(w.id);
+    });
+    row.append(t);
+  });
+  peekEl.append(row);
+  peekEl.addEventListener('mouseenter', () => clearTimeout(leaveT));
+  peekEl.addEventListener('mouseleave', () => { leaveT = setTimeout(closePeek, 220); });
+  screen_.append(peekEl);
+  const x = iconX(iconEl), pw = peekEl.offsetWidth;
+  peekEl.style.left = Math.max(12, Math.min(1280 - pw - 12, x - pw / 2)) + 'px';
+}
+function closePeek() { unpeek(); peekEl?.remove(); peekEl = null; peekApp = null; }
+let ghost = null;
+function peekAt(w) {
+  screen_.classList.add('peeking');
+  if (w.min) { ghost = winEl(w); ghost.classList.add('ghost', 'peek-target'); ghost.style.zIndex = 400; winsBox.append(ghost); }
+  else winsBox.querySelector(`[data-id="${w.id}"]`)?.classList.add('peek-target');
+}
+function unpeek() { screen_.classList.remove('peeking'); ghost?.remove(); ghost = null; winsBox.querySelectorAll('.peek-target').forEach(e => e.classList.remove('peek-target')); }
+
+// ---- Switcher ----
+let sw = null; // { el, sticky, items, sel, win }
+function swItems() {
+  if (opt.layout === 'windows') return order.map(id => wins.find(w => w.id === id)).filter(w => w && (opt.minimized || !w.min));
+  const seen = [];
+  order.forEach(id => { const w = wins.find(x => x.id === id); if (w && !seen.includes(w.app)) seen.push(w.app); });
+  APPS.forEach(a => { if (a.run && !seen.includes(a.id)) seen.push(a.id); });
+  return seen.map(app);
+}
+function openSwitcher(sticky) {
+  if (!opt.tool || !opt.switcher) return;
+  closePeek();
+  const items = swItems();
+  sw = { sticky, items, sel: Math.min(1, items.length - 1), win: 0 };
+  sw.el = document.createElement('div'); sw.el.id = 'sw'; sw.el.className = opt.place;
+  screen_.append(sw.el);
+  drawSwitcher();
+}
+function card(w, bw, bh, cls) {
+  const c = document.createElement('div'); c.className = 'sc' + (w.min ? ' min' : '') + (cls || '');
+  const box = document.createElement('div'); box.className = 'box'; box.append(mini(w, bw, bh));
+  const a = app(w.app);
+  c.append(box);
+  c.insertAdjacentHTML('beforeend', `<div class="cap"><i class="ico" style="background:${a.bg};color:${a.fg}">${a.l}</i><span>${w.title}</span>${w.min ? '<i class="chip">Min</i>' : ''}</div>${acts(w)}`);
+  c.addEventListener('click', ev => { const b = ev.target.closest('[data-act]'); if (b) { ev.stopImmediatePropagation(); doAct(b.dataset.act, w); } }, true);
+  return c;
+}
+function drawSwitcher() {
+  const el = sw.el; el.innerHTML = '';
+  const head = document.createElement('div'); head.className = 'swh';
+  head.innerHTML = opt.layout === 'windows'
+    ? `<span class="cond">${sw.items.length} jendela</span><span class="keys">${sw.sticky ? 'Klik jendela · Esc batal' : 'Tab berikutnya · ⇧Tab sebelumnya · lepas ⌥ untuk buka'}</span>`
+    : `<span class="cond">${sw.items.length} app</span><span class="keys">${sw.sticky ? 'Klik app atau jendela · Esc batal' : 'Tab app berikutnya · ↓ atau ` jendela berikutnya · lepas ⌥ untuk buka'}</span>`;
+  el.append(head);
+  if (opt.layout === 'windows') {
+    const g = document.createElement('div'); g.className = 'swgrid';
+    sw.items.forEach((w, i) => {
+      const c = card(w, 186, 116, '');
+      c.addEventListener('mouseenter', () => setSel(i));
+      c.addEventListener('click', () => { sw.sel = i; commit(); });
+      g.append(c);
+    });
+    sw.cards = g; el.append(g);
+  } else {
+    const row = document.createElement('div'); row.className = 'apps';
+    sw.items.forEach((a, i) => {
+      const n = appWins(a.id).length;
+      const c = document.createElement('div'); c.className = 'ap';
+      c.innerHTML = `<div class="di" style="background:${a.bg};color:${a.fg}">${a.l}</div><div class="nm">${a.name}</div>${n > 1 ? `<i class="n">${n}</i>` : ''}`;
+      c.addEventListener('mouseenter', () => setSel(i));
+      c.addEventListener('click', () => { sw.sel = i; commit(); });
+      row.append(c);
+    });
+    sw.cards = row; el.append(row);
+    sw.sub = document.createElement('div'); sw.sub.className = 'subwins'; el.append(sw.sub);
+  }
+  sw.drawnSub = null;
+  mark();
+}
+// Selection changes only move the highlight; the app's windows row is redrawn when the app changes.
+function mark() {
+  [...sw.cards.children].forEach((c, i) => c.classList.toggle('sel', i === sw.sel));
+  if (opt.layout !== 'apps') return;
+  if (sw.drawnSub !== sw.sel) {
+    sw.drawnSub = sw.sel;
+    const ws = appWins(sw.items[sw.sel].id);
+    sw.sub.innerHTML = ws.length ? '' : '<div class="empty">Tidak ada jendela yang terbuka.</div>';
+    ws.forEach((w, j) => {
+      const c = card(w, 162, 100, '');
+      c.addEventListener('mouseenter', () => { sw.win = j; mark(); });
+      c.addEventListener('click', () => { sw.win = j; commit(); });
+      sw.sub.append(c);
+    });
+  }
+  [...sw.sub.children].forEach((c, j) => c.classList.toggle('sel', j === sw.win));
+}
+function setSel(i) { if (sw.sel !== i) { sw.sel = i; sw.win = 0; mark(); } }
+function move(d) {
+  const n = sw.items.length; setSel((sw.sel + d + n) % n);
+}
+function moveWin(d) {
+  if (opt.layout !== 'apps') { move(d); return; }
+  const n = appWins(sw.items[sw.sel].id).length; if (!n) return;
+  sw.win = (sw.win + d + n) % n; mark();
+}
+function commit() {
+  if (!sw) return;
+  let id = null;
+  if (opt.layout === 'windows') id = sw.items[sw.sel]?.id;
+  else { const ws = appWins(sw.items[sw.sel].id); id = ws[sw.win]?.id; }
+  closeSwitcher();
+  if (id != null) activate(id);
+}
+function closeSwitcher() { sw?.el.remove(); sw = null; }
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'Tab' && e.altKey) { e.preventDefault(); if (!sw) openSwitcher(false); else move(e.shiftKey ? -1 : 1); return; }
+  if (!sw) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeSwitcher(); return; }
+  if (e.key === 'Enter') { e.preventDefault(); commit(); return; }
+  const keyAct = { KeyM: 'min', KeyW: 'close', KeyQ: 'quit' }[e.code];
+  if (keyAct) { e.preventDefault(); const { w, appId } = selected(); doAct(keyAct, w, appId); return; }
+  if (e.key === 'ArrowRight') { e.preventDefault(); move(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); move(-1); }
+  if (e.key === 'ArrowDown' || e.code === 'Backquote') { e.preventDefault(); moveWin(1); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); moveWin(-1); }
+});
+window.addEventListener('keyup', e => { if (sw && !sw.sticky && (e.key === 'Alt' || !e.altKey)) commit(); });
+window.addEventListener('blur', () => { if (sw && !sw.sticky) closeSwitcher(); });
+document.getElementById('open-sw').addEventListener('click', () => { screen_.focus(); openSwitcher(true); });
+document.getElementById('reset').addEventListener('click', () => { closeSwitcher(); reset(); });
+document.addEventListener('mousedown', e => { if (sw && sw.sticky && !sw.el.contains(e.target) && e.target.id !== 'open-sw') closeSwitcher(); });
+
+// ---- controls ----
+function setOpt(k, v) {
+  opt[k] = v;
+  document.querySelectorAll(`.seg[data-key="${k}"] button`).forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  if (k === 'view') document.body.classList.toggle('show-settings', v === 'settings');
+  applyLook();
+  if (sw) { closeSwitcher(); }
+}
+document.querySelectorAll('.seg').forEach(s => s.addEventListener('click', e => { const b = e.target.closest('button'); if (b) setOpt(s.dataset.key, b.dataset.v); }));
+document.querySelectorAll('.tg').forEach(t => t.addEventListener('click', () => { const k = t.dataset.tg; opt[k] = !opt[k]; t.classList.toggle('off', !opt[k]); closePeek(); }));
+document.querySelectorAll('.fold').forEach(f => f.addEventListener('click', e => { if (!e.target.classList.contains('tg')) f.classList.toggle('open'); }));
+
+// ---- scaling ----
+const screen_ = document.getElementById('screen'), stage = document.getElementById('stage');
+let scale = 1;
+function fit() {
+  const w = stage.clientWidth, h = window.innerHeight - stage.getBoundingClientRect().top - 18;
+  scale = Math.max(.3, Math.min(w / 1280, h / 800));
+  screen_.style.transform = `scale(${scale})`;
+  screen_.style.left = `${(w - 1280 * scale) / 2}px`;
+  stage.style.height = `${800 * scale}px`;
+}
+window.addEventListener('resize', fit);
+const darkMq = matchMedia('(prefers-color-scheme: dark)');
+function applyLook() {
+  screen_.dataset.card = opt.card === 'system' ? (darkMq.matches ? 'dark' : 'light') : opt.card;
+  screen_.dataset.mat = opt.mat; screen_.dataset.wall = opt.wall; screen_.dataset.place = opt.place;
+  document.querySelectorAll('.seg[data-key="card"] button[data-v="system"]').forEach(b => { b.textContent = `Sistem (${darkMq.matches ? 'gelap' : 'terang'})`; });
+}
+darkMq.addEventListener('change', applyLook);
+applyLook();
+reset(); fit();
+screen_.focus();
+</script>
+</body>
+</html>
