@@ -13,6 +13,7 @@ mod module_commands;
 mod modules;
 mod page_commands;
 mod pages;
+mod peek_rules;
 mod prefs;
 mod settings;
 mod shelf;
@@ -69,6 +70,8 @@ mod shelf_drop;
 mod shelf_service;
 #[cfg(target_os = "macos")]
 mod shelf_watch;
+#[cfg(target_os = "macos")]
+mod peek_service;
 #[cfg(target_os = "macos")]
 mod shot_hotkey;
 #[cfg(target_os = "macos")]
@@ -151,6 +154,7 @@ pub fn run() {
             settings_window::set_accent,
             settings_window::set_panel_glass,
             settings_window::set_shelf_open_on_drag,
+            settings_window::set_peek_settings,
             settings_window::set_theme,
             self_uninstall::uninstall_preview,
             self_uninstall::release_permissions,

@@ -1,7 +1,7 @@
 import type { KeyState, ShotKeys } from '../bridge';
 import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
-import type { ModuleInfo, ModuleState, Page } from '../modules/types';
+import { DEFAULT_PEEK, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
 import type { AppAction, AppKey, UpdateInfo, LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
 
@@ -62,6 +62,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
     notifications: { glow: true, seconds: 3.5 }, missed: [], sampleStatus: false, accent: '#c8f04a', accentCustom: null, panelGlass: true,
     shelfOpenOnDrag: true,
+    peek: DEFAULT_PEEK,
   };
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();
@@ -96,6 +97,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setNotchConfig: async notch => setState({ ...state, notch }),
     setPanelGlass: async panelGlass => setState({ ...state, panelGlass }),
     setShelfOpenOnDrag: async shelfOpenOnDrag => setState({ ...state, shelfOpenOnDrag }),
+    setPeekSettings: async peek => setState({ ...state, peek }),
     setAccent: async (accent, custom) => setState({ ...state, accent, accentCustom: custom ?? state.accentCustom }),
     // The page cannot change its own light or dark here; the app sets the window's.
     setTheme: async theme => setInfo({ ...info, theme }),

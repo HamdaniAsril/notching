@@ -7,7 +7,7 @@ import { fakePrefs } from './bridge-browser-prefs';
 import { fakeTimer } from './bridge-browser-timer';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
-import type { ModuleCategory, ModuleInfo, ModuleState, Page, WidgetKind } from './modules/types';
+import { DEFAULT_PEEK, type ModuleCategory, type ModuleInfo, type ModuleState, type Page, type WidgetKind } from './modules/types';
 import { DEFAULT_CONFIG } from './notch/config';
 import { localPointer } from './notch/local-pointer';
 
@@ -151,6 +151,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     accentCustom: null,
     panelGlass: params.get('glass') !== 'off',
     shelfOpenOnDrag: true,
+    peek: DEFAULT_PEEK,
   };
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);

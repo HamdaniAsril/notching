@@ -1,7 +1,7 @@
 import type { ShotKeys } from '../bridge';
 import type { SettingsStrings } from '../i18n';
 import type { Lang } from '../kit/protocol';
-import type { ModuleState, Placement } from '../modules/types';
+import type { ModuleState, PeekSettings, Placement } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 
 export type LanguageChoice = 'auto' | 'id' | 'en';
@@ -102,6 +102,7 @@ export interface SettingsBridge {
   setScreen(name: string | null): Promise<void>;
   setPanelGlass(on: boolean): Promise<void>; // off: the open panel is solid black
   setShelfOpenOnDrag(on: boolean): Promise<void>; // off: Shelf opens when a drag reaches the notch
+  setPeekSettings(p: PeekSettings): Promise<void>; // Intip jendela's settings, whole
   setLaunchAtLogin(on: boolean): Promise<void>;
   openLoginItems(): Promise<void>;
   setModuleEnabled(id: string, enabled: boolean): Promise<void>;

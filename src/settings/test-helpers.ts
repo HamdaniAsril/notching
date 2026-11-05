@@ -1,5 +1,5 @@
 import { afterEach, vi } from 'vitest';
-import type { ModuleState, Placement } from '../modules/types';
+import type { ModuleState, PeekSettings, Placement } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
@@ -85,6 +85,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     setNoticeGlow: vi.fn(async (_on: boolean) => {}),
     setPanelGlass: vi.fn(async (_on: boolean) => {}),
     setShelfOpenOnDrag: vi.fn(async (_on: boolean) => {}),
+    setPeekSettings: vi.fn(async (_p: PeekSettings) => {}),
     setNoticeSeconds: vi.fn(async (_seconds: number) => {}),
     setChannel: vi.fn(async (_module: string, _channel: string, _pref: { on: boolean; sound: boolean }) => {}),
     sendSampleNotice: vi.fn(async (_title: string, _detail: string) => {}),

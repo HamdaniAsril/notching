@@ -99,6 +99,8 @@ pub struct ModuleStateDto {
     pub panel_glass: bool,
     /// Shelf opens as soon as a file drag starts anywhere.
     pub shelf_open_on_drag: bool,
+    /// Intip jendela's settings.
+    pub peek: crate::peek_rules::PeekSettings,
 }
 
 #[derive(Debug, PartialEq)]
@@ -224,6 +226,7 @@ impl AppCore {
             accent_custom: self.settings.accent_custom.clone(),
             panel_glass: self.settings.panel_glass,
             shelf_open_on_drag: self.settings.shelf_open_on_drag,
+            peek: self.settings.window_peek,
         }
     }
 
@@ -435,6 +438,15 @@ impl AppCore {
 
     pub fn shelf_open_on_drag(&self) -> bool {
         self.settings.shelf_open_on_drag
+    }
+
+    pub fn peek_settings(&self) -> crate::peek_rules::PeekSettings {
+        self.settings.window_peek
+    }
+
+    pub fn set_peek_settings(&mut self, p: crate::peek_rules::PeekSettings) -> Result<(), CoreError> {
+        self.settings.window_peek = p;
+        self.save()
     }
 
     pub fn set_shelf_open_on_drag(&mut self, on: bool) -> Result<(), CoreError> {
@@ -731,6 +743,17 @@ mod tests {
         assert_eq!(open(&d, None).theme(), ThemeSetting::System);
         open(&d, None).set_theme(ThemeSetting::Dark).unwrap();
         assert_eq!(open(&d, None).theme(), ThemeSetting::Dark);
+    }
+
+    #[test]
+    fn peek_settings_are_kept() {
+        use crate::peek_rules::{Material, PeekSettings};
+        let d = setup();
+        assert_eq!(open(&d, None).peek_settings(), PeekSettings::default());
+        let glass = PeekSettings { material: Material::Glass, ..PeekSettings::default() };
+        open(&d, None).set_peek_settings(glass).unwrap();
+        assert_eq!(open(&d, None).peek_settings(), glass);
+        assert_eq!(open(&d, None).state().peek, glass);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 import { beforeEach, vi } from 'vitest';
 import type { Bridge, CleanerApp, CleanerEvent, CleanerItem, CleanerNode, CleanerScan, LiveStatus, MediaSummary, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys, ShotSetup } from '../bridge';
-import type { ModuleInfo, ModuleState, Page, WidgetInfo } from '../modules/types';
+import { DEFAULT_PEEK, type ModuleInfo, type ModuleState, type Page, type WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
 import type { NotchSize } from './shape';
@@ -138,6 +138,7 @@ export const TEST_STATE: ModuleState = {
   accentCustom: null,
   panelGlass: true,
   shelfOpenOnDrag: true,
+  peek: DEFAULT_PEEK,
 };
 
 // Bridge whose methods are mocks; emit* plays the native side's events.

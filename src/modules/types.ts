@@ -102,7 +102,19 @@ export interface ModuleState {
   accentCustom: string | null; // the last custom colour, kept while a preset is chosen
   panelGlass: boolean; // the open panel fades toward its bottom; false: solid black
   shelfOpenOnDrag: boolean; // Shelf opens as soon as a file drag starts anywhere
+  peek: PeekSettings; // Intip jendela (design 5 Nov §4)
 }
+
+// Intip jendela's settings on Pintasan (design 5 Nov §4).
+export interface PeekSettings {
+  dock: boolean; // peek from the Dock
+  dockClick: 'toggle' | 'mac'; // a Dock icon click minimizes or brings back every window, or is macOS's own
+  card: 'system' | 'light' | 'dark';
+  material: 'solid' | 'glass';
+  minimized: boolean; // minimized windows shown too, marked
+}
+
+export const DEFAULT_PEEK: PeekSettings = { dock: true, dockClick: 'toggle', card: 'system', material: 'solid', minimized: true };
 
 // Beranda's package: always installed, so the Katalog leaves it out (design 4 Nov §3).
 export const CORE_PACKAGE = 'home';

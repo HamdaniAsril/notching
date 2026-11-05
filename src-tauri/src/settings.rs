@@ -234,6 +234,9 @@ pub struct Settings {
     /// Packages that wait in the Katalog (manifest "optIn") and were installed.
     #[serde(deserialize_with = "lenient")]
     pub installed_opt_in: Vec<String>,
+    /// Intip jendela's settings (design 5 Nov §4).
+    #[serde(deserialize_with = "lenient")]
+    pub window_peek: crate::peek_rules::PeekSettings,
 }
 
 impl Default for Settings {
@@ -263,6 +266,7 @@ impl Default for Settings {
             panel_glass: true,
             shelf_open_on_drag: true,
             installed_opt_in: Vec::new(),
+            window_peek: crate::peek_rules::PeekSettings::default(),
         }
     }
 }

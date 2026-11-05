@@ -137,6 +137,18 @@ pub fn set_panel_glass(app: AppHandle, core: State<CoreState>, on: bool) -> Resu
     change(&app, &core, |c| c.set_panel_glass(on))
 }
 
+/// Intip jendela's settings: saved, then its Dock watch and click tap follow them.
+#[tauri::command]
+pub fn set_peek_settings(
+    app: AppHandle,
+    core: State<CoreState>,
+    settings: crate::peek_rules::PeekSettings,
+) -> Result<(), String> {
+    change(&app, &core, |c| c.set_peek_settings(settings))?;
+    crate::peek_service::sync(&app);
+    Ok(())
+}
+
 /// Shelf's "open while dragging": saved, then the drag watcher follows it.
 #[tauri::command]
 pub fn set_shelf_open_on_drag(app: AppHandle, core: State<CoreState>, on: bool) -> Result<(), String> {
