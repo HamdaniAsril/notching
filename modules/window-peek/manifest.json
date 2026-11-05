@@ -1,0 +1,11 @@
+{
+  "id": "window-peek",
+  "version": "1.0.0",
+  "category": "window",
+  "icon": "icon.svg",
+  "optIn": true,
+  "permissions": ["accessibility", "screen-recording"],
+  "capabilities": ["peek", "notify"],
+  "tool": "peek",
+  "notifications": [{ "id": "access", "on": true, "sound": false }]
+}

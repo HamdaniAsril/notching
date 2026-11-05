@@ -55,6 +55,9 @@ pub enum Capability {
     /// Atur jendela: ⌃⌥ with Q–C places the focused window (design 4 Nov, alat latar §5).
     #[serde(rename = "windows")]
     Windows,
+    /// Intip jendela: the Dock peek and the Dock click, run by the core (design 5 Nov).
+    #[serde(rename = "peek")]
+    Peek,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).

@@ -21,6 +21,7 @@ interface ManifestJson {
   widgets?: { id: string; entry: string; width: number; kind: WidgetKind }[];
   action?: { capability: string; method: string };
   tool?: string;
+  optIn?: boolean;
   permissions?: string[];
   category?: ModuleCategory;
 }
@@ -41,15 +42,17 @@ const manifestOf = (id: string) => manifests[`../modules/${id}/manifest.json`];
 // The browser cannot measure a package, so every module shows this size.
 const FAKE_SIZE = 140 * 1024;
 
-export function catalog(lang: Lang, off: string[]): ModuleInfo[] {
+// `optedIn`: the packages that wait in the Katalog (manifest optIn) and were installed.
+export function catalog(lang: Lang, off: string[], optedIn: string[] = []): ModuleInfo[] {
   return (index as string[]).map(id => {
     const m = manifestOf(id);
     const t = locales[`../modules/${id}/locales/${lang}.json`] ?? {};
     const module = (m.entry !== undefined && m.card !== undefined) || m.action !== undefined || m.tool !== undefined;
+    const installed = !m.optIn || optedIn.includes(id);
     return {
       id, name: t.name ?? id, shortName: t.shortName ?? t.name ?? id, description: t.description ?? '',
       version: m.version, entry: m.entry ?? null, icon: m.icon, card: m.card ?? null,
-      installed: true, enabled: !module || !off.includes(id),
+      installed, enabled: installed && (!module || !off.includes(id)),
       size: FAKE_SIZE, iconSvg: icons[`../modules/${id}/${m.icon}`] ?? '',
       channels: (m.notifications ?? []).map(c => ({ ...c, widget: c.widget ?? null, name: t.channels?.[c.id] ?? c.id })),
       widgets: (m.widgets ?? []).map(w => ({ ...w, name: t.widgets?.[w.id] ?? w.id })),

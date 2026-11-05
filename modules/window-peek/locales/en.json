@@ -1,0 +1,9 @@
+{
+  "name": "Window peek",
+  "shortName": "Peek",
+  "description": "See every window of an app from the Dock and the window switcher",
+  "channels": { "access": "Access" },
+  "notice": {
+    "access": { "title": "Window peek needs Accessibility access", "detail": "Open Settings → Permissions" }
+  }
+}
