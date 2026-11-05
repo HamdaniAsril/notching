@@ -100,6 +100,16 @@ objc2-quick-look-thumbnailing = { version = "0.3", default-features = false, fea
   "QLThumbnailRepresentation",
 ] }
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage"] }
+# Intip jendela's window pictures on macOS 14+ (design 5 Nov §8).
+objc2-screen-capture-kit = { version = "0.3", default-features = false, features = [
+  "std",
+  "block2",
+  "objc2-core-graphics",
+  "objc2-core-foundation",
+  "SCShareableContent",
+  "SCScreenshotManager",
+  "SCStream",
+] }
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

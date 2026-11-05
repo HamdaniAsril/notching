@@ -75,6 +75,8 @@ mod peek_service;
 #[cfg(target_os = "macos")]
 mod peek_windows;
 #[cfg(target_os = "macos")]
+mod peek_capture;
+#[cfg(target_os = "macos")]
 mod shot_hotkey;
 #[cfg(target_os = "macos")]
 mod shot_pick;

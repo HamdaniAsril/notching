@@ -279,7 +279,7 @@ pub fn image_png(image: &NSImage) -> Option<Vec<u8>> {
     cg_png(&cg)
 }
 
-fn cg_png(cg: &CGImage) -> Option<Vec<u8>> {
+pub(crate) fn cg_png(cg: &CGImage) -> Option<Vec<u8>> {
     let rep: Retained<NSBitmapImageRep> = NSBitmapImageRep::initWithCGImage(NSBitmapImageRep::alloc(), cg);
     let data = unsafe { rep.representationUsingType_properties(NSBitmapImageFileType::PNG, &NSDictionary::new()) }?;
     Some(data.to_vec())
