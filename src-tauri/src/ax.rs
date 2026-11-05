@@ -18,6 +18,12 @@ unsafe extern "C" {
     fn AXUIElementSetMessagingTimeout(element: *const c_void, seconds: f32) -> i32;
     fn AXValueCreate(kind: u32, value: *const c_void) -> *const c_void;
     fn AXValueGetValue(value: *const c_void, kind: u32, out: *mut c_void) -> u8;
+    fn AXUIElementPerformAction(element: *const c_void, action: *const c_void) -> i32;
+    fn AXUIElementCopyElementAtPosition(app: *const c_void, x: f32, y: f32, out: *mut *const c_void) -> i32;
+    fn AXUIElementGetPid(element: *const c_void, pid: *mut i32) -> i32;
+    // Not documented by Apple, but stable for years and used by window tools
+    // such as AltTab: the window server's number for a window element.
+    fn _AXUIElementGetWindow(element: *const c_void, id: *mut u32) -> i32;
 }
 
 #[link(name = "CoreFoundation", kind = "framework")]
@@ -25,6 +31,15 @@ unsafe extern "C" {
     fn CFRelease(cf: *const c_void);
     fn CFGetTypeID(cf: *const c_void) -> usize;
     fn CFStringGetTypeID() -> usize;
+    fn CFArrayGetTypeID() -> usize;
+    fn CFArrayGetCount(array: *const c_void) -> isize;
+    fn CFArrayGetValueAtIndex(array: *const c_void, index: isize) -> *const c_void;
+    fn CFBooleanGetTypeID() -> usize;
+    fn CFBooleanGetValue(boolean: *const c_void) -> u8;
+    fn CFURLGetTypeID() -> usize;
+    fn CFRetain(cf: *const c_void) -> *const c_void;
+    static kCFBooleanTrue: *const c_void;
+    static kCFBooleanFalse: *const c_void;
 }
 
 const AX_OK: i32 = 0;
@@ -179,4 +194,125 @@ pub fn set_frame(window: &Cf, to: Rect, resize: bool) -> bool {
         set_pair(window, "AXPosition", VALUE_POINT, at);
     }
     true
+}
+
+// An attribute holding an array of elements, each retained on its own.
+fn array(element: &Cf, name: &str) -> Vec<Cf> {
+    let Some(value) = copy(element, name) else { return Vec::new() };
+    // SAFETY: the type check makes the CFArray calls sound; each item is retained
+    // before it outlives the array.
+    unsafe {
+        if CFGetTypeID(value.0) != CFArrayGetTypeID() {
+            return Vec::new();
+        }
+        (0..CFArrayGetCount(value.0))
+            .filter_map(|i| owned(CFRetain(CFArrayGetValueAtIndex(value.0, i))))
+            .collect()
+    }
+}
+
+fn boolean(element: &Cf, name: &str) -> Option<bool> {
+    let value = copy(element, name)?;
+    // SAFETY: the type check makes CFBooleanGetValue sound.
+    unsafe { (CFGetTypeID(value.0) == CFBooleanGetTypeID()).then(|| CFBooleanGetValue(value.0) != 0) }
+}
+
+fn set_boolean(element: &Cf, name: &str, on: bool) -> bool {
+    let name = attr(name);
+    // SAFETY: an element, a CFString name and one of the two static CFBooleans.
+    unsafe {
+        let value = if on { kCFBooleanTrue } else { kCFBooleanFalse };
+        AXUIElementSetAttributeValue(element.0, name_ptr(&name), value) == AX_OK
+    }
+}
+
+fn perform(element: &Cf, action: &str) -> bool {
+    let action = attr(action);
+    // SAFETY: an element and a CFString action name.
+    unsafe { AXUIElementPerformAction(element.0, name_ptr(&action)) == AX_OK }
+}
+
+/// An app's windows, every kind (Intip jendela).
+pub fn windows(app: &Cf) -> Vec<Cf> {
+    array(app, "AXWindows")
+}
+
+pub fn children(element: &Cf) -> Vec<Cf> {
+    array(element, "AXChildren")
+}
+
+/// What a list holds selected: in the Dock's list, the icon under the pointer.
+pub fn selected_children(element: &Cf) -> Vec<Cf> {
+    array(element, "AXSelectedChildren")
+}
+
+pub fn role(element: &Cf) -> Option<String> {
+    string(element, "AXRole")
+}
+
+pub fn subrole(element: &Cf) -> Option<String> {
+    string(element, "AXSubrole")
+}
+
+/// A document or app window, not a panel, sheet or menu.
+pub fn is_standard(window: &Cf) -> bool {
+    subrole(window).as_deref() == Some("AXStandardWindow")
+}
+
+pub fn minimized(window: &Cf) -> Option<bool> {
+    boolean(window, "AXMinimized")
+}
+
+pub fn set_minimized(window: &Cf, on: bool) -> bool {
+    set_boolean(window, "AXMinimized", on)
+}
+
+/// Brings the window to the front of its app and makes it the app's main window.
+pub fn raise(window: &Cf) -> bool {
+    let raised = perform(window, "AXRaise");
+    set_boolean(window, "AXMain", true);
+    raised
+}
+
+/// Presses the window's own close button, so the app asks about unsaved work.
+pub fn press_close(window: &Cf) -> bool {
+    copy(window, "AXCloseButton").is_some_and(|b| perform(&b, "AXPress"))
+}
+
+/// The window server's number for this window (kCGWindowNumber).
+pub fn window_id(window: &Cf) -> Option<u32> {
+    let mut id = 0u32;
+    // SAFETY: an element and a u32 out.
+    let status = unsafe { _AXUIElementGetWindow(window.0, &mut id) };
+    (status == AX_OK && id != 0).then_some(id)
+}
+
+/// A file URL attribute ("AXURL", a Dock item's app) as a path.
+pub fn url(element: &Cf) -> Option<String> {
+    let value = copy(element, "AXURL")?;
+    // SAFETY: the type check makes the cast to NSURL (toll-free bridged) sound.
+    unsafe {
+        if CFGetTypeID(value.0) != CFURLGetTypeID() {
+            return None;
+        }
+        (*(value.0 as *const objc2_foundation::NSURL)).path().map(|p| p.to_string())
+    }
+}
+
+/// The element of `app` at a point in screen coordinates (top left of the main screen).
+pub fn element_at(app: &Cf, x: f64, y: f64) -> Option<Cf> {
+    let mut out = std::ptr::null();
+    // SAFETY: an element and an out pointer for a +1 element.
+    let status = unsafe { AXUIElementCopyElementAtPosition(app.0, x as f32, y as f32, &mut out) };
+    if status != AX_OK {
+        return None;
+    }
+    owned(out)
+}
+
+/// The process an element belongs to.
+pub fn pid(element: &Cf) -> Option<i32> {
+    let mut pid = 0;
+    // SAFETY: an element and an i32 out.
+    (unsafe { AXUIElementGetPid(element.0, &mut pid) } == AX_OK).then_some(pid)
 }
