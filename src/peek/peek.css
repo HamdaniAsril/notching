@@ -1,0 +1,61 @@
+@import '../kit/volt-tokens.css';
+
+/* Intip jendela's card (design 5 Nov §7, prototype): solid black or white, or
+   Liquid glass, whose blur comes from the panel's own macOS effect underneath
+   this see-through page. The accent comes from the Volt tokens. */
+* { box-sizing: border-box; }
+html, body { margin: 0; background: transparent; overflow: hidden; }
+body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: none; user-select: none; cursor: default; }
+
+#peek {
+  --c-bg: #000; --c-ink: #f3f5f0; --c-ink2: #c4c8bf; --c-muted: #8c9187; --c-box: #111210; --c-hover: #ffffff12;
+  --c-ring: #ffffff14; --c-acc: var(--v-acc); --c-acc-soft: var(--v-acc-soft); --c-chip: #23251f;
+  --c-btn: #22241f; --c-btn-ink: #f3f5f0;
+  --c-sheen: rgba(255, 255, 255, .16); --c-sheen2: rgba(255, 255, 255, .06); --c-edge: rgba(255, 255, 255, .35); --c-edge2: rgba(255, 255, 255, .12);
+  position: absolute; left: 0; top: 0; width: max-content; max-width: var(--max-w, 1416px);
+  border-radius: 20px; padding: 14px 14px 12px; background: var(--c-bg); color: var(--c-ink);
+  box-shadow: inset 0 0 0 1px var(--c-ring);
+}
+#peek.card-light {
+  --c-bg: #f7f7f5; --c-ink: #111210; --c-ink2: #33352f; --c-muted: #6b7066; --c-box: #e3e3df; --c-hover: #0000000b;
+  --c-ring: #0000001a; --c-acc: var(--v-acc-deep); --c-acc-soft: var(--v-acc-deep-soft); --c-chip: #e3e3df;
+  --c-btn: #fff; --c-btn-ink: #111210;
+  --c-sheen: rgba(255, 255, 255, .7); --c-sheen2: rgba(255, 255, 255, .3); --c-edge: rgba(255, 255, 255, .95); --c-edge2: rgba(255, 255, 255, .5);
+}
+/* Darker than plain glass, so text reads over white windows behind it. */
+#peek.mat-glass.card-dark { --c-bg: rgba(16, 17, 15, .5); --c-box: rgba(0, 0, 0, .3); --c-chip: rgba(255, 255, 255, .12); --c-btn: rgba(34, 36, 31, .9); --c-hover: #ffffff17; }
+#peek.mat-glass.card-light { --c-bg: rgba(255, 255, 255, .34); --c-box: rgba(255, 255, 255, .45); --c-chip: rgba(255, 255, 255, .6); --c-hover: rgba(255, 255, 255, .35); }
+#peek.mat-glass {
+  background: linear-gradient(135deg, var(--c-sheen), transparent 40%, transparent 70%, var(--c-sheen2)), var(--c-bg);
+  box-shadow: inset 0 1px 0 var(--c-edge), inset 0 0 0 1px var(--c-edge2);
+}
+#peek[data-enter] { animation: rise .16s ease-out; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.ph { display: flex; align-items: baseline; gap: 10px; margin: 0 4px 10px; }
+.ph .nm { font: 700 18px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .05em; }
+.ph .ct { color: var(--c-muted); font-size: 12px; }
+.empty { color: var(--c-muted); padding: 10px 6px 14px; font-size: 12px; }
+
+.thumbs { display: flex; flex-wrap: wrap; gap: 10px; }
+.th { position: relative; width: 196px; border-radius: 12px; padding: 6px; cursor: pointer; }
+.th:hover { background: var(--c-hover); }
+.th .box { position: relative; width: 184px; height: 118px; border-radius: 8px; background: var(--c-box); overflow: hidden; display: grid; place-items: center; }
+.th .box img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.th .box img.icon { width: 48px; height: 48px; }
+.th.min .box img:not(.icon) { opacity: .45; filter: grayscale(.6); }
+.th .cap { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 12px; color: var(--c-ink2); }
+.th .cap span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.chip { flex: none; font: 600 11px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 3px 6px; border-radius: 5px; background: var(--c-chip); color: var(--c-ink2); font-style: normal; }
+.chip.acc { background: var(--c-acc-soft); color: var(--c-acc); }
+
+/* Minimize or restore, close, quit: one colour, red only for close and quit. */
+.acts { position: absolute; top: 11px; right: 11px; display: none; gap: 2px; padding: 3px; border-radius: 999px; background: var(--c-btn); color: var(--c-btn-ink);
+  box-shadow: 0 0 0 1px var(--c-ring), 0 4px 14px rgba(0, 0, 0, .3); z-index: 2; }
+.th:hover .acts { display: flex; }
+.ab { appearance: none; border: 0; padding: 0; margin: 0; background: transparent; color: inherit; font: inherit;
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
+.ab svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ab:hover { background: var(--c-hover); }
+.ab.close:hover { background: rgba(229, 72, 77, .18); color: #e5484d; }
+.ab.quit:hover { background: #e5484d; color: #fff; }

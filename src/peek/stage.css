@@ -1,0 +1,11 @@
+@import '../kit/volt-tokens.css';
+
+/* Peeking at a window (design 5 Nov §6): the screen dims, the window's picture
+   sits in its place with the accent ring. The panel never takes a click. */
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+.shade { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); }
+.ghost { position: absolute; border-radius: 11px; overflow: hidden; background: #000;
+  box-shadow: 0 0 0 3px var(--v-acc), 0 24px 60px rgba(0, 0, 0, .6); }
+.ghost img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ghost .tag { position: absolute; top: 40px; right: 12px; font: 700 12px/1 "Barlow Condensed", sans-serif; letter-spacing: .08em;
+  background: #000; color: var(--v-acc); padding: 3px 8px; border-radius: 5px; }

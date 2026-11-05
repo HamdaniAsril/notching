@@ -10,8 +10,8 @@ export default defineConfig(() => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
-  // Five pages: the notch overlay, the settings window, the dim layer, the
-  // screenshot picker and the screenshot editor.
+  // Seven pages: the notch overlay, the settings window, the dim layer, the
+  // screenshot picker, the screenshot editor, and Intip jendela's card and layer.
   build: {
     rolldownOptions: {
       input: {
@@ -20,6 +20,8 @@ export default defineConfig(() => ({
         clean: "clean.html",
         pick: "pick.html",
         editor: "editor.html",
+        peek: "peek.html",
+        peekStage: "peek-stage.html",
       },
     },
   },

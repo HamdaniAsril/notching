@@ -77,6 +77,13 @@ export function settingsStrings(lang: Lang): SettingsStrings {
   return SETTINGS[lang];
 }
 
+// Text of Intip jendela's peek panel (design 5 Nov §9).
+export type PeekStrings = (typeof id)['peek'];
+
+export function peekStrings(lang: Lang): PeekStrings {
+  return lang === 'en' ? en.peek : id.peek;
+}
+
 // Text of Keyboard Cleaning Mode's dim layer.
 export type CleanStrings = (typeof id)['clean'];
 

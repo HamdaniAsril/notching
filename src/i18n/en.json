@@ -114,6 +114,18 @@
       "padding": "Spacing"
     }
   },
+  "peek": {
+    "window": "{n} window",
+    "windows": "{n} windows",
+    "front": "In front",
+    "minimized": "Minimized",
+    "empty": "No open windows",
+    "minimize": "Minimize",
+    "restore": "Restore",
+    "close": "Close window",
+    "quit": "Quit {app}",
+    "stageMinimized": "MINIMIZED"
+  },
   "clean": {
     "title": "Cleaning the keyboard",
     "hint": "Press Esc 5× to leave"

@@ -114,6 +114,18 @@
       "padding": "Jarak"
     }
   },
+  "peek": {
+    "window": "{n} jendela",
+    "windows": "{n} jendela",
+    "front": "Di depan",
+    "minimized": "Diminimize",
+    "empty": "Tidak ada jendela yang terbuka",
+    "minimize": "Minimize",
+    "restore": "Pulihkan",
+    "close": "Tutup jendela",
+    "quit": "Keluar dari {app}",
+    "stageMinimized": "DIMINIMIZE"
+  },
   "clean": {
     "title": "Keyboard sedang dibersihkan",
     "hint": "Tekan Esc 5× untuk keluar"
