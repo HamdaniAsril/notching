@@ -61,6 +61,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   let state: ModuleState = {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
     notifications: { glow: true, seconds: 3.5 }, missed: [], sampleStatus: false, accent: '#c8f04a', accentCustom: null, panelGlass: true,
+    shelfOpenOnDrag: true,
   };
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();
@@ -94,6 +95,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     },
     setNotchConfig: async notch => setState({ ...state, notch }),
     setPanelGlass: async panelGlass => setState({ ...state, panelGlass }),
+    setShelfOpenOnDrag: async shelfOpenOnDrag => setState({ ...state, shelfOpenOnDrag }),
     setAccent: async (accent, custom) => setState({ ...state, accent, accentCustom: custom ?? state.accentCustom }),
     // The page cannot change its own light or dark here; the app sets the window's.
     setTheme: async theme => setInfo({ ...info, theme }),

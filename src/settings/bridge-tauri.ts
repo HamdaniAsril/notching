@@ -41,6 +41,7 @@ export function tauriSettingsBridge(): SettingsBridge {
     uninstallNotching: () => invoke('uninstall_notching'),
     setTheme: theme => invoke('set_theme', { theme }),
     setPanelGlass: on => invoke('set_panel_glass', { on }),
+    setShelfOpenOnDrag: on => invoke('set_shelf_open_on_drag', { on }),
     setNoticeGlow: on => invoke('set_notice_glow', { on }),
     setNoticeSeconds: seconds => invoke('set_notice_seconds', { seconds }),
     setChannel: (module, channel, { on, sound }) => invoke('set_channel', { module, channel, on, sound }),

@@ -289,6 +289,8 @@
       "uninstallNote": "Salinan aslinya tetap ada di app. Kamu bisa memasangnya lagi kapan saja.",
       "status": "Status di samping notch",
       "statusHint": "Tampil saat panel tertutup.",
+      "shelfDrag": "Buka saat menyeret file",
+      "shelfDragHint": "Shelf terbuka begitu kamu mulai menyeret file, dari mana saja. Kalau mati, Shelf baru terbuka saat file sampai di notch.",
       "tools": "Alat",
       "categories": {
         "utilities": "Utilitas",
@@ -483,6 +485,7 @@
     "keywords": {
       "accent": "warna aksen tema hijau lime warna sendiri accent colour color",
       "shotKeys": "tombol pintasan shortcut keyboard screenshot cmd shift ⌘⇧3 ⌘⇧4",
+      "shelfDrag": "seret tarik file shelf titipan buka otomatis drag drop",
       "language": "bahasa indonesia inggris english language otomatis",
       "screen": "layar monitor eksternal display screen",
       "login": "login masuk mulai startup otomatis",

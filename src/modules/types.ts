@@ -101,6 +101,7 @@ export interface ModuleState {
   accent: string; // "#rrggbb", the Volt accent picked in Tampilan
   accentCustom: string | null; // the last custom colour, kept while a preset is chosen
   panelGlass: boolean; // the open panel fades toward its bottom; false: solid black
+  shelfOpenOnDrag: boolean; // Shelf opens as soon as a file drag starts anywhere
 }
 
 // Beranda's package: always installed, so the Katalog leaves it out (design 4 Nov §3).

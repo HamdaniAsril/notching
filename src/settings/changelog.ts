@@ -11,6 +11,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.4',
+    date: null,
+    items: {
+      id: [
+        'Shelf terbuka begitu kamu mulai menyeret file, dari mana saja. Bisa dimatikan di pengaturan Shelf.',
+        'Panel tembus pandang pindah ke Tampilan notch, dan preview-nya langsung ikut berubah.',
+      ],
+      en: [
+        'Shelf opens as soon as you start dragging a file, from anywhere. Turn it off in Shelf’s settings.',
+        'See-through panel moved to Notch look, and its preview follows at once.',
+      ],
+    },
+  },
+  {
     version: '0.1.3',
     date: '2026-11-04',
     items: {

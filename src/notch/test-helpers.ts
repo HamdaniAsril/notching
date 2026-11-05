@@ -137,6 +137,7 @@ export const TEST_STATE: ModuleState = {
   accent: '#c8f04a',
   accentCustom: null,
   panelGlass: true,
+  shelfOpenOnDrag: true,
 };
 
 // Bridge whose methods are mocks; emit* plays the native side's events.

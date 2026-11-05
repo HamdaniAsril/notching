@@ -8,6 +8,11 @@
 //! Photos) that it receives into the Titipan folder. A poll ends drop mode when
 //! the mouse button is up or the cursor stays away, whatever AppKit reported.
 //!
+//! With "open while dragging" on (owner, 5 Nov), a file drag starting anywhere
+//! opens the shelf at once (shelf_watch.rs). That drop mode stays while the
+//! button is down, wherever the cursor goes, and follows the drag to another
+//! screen's notch.
+//!
 //! Like the overlays and sensors, catchers are never closed, only ordered out.
 
 use std::cell::RefCell;
@@ -47,13 +52,16 @@ const STATUS_LEVEL: isize = 25;
 #[derive(Clone, Debug, PartialEq)]
 pub enum DropMode {
     Off,
-    On { label: String, away: u32 },
+    /// `anywhere`: opened when the drag started, not when it reached the notch.
+    On { label: String, away: u32, anywhere: bool },
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum DropEvent {
     /// A file drag reached this overlay's notch or panel.
     Arrived { label: String, enabled: bool, dragging_out: bool },
+    /// A file drag started anywhere; `label`: the notch of the screen it started on.
+    Started { label: String, enabled: bool, dragging_out: bool },
     /// The drag left the catcher; `inside`: the cursor is still over the overlay's
     /// notch or panel (the catcher moved under it), which is left to the poll.
     Exited { inside: bool },
@@ -68,25 +76,37 @@ pub enum Effect {
     None,
     Start(String),
     End { label: String, dropped: bool },
+    /// The drag went to another screen's notch: close one, open the other.
+    Move { from: String, to: String },
 }
 
 pub fn drop_mode_step(now: DropMode, ev: DropEvent) -> (DropMode, Effect) {
     match (now, ev) {
         (DropMode::Off, DropEvent::Arrived { label, enabled: true, dragging_out: false }) => {
-            (DropMode::On { label: label.clone(), away: 0 }, Effect::Start(label))
+            (DropMode::On { label: label.clone(), away: 0, anywhere: false }, Effect::Start(label))
         }
-        (DropMode::On { label, away }, DropEvent::Exited { inside: true }) => (DropMode::On { label, away }, Effect::None),
+        (DropMode::Off, DropEvent::Started { label, enabled: true, dragging_out: false }) => {
+            (DropMode::On { label: label.clone(), away: 0, anywhere: true }, Effect::Start(label))
+        }
+        (DropMode::On { label: from, anywhere: true, .. }, DropEvent::Arrived { label: to, enabled: true, dragging_out: false })
+            if from != to =>
+        {
+            (DropMode::On { label: to.clone(), away: 0, anywhere: true }, Effect::Move { from, to })
+        }
+        // Opened from anywhere: leaving the catcher is not leaving; the poll decides.
+        (on @ DropMode::On { anywhere: true, .. }, DropEvent::Exited { .. }) => (on, Effect::None),
+        (on @ DropMode::On { .. }, DropEvent::Exited { inside: true }) => (on, Effect::None),
         (DropMode::On { label, .. }, DropEvent::Exited { inside: false }) => {
             (DropMode::Off, Effect::End { label, dropped: false })
         }
         (DropMode::On { label, .. }, DropEvent::Performed) => (DropMode::Off, Effect::End { label, dropped: true }),
-        (DropMode::On { label, away }, DropEvent::Tick { pressed, inside }) => {
-            if pressed && inside {
-                (DropMode::On { label, away: 0 }, Effect::None)
+        (DropMode::On { label, away, anywhere }, DropEvent::Tick { pressed, inside }) => {
+            if pressed && (inside || anywhere) {
+                (DropMode::On { label, away: 0, anywhere }, Effect::None)
             } else if away + 1 >= AWAY_TICKS {
                 (DropMode::Off, Effect::End { label, dropped: false })
             } else {
-                (DropMode::On { label, away: away + 1 }, Effect::None)
+                (DropMode::On { label, away: away + 1, anywhere }, Effect::None)
             }
         }
         (now, _) => (now, Effect::None),
@@ -119,15 +139,21 @@ fn step(app: &AppHandle, ev: DropEvent) {
             let _ = app.emit_to(EventTarget::webview_window(&label), DROP_EVENT, serde_json::json!({ "phase": "start" }));
             start_poll(app);
         }
-        Effect::End { label, dropped } => {
-            hide_catcher();
-            let _ = app.emit_to(
-                EventTarget::webview_window(&label),
-                DROP_EVENT,
-                serde_json::json!({ "phase": "end", "dropped": dropped }),
-            );
+        Effect::End { label, dropped } => end(app, &label, dropped),
+        Effect::Move { from, to } => {
+            end(app, &from, false);
+            let _ = app.emit_to(EventTarget::webview_window(&to), DROP_EVENT, serde_json::json!({ "phase": "start" }));
         }
     }
+}
+
+fn end(app: &AppHandle, label: &str, dropped: bool) {
+    hide_catcher();
+    let _ = app.emit_to(
+        EventTarget::webview_window(label),
+        DROP_EVENT,
+        serde_json::json!({ "phase": "end", "dropped": dropped }),
+    );
 }
 
 fn mode_label() -> Option<String> {
@@ -142,6 +168,13 @@ pub fn arrived(app: &AppHandle, label: &str) {
     let enabled = shelf_service::enabled(app);
     let dragging_out = DRAG_OUT.load(std::sync::atomic::Ordering::SeqCst);
     step(app, DropEvent::Arrived { label: label.to_string(), enabled, dragging_out });
+}
+
+/// A file drag started anywhere, over the screen whose notch is `label`.
+pub fn started(app: &AppHandle, label: &str) {
+    let enabled = shelf_service::enabled(app);
+    let dragging_out = DRAG_OUT.load(std::sync::atomic::Ordering::SeqCst);
+    step(app, DropEvent::Started { label: label.to_string(), enabled, dragging_out });
 }
 
 // Polls the button and cursor until drop mode ends.
@@ -400,7 +433,15 @@ mod tests {
     }
 
     fn on(label: &str) -> DropMode {
-        DropMode::On { label: label.into(), away: 0 }
+        DropMode::On { label: label.into(), away: 0, anywhere: false }
+    }
+
+    fn started(label: &str) -> DropEvent {
+        DropEvent::Started { label: label.into(), enabled: true, dragging_out: false }
+    }
+
+    fn anywhere(label: &str) -> DropMode {
+        DropMode::On { label: label.into(), away: 0, anywhere: true }
     }
 
     #[test]
@@ -469,5 +510,56 @@ mod tests {
         let (m, _) = drop_mode_step(on("notch-0"), DropEvent::Performed);
         assert_eq!(drop_mode_step(m.clone(), DropEvent::Tick { pressed: false, inside: false }), (DropMode::Off, Effect::None));
         assert_eq!(drop_mode_step(m, DropEvent::Exited { inside: false }), (DropMode::Off, Effect::None));
+    }
+
+    #[test]
+    fn a_file_drag_anywhere_opens_the_shelf_at_once() {
+        assert_eq!(drop_mode_step(DropMode::Off, started("notch-1")), (anywhere("notch-1"), Effect::Start("notch-1".into())));
+    }
+
+    #[test]
+    fn a_drag_anywhere_is_ignored_when_shelf_is_off_or_it_is_our_own() {
+        let off = DropEvent::Started { label: "notch-0".into(), enabled: false, dragging_out: false };
+        assert_eq!(drop_mode_step(DropMode::Off, off), (DropMode::Off, Effect::None));
+        let ours = DropEvent::Started { label: "notch-0".into(), enabled: true, dragging_out: true };
+        assert_eq!(drop_mode_step(DropMode::Off, ours), (DropMode::Off, Effect::None));
+        // Already open for a drag: nothing more.
+        assert_eq!(drop_mode_step(on("notch-0"), started("notch-1")), (on("notch-0"), Effect::None));
+    }
+
+    #[test]
+    fn a_drag_from_anywhere_stays_open_while_the_button_is_down() {
+        // Far from the notch, and leaving the catcher: still open.
+        let far = DropEvent::Tick { pressed: true, inside: false };
+        let mut m = anywhere("notch-0");
+        for _ in 0..10 {
+            let (next, e) = drop_mode_step(m, far.clone());
+            assert_eq!(e, Effect::None);
+            m = next;
+        }
+        assert_eq!(drop_mode_step(m.clone(), DropEvent::Exited { inside: false }), (m, Effect::None));
+    }
+
+    #[test]
+    fn a_drag_from_anywhere_closes_when_let_go_elsewhere() {
+        let up = DropEvent::Tick { pressed: false, inside: false };
+        let (m, e) = drop_mode_step(anywhere("notch-0"), up.clone());
+        assert_eq!(e, Effect::None);
+        let (m, _) = drop_mode_step(m, up.clone());
+        assert_eq!(drop_mode_step(m, up), (DropMode::Off, Effect::End { label: "notch-0".into(), dropped: false }));
+        assert_eq!(
+            drop_mode_step(anywhere("notch-0"), DropEvent::Performed),
+            (DropMode::Off, Effect::End { label: "notch-0".into(), dropped: true })
+        );
+    }
+
+    #[test]
+    fn a_drag_from_anywhere_moves_to_the_notch_it_reaches() {
+        assert_eq!(
+            drop_mode_step(anywhere("notch-0"), arrive("notch-1", true)),
+            (anywhere("notch-1"), Effect::Move { from: "notch-0".into(), to: "notch-1".into() })
+        );
+        // Its own notch: nothing to do.
+        assert_eq!(drop_mode_step(anywhere("notch-0"), arrive("notch-0", true)), (anywhere("notch-0"), Effect::None));
     }
 }

@@ -548,3 +548,16 @@ test('tool pages follow the language', async () => {
   expect(cats(root).map(d => d.querySelector('.cat-name')!.textContent))
     .toEqual(['Utilities', 'Energy & power', 'Window & Dock', 'App management', 'Files', 'Apps']);
 });
+
+test('Shelf can open as soon as a file drag starts, and saves a change', async () => {
+  const shelf = moduleInfo('shelf', { name: 'Shelf', status: true });
+  const { root, app, bridge } = await mountForTest({ ...STATE, modules: [...STATE.modules, shelf], shelfOpenOnDrag: true });
+  app.go({ page: 'module', id: 'shelf' });
+  const row = root.querySelector('[data-row="module.shelf.drag"]')!;
+  expect(row.textContent).toContain('Buka saat menyeret file');
+  expect(row.textContent).toContain('dari mana saja');
+  const sw = root.querySelector<HTMLButtonElement>('[data-key="module.shelf.drag"]')!;
+  expect(sw.getAttribute('aria-checked')).toBe('true');
+  sw.click();
+  expect(bridge.setShelfOpenOnDrag).toHaveBeenCalledWith(false);
+});

@@ -68,6 +68,8 @@ mod shelf_drop;
 #[cfg(target_os = "macos")]
 mod shelf_service;
 #[cfg(target_os = "macos")]
+mod shelf_watch;
+#[cfg(target_os = "macos")]
 mod shot_hotkey;
 #[cfg(target_os = "macos")]
 mod shot_pick;
@@ -148,6 +150,7 @@ pub fn run() {
             settings_window::set_notch_config,
             settings_window::set_accent,
             settings_window::set_panel_glass,
+            settings_window::set_shelf_open_on_drag,
             settings_window::set_theme,
             self_uninstall::uninstall_preview,
             self_uninstall::release_permissions,
@@ -281,6 +284,7 @@ pub fn run() {
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());
+            shelf_watch::sync(app.handle());
             pointer::start_pointer_monitor(app.handle().clone());
             Ok(())
         })

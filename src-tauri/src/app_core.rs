@@ -97,6 +97,8 @@ pub struct ModuleStateDto {
     pub accent_custom: Option<String>,
     /// The open panel fades toward its bottom; false: solid black.
     pub panel_glass: bool,
+    /// Shelf opens as soon as a file drag starts anywhere.
+    pub shelf_open_on_drag: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -221,6 +223,7 @@ impl AppCore {
             accent: self.settings.accent.clone(),
             accent_custom: self.settings.accent_custom.clone(),
             panel_glass: self.settings.panel_glass,
+            shelf_open_on_drag: self.settings.shelf_open_on_drag,
         }
     }
 
@@ -427,6 +430,15 @@ impl AppCore {
 
     pub fn set_panel_glass(&mut self, on: bool) -> Result<(), CoreError> {
         self.settings.panel_glass = on;
+        self.save()
+    }
+
+    pub fn shelf_open_on_drag(&self) -> bool {
+        self.settings.shelf_open_on_drag
+    }
+
+    pub fn set_shelf_open_on_drag(&mut self, on: bool) -> Result<(), CoreError> {
+        self.settings.shelf_open_on_drag = on;
         self.save()
     }
 
@@ -719,6 +731,15 @@ mod tests {
         assert_eq!(open(&d, None).theme(), ThemeSetting::System);
         open(&d, None).set_theme(ThemeSetting::Dark).unwrap();
         assert_eq!(open(&d, None).theme(), ThemeSetting::Dark);
+    }
+
+    #[test]
+    fn shelf_opens_while_dragging_until_turned_off() {
+        let d = setup();
+        assert!(open(&d, None).state().shelf_open_on_drag);
+        open(&d, None).set_shelf_open_on_drag(false).unwrap();
+        assert!(!open(&d, None).shelf_open_on_drag());
+        assert!(!open(&d, None).state().shelf_open_on_drag);
     }
 
     #[test]

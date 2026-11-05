@@ -252,6 +252,16 @@ function cutSettings(ctx: PageContext): HTMLElement {
   return wrap(undefined, toolAccess(ctx, m), keys);
 }
 
+// Shelf (owner, 5 Nov): open as soon as a file drag starts, or when it reaches the notch.
+function shelfSettings(ctx: PageContext): HTMLElement {
+  const s = ctx.strings.modules;
+  return group(row({
+    key: 'module.shelf.drag', label: s.shelfDrag, hint: s.shelfDragHint,
+    control: toggle('module.shelf.drag', s.shelfDrag, ctx.state.shelfOpenOnDrag,
+      on => ctx.save('module.shelf.drag', ctx.bridge.setShelfOpenOnDrag(on))),
+  }));
+}
+
 // A background tool on Pintasan (owner, 4 Nov): its row folds open in place,
 // showing its permission and its keys inside the same card, instead of a page.
 export function toolFold(ctx: PageContext, m: ModuleInfo): HTMLElement[] {
@@ -406,6 +416,7 @@ export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> 
   cleaner: cleanerSettings,
   'cut-files': cutSettings,
   'window-keys': windowSettings,
+  shelf: shelfSettings,
 };
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never

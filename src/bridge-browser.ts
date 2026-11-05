@@ -147,6 +147,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     accent: '#c8f04a',
     accentCustom: null,
     panelGlass: params.get('glass') !== 'off',
+    shelfOpenOnDrag: true,
   };
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);

@@ -228,6 +228,9 @@ pub struct Settings {
     /// The open panel fades toward its bottom; off, it is solid black (Umum, 4 Nov).
     #[serde(deserialize_with = "lenient_true")]
     pub panel_glass: bool,
+    /// Shelf opens as soon as a file drag starts anywhere (owner, 5 Nov).
+    #[serde(deserialize_with = "lenient_true")]
+    pub shelf_open_on_drag: bool,
 }
 
 impl Default for Settings {
@@ -255,6 +258,7 @@ impl Default for Settings {
             theme: ThemeSetting::System,
             app_keys: crate::app_keys::AppKeys::default(),
             panel_glass: true,
+            shelf_open_on_drag: true,
         }
     }
 }

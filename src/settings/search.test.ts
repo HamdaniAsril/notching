@@ -90,3 +90,11 @@ test('finds the accent colour in both languages', () => {
   expect(search(idx(mods, 'en'), 'accent')[0].key).toBe('look.accent');
   expect(search(idx(), 'warna')[0].key).toBe('look.accent');
 });
+
+test("Shelf's open-while-dragging is found in both languages, only while Shelf is installed", () => {
+  const shelf = moduleInfo('shelf', { name: 'Shelf', description: 'Titip file di notch' });
+  const drag = (q: string, lang: Lang = 'id', m = [...mods, shelf]) => search(idx(m, lang), q).find(e => e.key === 'module.shelf.drag');
+  expect(drag('seret')).toMatchObject({ route: { page: 'module', id: 'shelf' } });
+  expect(drag('dragging', 'en')).toBeDefined();
+  expect(drag('seret', 'id', [...mods, { ...shelf, installed: false, enabled: false }])).toBeUndefined();
+});

@@ -75,7 +75,7 @@ The pill under the notch holds your pages. Home comes first. Add as many of your
 
 - **Timer.** Drag a ruler to set it. It ticks as you drag and counts down beside the notch.
 - **Keep awake.** Your computer stays awake until you say so.
-- **Shelf.** Drop files on the notch. Drag copies out anywhere.
+- **Shelf.** Start dragging a file and Shelf opens by itself. Drop it on the notch, drag copies out anywhere.
 - **Screenshot.** Screen, window or area, straight to the clipboard, with an editor.
 - **Cleaner.** Clears caches and removes apps with their leftovers. Everything goes to the Trash first.
 - **Mirror.** Check your camera before a meeting.

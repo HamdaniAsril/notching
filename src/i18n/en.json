@@ -289,6 +289,8 @@
       "uninstallNote": "The original stays in the app. Add it back any time.",
       "status": "Status beside the notch",
       "statusHint": "Shows while the panel is closed.",
+      "shelfDrag": "Open while dragging",
+      "shelfDragHint": "Shelf opens as soon as you start dragging a file, from anywhere. Off, it opens when the file reaches the notch.",
       "tools": "Tools",
       "categories": {
         "utilities": "Utilities",
@@ -483,6 +485,7 @@
     "keywords": {
       "accent": "accent colour color theme green lime custom warna aksen",
       "shotKeys": "keys shortcut keyboard screenshot cmd shift ⌘⇧3 ⌘⇧4 tombol",
+      "shelfDrag": "drag drop file shelf open automatically seret",
       "language": "language english indonesian bahasa automatic",
       "screen": "screen display monitor external",
       "login": "login startup launch automatic",

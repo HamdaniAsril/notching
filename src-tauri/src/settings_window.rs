@@ -137,6 +137,14 @@ pub fn set_panel_glass(app: AppHandle, core: State<CoreState>, on: bool) -> Resu
     change(&app, &core, |c| c.set_panel_glass(on))
 }
 
+/// Shelf's "open while dragging": saved, then the drag watcher follows it.
+#[tauri::command]
+pub fn set_shelf_open_on_drag(app: AppHandle, core: State<CoreState>, on: bool) -> Result<(), String> {
+    change(&app, &core, |c| c.set_shelf_open_on_drag(on))?;
+    crate::shelf_watch::sync(&app);
+    Ok(())
+}
+
 /// Saves the choice, then rebuilds the overlays so only the chosen screen keeps one.
 #[tauri::command]
 pub fn set_screen(app: AppHandle, core: State<CoreState>, name: Option<String>) -> Result<(), String> {

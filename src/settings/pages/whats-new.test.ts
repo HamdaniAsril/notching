@@ -24,16 +24,22 @@ test('Yang baru lists each version, marks this one and the one coming', async ()
   expect(root.querySelector('.nav.on .label')!.textContent).toBe('Yang baru');
   const cards = [...root.querySelectorAll('.news')];
   expect(cards.map(c => c.querySelector('.news-version')!.textContent)).toEqual(CHANGELOG.map(e => e.version));
-  expect(cards[0].querySelector('.news-tag')!.textContent).toBe('Akan datang');
-  expect(cards[1].querySelector('.news-tag.on')!.textContent).toBe('Versi ini');
-  expect(cards[1].querySelector('.news-date')!.textContent).toBe('3 November 2026');
-  expect(cards[1].querySelectorAll('li')).toHaveLength(CHANGELOG[1].items.id.length);
+  const card = (v: string) => cards.find(c => c.querySelector('.news-version')!.textContent === v)!;
+  // Every version after the running one is still to come.
+  for (const e of CHANGELOG.filter(e => e.version !== '0.1.2' && !e.version.startsWith('0.1.0') && !e.version.startsWith('0.1.1'))) {
+    expect(card(e.version).querySelector('.news-tag')!.textContent).toBe('Akan datang');
+  }
+  const running = card('0.1.2');
+  expect(running.querySelector('.news-tag.on')!.textContent).toBe('Versi ini');
+  expect(running.querySelector('.news-date')!.textContent).toBe('3 November 2026');
+  expect(running.querySelectorAll('li')).toHaveLength(CHANGELOG.find(e => e.version === '0.1.2')!.items.id.length);
+  expect(card('0.1.1').querySelector('.news-tag')).toBeNull();
 });
 
 test('in English the changes are English', async () => {
   const { root, app } = await mountForTest({ ...TEST_STATE, lang: 'en' }, { ...TEST_INFO, version: '0.1.3' });
   app.go({ page: 'whatsnew' });
-  const first = root.querySelector('.news')!;
-  expect(first.querySelector('.news-tag.on')!.textContent).toBe('This version');
-  expect(first.querySelector('li')!.textContent).toBe(CHANGELOG[0].items.en[0]);
+  const card = [...root.querySelectorAll('.news')].find(c => c.querySelector('.news-version')!.textContent === '0.1.3')!;
+  expect(card.querySelector('.news-tag.on')!.textContent).toBe('This version');
+  expect(card.querySelector('li')!.textContent).toBe(CHANGELOG.find(e => e.version === '0.1.3')!.items.en[0]);
 });
