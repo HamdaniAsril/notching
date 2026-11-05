@@ -87,6 +87,13 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
     if (page === 'modules' && modules.some(m => m.id === 'shelf' && m.installed)) {
       mods.push(entry('module.shelf.drag', s.modules.shelfDrag, where, { page: 'module', id: 'shelf' }, k.shelfDrag));
     }
+    if (page === 'shortcuts' && modules.some(m => m.id === 'window-peek' && m.installed)) {
+      const p = s.peek;
+      for (const [key, label] of [['peek.dock', p.dock], ['peek.dockClick', p.dockClick], ['peek.card', p.card],
+        ['peek.material', p.material], ['peek.minimized', p.minimized]] as const) {
+        mods.push(entry(key, label, where, { page: 'shortcuts' }, k.peek));
+      }
+    }
     if (page === 'shortcuts' && modules.some(m => m.id === 'screenshot' && m.installed)) {
       mods.push(entry('module.screenshot.key.screen', s.shotKeys.screen, where, { page: 'shortcuts' }, `${s.shortcuts.screenshot} ${k.shotKeys}`));
       mods.push(entry('module.screenshot.key.pick', s.shotKeys.pick, where, { page: 'shortcuts' }, `${s.shortcuts.screenshot} ${k.shotKeys}`));

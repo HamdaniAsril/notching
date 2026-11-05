@@ -98,3 +98,11 @@ test("Shelf's open-while-dragging is found in both languages, only while Shelf i
   expect(drag('dragging', 'en')).toBeDefined();
   expect(drag('seret', 'id', [...mods, { ...shelf, installed: false, enabled: false }])).toBeUndefined();
 });
+
+test("Intip jendela's settings are found on Pintasan, only while it is installed", () => {
+  const peek = moduleInfo('window-peek', { name: 'Intip jendela', tool: true, entry: null, card: null });
+  const hit = (m = [...mods, peek], lang: Lang = 'id', q = 'liquid') => search(idx(m, lang), q).find(e => e.key === 'peek.material');
+  expect(hit()).toMatchObject({ route: { page: 'shortcuts' } });
+  expect(hit([...mods, peek], 'en', 'glass')).toBeDefined();
+  expect(hit([...mods, { ...peek, installed: false, enabled: false }])).toBeUndefined();
+});

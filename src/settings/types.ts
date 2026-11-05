@@ -42,6 +42,7 @@ export interface SettingsInfo {
   screenRecording: boolean; // macOS lets Notching capture the screen (Screenshot)
   fullDiskAccess: boolean; // macOS lets Notching read every folder (Cleaner)
   camera: boolean; // macOS lets Notching use the camera (Cermin)
+  dockMinimizeToApp: boolean; // the Dock's "Minimize windows into application icon" (Intip jendela's tip)
 }
 
 export type SectionId = 'general' | 'look' | 'notifications' | 'pages' | 'modules' | 'shortcuts' | 'permissions' | 'uninstall' | 'about' | 'whatsnew';
@@ -134,6 +135,7 @@ export interface SettingsBridge {
   setStatusShown(module: string, on: boolean): Promise<void>;
   openAccessibility(): Promise<void>; // System Settings › Privacy & Security › Accessibility
   openScreenRecordingSettings(): Promise<void>; // System Settings › Privacy & Security › Screen Recording
+  openDockSettings(): Promise<void>; // System Settings › Desktop & Dock
   shotKeys(): Promise<ShotKeys>; // how the two keys stand, for Screenshot's page
   shotSetKey(which: 'screen' | 'pick', key: ShotKeyPress): Promise<ShotKeys>; // rejects with 'invalid' or 'duplicate'
   shotResetKeys(): Promise<ShotKeys>; // back to ⌘⇧3 and ⌘⇧4

@@ -57,6 +57,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     screenRecording: params.get('access') !== '0',
     fullDiskAccess: params.get('fda') !== '0',
     camera: params.get('camera') !== '0',
+    dockMinimizeToApp: params.get('dockmin') === '1',
   };
   let state: ModuleState = {
     lang: deviceLang, modules: catalog(deviceLang, []), pages: [BERANDA], lastPage: null, notch: DEFAULT_CONFIG,
@@ -150,6 +151,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setStatusShown: async (id, on) => setModule(id, { statusShown: on }),
     openAccessibility: async () => {},
     openScreenRecordingSettings: async () => console.info('openScreenRecordingSettings'),
+    openDockSettings: async () => console.info('openDockSettings'),
     shotKeys: async () => browserKeys(params.get('keys') === 'mac' ? 'mac' : 'ok'), // ?keys=mac
     shotSetKey: async (which, key) => {
       if (!key.cmd && !key.ctrl && !key.alt) throw 'invalid';

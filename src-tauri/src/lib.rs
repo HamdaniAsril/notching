@@ -155,6 +155,7 @@ pub fn run() {
             settings_window::set_panel_glass,
             settings_window::set_shelf_open_on_drag,
             settings_window::set_peek_settings,
+            settings_window::open_dock_settings,
             settings_window::set_theme,
             self_uninstall::uninstall_preview,
             self_uninstall::release_permissions,

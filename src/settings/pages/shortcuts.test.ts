@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
-import type { ModuleState } from '../../modules/types';
+import { DEFAULT_PEEK, type ModuleState } from '../../modules/types';
 import { moduleInfo, TEST_STATE } from '../../notch/test-helpers';
-import { appKeys, mountForTest, settle } from '../test-helpers';
+import { appKeys, mountForTest, settle, TEST_INFO } from '../test-helpers';
 
 const tool = (id: string, name: string, category: 'files' | 'window') =>
   moduleInfo(id, { name, entry: null, card: null, tool: true, permissions: ['accessibility'], category });
@@ -116,4 +116,63 @@ test('Potong file folds open in place, with its permission and keys, instead of 
   expect(body.hidden).toBe(false);
   head.click();
   expect(body.hidden).toBe(true);
+});
+
+const PEEK = moduleInfo('window-peek', {
+  name: 'Intip jendela', entry: null, card: null, tool: true, permissions: ['accessibility', 'screen-recording'], category: 'window',
+});
+const WITH_PEEK: ModuleState = { ...STATE, modules: [...STATE.modules, PEEK] };
+
+async function peekFold(state = WITH_PEEK, info = TEST_INFO) {
+  const t = await mountForTest(state, info);
+  t.bridge.appKeys.mockResolvedValue(appKeys());
+  t.app.go({ page: 'shortcuts' });
+  await settle();
+  cap(t.root, 'module.window-peek').click();
+  await settle();
+  return { ...t, body: cap(t.root, 'module.window-peek').nextElementSibling as HTMLElement };
+}
+const option = (root: HTMLElement, row: string, label: string) =>
+  [...root.querySelectorAll<HTMLButtonElement>(`[data-row="${row}"] button`)].find(b => b.textContent === label)!;
+
+test('Intip jendela folds open with its two permissions and every setting, in order', async () => {
+  const { body } = await peekFold();
+  expect(body.hidden).toBe(false);
+  expect([...body.querySelectorAll<HTMLElement>('[data-row]')].map(r => r.dataset.row)).toEqual([
+    'tool.window-peek.access', 'tool.window-peek.screen', 'peek.dock', 'peek.dockClick', 'peek.dockHint',
+    'peek.card', 'peek.material', 'peek.minimized',
+  ]);
+  expect(body.querySelector('[data-row="peek.material"]')!.textContent).toContain('Liquid glass');
+  expect(body.querySelector('[data-row="tool.window-peek.screen"]')!.textContent).toContain('Perekaman Layar');
+});
+
+test('the Dock tip shows only while macOS keeps minimized windows out of their icon', async () => {
+  const { body } = await peekFold(WITH_PEEK, { ...TEST_INFO, dockMinimizeToApp: true });
+  expect(body.querySelector('[data-row="peek.dockHint"]')).toBeNull();
+  const tipped = await peekFold();
+  tipped.body.querySelector<HTMLElement>('[data-key="peek.dockSettings"]')!.click();
+  expect(tipped.bridge.openDockSettings).toHaveBeenCalledTimes(1);
+});
+
+test('a choice saves the whole settings with one field changed', async () => {
+  const { root, bridge } = await peekFold();
+  option(root, 'peek.material', 'Liquid glass').click();
+  expect(bridge.setPeekSettings).toHaveBeenCalledWith({ ...DEFAULT_PEEK, material: 'glass' });
+  root.querySelector<HTMLElement>('[data-key="peek.minimized"]')!.click();
+  expect(bridge.setPeekSettings).toHaveBeenLastCalledWith({ ...DEFAULT_PEEK, minimized: false });
+});
+
+test("macOS's own Dock click needs no tip", async () => {
+  const { root, bridge } = await peekFold();
+  option(root, 'peek.dockClick', 'Bawaan macOS').click();
+  expect(bridge.setPeekSettings).toHaveBeenCalledWith({ ...DEFAULT_PEEK, dockClick: 'mac' });
+  bridge.emitModuleState({ ...WITH_PEEK, peek: { ...DEFAULT_PEEK, dockClick: 'mac' } });
+  await settle();
+  expect(root.querySelector('[data-row="peek.dockHint"]')).toBeNull();
+});
+
+test('Intip jendela in English', async () => {
+  const { body } = await peekFold({ ...WITH_PEEK, lang: 'en' });
+  expect(body.textContent).toContain('Card colour');
+  expect(body.textContent).toContain('Peek from the Dock');
 });

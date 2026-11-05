@@ -1,9 +1,9 @@
 import type { ShotKeys } from '../../bridge';
 import { fill, hostStrings } from '../../i18n';
 import { formatBytes } from '../../kit/format';
-import { isModule, isTool, MODULE_CATEGORIES, type ModuleCategory, type ModuleInfo } from '../../modules/types';
+import { isModule, isTool, MODULE_CATEGORIES, type ModuleCategory, type ModuleInfo, type PeekSettings } from '../../modules/types';
 import { DEFAULT_LABELS } from '../../shot/keys';
-import { button, el, group, head, note, row, toggle } from '../controls';
+import { button, choice, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
 import type { PageContext, PageRender, SettingsInfo, ShotKeyPress, WindowCell, WindowKey, WindowKeyError } from '../types';
 
@@ -228,6 +228,64 @@ function accessRow(ctx: PageContext, m: ModuleInfo): HTMLElement {
   return row({ key: `tool.${m.id}.access`, label: s.accessibility, hint: s.accessibilityHint, control: ctl });
 }
 
+// Screen Recording, beside Accessibility, for a tool that also needs it.
+function screenRow(ctx: PageContext, m: ModuleInfo): HTMLElement {
+  const s = ctx.strings.tools;
+  const state = el('span', 'perm-state');
+  state.append(el('i', 'perm-dot'), el('span'));
+  const show = (info: SettingsInfo) => {
+    state.lastChild!.textContent = info.screenRecording ? s.granted : s.missing;
+    state.classList.toggle('on', info.screenRecording);
+  };
+  show(ctx.info);
+  ctx.onCleanup(ctx.bridge.onSettings(show));
+  const ctl = el('div', 'ctl');
+  ctl.append(state, button(`tool.${m.id}.openScreen`, s.open, () => void ctx.bridge.openScreenRecordingSettings()));
+  return row({ key: `tool.${m.id}.screen`, label: s.screenRecording, hint: s.screenRecordingHint, control: ctl });
+}
+
+// Intip jendela's rows (design 5 Nov §4): its two permissions, then the Dock,
+// the cards and minimized windows. A change saves the whole settings at once.
+// The Dock tip shows only while the Dock leaves minimized windows out of their icon.
+function peekRows(ctx: PageContext): HTMLElement[] {
+  const s = ctx.strings.peek;
+  const m = ctx.state.modules.find(x => x.id === 'window-peek')!;
+  const p = ctx.state.peek;
+  const save = (key: string, next: Partial<PeekSettings>) => ctx.save(key, ctx.bridge.setPeekSettings({ ...p, ...next }));
+  const rows = [
+    accessRow(ctx, m),
+    screenRow(ctx, m),
+    row({ key: 'peek.dock', label: s.dock, hint: s.dockHint,
+      control: toggle('peek.dock', s.dock, p.dock, on => save('peek.dock', { dock: on })) }),
+    row({ key: 'peek.dockClick', label: s.dockClick, hint: s.dockClickHint,
+      control: choice<PeekSettings['dockClick']>('peek.dockClick', [
+        { value: 'toggle', label: s.dockClickToggle }, { value: 'mac', label: s.dockClickMac },
+      ], p.dockClick, v => save('peek.dockClick', { dockClick: v })) }),
+  ];
+  if (p.dockClick === 'toggle' && !ctx.info.dockMinimizeToApp) {
+    rows.push(row({ key: 'peek.dockHint', label: s.minimizeTip,
+      control: button('peek.dockSettings', s.minimizeTipButton, () => void ctx.bridge.openDockSettings()) }));
+  }
+  rows.push(
+    row({ key: 'peek.card', label: s.card,
+      control: choice<PeekSettings['card']>('peek.card', [
+        { value: 'system', label: s.cardSystem }, { value: 'light', label: s.cardLight }, { value: 'dark', label: s.cardDark },
+      ], p.card, v => save('peek.card', { card: v })) }),
+    row({ key: 'peek.material', label: s.material, hint: s.materialHint,
+      control: choice<PeekSettings['material']>('peek.material', [
+        { value: 'solid', label: s.materialSolid }, { value: 'glass', label: s.materialGlass },
+      ], p.material, v => save('peek.material', { material: v })) }),
+    row({ key: 'peek.minimized', label: s.minimized, hint: s.minimizedHint,
+      control: toggle('peek.minimized', s.minimized, p.minimized, on => save('peek.minimized', { minimized: on })) }),
+  );
+  return rows;
+}
+
+// Intip jendela's own page, reached another way: the same rows in one card.
+export function peekSettingsBox(ctx: PageContext): HTMLElement {
+  return group(...peekRows(ctx));
+}
+
 // A div holding `children`.
 function wrap(className: string | undefined, ...children: HTMLElement[]): HTMLElement {
   const d = el('div', className);
@@ -274,10 +332,14 @@ export function toolFold(ctx: PageContext, m: ModuleInfo): HTMLElement[] {
   head.tabIndex = 0;
   const body = el('div', 'fold-body perms');
   body.hidden = true;
-  const keys = m.id === 'window-keys'
-    ? windowKeysBox(ctx, true)
-    : row({ key: 'tool.cut-files.keys', label: s.keys, hint: s.cutNote, control: wrap('ctl', keycap('⌘X', s.cut), keycap('⌘V', s.paste)) });
-  body.append(accessRow(ctx, m), keys);
+  if (m.id === 'window-peek') {
+    body.append(...peekRows(ctx));
+  } else {
+    const keys = m.id === 'window-keys'
+      ? windowKeysBox(ctx, true)
+      : row({ key: 'tool.cut-files.keys', label: s.keys, hint: s.cutNote, control: wrap('ctl', keycap('⌘X', s.cut), keycap('⌘V', s.paste)) });
+    body.append(accessRow(ctx, m), keys);
+  }
   const toggle = () => {
     body.hidden = !body.hidden;
     head.setAttribute('aria-expanded', String(!body.hidden));
@@ -417,6 +479,7 @@ export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> 
   'cut-files': cutSettings,
   'window-keys': windowSettings,
   shelf: shelfSettings,
+  'window-peek': peekSettingsBox,
 };
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never

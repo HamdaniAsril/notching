@@ -56,6 +56,8 @@ pub struct SettingsDto {
     pub full_disk_access: bool,
     /// macOS lets Notching use the camera (Cermin).
     pub camera: bool,
+    /// The Dock's "Minimize windows into application icon" is on (Intip jendela's tip).
+    pub dock_minimize_to_app: bool,
 }
 
 // One lock at a time, so this is safe to call from anywhere.
@@ -78,6 +80,39 @@ pub fn settings_dto(app: &AppHandle) -> SettingsDto {
         screen_recording: crate::shot_service::screen_access(),
         full_disk_access: crate::cleaner_service::full_disk_access(app),
         camera: crate::camera_access::camera_access(),
+        dock_minimize_to_app: dock_minimize_to_app(),
+    }
+}
+
+#[link(name = "CoreFoundation", kind = "framework")]
+unsafe extern "C" {
+    fn CFPreferencesCopyAppValue(key: *const std::ffi::c_void, app: *const std::ffi::c_void) -> *mut std::ffi::c_void;
+}
+
+/// The Dock's own setting, read only: Notching never changes it (Intip jendela, design 5 Nov §6).
+fn dock_minimize_to_app() -> bool {
+    use objc2::rc::Retained;
+    use objc2::runtime::AnyObject;
+    use objc2_foundation::{NSNumber, NSString};
+    let key = NSString::from_str("minimize-to-application");
+    let domain = NSString::from_str("com.apple.dock");
+    // SAFETY: CFStrings are toll-free bridged NSStrings; the result is a +1 CF
+    // object or null, taken over by Retained and released once.
+    let value = unsafe {
+        let raw = CFPreferencesCopyAppValue(
+            &*key as *const NSString as *const std::ffi::c_void,
+            &*domain as *const NSString as *const std::ffi::c_void,
+        );
+        Retained::from_raw(raw as *mut AnyObject)
+    };
+    value.and_then(|v| v.downcast::<NSNumber>().ok()).is_some_and(|n| n.boolValue())
+}
+
+/// System Settings › Desktop & Dock, where minimizing into the app's icon is set.
+#[tauri::command]
+pub fn open_dock_settings() {
+    if let Err(e) = std::process::Command::new("/usr/bin/open").arg("x-apple.systempreferences:com.apple.Desktop-Settings.extension").spawn() {
+        eprintln!("notching: System Settings did not open: {e}");
     }
 }
 
@@ -307,6 +342,7 @@ mod tests {
             screen_recording: false,
             full_disk_access: false,
             camera: true,
+            dock_minimize_to_app: false,
         };
         let json = serde_json::to_value(&dto).unwrap();
         assert_eq!(json["accessibility"], true);

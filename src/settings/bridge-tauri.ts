@@ -55,6 +55,7 @@ export function tauriSettingsBridge(): SettingsBridge {
     setStatusShown: (module, on) => invoke('set_status_shown', { module, on }),
     openAccessibility: () => invoke('open_accessibility_settings'),
     openScreenRecordingSettings: () => invoke('open_screen_recording_settings'),
+    openDockSettings: () => invoke('open_dock_settings'),
     shotKeys: () => invoke<ShotKeys>('shot_keys'),
     shotSetKey: (which, key) => invoke<ShotKeys>('shot_set_key', { which, ...key }),
     shotResetKeys: () => invoke<ShotKeys>('shot_reset_keys'),

@@ -41,6 +41,7 @@ export const TEST_INFO: SettingsInfo = {
   screenRecording: false,
   fullDiskAccess: false,
   camera: false,
+  dockMinimizeToApp: false,
 };
 
 // Settings bridge whose methods are mocks; emit* plays the native side's events.
@@ -97,6 +98,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     setStatusShown: vi.fn(async (_module: string, _on: boolean) => {}),
     openAccessibility: vi.fn(async () => {}),
     openScreenRecordingSettings: vi.fn(async () => {}),
+    openDockSettings: vi.fn(async () => {}),
     shotKeys: vi.fn(async (): Promise<ShotKeys> => shotKeys()),
     shotSetKey: vi.fn(async (_which: 'screen' | 'pick', _key: ShotKeyPress): Promise<ShotKeys> => shotKeys()),
     shotResetKeys: vi.fn(async (): Promise<ShotKeys> => shotKeys()),
