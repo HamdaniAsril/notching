@@ -246,13 +246,13 @@
       "loginUnavailable": "Only available in the installed Notching.app.",
       "loginNeedsApproval": "macOS is waiting for your OK in Login Items.",
       "loginOpen": "Open Login Items",
-      "glass": "See-through panel",
-      "glassHint": "The open panel fades toward its bottom edge. Off, it is solid black.",
       "cityPrayer": "Prayer times"
     },
     "look": {
       "accent": "Accent colour",
       "accentCustom": "Custom colour",
+      "glass": "See-through panel",
+      "glassHint": "The open panel fades toward its bottom edge. Off, it is solid black.",
       "preview": "Preview",
       "previewHint": "Point at the notch, then click.",
       "bounce": "Bounce",

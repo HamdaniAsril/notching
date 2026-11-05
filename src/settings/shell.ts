@@ -253,10 +253,11 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
   doc.addEventListener('keydown', onKey);
   // The Look page already shows the values it just saved; rebuilding it for their
   // echo would put a slider back one step while an arrow key is held down, or
-  // take the colour picker away from under the pointer.
+  // take the colour picker away from under the pointer, or close the preview
+  // when the see-through panel is switched.
   // Nor does it show the live fields, which change while a module runs.
   const look = (s: ModuleState) => ({
-    ...s, notch: null, accent: null, accentCustom: null, missed: null, lastPage: null, sampleStatus: null,
+    ...s, notch: null, accent: null, accentCustom: null, panelGlass: null, missed: null, lastPage: null, sampleStatus: null,
     modules: s.modules.map(m => ({ ...m, activity: null })),
   });
   const onlyLookChanged = (a: ModuleState, b: ModuleState) => JSON.stringify(look(a)) === JSON.stringify(look(b));

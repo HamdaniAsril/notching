@@ -15,12 +15,13 @@ const FIT_MARGIN = 16;
 export interface PreviewOptions {
   card?: { width: number; height: number }; // the opened panel's card; PREVIEW_CARD if left out
   body?: HTMLElement; // what the opened panel shows instead of the label
-  glass?: boolean; // the panel's fade (Umum); on if left out
+  glass?: boolean; // the panel's fade (Tampilan notch); on if left out
 }
 
 export interface Preview {
   readonly controller: NotchController;
   setConfig(c: NotchConfig): void;
+  setGlass(on: boolean): void;
   destroy(): void;
 }
 
@@ -74,6 +75,10 @@ export function mountPreview(box: HTMLElement, config: NotchConfig, env: Setting
     controller,
     setConfig(c: NotchConfig): void {
       controller.setConfig(clampConfig(c));
+      view.kick();
+    },
+    setGlass(on: boolean): void {
+      view.setGlass(on);
       view.kick();
     },
     destroy(): void {

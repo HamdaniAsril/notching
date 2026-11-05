@@ -1,6 +1,6 @@
 import { CONFIG_RANGES, DEFAULT_CONFIG, type NotchConfig } from '../../notch/config';
 import { ACCENT_PRESETS, accentPalette, applyAccent, DEFAULT_ACCENT } from '../../kit/accent';
-import { button, el, group, head, slider, swatches } from '../controls';
+import { button, el, group, head, row as settingRow, slider, swatches, toggle } from '../controls';
 import { CUSTOM_PAGE } from '../../pages/route';
 import { slots, widgetCatalog } from '../../pages/layout';
 import { mountPreview } from '../preview';
@@ -97,6 +97,23 @@ export const lookPage: PageRender = ctx => {
     },
   });
 
+  // The see-through panel (owner, 4 Nov), moved here from Umum (owner, 5 Nov):
+  // the preview shows the change at once. The page is not rebuilt for its echo
+  // (shell.ts), so the switch redraws itself and keeps the focus.
+  let glassOn = ctx.state.panelGlass;
+  const glassSwitch = (): HTMLElement => toggle('look.glass', s.glass, glassOn, on => {
+    glassOn = on;
+    preview.setGlass(on);
+    const focused = box.ownerDocument.activeElement === shown;
+    const next = glassSwitch();
+    shown.replaceWith(next);
+    shown = next;
+    if (focused) shown.focus();
+    ctx.save('look.glass', ctx.bridge.setPanelGlass(on));
+  });
+  let shown = glassSwitch();
+  const glass = settingRow({ key: 'look.glass', label: s.glass, hint: s.glassHint, control: shown });
+
   const reset = button('look.reset', s.reset, () => {
     local = { ...DEFAULT_CONFIG };
     preview.setConfig(local);
@@ -110,6 +127,6 @@ export const lookPage: PageRender = ctx => {
 
   const page = el('div');
   page.append(head({ title: ctx.strings.sections.look }), box, el('small', 'preview-hint', s.previewHint),
-    group(accent), group(...rows), foot);
+    group(accent, glass), group(...rows), foot);
   return page;
 };

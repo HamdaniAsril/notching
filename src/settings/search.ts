@@ -28,12 +28,12 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
       ['home.place', s.home.place, k.place],
       ['general.screen', s.general.screen, k.screen],
       ['general.login', s.general.login, k.login],
-      ['general.glass', s.general.glass, k.glass],
       ['home.prayerNotice', s.home.prayerNotice, k.channels],
       ['home.prayerMethod', s.home.prayerMethod, k.prayerMethod],
     ],
     look: [
       ['look.accent', s.look.accent, k.accent],
+      ['look.glass', s.look.glass, k.glass],
       ['look.bounce', s.look.bounce, k.bounce],
       ['look.speed', s.look.speed, k.speed],
       ['look.dropDepth', s.look.dropDepth, k.dropDepth],

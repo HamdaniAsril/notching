@@ -172,3 +172,28 @@ test('the opened preview shows Beranda\'s widgets', async () => {
   expect(box.querySelectorAll('.look-row .ed-slot').length).toBeGreaterThan(0);
   expect(box.querySelector('.preview-label')).toBeNull();
 });
+
+test('the see-through panel switch sits with the accent, shows the saved choice and saves a change', async () => {
+  const { root, app, bridge } = await mountForTest({ ...TEST_STATE, panelGlass: false });
+  app.go({ page: 'look' });
+  const row = root.querySelector('[data-row="look.glass"]')!;
+  expect(row.textContent).toContain('Panel tembus pandang');
+  expect(row.parentElement!.querySelector('[data-row="look.accent"]')).not.toBeNull();
+  const sw = () => root.querySelector<HTMLButtonElement>('[data-key="look.glass"]')!;
+  const preview = root.querySelector('.preview-root');
+  expect(sw().getAttribute('aria-checked')).toBe('false');
+  sw().click();
+  expect(bridge.setPanelGlass).toHaveBeenLastCalledWith(true);
+  expect(sw().getAttribute('aria-checked')).toBe('true');
+  // Its echo leaves the page, and the open preview, as they are.
+  bridge.emitModuleState({ ...TEST_STATE, panelGlass: true });
+  expect(root.querySelector('.preview-root')).toBe(preview);
+  sw().click();
+  expect(bridge.setPanelGlass).toHaveBeenLastCalledWith(false);
+  expect(sw().getAttribute('aria-checked')).toBe('false');
+});
+
+test('Umum no longer has the see-through panel switch', async () => {
+  const { root } = await mountForTest();
+  expect(root.querySelector('[data-row="general.glass"]')).toBeNull();
+});

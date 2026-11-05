@@ -246,13 +246,13 @@
       "loginUnavailable": "Hanya bisa diatur dari Notching.app yang terpasang.",
       "loginNeedsApproval": "macOS menunggu persetujuanmu di Login Items.",
       "loginOpen": "Buka Login Items",
-      "glass": "Panel tembus pandang",
-      "glassHint": "Panel yang terbuka memudar ke bawah. Kalau mati, panelnya hitam penuh.",
       "cityPrayer": "Waktu sholat"
     },
     "look": {
       "accent": "Warna aksen",
       "accentCustom": "Warna sendiri",
+      "glass": "Panel tembus pandang",
+      "glassHint": "Panel yang terbuka memudar ke bawah. Kalau mati, panelnya hitam penuh.",
       "preview": "Pratinjau",
       "previewHint": "Arahkan kursor ke notch, lalu klik.",
       "bounce": "Kenyal",
