@@ -118,6 +118,7 @@ mod tests {
                 action: None,
                 tool: None,
                 category: Default::default(),
+                opt_in: false,
             },
             name: id.into(),
             short_name: id.into(),

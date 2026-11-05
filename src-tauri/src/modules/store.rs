@@ -99,7 +99,7 @@ impl ModuleStore {
     pub fn sync(&self, settings: &Settings) -> Vec<StoreError> {
         let mut errors = Vec::new();
         for id in self.catalog() {
-            let result = if removed(settings, &id) {
+            let result = if removed(settings, &id, self.opt_in(&id)) {
                 remove_dir(&self.active_dir.join(&id))
             } else {
                 self.copy_in(&id)
@@ -132,7 +132,7 @@ impl ModuleStore {
                 let short_name = text["shortName"].as_str().unwrap_or(&name).to_string();
                 let description = text["description"].as_str().unwrap_or("").to_string();
                 let module = manifest.is_module();
-                let installed = !removed(settings, &id);
+                let installed = !removed(settings, &id, manifest.opt_in);
                 let enabled = installed && (!module || !settings.disabled_modules.contains(&id));
                 let icon_svg = std::fs::read_to_string(dir.join(&manifest.icon)).unwrap_or_default();
                 let size = package_size(&dir);
@@ -198,6 +198,7 @@ impl ModuleStore {
         if !settings.uninstalled_modules.iter().any(|m| m == id) {
             settings.uninstalled_modules.push(id.to_string());
         }
+        settings.installed_opt_in.retain(|m| m != id);
         Ok(())
     }
 
@@ -207,6 +208,9 @@ impl ModuleStore {
         self.copy_in(id)?;
         settings.uninstalled_modules.retain(|m| m != id);
         settings.disabled_modules.retain(|m| m != id);
+        if self.opt_in(id) && !settings.installed_opt_in.iter().any(|m| m == id) {
+            settings.installed_opt_in.push(id.to_string());
+        }
         Ok(())
     }
 
@@ -239,6 +243,14 @@ impl ModuleStore {
             .is_none_or(|m| m.is_module())
     }
 
+    // Read from the bundled manifest; a broken one is not opt-in.
+    fn opt_in(&self, id: &str) -> bool {
+        std::fs::read_to_string(self.bundle_dir.join(id).join("manifest.json"))
+            .ok()
+            .and_then(|json| parse_manifest(&json, id).ok())
+            .is_some_and(|m| m.opt_in)
+    }
+
     fn known(&self, id: &str) -> Result<(), StoreError> {
         if self.catalog().iter().any(|m| m == id) {
             Ok(())
@@ -258,9 +270,16 @@ impl ModuleStore {
     }
 }
 
-// Uninstalled in the settings. Beranda's package never is, whatever the file says.
-fn removed(settings: &Settings, id: &str) -> bool {
-    id != CORE_PACKAGE && settings.uninstalled_modules.iter().any(|m| m == id)
+// Uninstalled in the settings. Beranda's package never is, whatever the file
+// says. An opt-in package is until it was installed.
+fn removed(settings: &Settings, id: &str, opt_in: bool) -> bool {
+    if id == CORE_PACKAGE {
+        return false;
+    }
+    if opt_in {
+        return !settings.installed_opt_in.iter().any(|m| m == id);
+    }
+    settings.uninstalled_modules.iter().any(|m| m == id)
 }
 
 fn locale_text(dir: &Path, lang: Lang) -> Option<serde_json::Value> {
@@ -382,6 +401,48 @@ mod tests {
 
     fn names(store: &ModuleStore, s: &Settings, lang: Lang) -> Vec<String> {
         store.list(s, lang).into_iter().map(|e| e.name).collect()
+    }
+
+    // Adds "p", a tool that waits in the Katalog until installed (optIn).
+    fn with_opt_in(d: &tempfile::TempDir) {
+        let bundle = d.path().join("bundle");
+        std::fs::write(bundle.join("index.json"), r#"["a","b","w","p"]"#).unwrap();
+        let p = bundle.join("p");
+        std::fs::create_dir_all(p.join("locales")).unwrap();
+        std::fs::write(
+            p.join("manifest.json"),
+            r#"{"id":"p","version":"1.0.0","icon":"icon.svg","optIn":true,"permissions":[],"capabilities":["windows"],"tool":"windows"}"#,
+        )
+        .unwrap();
+        std::fs::write(p.join("icon.svg"), "<svg/>").unwrap();
+    }
+
+    fn p_installed(store: &ModuleStore, s: &Settings) -> bool {
+        store.list(s, Lang::Id).into_iter().find(|e| e.manifest.id == "p").unwrap().installed
+    }
+
+    #[test]
+    fn an_opt_in_package_waits_to_be_installed() {
+        let (d, store) = setup();
+        with_opt_in(&d);
+        let mut s = Settings::default();
+        let p = store.list(&s, Lang::Id).into_iter().find(|e| e.manifest.id == "p").unwrap();
+        assert!(!p.installed && !p.enabled);
+        store.sync(&s);
+        assert!(!d.path().join("active/p").exists());
+        assert!(d.path().join("active/a").exists());
+        store.reinstall("p", &mut s).unwrap();
+        assert_eq!(s.installed_opt_in, vec!["p".to_string()]);
+        assert!(p_installed(&store, &s));
+        store.sync(&s);
+        assert!(d.path().join("active/p").exists());
+        store.uninstall("p", &mut s).unwrap();
+        assert!(s.installed_opt_in.is_empty());
+        assert!(!p_installed(&store, &s));
+        // Installed again later: back in the list once, not twice.
+        store.reinstall("p", &mut s).unwrap();
+        store.reinstall("p", &mut s).unwrap();
+        assert_eq!(s.installed_opt_in, vec!["p".to_string()]);
     }
 
     #[test]

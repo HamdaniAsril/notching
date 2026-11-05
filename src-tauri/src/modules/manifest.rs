@@ -161,6 +161,10 @@ pub struct Manifest {
     pub tool: Option<Capability>,
     #[serde(default)]
     pub category: Category,
+    /// Waits in the Katalog until the user installs it, also after an app
+    /// update (Intip jendela, design 5 Nov §4): it changes how the Mac behaves.
+    #[serde(default)]
+    pub opt_in: bool,
 }
 
 impl Manifest {
@@ -290,6 +294,13 @@ mod tests {
 
     const GOOD: &str = r#"{"id":"system-stat","version":"1.0.0","entry":"index.html","icon":"icon.svg",
       "card":{"width":400,"height":80},"permissions":[],"capabilities":["system.stats"]}"#;
+
+    #[test]
+    fn opt_in_is_read_and_off_unless_said() {
+        assert!(!parse_manifest(GOOD, "system-stat").unwrap().opt_in);
+        let opt = GOOD.replace(r#""icon":"icon.svg","#, r#""icon":"icon.svg","optIn":true,"#);
+        assert!(parse_manifest(&opt, "system-stat").unwrap().opt_in);
+    }
 
     #[test]
     fn a_good_manifest_parses() {

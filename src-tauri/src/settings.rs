@@ -231,6 +231,9 @@ pub struct Settings {
     /// Shelf opens as soon as a file drag starts anywhere (owner, 5 Nov).
     #[serde(deserialize_with = "lenient_true")]
     pub shelf_open_on_drag: bool,
+    /// Packages that wait in the Katalog (manifest "optIn") and were installed.
+    #[serde(deserialize_with = "lenient")]
+    pub installed_opt_in: Vec<String>,
 }
 
 impl Default for Settings {
@@ -259,6 +262,7 @@ impl Default for Settings {
             app_keys: crate::app_keys::AppKeys::default(),
             panel_glass: true,
             shelf_open_on_drag: true,
+            installed_opt_in: Vec::new(),
         }
     }
 }
