@@ -102,6 +102,41 @@ pub fn merge(pid: i32, ax: Vec<AxWin>, z: &[u32]) -> Vec<WinInfo> {
     shown.into_iter().map(|(_, w)| info(w)).chain(minimized.into_iter().map(info)).collect()
 }
 
+/// Made-up window numbers start here, far above the window server's own.
+pub const MADE_UP: u32 = 0x4000_0000;
+
+/// A window the peek lists: a document window, or one the app says is
+/// minimized (Excel drops a minimized window's subrole) that is not a tiny helper.
+pub fn keep_window(subrole: Option<&str>, minimized: Option<bool>, w: f64, h: f64) -> bool {
+    subrole == Some("AXStandardWindow") || (minimized == Some(true) && w > 100.0 && h > 100.0)
+}
+
+/// The window server's number for a window whose app does not give it (Excel,
+/// minimized): the one of the app's windows with the same frame, within a point.
+pub fn number_by_frame(frame: Rect, server: &[(u32, Rect)]) -> Option<u32> {
+    let close = |a: f64, b: f64| (a - b).abs() <= 1.0;
+    server
+        .iter()
+        .find(|(_, r)| close(r.x, frame.x) && close(r.y, frame.y) && close(r.w, frame.w) && close(r.h, frame.h))
+        .map(|(n, _)| *n)
+}
+
+/// A stable stand-in number for a window with none at all, from its title and
+/// frame; never one of the window server's.
+pub fn made_up_number(title: &str, frame: Rect) -> u32 {
+    let mut hash: u32 = 0x811c_9dc5;
+    let mut eat = |bytes: &[u8]| {
+        for b in bytes {
+            hash = (hash ^ u32::from(*b)).wrapping_mul(0x0100_0193);
+        }
+    };
+    eat(title.as_bytes());
+    for v in [frame.x, frame.y, frame.w, frame.h] {
+        eat(&(v.round() as i64).to_le_bytes());
+    }
+    MADE_UP | (hash & (MADE_UP - 1))
+}
+
 /// The window with this id, if it is still there.
 pub fn find_window(list: &[WinInfo], id: u32) -> Option<&WinInfo> {
     list.iter().find(|w| w.id == id)
@@ -606,5 +641,34 @@ mod tests {
         let unknown = |id: u32| AxWin { id, title: format!("w{id}"), minimized: None, frame: r(0.0, 0.0, 100.0, 80.0) };
         let list = merge(7, vec![unknown(1), unknown(2)], &[2]);
         assert_eq!(list.iter().map(|w| (w.id, w.minimized)).collect::<Vec<_>>(), vec![(2, false), (1, true)]);
+    }
+
+    #[test]
+    fn a_minimized_window_counts_even_when_the_app_drops_its_kind() {
+        assert!(keep_window(Some("AXStandardWindow"), Some(false), 800.0, 600.0));
+        // Excel: minimized, its subrole gone.
+        assert!(keep_window(None, Some(true), 800.0, 600.0));
+        assert!(keep_window(Some("AXUnknown"), Some(true), 800.0, 600.0));
+        // Panels, sheets and small helpers stay out.
+        assert!(!keep_window(Some("AXFloatingWindow"), Some(false), 300.0, 200.0));
+        assert!(!keep_window(Some("AXDialog"), None, 400.0, 300.0));
+        assert!(!keep_window(None, None, 20.0, 20.0));
+    }
+
+    #[test]
+    fn a_window_without_its_number_is_matched_by_its_frame() {
+        let frame = r(100.0, 80.0, 900.0, 700.0);
+        let server = [(31, r(0.0, 0.0, 50.0, 50.0)), (32, r(100.4, 79.6, 900.0, 700.0))];
+        assert_eq!(number_by_frame(frame, &server), Some(32));
+        assert_eq!(number_by_frame(r(5.0, 5.0, 10.0, 10.0), &server), None);
+    }
+
+    #[test]
+    fn a_made_up_number_is_stable_and_never_a_real_one() {
+        let frame = r(100.0, 80.0, 900.0, 700.0);
+        let a = made_up_number("Book1.xlsx", frame);
+        assert_eq!(a, made_up_number("Book1.xlsx", frame));
+        assert_ne!(a, made_up_number("Book2.xlsx", frame));
+        assert!(a >= MADE_UP);
     }
 }

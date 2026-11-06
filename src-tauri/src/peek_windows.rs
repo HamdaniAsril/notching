@@ -7,7 +7,7 @@ use objc2_app_kit::{NSApplicationActivationOptions, NSRunningApplication};
 
 use crate::ax::{self, Cf};
 use crate::geometry::Rect;
-use crate::peek_rules::{merge, AxWin, WinInfo};
+use crate::peek_rules::{keep_window, made_up_number, merge, number_by_frame, AxWin, WinInfo};
 
 // The app's standard windows that have a number, with their elements: its
 // windows list, plus any window among its children the list leaves out (some
@@ -18,29 +18,37 @@ fn ax_windows(pid: i32) -> Vec<(AxWin, Cf)> {
     let mut all = ax::windows(&app);
     let listed = all.len();
     all.extend(ax::children(&app).into_iter().filter(|c| ax::role(c).as_deref() == Some("AXWindow")));
+    // The app's windows as the window server has them, for windows that give no number.
+    let server: Vec<(u32, Rect)> =
+        crate::notify::all_windows().iter().filter(|w| w.pid == pid && w.layer == 0).map(|w| (w.number, w.bounds)).collect();
     let (mut standard, mut yes, mut no, mut unknown) = (0, 0, 0, 0);
     let mut out: Vec<(AxWin, Cf)> = Vec::new();
     for w in all {
-        if !ax::is_standard(&w) {
+        let subrole = ax::subrole(&w);
+        let minimized = ax::minimized(&w);
+        let frame = ax::frame(&w).unwrap_or(Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 });
+        if !keep_window(subrole.as_deref(), minimized, frame.w, frame.h) {
             continue;
         }
         standard += 1;
-        let Some(id) = ax::window_id(&w) else { continue };
+        let title = ax::title(&w).unwrap_or_default();
+        let id = match ax::window_id(&w) {
+            Some(id) => id,
+            None => {
+                let id = number_by_frame(frame, &server).unwrap_or_else(|| made_up_number(&title, frame));
+                eprintln!("notching: a window of pid {pid} gave no number (subrole {subrole:?}, minimized {minimized:?}); using {id}");
+                id
+            }
+        };
         if out.iter().any(|(o, _)| o.id == id) {
             continue;
         }
-        let minimized = ax::minimized(&w);
         match minimized {
             Some(true) => yes += 1,
             Some(false) => no += 1,
             None => unknown += 1,
         }
-        let info = AxWin {
-            id,
-            title: ax::title(&w).unwrap_or_default(),
-            minimized,
-            frame: ax::frame(&w).unwrap_or(Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }),
-        };
+        let info = AxWin { id, title, minimized, frame };
         out.push((info, w));
     }
     eprintln!(

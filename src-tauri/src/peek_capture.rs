@@ -41,6 +41,10 @@ pub fn picture(id: u32, minimized: bool, size: PictureSize) -> Option<Arc<Vec<u8
     if !crate::shot_service::screen_access() {
         return None;
     }
+    // A made-up number names no window the server could picture.
+    if id >= crate::peek_rules::MADE_UP {
+        return CACHE.lock().unwrap().get(id);
+    }
     let max = (size == PictureSize::Thumb).then_some(THUMB);
     let fresh = if minimized { None } else { screen_capture_kit(id, max) };
     match fresh.or_else(|| skylight(id, max)) {

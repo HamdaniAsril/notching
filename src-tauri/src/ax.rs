@@ -281,11 +281,6 @@ pub fn subrole(element: &Cf) -> Option<String> {
     string(element, "AXSubrole")
 }
 
-/// A document or app window, not a panel, sheet or menu.
-pub fn is_standard(window: &Cf) -> bool {
-    subrole(window).as_deref() == Some("AXStandardWindow")
-}
-
 pub fn minimized(window: &Cf) -> Option<bool> {
     boolean(window, "AXMinimized")
 }
