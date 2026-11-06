@@ -7,7 +7,15 @@ use objc2_app_kit::{NSApplicationActivationOptions, NSRunningApplication};
 
 use crate::ax::{self, Cf};
 use crate::geometry::Rect;
-use crate::peek_rules::{keep_window, made_up_number, merge, number_by_frame, AxWin, WinInfo};
+use std::time::Duration;
+
+use crate::peek_rules::{keep_window, made_up_number, merge, number_by_frame, still_to_do, AxWin, WinInfo};
+
+// An app busy with one minimize animation can miss the next request: a short
+// step between windows, a check once they settle, and up to three rounds.
+const STEP: Duration = Duration::from_millis(60);
+const SETTLE: Duration = Duration::from_millis(400);
+const ROUNDS: usize = 3;
 
 // The app's standard windows that have a number, with their elements: its
 // windows list, plus any window among its children the list leaves out (some
@@ -108,6 +116,29 @@ fn activate(pid: i32) {
     }
 }
 
+/// Minimizes (`on`) or brings back every window of `ids`, checking afterwards
+/// and asking again for the ones the app skipped. Returns how many are done.
+pub fn set_all_minimized(pid: i32, ids: &[u32], on: bool) -> usize {
+    let mut todo = ids.to_vec();
+    for round in 0..ROUNDS {
+        let windows = ax_windows(pid);
+        for id in &todo {
+            if let Some((_, w)) = windows.iter().find(|(w, _)| w.id == *id) {
+                ax::set_minimized(w, on);
+                std::thread::sleep(STEP);
+            }
+        }
+        std::thread::sleep(SETTLE);
+        let now: Vec<(u32, Option<bool>)> = ax_windows(pid).iter().map(|(w, e)| (w.id, ax::minimized(e))).collect();
+        todo = still_to_do(on, &todo, &now);
+        if todo.is_empty() {
+            break;
+        }
+        eprintln!("notching: pid {pid}: {} window(s) skipped in round {}; asking again", todo.len(), round + 1);
+    }
+    ids.len() - todo.len()
+}
+
 /// Restores the window if needed, brings its app forward and the window to its front.
 pub fn raise(pid: i32, id: u32) -> bool {
     let Some(w) = element(pid, id) else { return false };
@@ -120,15 +151,10 @@ pub fn raise(pid: i32, id: u32) -> bool {
 /// Every window of `ids` back and in front, keeping their order: the last is
 /// raised first, so the first ends on top.
 pub fn show_all(pid: i32, ids: &[u32]) {
+    let minimized: Vec<u32> = app_windows(pid).into_iter().filter(|w| w.minimized && ids.contains(&w.id)).map(|w| w.id).collect();
+    let restored = set_all_minimized(pid, &minimized, false);
+    eprintln!("notching: show all of pid {pid}: {} windows, {restored} of {} restored", ids.len(), minimized.len());
     let windows = ax_windows(pid);
-    let minimized: Vec<u32> = app_windows(pid).into_iter().filter(|w| w.minimized).map(|w| w.id).collect();
-    let mut restored = 0;
-    for id in ids {
-        if let Some((_, w)) = windows.iter().find(|(w, _)| w.id == *id && minimized.contains(id)) {
-            restored += usize::from(ax::set_minimized(w, false));
-        }
-    }
-    eprintln!("notching: show all of pid {pid}: {} windows, {restored} restored", ids.len());
     activate(pid);
     for id in ids.iter().rev() {
         if let Some((_, w)) = windows.iter().find(|(w, _)| w.id == *id) {

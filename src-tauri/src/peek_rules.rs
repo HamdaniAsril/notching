@@ -144,6 +144,17 @@ pub fn made_up_number(title: &str, frame: Rect) -> u32 {
     MADE_UP | (hash & (MADE_UP - 1))
 }
 
+/// Of the windows asked to be minimized (`minimize`) or brought back, the ones
+/// the app has not done yet, given what it says now (`now`: id, minimized).
+/// A window no longer listed is gone and dropped; one with no answer is tried again.
+pub fn still_to_do(minimize: bool, asked: &[u32], now: &[(u32, Option<bool>)]) -> Vec<u32> {
+    asked
+        .iter()
+        .copied()
+        .filter(|id| now.iter().find(|(n, _)| n == id).is_some_and(|(_, state)| *state != Some(minimize)))
+        .collect()
+}
+
 /// The window with this id, if it is still there.
 pub fn find_window(list: &[WinInfo], id: u32) -> Option<&WinInfo> {
     list.iter().find(|w| w.id == id)
@@ -683,5 +694,16 @@ mod tests {
         assert_eq!(a, made_up_number("Book1.xlsx", frame));
         assert_ne!(a, made_up_number("Book2.xlsx", frame));
         assert!(a >= MADE_UP);
+    }
+
+    #[test]
+    fn windows_an_app_skipped_are_tried_again() {
+        // Asked to minimize 1–4; the app says 2 is still up, 3 did not answer, 4 is gone.
+        let now = [(1, Some(true)), (2, Some(false)), (3, None)];
+        assert_eq!(still_to_do(true, &[1, 2, 3, 4], &now), vec![2, 3]);
+        // Bringing back: the ones still minimized.
+        let now = [(1, Some(false)), (2, Some(true))];
+        assert_eq!(still_to_do(false, &[1, 2], &now), vec![2]);
+        assert!(still_to_do(false, &[1], &[(1, Some(false))]).is_empty());
     }
 }

@@ -114,9 +114,8 @@ fn act(pid: i32, at: CGPoint) {
         ClickPlan::MinimizeAll(ids) => {
             // Pictures first, side by side, so the windows then go down together.
             crate::peek_capture::remember_all_before_minimize(&ids, Duration::from_millis(600));
-            for id in ids {
-                crate::peek_windows::minimize(pid, id);
-            }
+            let done = crate::peek_windows::set_all_minimized(pid, &ids, true);
+            eprintln!("notching: minimize all of pid {pid}: {done} of {}", ids.len());
         }
         ClickPlan::ShowAll(ids) => crate::peek_windows::show_all(pid, &ids),
         // No window after all: the Dock's own click.
