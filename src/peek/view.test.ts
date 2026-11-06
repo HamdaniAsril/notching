@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, test, vi } from 'vitest';
-import { renderPeek, type PeekCalls, type PeekView } from './view';
+import { pointPeek, renderPeek, type PeekCalls, type PeekView } from './view';
 
 const calls = (): PeekCalls & { [K in keyof PeekCalls]: ReturnType<typeof vi.fn> } => ({
   size: vi.fn(), pointer: vi.fn(), open: vi.fn(), act: vi.fn(), hover: vi.fn(),
@@ -46,16 +46,39 @@ test('a window button acts without opening the window; the card opens it', () =>
   expect(c.open).toHaveBeenCalledWith(2);
 });
 
-test('pointing at a card peeks at its window; leaving stops; the panel tells when the pointer is on it', () => {
+// The panel is never key, so WebKit sends it no hover: the native side sends
+// where the pointer is, and the page finds the element there.
+test('the pointer from the native side peeks at a card and lights its buttons', () => {
   const { root, c } = mount();
-  card(root, 1).dispatchEvent(new MouseEvent('mouseenter'));
-  expect(c.hover).toHaveBeenLastCalledWith(1);
-  card(root, 1).dispatchEvent(new MouseEvent('mouseleave'));
-  expect(c.hover).toHaveBeenLastCalledWith(null);
-  root.querySelector('#peek')!.dispatchEvent(new MouseEvent('mouseenter'));
+  pointPeek(root, card(root, 1).querySelector('.cap span'), c);
   expect(c.pointer).toHaveBeenLastCalledWith(true);
-  root.querySelector('#peek')!.dispatchEvent(new MouseEvent('mouseleave'));
+  expect(c.hover).toHaveBeenLastCalledWith(1);
+  expect(card(root, 1).classList.contains('hover')).toBe(true);
+  const close = card(root, 1).querySelector<HTMLElement>('.ab.close')!;
+  pointPeek(root, close, c);
+  expect(close.classList.contains('hover')).toBe(true);
+  expect(c.hover).toHaveBeenCalledTimes(1); // still the same window
+  pointPeek(root, card(root, 2), c);
+  expect(card(root, 1).classList.contains('hover')).toBe(false);
+  expect(close.classList.contains('hover')).toBe(false);
+  expect(c.hover).toHaveBeenLastCalledWith(2);
+  pointPeek(root, root.querySelector('.ph'), c);
+  expect(c.hover).toHaveBeenLastCalledWith(null);
+  pointPeek(root, null, c);
   expect(c.pointer).toHaveBeenLastCalledWith(false);
+});
+
+test('a window being peeked at that goes away stops the peek', () => {
+  const { root, c } = mount();
+  pointPeek(root, card(root, 2), c);
+  expect(c.hover).toHaveBeenLastCalledWith(2);
+  renderPeek(root, { ...VIEW, windows: VIEW.windows.filter(w => w.id !== 2) }, c);
+  expect(c.hover).toHaveBeenLastCalledWith(null);
+  // One still there keeps its light after a redraw.
+  pointPeek(root, card(root, 1), c);
+  renderPeek(root, VIEW, c);
+  expect(card(root, 1).classList.contains('hover')).toBe(true);
+  expect(c.hover).toHaveBeenLastCalledWith(1);
 });
 
 test('a window without a title shows its app name', () => {

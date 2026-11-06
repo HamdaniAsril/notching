@@ -55,6 +55,42 @@ function picture(src: string | null, alt: string, cls?: string): HTMLElement {
   return img;
 }
 
+// Where the pointer is, per card root: the window peeked at and whether the
+// pointer is on the card at all.
+interface Pointer { hovered: number | null; inside: boolean }
+const POINTERS = new WeakMap<HTMLElement, Pointer>();
+const pointerOf = (root: HTMLElement): Pointer => {
+  let p = POINTERS.get(root);
+  if (!p) POINTERS.set(root, p = { hovered: null, inside: false });
+  return p;
+};
+
+// The panel is never key, so WebKit gives it no hover (shot_pick.rs): the
+// native side sends where the pointer is, and this lights the card and button
+// under it and tells which window to peek at. `target`: the element there, or
+// null off the card.
+export function pointPeek(root: HTMLElement, target: Element | null, calls: PeekCalls): void {
+  const p = pointerOf(root);
+  const peek = root.querySelector('#peek');
+  const inside = !!(target && peek?.contains(target));
+  if (inside !== p.inside) {
+    p.inside = inside;
+    calls.pointer(inside);
+  }
+  const th = inside ? target!.closest<HTMLElement>('.th') : null;
+  const ab = inside ? target!.closest<HTMLElement>('.ab') : null;
+  root.querySelectorAll('.th.hover, .ab.hover').forEach(e => {
+    if (e !== th && e !== ab) e.classList.remove('hover');
+  });
+  th?.classList.add('hover');
+  ab?.classList.add('hover');
+  const id = th ? Number(th.dataset.id) : null;
+  if (id !== p.hovered) {
+    p.hovered = id;
+    calls.hover(id);
+  }
+}
+
 // Intip jendela's card (design 5 Nov §2, prototype): the app's name and count,
 // then one card per window with its marks and its three buttons. Each window
 // starts with the app's icon; its picture takes that place once it comes.
@@ -65,10 +101,9 @@ export function renderPeek(root: HTMLElement, v: PeekView, calls: PeekCalls): vo
   const peek = el('div', `${dark(v.card) ? 'card-dark' : 'card-light'} mat-${v.material}`);
   peek.id = 'peek';
   if (v.maxWidth) peek.style.setProperty('--max-w', `${v.maxWidth}px`);
+  const p = pointerOf(root);
   // Rises in only as the panel appears, not when it changes to another app.
   if (entering) peek.dataset.enter = '';
-  peek.addEventListener('mouseenter', () => calls.pointer(true));
-  peek.addEventListener('mouseleave', () => calls.pointer(false));
 
   const head = el('div', 'ph');
   const n = v.windows.length;
@@ -108,8 +143,7 @@ export function renderPeek(root: HTMLElement, v: PeekView, calls: PeekCalls): vo
       if (b) calls.act(w.id, b.dataset.act as WindowAct);
       else calls.open(w.id);
     });
-    th.addEventListener('mouseenter', () => calls.hover(w.id));
-    th.addEventListener('mouseleave', () => calls.hover(null));
+    if (w.id === p.hovered) th.classList.add('hover');
     thumbs.append(th);
     void calls.picture(w.id).then(src => {
       if (src && th.isConnected) box.replaceChildren(picture(src, title));
@@ -117,5 +151,10 @@ export function renderPeek(root: HTMLElement, v: PeekView, calls: PeekCalls): vo
   }
   peek.append(thumbs);
   root.replaceChildren(peek);
+  // The window peeked at is gone (closed, or minimized and hidden): stop peeking.
+  if (p.hovered !== null && !v.windows.some(w => w.id === p.hovered)) {
+    p.hovered = null;
+    calls.hover(null);
+  }
   calls.size(peek.offsetWidth, peek.offsetHeight);
 }

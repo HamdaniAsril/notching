@@ -239,8 +239,10 @@ const PEEK_MARGIN: f64 = 12.0;
 pub fn peek_frame(icon: Rect, edge: DockEdge, size: (f64, f64), visible: Rect) -> Rect {
     let w = size.0.min(visible.w - 2.0 * PEEK_MARGIN);
     let h = size.1.min(visible.h - 2.0 * PEEK_MARGIN);
-    let along_x = |c: f64| (c - w / 2.0).clamp(visible.x + PEEK_MARGIN, visible.max_x() - PEEK_MARGIN - w);
-    let along_y = |c: f64| (c - h / 2.0).clamp(visible.y + PEEK_MARGIN, visible.max_y() - PEEK_MARGIN - h);
+    // max then min, not clamp: on a fractional screen rounding can put the upper
+    // bound a hair under the lower one, and clamp would panic.
+    let along_x = |c: f64| (c - w / 2.0).min(visible.max_x() - PEEK_MARGIN - w).max(visible.x + PEEK_MARGIN);
+    let along_y = |c: f64| (c - h / 2.0).min(visible.max_y() - PEEK_MARGIN - h).max(visible.y + PEEK_MARGIN);
     let (cx, cy) = (icon.x + icon.w / 2.0, icon.y + icon.h / 2.0);
     match edge {
         DockEdge::Bottom => Rect { x: along_x(cx), y: (icon.y - PEEK_GAP - h).max(visible.y + PEEK_MARGIN), w, h },
@@ -253,6 +255,42 @@ pub fn peek_frame(icon: Rect, edge: DockEdge, size: (f64, f64), visible: Rect) -
 pub fn fit(w: f64, h: f64, max_w: f64, max_h: f64) -> (f64, f64) {
     let k = (max_w / w).min(max_h / h).min(1.0);
     ((w * k).round(), (h * k).round())
+}
+
+const MODIFIERS: u64 = 0x2_0000 | 0x4_0000 | 0x8_0000 | 0x10_0000; // ⇧ ⌃ ⌥ ⌘
+
+/// A click with no ⇧⌃⌥⌘: ⌃-click (the Dock's menu), ⌘-click (Show in Finder)
+/// and ⌥-click (hide others) stay the Dock's.
+pub fn plain_click(flags: u64) -> bool {
+    flags & MODIFIERS == 0
+}
+
+/// The app has a real window in the window server's list of every window,
+/// minimized ones included: `(pid, layer, width, height)`. Asks the app
+/// nothing, so a click on a hung app's icon never waits.
+pub fn has_app_window(windows: &[(i32, i64, f64, f64)], pid: i32) -> bool {
+    windows.iter().any(|&(p, layer, w, h)| p == pid && layer == 0 && w > 1.0 && h > 1.0)
+}
+
+/// Two bundle paths name the same app, through symlinks too (/Applications/Safari.app
+/// is one). Falls back to the paths as written when one cannot be resolved.
+pub fn same_bundle(a: &str, b: &str) -> bool {
+    let clean = |p: &str| p.trim_end_matches('/').to_string();
+    let real = |p: &str| std::fs::canonicalize(clean(p)).map(|r| r.to_string_lossy().to_string()).unwrap_or_else(|_| clean(p));
+    clean(a) == clean(b) || real(a) == real(b)
+}
+
+/// The pointer in the card's own points (origin top-left), from the global
+/// AppKit mouse location and the card's AppKit frame; None outside it.
+pub fn card_point(mouse: (f64, f64), card: Rect) -> Option<(f64, f64)> {
+    let (x, y) = (mouse.0 - card.x, card.max_y() - mouse.1);
+    (x >= 0.0 && y >= 0.0 && x <= card.w && y <= card.h).then_some((x, y))
+}
+
+/// After the Dock went away: wait this long before each try to watch the new
+/// one, then give up until the next change.
+pub fn retry_delay(attempt: u32) -> Option<u64> {
+    [250, 500, 1000, 2000, 4000].get(attempt as usize).copied()
 }
 
 /// What a window button on the peek card asks (design §2).
@@ -457,5 +495,59 @@ mod tests {
     fn window_acts_read_from_the_page() {
         let a: WindowAct = serde_json::from_str("\"restore\"").unwrap();
         assert_eq!(a, WindowAct::Restore);
+    }
+
+    #[test]
+    fn peek_frame_never_panics_on_fractional_screens() {
+        let visible = r(1854.8394052348776, 25.0, 3256.4662160811117, 800.0);
+        let f = peek_frame(r(3000.0, 840.0, 52.0, 52.0), DockEdge::Bottom, (9000.0, 300.0), visible);
+        assert!((f.w - (visible.w - 24.0)).abs() < 1e-6);
+        assert!(f.x >= visible.x + 12.0 - 1e-6);
+    }
+
+    #[test]
+    fn a_click_with_a_modifier_stays_the_docks() {
+        assert!(plain_click(0));
+        assert!(plain_click(0x100)); // a device bit, not a modifier
+        for flag in [0x2_0000u64, 0x4_0000, 0x8_0000, 0x10_0000] {
+            assert!(!plain_click(flag), "{flag:#x}");
+        }
+    }
+
+    #[test]
+    fn an_app_has_a_window_from_the_window_server_alone() {
+        // (pid, layer, width, height); minimized windows are in kCGWindowListOptionAll too.
+        let list = [(7, 0, 800.0, 600.0), (9, 0, 1.0, 1.0), (9, 25, 400.0, 30.0)];
+        assert!(has_app_window(&list, 7));
+        assert!(!has_app_window(&list, 9)); // a 1×1 helper and a menu-bar item
+        assert!(!has_app_window(&list, 3));
+    }
+
+    #[test]
+    fn a_dock_icon_matches_its_running_app_through_a_symlink() {
+        let d = tempfile::tempdir().unwrap();
+        let real = d.path().join("Cryptexes/Safari.app");
+        std::fs::create_dir_all(&real).unwrap();
+        let link = d.path().join("Safari.app");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+        let (real, link) = (real.to_string_lossy().to_string(), link.to_string_lossy().to_string());
+        assert!(same_bundle(&format!("{link}/"), &real));
+        assert!(same_bundle(&real, &real));
+        assert!(!same_bundle(&real, "/Applications/Other.app"));
+    }
+
+    #[test]
+    fn the_pointer_in_card_points_from_its_top_left() {
+        // An AppKit frame (origin bottom-left) at 100,200 of 300×120.
+        let card = r(100.0, 200.0, 300.0, 120.0);
+        assert_eq!(card_point((110.0, 310.0), card), Some((10.0, 10.0)));
+        assert_eq!(card_point((99.0, 250.0), card), None);
+        assert_eq!(card_point((150.0, 321.0), card), None);
+    }
+
+    #[test]
+    fn a_restarted_dock_is_tried_again_a_few_times() {
+        let delays: Vec<u64> = (0..).map_while(retry_delay).collect();
+        assert_eq!(delays, vec![250, 500, 1000, 2000, 4000]);
     }
 }

@@ -1,7 +1,7 @@
 import './peek.css';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { renderPeek, type PeekCalls, type PeekView } from './view';
+import { pointPeek, renderPeek, type PeekCalls, type PeekView } from './view';
 
 // The peek card's panel (peek_service.rs): drawn from each view the native
 // side sends, which tells it back its size, the pointer and the clicks.
@@ -19,4 +19,9 @@ const show = (v: PeekView | null) => {
   else root.replaceChildren();
 };
 void getCurrentWebviewWindow().listen<PeekView | null>('notching://peek', e => show(e.payload));
+// Where the pointer is on the card, in its points, or null off it (peek_service.rs).
+void getCurrentWebviewWindow().listen<{ x: number; y: number } | null>('notching://peek-pointer', e => {
+  const at = e.payload;
+  pointPeek(root, at ? document.elementFromPoint(at.x, at.y) : null, calls);
+});
 void invoke<PeekView | null>('peek_view').then(show, () => {});
