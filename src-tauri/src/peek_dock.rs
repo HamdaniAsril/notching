@@ -61,13 +61,13 @@ fn running_dock() -> Option<i32> {
         .find(|&p| p > 0)
 }
 
-// The running app whose bundle is at `path`.
+// The running app whose bundle is at `path`, through symlinks too
+// (/Applications/Safari.app is one).
 fn pid_of_bundle(path: &str) -> Option<i32> {
-    let path = path.trim_end_matches('/');
     NSWorkspace::sharedWorkspace()
         .runningApplications()
         .iter()
-        .find(|a| a.bundleURL().and_then(|u| u.path()).is_some_and(|p| p.to_string().trim_end_matches('/') == path))
+        .find(|a| a.bundleURL().and_then(|u| u.path()).is_some_and(|p| crate::peek_rules::same_bundle(&p.to_string(), path)))
         .map(|a| a.processIdentifier())
 }
 
@@ -97,30 +97,103 @@ unsafe extern "C" fn on_selected(_observer: *const c_void, _element: *const c_vo
     }
 }
 
-// Watches the running Dock's icon list, replacing any earlier watch.
-fn attach() {
+fn detach() {
     WATCH.with(|w| *w.borrow_mut() = None);
-    let Some(pid) = running_dock() else {
-        DOCK_PID.store(0, Ordering::SeqCst);
-        return;
-    };
-    DOCK_PID.store(pid, Ordering::SeqCst);
-    let Some(app) = ax::app(pid) else { return };
-    let Some(list) = ax::children(&app).into_iter().find(|c| ax::role(c).as_deref() == Some("AXList")) else { return };
-    let Some(observer) = Observer::new(pid, on_selected) else { return };
+    DOCK_PID.store(0, Ordering::SeqCst);
+    *HOVERED.lock().unwrap() = None;
+}
+
+// Watches the running Dock's icon list, replacing any earlier watch. True once
+// watched; the Dock's pid is kept only then.
+fn attach() -> bool {
+    detach();
+    let Some(pid) = running_dock() else { return false };
+    let Some(app) = ax::app(pid) else { return false };
+    let Some(list) = ax::children(&app).into_iter().find(|c| ax::role(c).as_deref() == Some("AXList")) else { return false };
+    let Some(observer) = Observer::new(pid, on_selected) else { return false };
     if !observer.watch(&list, "AXSelectedChildrenChanged") {
         eprintln!("notching: dock watch refused for pid {pid}");
-        return;
+        return false;
     }
     eprintln!("notching: dock watch attached to pid {pid}");
     WATCH.with(|w| *w.borrow_mut() = Some(Watch { _observer: observer, list }));
+    DOCK_PID.store(pid, Ordering::SeqCst);
+    watch_exit(pid);
+    true
 }
+
+// Bumped by every start and stop, so retries and exit watches of an older one stop.
+static ROUND: AtomicI32 = AtomicI32::new(0);
+
+// Tries to watch the Dock now, then after each retry delay until it works
+// (a Dock just started, or the login, may not answer yet). Main thread.
+fn attach_with_retries(attempt: u32) {
+    if ON_HOVER.get().is_none() || attach() {
+        return;
+    }
+    let Some(delay) = crate::peek_rules::retry_delay(attempt) else { return };
+    let round = ROUND.load(Ordering::SeqCst);
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(delay));
+        if let Some(app) = APP_HANDLE.get() {
+            let _ = app.run_on_main_thread(move || {
+                if ROUND.load(Ordering::SeqCst) == round {
+                    attach_with_retries(attempt + 1);
+                }
+            });
+        }
+    });
+}
+
+// Waits on a thread of its own for the Dock process to end (a kqueue, so it
+// costs nothing meanwhile), then watches the next Dock. The Dock is a UI
+// element app, which the workspace's launch notices may leave out.
+fn watch_exit(pid: i32) {
+    let round = ROUND.load(Ordering::SeqCst);
+    std::thread::spawn(move || {
+        // SAFETY: a kqueue of our own, one process-exit filter, closed once.
+        let exited = unsafe {
+            let kq = libc::kqueue();
+            if kq < 0 {
+                return;
+            }
+            let change = libc::kevent {
+                ident: pid as usize,
+                filter: libc::EVFILT_PROC,
+                flags: libc::EV_ADD | libc::EV_ONESHOT,
+                fflags: libc::NOTE_EXIT,
+                data: 0,
+                udata: std::ptr::null_mut(),
+            };
+            let mut event: libc::kevent = std::mem::zeroed();
+            let n = libc::kevent(kq, &change, 1, &mut event, 1, std::ptr::null());
+            libc::close(kq);
+            n > 0
+        };
+        if !exited {
+            return;
+        }
+        if let Some(app) = APP_HANDLE.get() {
+            let _ = app.run_on_main_thread(move || {
+                if ROUND.load(Ordering::SeqCst) == round && ON_HOVER.get().is_some() {
+                    eprintln!("notching: the dock (pid {pid}) went away; watching the next one");
+                    detach();
+                    attach_with_retries(0);
+                }
+            });
+        }
+    });
+}
+
+static APP_HANDLE: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
 
 /// Starts telling `on_hover` which app icon the pointer is on (None: none).
 /// Main thread.
-pub fn start(on_hover: OnHover) {
+pub fn start(app: &tauri::AppHandle, on_hover: OnHover) {
+    let _ = APP_HANDLE.set(app.clone());
+    ROUND.fetch_add(1, Ordering::SeqCst);
     ON_HOVER.set(Some(on_hover));
-    attach();
+    attach_with_retries(0);
     LAUNCHES.with(|l| {
         if l.borrow().is_some() {
             return;
@@ -128,7 +201,7 @@ pub fn start(on_hover: OnHover) {
         let block = RcBlock::new(move |_: NonNull<NSNotification>| {
             // A new Dock process: watch it instead, while the watch is wanted.
             if ON_HOVER.get().is_some() && running_dock() != dock_pid() {
-                attach();
+                attach_with_retries(0);
             }
         });
         let center = NSWorkspace::sharedWorkspace().notificationCenter();
@@ -148,7 +221,7 @@ pub fn start(on_hover: OnHover) {
 
 /// Stops the watch. Main thread.
 pub fn stop() {
+    ROUND.fetch_add(1, Ordering::SeqCst);
     ON_HOVER.set(None);
-    WATCH.with(|w| *w.borrow_mut() = None);
-    *HOVERED.lock().unwrap() = None;
+    detach();
 }

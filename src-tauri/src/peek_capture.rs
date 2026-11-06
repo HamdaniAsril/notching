@@ -37,6 +37,10 @@ static CACHE: LazyLock<Mutex<PictureCache>> = LazyLock::new(Mutex::default);
 
 /// A picture of window `id` as PNG, or None: the page then shows the app's icon.
 pub fn picture(id: u32, minimized: bool, size: PictureSize) -> Option<Arc<Vec<u8>>> {
+    // Without Screen Recording a window shows as its app's icon (design §5).
+    if !crate::shot_service::screen_access() {
+        return None;
+    }
     let max = (size == PictureSize::Thumb).then_some(THUMB);
     let fresh = if minimized { None } else { screen_capture_kit(id, max) };
     match fresh.or_else(|| skylight(id, max)) {
@@ -53,8 +57,31 @@ pub fn picture(id: u32, minimized: bool, size: PictureSize) -> Option<Arc<Vec<u8
 
 /// Keeps a picture of a window Notching is about to minimize, for when it is.
 pub fn remember_before_minimize(id: u32) {
+    if !crate::shot_service::screen_access() {
+        return;
+    }
     if let Some(png) = screen_capture_kit(id, Some(THUMB)).or_else(|| skylight(id, Some(THUMB))) {
         CACHE.lock().unwrap().put(id, Arc::new(png));
+    }
+}
+
+/// Pictures of several windows about to be minimized together, taken side by
+/// side and waited for at most `deadline` in all, so they go down at once.
+pub fn remember_all_before_minimize(ids: &[u32], deadline: Duration) {
+    let (done, wait) = mpsc::channel();
+    for &id in ids {
+        let done = done.clone();
+        std::thread::spawn(move || {
+            remember_before_minimize(id);
+            let _ = done.send(());
+        });
+    }
+    let end = std::time::Instant::now() + deadline;
+    for _ in ids {
+        let left = end.saturating_duration_since(std::time::Instant::now());
+        if wait.recv_timeout(left).is_err() {
+            break;
+        }
     }
 }
 

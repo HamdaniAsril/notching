@@ -282,6 +282,12 @@ pub fn raise(window: &Cf) -> bool {
     raised
 }
 
+/// Makes the app the active one through Accessibility, which macOS 14+ still
+/// honours when the old activation option is ignored.
+pub fn set_frontmost(app: &Cf) -> bool {
+    set_boolean(app, "AXFrontmost", true)
+}
+
 /// Presses the window's own close button, so the app asks about unsaved work.
 pub fn press_close(window: &Cf) -> bool {
     copy(window, "AXCloseButton").is_some_and(|b| perform(&b, "AXPress"))

@@ -7,6 +7,8 @@
 //! pointer leaves both the icon and the card. Both panels are never closed,
 //! only ordered out (main thread).
 
+use std::cell::RefCell;
+use std::ptr::NonNull;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
@@ -14,9 +16,11 @@ use std::time::{Duration, Instant};
 use base64::Engine;
 use block2::RcBlock;
 use objc2::rc::Retained;
-use objc2::runtime::ProtocolObject;
+use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2::MainThreadMarker;
-use objc2_app_kit::{NSRunningApplication, NSWindowAnimationBehavior};
+use objc2_app_kit::{
+    NSEvent, NSEventMask, NSRunningApplication, NSWindowAnimationBehavior, NSWorkspace, NSWorkspaceDidTerminateApplicationNotification,
+};
 use objc2_foundation::{NSDistributedNotificationCenter, NSNotification, NSObjectProtocol, NSOperationQueue, NSPoint, NSRect, NSSize, NSString};
 use serde::Serialize;
 use tauri::window::{Effect, EffectState, EffectsBuilder};
@@ -28,7 +32,7 @@ use crate::geometry::Rect;
 use crate::locale::Lang;
 use crate::peek_capture::{self, PictureSize};
 use crate::peek_dock::{self, DockItem};
-use crate::peek_rules::{dock_edge, find_window, peek_frame, CardColor, DockClick, Material, PeekSettings, WinInfo, WindowAct};
+use crate::peek_rules::{card_point, dock_edge, find_window, peek_frame, CardColor, DockClick, Material, PeekSettings, WinInfo, WindowAct};
 use crate::peek_windows;
 
 pub const MODULE_ID: &str = "window-peek";
@@ -36,6 +40,7 @@ const CARD: &str = "peek";
 const STAGE: &str = "peek-stage";
 const VIEW_EVENT: &str = "notching://peek";
 const STAGE_EVENT: &str = "notching://peek-stage";
+const POINTER_EVENT: &str = "notching://peek-pointer";
 /// Above the Dock (20) and the notch panels (25).
 const CARD_LEVEL: i32 = 26;
 /// Above app windows, under the notch panels and the card.
@@ -120,6 +125,81 @@ static OVER_CARD: AtomicBool = AtomicBool::new(false);
 static GENERATION: AtomicU64 = AtomicU64::new(0);
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
 static ACCESS_OBSERVER: Mutex<Option<Observer>> = Mutex::new(None);
+static QUIT_OBSERVER: Mutex<Option<Observer>> = Mutex::new(None);
+// The window whose card the pointer is on, for the peek layer; a picture that
+// comes back for any other is dropped.
+static HOVER_ID: Mutex<Option<u32>> = Mutex::new(None);
+// The card's AppKit frame while it is up, and the last pointer sent to it.
+static CARD_FRAME: Mutex<Option<Rect>> = Mutex::new(None);
+static LAST_POINT: Mutex<Option<Option<(f64, f64)>>> = Mutex::new(None);
+
+thread_local! {
+    // Mouse-move monitors, only while the card is up.
+    static POINTER_MONITORS: RefCell<Vec<Retained<AnyObject>>> = const { RefCell::new(Vec::new()) };
+}
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+struct PointDto {
+    x: f64,
+    y: f64,
+}
+
+// Tells the card where the pointer is on it (in its points), or that it is
+// off it. WebKit gives a panel that is never key no hover of its own.
+fn send_pointer(app: &AppHandle) {
+    let Some(frame) = *CARD_FRAME.lock().unwrap() else { return };
+    let p = NSEvent::mouseLocation();
+    let point = card_point((p.x, p.y), frame);
+    {
+        let mut last = LAST_POINT.lock().unwrap();
+        if *last == Some(point) {
+            return;
+        }
+        *last = Some(point);
+    }
+    let _ = app.emit_to(EventTarget::webview_window(CARD), POINTER_EVENT, point.map(|(x, y)| PointDto { x, y }));
+}
+
+// Follows the pointer while the card is up: over other apps (global) and over
+// the card itself (local). Nothing watches it otherwise. Main thread.
+fn watch_pointer(app: &AppHandle, on: bool) {
+    POINTER_MONITORS.with(|m| {
+        let mut m = m.borrow_mut();
+        if !on {
+            for token in m.drain(..) {
+                // SAFETY: a monitor added below, removed once.
+                unsafe { NSEvent::removeMonitor(&token) };
+            }
+            return;
+        }
+        if !m.is_empty() {
+            return;
+        }
+        let mask = NSEventMask::MouseMoved | NSEventMask::LeftMouseDragged;
+        let local_app = app.clone();
+        let local = RcBlock::new(move |event: NonNull<NSEvent>| -> *mut NSEvent {
+            send_pointer(&local_app);
+            event.as_ptr()
+        });
+        let global_app = app.clone();
+        let global = RcBlock::new(move |_: NonNull<NSEvent>| send_pointer(&global_app));
+        // SAFETY: the blocks live as long as their monitors, removed above.
+        if let Some(token) = unsafe { NSEvent::addLocalMonitorForEventsMatchingMask_handler(mask, &local) } {
+            m.push(token);
+        }
+        if let Some(token) = NSEvent::addGlobalMonitorForEventsMatchingMask_handler(mask, &global) {
+            m.push(token);
+        }
+    });
+}
+
+fn clear_stage(app: &AppHandle) {
+    *HOVER_ID.lock().unwrap() = None;
+    let _ = app.emit_to(EventTarget::webview_window(STAGE), STAGE_EVENT, None::<StageViewDto>);
+    if let Ok(stage) = app.get_webview_panel(STAGE) {
+        stage.hide();
+    }
+}
 
 struct Observer(#[allow(dead_code)] Retained<ProtocolObject<dyn NSObjectProtocol>>);
 // SAFETY: kept only to stay alive; never used from another thread.
@@ -343,9 +423,14 @@ pub fn peek_size(app: AppHandle, width: f64, height: f64) {
         let frame = peek_frame(icon, dock_edge(icon, shown.screen), (width, height), shown.visible);
         let Ok(panel) = app.get_webview_panel(CARD) else { return };
         dress(app, settings(app));
-        panel.as_panel().setFrame_display(appkit(frame, primary_height()), true);
+        let at = appkit(frame, primary_height());
+        panel.as_panel().setFrame_display(at, true);
         panel.as_panel().invalidateShadow();
         panel.as_panel().orderFrontRegardless();
+        *CARD_FRAME.lock().unwrap() = Some(Rect { x: at.origin.x, y: at.origin.y, w: at.size.width, h: at.size.height });
+        *LAST_POINT.lock().unwrap() = None;
+        watch_pointer(app, true);
+        send_pointer(app);
     });
 }
 
@@ -375,6 +460,8 @@ pub fn peek_open(app: AppHandle, id: u32) {
 #[tauri::command]
 pub fn peek_act(app: AppHandle, id: u32, act: WindowAct) {
     let Some((pid, item)) = SHOWN.lock().unwrap().as_ref().map(|s| (s.pid, s.item.clone())) else { return };
+    // The window peeked at may be the one acted on: stop peeking.
+    on_main(&app, clear_stage);
     std::thread::spawn(move || {
         let found = find_window(&peek_windows::app_windows(pid), id).is_some();
         if found {
@@ -412,21 +499,17 @@ pub fn peek_act(app: AppHandle, id: u32, act: WindowAct) {
 #[tauri::command]
 pub fn peek_hover(app: AppHandle, id: Option<u32>) {
     let Some(id) = id else {
-        on_main(&app, |app| {
-            let _ = app.emit_to(EventTarget::webview_window(STAGE), STAGE_EVENT, None::<StageViewDto>);
-            if let Ok(stage) = app.get_webview_panel(STAGE) {
-                stage.hide();
-            }
-        });
+        on_main(&app, clear_stage);
         return;
     };
+    *HOVER_ID.lock().unwrap() = Some(id);
     let Some(shown) = SHOWN.lock().unwrap().clone() else { return };
     let Some(window) = find_window(&shown.windows, id).cloned() else { return };
     std::thread::spawn(move || {
         let picture = peek_capture::picture(id, window.minimized, PictureSize::Full).map(|png| data_url(&png));
         on_main(&app, move |app| {
-            // Still over this window's card?
-            if SHOWN.lock().unwrap().as_ref().is_none_or(|s| s.pid != shown.pid) {
+            // Still over this window's card? A slow picture for another is dropped.
+            if *HOVER_ID.lock().unwrap() != Some(id) || SHOWN.lock().unwrap().as_ref().is_none_or(|s| s.pid != shown.pid) {
                 return;
             }
             let screen = shown.screen;
@@ -465,6 +548,10 @@ pub fn peek_view() -> Option<PeekViewDto> {
 fn hide_now(app: &AppHandle) {
     GENERATION.fetch_add(1, Ordering::SeqCst);
     *SHOWN.lock().unwrap() = None;
+    *HOVER_ID.lock().unwrap() = None;
+    *CARD_FRAME.lock().unwrap() = None;
+    *LAST_POINT.lock().unwrap() = None;
+    watch_pointer(app, false);
     OVER_CARD.store(false, Ordering::SeqCst);
     for label in [CARD, STAGE] {
         if let Ok(panel) = app.get_webview_panel(label) {
@@ -506,7 +593,7 @@ pub fn sync(app: &AppHandle) {
         let want = installed_and_on(app) && crate::keyclean_tap::trusted(false);
         let s = settings(app);
         if want && (s.dock || s.dock_click == DockClick::Toggle) {
-            peek_dock::start(on_hover);
+            peek_dock::start(app, on_hover);
         } else {
             peek_dock::stop();
         }
@@ -523,7 +610,7 @@ pub fn start(app: &AppHandle) {
     let _ = APP.set(app.clone());
     sync(app);
     let handle = app.clone();
-    let block = RcBlock::new(move |_: std::ptr::NonNull<NSNotification>| {
+    let block = RcBlock::new(move |_: NonNull<NSNotification>| {
         let handle = handle.clone();
         std::thread::spawn(move || {
             std::thread::sleep(ACCESS_SETTLE);
@@ -541,4 +628,27 @@ pub fn start(app: &AppHandle) {
         )
     };
     *ACCESS_OBSERVER.lock().unwrap() = Some(Observer(observer));
+
+    // The app on the card quit (its ⏻ or otherwise): the card goes too.
+    let handle = app.clone();
+    let quit = RcBlock::new(move |_: NonNull<NSNotification>| {
+        let gone = SHOWN.lock().unwrap().as_ref().is_some_and(|s| {
+            NSRunningApplication::runningApplicationWithProcessIdentifier(s.pid).is_none_or(|a| a.isTerminated())
+        });
+        if gone {
+            hide_now(&handle);
+        }
+    });
+    let workspace = NSWorkspace::sharedWorkspace().notificationCenter();
+    // SAFETY: AppKit's notification name is a static string; the block lives as
+    // long as its observer, kept for the app's life.
+    let observer = unsafe {
+        workspace.addObserverForName_object_queue_usingBlock(
+            Some(NSWorkspaceDidTerminateApplicationNotification),
+            None,
+            Some(&NSOperationQueue::mainQueue()),
+            &quit,
+        )
+    };
+    *QUIT_OBSERVER.lock().unwrap() = Some(Observer(observer));
 }

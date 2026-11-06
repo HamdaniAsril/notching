@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicPtr, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
-use crate::peek_rules::{click_plan, ClickPlan, DockPress, PressAction, PressEvent, LONG_PRESS_MS};
+use crate::peek_rules::{click_plan, plain_click, ClickPlan, DockPress, PressAction, PressEvent, LONG_PRESS_MS};
 
 // Marks the presses Notching posts, so the tap lets them through: "ncpk".
 const MARK: i64 = 0x6e63_706b;
@@ -37,6 +37,7 @@ unsafe extern "C" {
     fn CGEventGetIntegerValueField(event: *mut c_void, field: u32) -> i64;
     fn CGEventSetIntegerValueField(event: *mut c_void, field: u32, value: i64);
     fn CGEventGetLocation(event: *mut c_void) -> CGPoint;
+    fn CGEventGetFlags(event: *mut c_void) -> u64;
     fn CGEventCreateMouseEvent(source: *const c_void, kind: u32, at: CGPoint, button: u32) -> *mut c_void;
     fn CGEventPost(tap: u32, event: *mut c_void);
 }
@@ -106,8 +107,9 @@ fn act(pid: i32, at: CGPoint) {
     let windows = crate::peek_windows::app_windows(pid);
     match click_plan(pid, &windows, crate::peek_windows::front_pid()) {
         ClickPlan::MinimizeAll(ids) => {
+            // Pictures first, side by side, so the windows then go down together.
+            crate::peek_capture::remember_all_before_minimize(&ids, Duration::from_millis(600));
             for id in ids {
-                crate::peek_capture::remember_before_minimize(id);
                 crate::peek_windows::minimize(pid, id);
             }
         }
@@ -130,7 +132,8 @@ extern "C" fn on_event(_proxy: *mut c_void, kind: u32, event: *mut c_void, _info
         return event;
     }
     // SAFETY: `event` is the CGEventRef the tap was handed.
-    let (mark, at) = unsafe { (CGEventGetIntegerValueField(event, FIELD_USER_DATA), CGEventGetLocation(event)) };
+    let (mark, at, flags) =
+        unsafe { (CGEventGetIntegerValueField(event, FIELD_USER_DATA), CGEventGetLocation(event), CGEventGetFlags(event)) };
     if mark == MARK {
         return event;
     }
@@ -140,7 +143,9 @@ extern "C" fn on_event(_proxy: *mut c_void, kind: u32, event: *mut c_void, _info
             if item.is_some() {
                 crate::peek_service::hide();
             }
-            let on_app = item.and_then(|i| i.pid).filter(|&pid| crate::peek_windows::has_windows(pid));
+            // ⌃⌘⌥⇧-clicks stay the Dock's (its menu, Show in Finder, hide others).
+            let on_app =
+                item.and_then(|i| i.pid).filter(|&pid| plain_click(flags) && crate::peek_windows::has_windows(pid));
             PressEvent::Down { on_app, at: (at.x, at.y), ms: now_ms() }
         }
         LEFT_DRAGGED => PressEvent::Dragged { at: (at.x, at.y) },

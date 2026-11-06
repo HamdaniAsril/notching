@@ -38,10 +38,12 @@ pub fn app_windows(pid: i32) -> Vec<WinInfo> {
     merge(pid, ax_windows(pid).into_iter().map(|(w, _)| w).collect(), &z)
 }
 
-/// The app has any window at all, minimized ones too: one quick question, for
-/// the click tap, which must not keep a click waiting.
+/// The app has a real window, minimized ones too, from the window server alone:
+/// the click tap asks the app nothing, so a hung app never keeps a click waiting.
 pub fn has_windows(pid: i32) -> bool {
-    ax::app(pid).is_some_and(|app| ax::windows(&app).iter().any(ax::is_standard))
+    let list: Vec<(i32, i64, f64, f64)> =
+        crate::notify::all_windows().iter().map(|w| (w.pid, w.layer, w.bounds.w, w.bounds.h)).collect();
+    crate::peek_rules::has_app_window(&list, pid)
 }
 
 /// The owner of the front shown window, other than Notching (design §6).
@@ -58,10 +60,15 @@ pub fn restore(pid: i32, id: u32) -> bool {
     element(pid, id).is_some_and(|w| ax::set_minimized(&w, false))
 }
 
+// Brings the app forward. The old activation option is ignored from macOS 14,
+// so Accessibility's AXFrontmost is set as well.
 fn activate(pid: i32) {
     if let Some(app) = NSRunningApplication::runningApplicationWithProcessIdentifier(pid) {
         #[allow(deprecated)]
         app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps);
+    }
+    if let Some(app) = ax::app(pid) {
+        ax::set_frontmost(&app);
     }
 }
 
