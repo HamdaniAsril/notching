@@ -112,9 +112,16 @@ export interface PeekSettings {
   card: 'system' | 'light' | 'dark';
   material: 'solid' | 'glass';
   minimized: boolean; // minimized windows shown too, marked
+  switcher: boolean; // the window switcher, on its key
+  switcherKey: { code: number; mods: number }; // a macOS key code and Carbon modifiers; ⌘Tab unless changed
+  layout: 'windows' | 'apps';
+  place: 'center' | 'notch';
 }
 
-export const DEFAULT_PEEK: PeekSettings = { dock: true, dockClick: 'toggle', card: 'system', material: 'solid', minimized: true };
+export const DEFAULT_PEEK: PeekSettings = {
+  dock: true, dockClick: 'toggle', card: 'system', material: 'solid', minimized: true,
+  switcher: true, switcherKey: { code: 48, mods: 0x0100 }, layout: 'windows', place: 'center',
+};
 
 // Beranda's package: always installed, so the Katalog leaves it out (design 4 Nov §3).
 export const CORE_PACKAGE = 'home';

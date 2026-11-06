@@ -39,6 +39,29 @@ pub enum Material {
     Solid,
 }
 
+/// The switcher lists every window, or apps with their windows (design §2.3).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SwitchLayout {
+    Apps,
+    #[default]
+    #[serde(other)]
+    Windows,
+}
+
+/// Where the switcher appears: the screen's centre, or dropping from the notch.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SwitchPlace {
+    Notch,
+    #[default]
+    #[serde(other)]
+    Center,
+}
+
+/// ⌘Tab: the switcher's key unless changed (design §4).
+pub const SWITCHER_KEY: crate::shot_keys::Combo = crate::shot_keys::Combo { code: 48, mods: crate::shot_keys::CMD };
+
 /// Intip jendela's settings on Pintasan (design §4). A missing field takes its
 /// default, an unknown choice too.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -51,11 +74,26 @@ pub struct PeekSettings {
     pub material: Material,
     /// Minimized windows shown too, marked.
     pub minimized: bool,
+    /// The window switcher, on its key.
+    pub switcher: bool,
+    pub switcher_key: crate::shot_keys::Combo,
+    pub layout: SwitchLayout,
+    pub place: SwitchPlace,
 }
 
 impl Default for PeekSettings {
     fn default() -> Self {
-        PeekSettings { dock: true, dock_click: DockClick::Toggle, card: CardColor::System, material: Material::Solid, minimized: true }
+        PeekSettings {
+            dock: true,
+            dock_click: DockClick::Toggle,
+            card: CardColor::System,
+            material: Material::Solid,
+            minimized: true,
+            switcher: true,
+            switcher_key: SWITCHER_KEY,
+            layout: SwitchLayout::Windows,
+            place: SwitchPlace::Center,
+        }
     }
 }
 
@@ -423,7 +461,8 @@ mod tests {
         assert_eq!(p, PeekSettings { dock: false, dock_click: DockClick::Toggle, card: CardColor::Light, ..PeekSettings::default() });
         assert_eq!(
             serde_json::to_value(PeekSettings::default()).unwrap(),
-            serde_json::json!({"dock":true,"dockClick":"toggle","card":"system","material":"solid","minimized":true})
+            serde_json::json!({"dock":true,"dockClick":"toggle","card":"system","material":"solid","minimized":true,
+                "switcher":true,"switcherKey":{"code":48,"mods":256},"layout":"windows","place":"center"})
         );
     }
 
@@ -705,5 +744,16 @@ mod tests {
         let now = [(1, Some(false)), (2, Some(true))];
         assert_eq!(still_to_do(false, &[1, 2], &now), vec![2]);
         assert!(still_to_do(false, &[1], &[(1, Some(false))]).is_empty());
+    }
+
+    #[test]
+    fn switcher_settings_default_and_old_files_keep_working() {
+        use crate::shot_keys::{Combo, CMD};
+        let p: PeekSettings = serde_json::from_str(r#"{"dock":false}"#).unwrap();
+        assert!(!p.dock && p.switcher);
+        assert_eq!(p.switcher_key, Combo { code: 48, mods: CMD });
+        assert_eq!((p.layout, p.place), (SwitchLayout::Windows, SwitchPlace::Center));
+        let odd: PeekSettings = serde_json::from_str(r#"{"layout":"nonsense","place":"notch"}"#).unwrap();
+        assert_eq!((odd.layout, odd.place), (SwitchLayout::Windows, SwitchPlace::Notch));
     }
 }
