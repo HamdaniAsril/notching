@@ -467,6 +467,23 @@ pub fn card_dark(card: CardColor, system_dark: bool) -> bool {
     }
 }
 
+/// The glass under a card or the switcher (`switcher`: its place; None: the
+/// Dock card): its corner radius, and whether its top corners are square, as
+/// the switcher hanging from the notch. As peek.css and switcher.css draw them.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GlassShape {
+    pub radius: f64,
+    pub flat_top: bool,
+}
+
+pub fn glass_shape(switcher: Option<SwitchPlace>) -> GlassShape {
+    match switcher {
+        None => GlassShape { radius: 20.0, flat_top: false },
+        Some(SwitchPlace::Center) => GlassShape { radius: 26.0, flat_top: false },
+        Some(SwitchPlace::Notch) => GlassShape { radius: 30.0, flat_top: true },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -790,5 +807,13 @@ mod tests {
         assert!(!card_dark(CardColor::Light, true));
         assert!(card_dark(CardColor::System, true));
         assert!(!card_dark(CardColor::System, false));
+    }
+
+    #[test]
+    fn the_glass_follows_each_panels_corners() {
+        // As peek.css (#peek 20px) and switcher.css (#sw.center 26px, #sw.notch 0 0 30px 30px).
+        assert_eq!(glass_shape(None), GlassShape { radius: 20.0, flat_top: false });
+        assert_eq!(glass_shape(Some(SwitchPlace::Center)), GlassShape { radius: 26.0, flat_top: false });
+        assert_eq!(glass_shape(Some(SwitchPlace::Notch)), GlassShape { radius: 30.0, flat_top: true });
     }
 }

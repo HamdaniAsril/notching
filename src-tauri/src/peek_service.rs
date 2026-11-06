@@ -8,6 +8,7 @@
 //! only ordered out (main thread).
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
@@ -19,7 +20,8 @@ use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2::MainThreadMarker;
 use objc2_app_kit::{
-    NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
+    NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua, NSAutoresizingMaskOptions,
+    NSGlassEffectView, NSGlassEffectViewStyle, NSPanel, NSWindowOrderingMode,
     NSEvent, NSEventMask, NSRunningApplication, NSWindowAnimationBehavior, NSWorkspace, NSWorkspaceDidTerminateApplicationNotification,
 };
 use objc2_foundation::{
@@ -419,29 +421,68 @@ pub(crate) fn primary_height() -> f64 {
 
 // The card's look: Liquid glass is the panel's own macOS effect under the page.
 fn dress(app: &AppHandle, s: PeekSettings) {
-    dress_window(app, CARD, s);
+    dress_window(app, CARD, s, crate::peek_rules::glass_shape(None));
 }
 
-/// A peek panel's look (the card or the switcher): its theme, and Liquid glass
-/// as the panel's own macOS effect under the page.
-pub(crate) fn dress_window(app: &AppHandle, label: &str, s: PeekSettings) {
+thread_local! {
+    // Each panel's Liquid Glass view, under its page, while Liquid glass is on.
+    static GLASS: RefCell<HashMap<String, Retained<NSGlassEffectView>>> = RefCell::new(HashMap::new());
+}
+
+/// A peek panel's look (the card or the switcher): light or dark on this
+/// window only, and Liquid glass under the page in `shape`. Main thread.
+pub(crate) fn dress_window(app: &AppHandle, label: &str, s: PeekSettings, shape: crate::peek_rules::GlassShape) {
     let Some(window) = app.get_webview_window(label) else { return };
+    let Ok(panel) = app.get_webview_panel(label) else { return };
+    let panel = panel.as_panel();
     // On this window only: tao's set_theme changes the whole app's look.
-    if let Ok(panel) = app.get_webview_panel(label) {
-        let dark = crate::peek_rules::card_dark(s.card, system_dark());
-        // SAFETY: AppKit's appearance names are static strings.
-        let name = unsafe { if dark { NSAppearanceNameDarkAqua } else { NSAppearanceNameAqua } };
-        panel.as_panel().setAppearance(NSAppearance::appearanceNamed(name).as_deref());
-    }
-    let effects = (s.material == Material::Glass).then(|| {
+    let dark = crate::peek_rules::card_dark(s.card, system_dark());
+    // SAFETY: AppKit's appearance names are static strings.
+    let name = unsafe { if dark { NSAppearanceNameDarkAqua } else { NSAppearanceNameAqua } };
+    panel.setAppearance(NSAppearance::appearanceNamed(name).as_deref());
+    let glass = s.material == Material::Glass;
+    // macOS 26 and later: Apple's own Liquid Glass, clear. Before: the frosted popover material.
+    let native = set_glass(label, panel, glass, shape);
+    let effects = (glass && !native).then(|| {
         EffectsBuilder::new()
-            // Popover: macOS's lightest see-through material, light or dark with the window's theme.
             .effect(Effect::Popover)
             .state(EffectState::Active)
-            .radius(20.0)
+            .radius(shape.radius)
             .build()
     });
     let _ = window.set_effects(effects);
+}
+
+// Puts a clear Liquid Glass view under the panel's page (`on`), or takes it
+// away. False when this macOS has none (before macOS 26) or it is off.
+fn set_glass(label: &str, panel: &NSPanel, on: bool, shape: crate::peek_rules::GlassShape) -> bool {
+    let Some(mtm) = MainThreadMarker::new() else { return false };
+    if !on || objc2::runtime::AnyClass::get(c"NSGlassEffectView").is_none() {
+        GLASS.with(|g| {
+            if let Some(view) = g.borrow_mut().remove(label) {
+                view.removeFromSuperview();
+            }
+        });
+        return false;
+    }
+    let Some(content) = panel.contentView() else { return false };
+    GLASS.with(|g| {
+        let mut g = g.borrow_mut();
+        let view = g.entry(label.to_string()).or_insert_with(|| {
+            let view = NSGlassEffectView::new(mtm);
+            view.setAutoresizingMask(NSAutoresizingMaskOptions::ViewWidthSizable | NSAutoresizingMaskOptions::ViewHeightSizable);
+            content.addSubview_positioned_relativeTo(&view, NSWindowOrderingMode::Below, None);
+            view
+        });
+        view.setStyle(NSGlassEffectViewStyle::Clear);
+        view.setCornerRadius(shape.radius);
+        // Hanging from the notch: the top corners go past the panel's edge, so they are square.
+        let b = content.bounds();
+        let extra = if shape.flat_top { shape.radius } else { 0.0 };
+        let y = if content.isFlipped() { b.origin.y - extra } else { b.origin.y };
+        view.setFrame(NSRect::new(NSPoint::new(b.origin.x, y), NSSize::new(b.size.width, b.size.height + extra)));
+    });
+    true
 }
 
 // macOS's own light or dark look right now, whatever Notching's own theme.
