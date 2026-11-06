@@ -14,6 +14,7 @@ mod modules;
 mod page_commands;
 mod pages;
 mod peek_rules;
+mod switch_rules;
 mod prefs;
 mod settings;
 mod shelf;
