@@ -70,24 +70,34 @@ pub struct WinInfo {
     pub frame: Rect,
 }
 
-/// A standard window as Accessibility lists it, in its order.
+/// A standard window as Accessibility lists it, in its order. `minimized` is
+/// None when the app did not say.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AxWin {
     pub id: u32,
     pub title: String,
-    pub minimized: bool,
+    pub minimized: Option<bool>,
     pub frame: Rect,
 }
 
 /// An app's windows newest first (design §6): the shown ones in the window
 /// server's front-to-back order `z` (window numbers), then the minimized ones in
 /// Accessibility's order. A shown window missing from `z` is on another Space
-/// and left out.
+/// and left out. One whose minimized state the app did not give counts as
+/// minimized when it is off screen, and as shown when it is on.
 pub fn merge(pid: i32, ax: Vec<AxWin>, z: &[u32]) -> Vec<WinInfo> {
-    let info = |w: AxWin| WinInfo { id: w.id, pid, title: w.title, minimized: w.minimized, frame: w.frame };
-    let (minimized, shown): (Vec<AxWin>, Vec<AxWin>) = ax.into_iter().partition(|w| w.minimized);
-    let mut shown: Vec<(usize, AxWin)> =
-        shown.into_iter().filter_map(|w| z.iter().position(|&n| n == w.id).map(|i| (i, w))).collect();
+    let ax: Vec<(AxWin, bool)> = ax
+        .into_iter()
+        .map(|w| {
+            let minimized = w.minimized.unwrap_or_else(|| !z.contains(&w.id));
+            (w, minimized)
+        })
+        .collect();
+    let info = |(w, minimized): (AxWin, bool)| WinInfo { id: w.id, pid, title: w.title, minimized, frame: w.frame };
+    type Marked = Vec<(AxWin, bool)>;
+    let (minimized, shown): (Marked, Marked) = ax.into_iter().partition(|(_, m)| *m);
+    let mut shown: Vec<(usize, (AxWin, bool))> =
+        shown.into_iter().filter_map(|w| z.iter().position(|&n| n == w.0.id).map(|i| (i, w))).collect();
     shown.sort_by_key(|(i, _)| *i);
     shown.into_iter().map(|(_, w)| info(w)).chain(minimized.into_iter().map(info)).collect()
 }
@@ -369,7 +379,7 @@ mod tests {
     }
 
     fn ax(id: u32, minimized: bool) -> AxWin {
-        AxWin { id, title: format!("w{id}"), minimized, frame: r(0.0, 0.0, 100.0, 80.0) }
+        AxWin { id, title: format!("w{id}"), minimized: Some(minimized), frame: r(0.0, 0.0, 100.0, 80.0) }
     }
 
     fn win(id: u32, minimized: bool) -> WinInfo {
@@ -587,5 +597,14 @@ mod tests {
         let card = r(70.0, 326.0, 300.0, 200.0);
         assert!(near_peek((65.0, 426.0), icon, card, DockEdge::Left)); // the gap
         assert!(!near_peek((65.0, 340.0), icon, card, DockEdge::Left));
+    }
+
+    #[test]
+    fn a_window_whose_minimized_state_is_unreadable_counts_as_minimized_when_off_screen() {
+        // Some apps answer AXMinimized with nothing: off screen, such a window is
+        // taken as minimized, not as one on another Space.
+        let unknown = |id: u32| AxWin { id, title: format!("w{id}"), minimized: None, frame: r(0.0, 0.0, 100.0, 80.0) };
+        let list = merge(7, vec![unknown(1), unknown(2)], &[2]);
+        assert_eq!(list.iter().map(|w| (w.id, w.minimized)).collect::<Vec<_>>(), vec![(2, false), (1, true)]);
     }
 }

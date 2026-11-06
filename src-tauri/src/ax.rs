@@ -38,6 +38,7 @@ unsafe extern "C" {
     fn CFBooleanGetTypeID() -> usize;
     fn CFBooleanGetValue(boolean: *const c_void) -> u8;
     fn CFURLGetTypeID() -> usize;
+    fn CFNumberGetTypeID() -> usize;
     fn CFRetain(cf: *const c_void) -> *const c_void;
     static kCFBooleanTrue: *const c_void;
     static kCFBooleanFalse: *const c_void;
@@ -226,10 +227,21 @@ fn array(element: &Cf, name: &str) -> Vec<Cf> {
     }
 }
 
+// A CFBoolean, or a CFNumber (some apps answer 0 or 1), as a bool.
 fn boolean(element: &Cf, name: &str) -> Option<bool> {
     let value = copy(element, name)?;
-    // SAFETY: the type check makes CFBooleanGetValue sound.
-    unsafe { (CFGetTypeID(value.0) == CFBooleanGetTypeID()).then(|| CFBooleanGetValue(value.0) != 0) }
+    // SAFETY: the type checks make CFBooleanGetValue and the NSNumber cast
+    // (toll-free bridged) sound.
+    unsafe {
+        let kind = CFGetTypeID(value.0);
+        if kind == CFBooleanGetTypeID() {
+            Some(CFBooleanGetValue(value.0) != 0)
+        } else if kind == CFNumberGetTypeID() {
+            Some((*(value.0 as *const objc2_foundation::NSNumber)).boolValue())
+        } else {
+            None
+        }
+    }
 }
 
 fn set_boolean(element: &Cf, name: &str, on: bool) -> bool {

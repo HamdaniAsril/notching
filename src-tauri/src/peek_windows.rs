@@ -9,23 +9,45 @@ use crate::ax::{self, Cf};
 use crate::geometry::Rect;
 use crate::peek_rules::{merge, AxWin, WinInfo};
 
-// The app's standard windows that have a number, with their elements.
+// The app's standard windows that have a number, with their elements: its
+// windows list, plus any window among its children the list leaves out (some
+// apps drop minimized windows from AXWindows). One log line per call says
+// what the app answered, for checking on the Mac.
 fn ax_windows(pid: i32) -> Vec<(AxWin, Cf)> {
     let Some(app) = ax::app(pid) else { return Vec::new() };
-    ax::windows(&app)
-        .into_iter()
-        .filter(ax::is_standard)
-        .filter_map(|w| {
-            let id = ax::window_id(&w)?;
-            let info = AxWin {
-                id,
-                title: ax::title(&w).unwrap_or_default(),
-                minimized: ax::minimized(&w).unwrap_or(false),
-                frame: ax::frame(&w).unwrap_or(Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }),
-            };
-            Some((info, w))
-        })
-        .collect()
+    let mut all = ax::windows(&app);
+    let listed = all.len();
+    all.extend(ax::children(&app).into_iter().filter(|c| ax::role(c).as_deref() == Some("AXWindow")));
+    let (mut standard, mut yes, mut no, mut unknown) = (0, 0, 0, 0);
+    let mut out: Vec<(AxWin, Cf)> = Vec::new();
+    for w in all {
+        if !ax::is_standard(&w) {
+            continue;
+        }
+        standard += 1;
+        let Some(id) = ax::window_id(&w) else { continue };
+        if out.iter().any(|(o, _)| o.id == id) {
+            continue;
+        }
+        let minimized = ax::minimized(&w);
+        match minimized {
+            Some(true) => yes += 1,
+            Some(false) => no += 1,
+            None => unknown += 1,
+        }
+        let info = AxWin {
+            id,
+            title: ax::title(&w).unwrap_or_default(),
+            minimized,
+            frame: ax::frame(&w).unwrap_or(Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }),
+        };
+        out.push((info, w));
+    }
+    eprintln!(
+        "notching: ax windows of pid {pid}: {listed} listed, {standard} standard, {} numbered (minimized {yes} yes, {no} no, {unknown} unknown)",
+        out.len()
+    );
+    out
 }
 
 fn element(pid: i32, id: u32) -> Option<Cf> {
@@ -75,9 +97,8 @@ fn activate(pid: i32) {
 /// Restores the window if needed, brings its app forward and the window to its front.
 pub fn raise(pid: i32, id: u32) -> bool {
     let Some(w) = element(pid, id) else { return false };
-    if ax::minimized(&w) == Some(true) {
-        ax::set_minimized(&w, false);
-    }
+    // Not minimized, this changes nothing; some apps do not say whether it is.
+    ax::set_minimized(&w, false);
     activate(pid);
     ax::raise(&w)
 }
@@ -86,9 +107,10 @@ pub fn raise(pid: i32, id: u32) -> bool {
 /// raised first, so the first ends on top.
 pub fn show_all(pid: i32, ids: &[u32]) {
     let windows = ax_windows(pid);
+    let minimized: Vec<u32> = app_windows(pid).into_iter().filter(|w| w.minimized).map(|w| w.id).collect();
     let mut restored = 0;
     for id in ids {
-        if let Some((_, w)) = windows.iter().find(|(w, _)| w.id == *id && w.minimized) {
+        if let Some((_, w)) = windows.iter().find(|(w, _)| w.id == *id && minimized.contains(id)) {
             restored += usize::from(ax::set_minimized(w, false));
         }
     }

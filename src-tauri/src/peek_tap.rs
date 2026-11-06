@@ -66,6 +66,7 @@ const LEFT_BUTTON: u32 = 0;
 const DISABLED_BY_TIMEOUT: u32 = 0xFFFF_FFFE;
 const DISABLED_BY_USER_INPUT: u32 = 0xFFFF_FFFF;
 const FIELD_USER_DATA: u32 = 42; // kCGEventSourceUserData
+const FIELD_CLICK_STATE: u32 = 1; // kCGMouseEventClickState
 
 static TAP: Mutex<Option<Tap>> = Mutex::new(None);
 static PORT: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
@@ -87,6 +88,8 @@ fn post(kind: u32, at: CGPoint) {
             return;
         }
         CGEventSetIntegerValueField(event, FIELD_USER_DATA, MARK);
+        // A single click: the Dock ignores a press with no click count.
+        CGEventSetIntegerValueField(event, FIELD_CLICK_STATE, 1);
         CGEventPost(SESSION_TAP, event);
         CFRelease(event);
     }
