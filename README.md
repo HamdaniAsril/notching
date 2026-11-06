@@ -84,10 +84,11 @@ The pill under the notch holds your pages. Home comes first. Add as many of your
 
 Add or remove any of them, and any widget pack, from the Catalog in Settings. Nothing to download: it's all in the app already.
 
-**2 background tools, no panel needed.**
+**3 background tools, no panel needed.**
 
 - **Cut files.** ⌘X and ⌘V move files in Finder, just as they move text.
 - **Arrange windows.** `⌃⌥` with an arrow key snaps the front window to half of its screen, with `;` `'` `.` `/` to a corner, with `\` to the centre, and with Return it fills the screen.
+- **Window peek.** Point at a Dock icon to see every window of the app, minimized ones too; click the icon to minimize them all or bring them all back; ⌘Tab shows every window, minimized ones too. Install it from the Catalog.
 
 ## Shortcuts
 
@@ -97,6 +98,7 @@ Every key Notching listens for sits on one page in Settings. Click one to change
 - ⌃⌥V opens Shelf on the screen your pointer is on.
 - ⌘⇧3 and ⌘⇧4 for Screenshot, once you hand them over from macOS.
 - The ten keys of Arrange windows.
+- ⌘Tab for Window peek's switcher, once it is installed (macOS's own ⌘Tab comes back whenever the switcher lets go).
 
 Notching won't let two of its shortcuts share a key, and tells you when another app already has one.
 
@@ -136,8 +138,8 @@ A notch app is open all day, so it has to cost you almost nothing. We spent a lo
 - MIT licensed. Read every line.
 
 On macOS, some modules need a permission, which you grant once in System Settings:
-- Screen Recording for Screenshot.
-- Accessibility for Keyboard Cleaning Mode, Cut files and Arrange windows.
+- Screen Recording for Screenshot, and for Window peek's pictures of windows.
+- Accessibility for Keyboard Cleaning Mode, Cut files, Arrange windows and Window peek.
 - Full Disk Access for Cleaner.
 - Camera for Mirror.
 
