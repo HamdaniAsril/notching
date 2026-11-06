@@ -102,6 +102,10 @@ pub struct SwitchKeys {
 }
 
 impl SwitchKeys {
+    pub const fn new() -> Self {
+        SwitchKeys { open: false, sticky: false }
+    }
+
     pub fn on(&mut self, key: SwitchKey, trigger: Combo) -> SwitchAction {
         let held = |mods: u32| mods & trigger.mods == trigger.mods;
         let action = match key {

@@ -22,6 +22,9 @@ pub fn holds(app: &AppHandle, c: Combo) -> bool {
 /// in by Task 5.
 pub fn sync(_app: &AppHandle) {}
 
+/// A switcher key from the tap, on the main thread. Filled in by Task 5.
+pub fn key(_app: &AppHandle, _action: crate::switch_rules::SwitchAction) {}
+
 fn save_key(app: &AppHandle, key: Combo) -> Result<(), String> {
     let core = app.state::<CoreState>();
     let next = crate::peek_rules::PeekSettings { switcher_key: key, ..settings(app) };

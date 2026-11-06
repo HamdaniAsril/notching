@@ -84,6 +84,10 @@ mod peek_tap;
 #[cfg(target_os = "macos")]
 mod switch_service;
 #[cfg(target_os = "macos")]
+mod switch_symbolic;
+#[cfg(target_os = "macos")]
+mod switch_tap;
+#[cfg(target_os = "macos")]
 mod shot_hotkey;
 #[cfg(target_os = "macos")]
 mod shot_pick;
@@ -274,6 +278,9 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            // macOS's own ⌘Tab back on first of all, in case Notching ended while
+            // the switcher held it (Intip jendela, owner 6 Nov).
+            switch_symbolic::restore();
             // No Dock icon.
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             // Before the overlays: their pages ask for module state as they load.
@@ -320,6 +327,7 @@ pub fn run() {
             // Overlays come and go with screens; only an explicit quit ends the app.
             tauri::RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),
             tauri::RunEvent::Exit => {
+                switch_symbolic::restore();
                 lamp_service::quitting(app);
                 shelf_service::quitting(app);
                 shot_service::quitting(app);
