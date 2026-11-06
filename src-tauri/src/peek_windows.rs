@@ -18,21 +18,27 @@ fn ax_windows(pid: i32) -> Vec<(AxWin, Cf)> {
     let mut all = ax::windows(&app);
     let listed = all.len();
     all.extend(ax::children(&app).into_iter().filter(|c| ax::role(c).as_deref() == Some("AXWindow")));
-    // The app's windows as the window server has them, for windows that give no number.
+    // The app's windows as the window server has them, for windows that give no
+    // number, and those on screen.
     let server: Vec<(u32, Rect)> =
         crate::notify::all_windows().iter().filter(|w| w.pid == pid && w.layer == 0).map(|w| (w.number, w.bounds)).collect();
+    let on_screen: Vec<u32> =
+        crate::notify::window_list().iter().filter(|w| w.pid == pid && w.layer == 0).map(|w| w.number).collect();
     let (mut standard, mut yes, mut no, mut unknown) = (0, 0, 0, 0);
     let mut out: Vec<(AxWin, Cf)> = Vec::new();
     for w in all {
         let subrole = ax::subrole(&w);
         let minimized = ax::minimized(&w);
         let frame = ax::frame(&w).unwrap_or(Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 });
-        if !keep_window(subrole.as_deref(), minimized, frame.w, frame.h) {
+        let number = ax::window_id(&w);
+        let shown = number.is_some_and(|n| on_screen.contains(&n))
+            || number_by_frame(frame, &server).is_some_and(|n| on_screen.contains(&n));
+        if !keep_window(subrole.as_deref(), minimized, frame.w, frame.h, shown) {
             continue;
         }
         standard += 1;
         let title = ax::title(&w).unwrap_or_default();
-        let id = match ax::window_id(&w) {
+        let id = match number {
             Some(id) => id,
             None => {
                 let id = number_by_frame(frame, &server).unwrap_or_else(|| made_up_number(&title, frame));

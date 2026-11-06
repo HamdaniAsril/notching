@@ -423,14 +423,10 @@ fn dress(app: &AppHandle, s: PeekSettings) {
         CardColor::Dark => Some(Theme::Dark),
     };
     let _ = window.set_theme(theme);
-    let dark = match s.card {
-        CardColor::Dark => true,
-        CardColor::Light => false,
-        CardColor::System => window.theme().map_or(true, |t| t == Theme::Dark),
-    };
     let effects = (s.material == Material::Glass).then(|| {
         EffectsBuilder::new()
-            .effect(if dark { Effect::HudWindow } else { Effect::Popover })
+            // Popover: macOS's lightest see-through material, light or dark with the window's theme.
+            .effect(Effect::Popover)
             .state(EffectState::Active)
             .radius(20.0)
             .build()

@@ -105,10 +105,17 @@ pub fn merge(pid: i32, ax: Vec<AxWin>, z: &[u32]) -> Vec<WinInfo> {
 /// Made-up window numbers start here, far above the window server's own.
 pub const MADE_UP: u32 = 0x4000_0000;
 
-/// A window the peek lists: a document window, or one the app says is
-/// minimized (Excel drops a minimized window's subrole) that is not a tiny helper.
-pub fn keep_window(subrole: Option<&str>, minimized: Option<bool>, w: f64, h: f64) -> bool {
-    subrole == Some("AXStandardWindow") || (minimized == Some(true) && w > 100.0 && h > 100.0)
+/// A window the peek lists: a document window; or, window-sized, one the app
+/// says is minimized, or one off screen whose kind the app does not give (Excel
+/// drops both kind and state of a minimized window). Panels, dialogs and small
+/// helpers stay out, and so does a kindless window on screen.
+pub fn keep_window(subrole: Option<&str>, minimized: Option<bool>, w: f64, h: f64, on_screen: bool) -> bool {
+    if subrole == Some("AXStandardWindow") {
+        return true;
+    }
+    let sized = w > 100.0 && h > 100.0;
+    let kindless = matches!(subrole, None | Some("AXUnknown"));
+    sized && (minimized == Some(true) || (kindless && minimized.is_none() && !on_screen))
 }
 
 /// The window server's number for a window whose app does not give it (Excel,
@@ -645,14 +652,20 @@ mod tests {
 
     #[test]
     fn a_minimized_window_counts_even_when_the_app_drops_its_kind() {
-        assert!(keep_window(Some("AXStandardWindow"), Some(false), 800.0, 600.0));
+        assert!(keep_window(Some("AXStandardWindow"), Some(false), 800.0, 600.0, true));
         // Excel: minimized, its subrole gone.
-        assert!(keep_window(None, Some(true), 800.0, 600.0));
-        assert!(keep_window(Some("AXUnknown"), Some(true), 800.0, 600.0));
+        assert!(keep_window(None, Some(true), 800.0, 600.0, false));
+        assert!(keep_window(Some("AXUnknown"), Some(true), 800.0, 600.0, false));
+        // Excel with every window minimized says neither kind nor state: off
+        // screen and window-sized, it is taken as minimized.
+        assert!(keep_window(None, None, 800.0, 600.0, false));
+        assert!(keep_window(Some("AXUnknown"), None, 800.0, 600.0, false));
+        // On screen with no kind: not a document window.
+        assert!(!keep_window(None, None, 800.0, 600.0, true));
         // Panels, sheets and small helpers stay out.
-        assert!(!keep_window(Some("AXFloatingWindow"), Some(false), 300.0, 200.0));
-        assert!(!keep_window(Some("AXDialog"), None, 400.0, 300.0));
-        assert!(!keep_window(None, None, 20.0, 20.0));
+        assert!(!keep_window(Some("AXFloatingWindow"), Some(false), 300.0, 200.0, true));
+        assert!(!keep_window(Some("AXDialog"), None, 400.0, 300.0, false));
+        assert!(!keep_window(None, None, 20.0, 20.0, false));
     }
 
     #[test]
