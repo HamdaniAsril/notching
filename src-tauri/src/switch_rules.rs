@@ -118,6 +118,14 @@ impl SwitchKeys {
                     SwitchAction::Pass
                 }
             }
+            // A trigger of its own (⌥Q, say) moves like Tab does, and never acts.
+            SwitchKey::Down { code, mods, .. } if code != TAB && u32::from(code) == trigger.code => {
+                if mods & SHIFT != 0 && trigger.mods & SHIFT == 0 {
+                    SwitchAction::Prev
+                } else {
+                    SwitchAction::Next
+                }
+            }
             SwitchKey::Down { code, mods, .. } => match code {
                 TAB if mods & SHIFT != 0 => SwitchAction::Prev,
                 TAB | RIGHT => SwitchAction::Next,
@@ -137,6 +145,10 @@ impl SwitchKeys {
         // Done either way: never left open, holding the keyboard.
         if matches!(action, SwitchAction::Commit | SwitchAction::Cancel) {
             self.closed();
+        }
+        // Set here, on the tap's thread, so a release right after cannot open.
+        if matches!(action, SwitchAction::Act(_)) {
+            self.sticky = true;
         }
         action
     }
@@ -184,6 +196,56 @@ pub fn refusal(combo: Option<Combo>, shot: bool, window: bool, app: bool) -> Opt
 /// ⌘Tab or ⌘⇧Tab: macOS's own switcher must be off for Notching to hear it.
 pub fn needs_symbolic_off(c: Combo) -> bool {
     c.code == u32::from(TAB) && c.mods & CMD != 0 && c.mods & !(CMD | SHIFT) == 0
+}
+
+/// Which of macOS's own keys the trigger needs off: (⌘Tab, ⌘⇧Tab). ⌘Tab
+/// also takes ⌘⇧Tab; ⌘⇧Tab leaves plain ⌘Tab to macOS.
+pub fn native_off(c: Combo) -> (bool, bool) {
+    let both = needs_symbolic_off(c);
+    (both && c.mods & SHIFT == 0, both)
+}
+
+/// No window left to show: only app cards, or nothing.
+pub fn nothing_left(items: &[Item]) -> bool {
+    !items.iter().any(|i| matches!(i, Item::Window { .. }))
+}
+
+/// How long the panel waits from the key so a quick ⌘Tab never flashes it.
+pub const SHOW_AFTER: std::time::Duration = std::time::Duration::from_millis(140);
+
+/// What is left of that wait `since_open` after the key.
+pub fn show_delay(since_open: std::time::Duration) -> std::time::Duration {
+    SHOW_AFTER.saturating_sub(since_open)
+}
+
+/// Where the pointer was over the switcher's screen, so only a move picks: a
+/// pointer resting where the panel appears leaves the second item chosen.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct PointerGate {
+    last: Option<(f64, f64)>,
+}
+
+impl PointerGate {
+    pub const fn new() -> Self {
+        PointerGate { last: None }
+    }
+
+    /// The panel shows (or takes a new size) with the pointer at `p`: kept the
+    /// first time, not sent.
+    pub fn shown(&mut self, p: (f64, f64)) {
+        self.last.get_or_insert(p);
+    }
+
+    /// The pointer at `p`: true when it moved and the page should hear it.
+    pub fn moved(&mut self, p: (f64, f64)) -> bool {
+        let moved = self.last != Some(p);
+        self.last = Some(p);
+        moved
+    }
+
+    pub fn reset(&mut self) {
+        self.last = None;
+    }
 }
 
 /// The second item, as ⌘Tab starts on the app before.
@@ -364,5 +426,61 @@ mod tests {
         assert_eq!(switch_from_web("Tab", false, false, false, true), None);
         assert_eq!(switch_from_web("Backquote", true, false, false, false), Some(Combo { code: 0x32, mods: CMD }));
         assert_eq!(from_web("Tab", true, false, false, false), None);
+    }
+
+    #[test]
+    fn a_window_button_makes_the_release_open_nothing_at_once() {
+        // Set by the key itself, not later by the main thread: a release right after stays harmless.
+        let mut k = opened();
+        assert_eq!(k.on(down(13, CMD), CMD_TAB), SwitchAction::Act(Act::Close));
+        assert_eq!(k.on(SwitchKey::Flags { mods: 0 }, CMD_TAB), SwitchAction::Pass);
+        assert!(k.is_open());
+    }
+
+    #[test]
+    fn the_trigger_key_itself_moves_while_open() {
+        let opt_q = Combo { code: 12, mods: OPTION };
+        let mut k = SwitchKeys::default();
+        assert_eq!(k.on(down(12, OPTION), opt_q), SwitchAction::Open);
+        assert_eq!(k.on(down(12, OPTION), opt_q), SwitchAction::Next); // not Quit
+        assert_eq!(k.on(down(12, OPTION | SHIFT), opt_q), SwitchAction::Prev);
+    }
+
+    #[test]
+    fn only_the_mac_keys_the_trigger_needs_are_turned_off() {
+        assert_eq!(native_off(CMD_TAB), (true, true));
+        assert_eq!(native_off(Combo { code: 48, mods: CMD | SHIFT }), (false, true));
+        assert_eq!(native_off(Combo { code: 48, mods: OPTION }), (false, false));
+    }
+
+    #[test]
+    fn nothing_left_when_no_window_is() {
+        let app = Item::App { pid: 1, name: "Finder".into() };
+        let win = Item::Window { pid: 2, id: 9, title: "x".into(), minimized: false };
+        assert!(nothing_left(&[]));
+        assert!(nothing_left(std::slice::from_ref(&app)));
+        assert!(!nothing_left(&[app, win]));
+    }
+
+    #[test]
+    fn the_panel_waits_a_moment_so_a_quick_switch_never_flashes_it() {
+        use std::time::Duration;
+        assert_eq!(show_delay(Duration::from_millis(40)), Duration::from_millis(100));
+        assert_eq!(show_delay(Duration::from_millis(200)), Duration::ZERO);
+    }
+
+    #[test]
+    fn a_resting_pointer_picks_nothing_until_it_moves() {
+        let mut g = PointerGate::default();
+        g.shown((10.0, 10.0));
+        assert!(!g.moved((10.0, 10.0)));
+        // Every size after a key keeps the first place, and moves nothing.
+        g.shown((10.0, 10.0));
+        assert!(!g.moved((10.0, 10.0)));
+        assert!(g.moved((12.0, 10.0)));
+        assert!(!g.moved((12.0, 10.0)));
+        g.reset();
+        g.shown((40.0, 40.0));
+        assert!(!g.moved((40.0, 40.0)));
     }
 }

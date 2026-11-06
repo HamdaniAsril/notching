@@ -88,3 +88,40 @@ test('in English, and from the notch', () => {
   expect(root.querySelector('.swh .cond')!.textContent).toBe('3 windows');
   expect(root.querySelector('#sw')!.classList.contains('notch')).toBe(true);
 });
+
+test('a selection change keeps the cards and asks for no picture again', async () => {
+  const { root, c } = mount();
+  await Promise.resolve();
+  const before = [...root.querySelectorAll<HTMLElement>('.swgrid .sc')];
+  expect(c.picture).toHaveBeenCalledTimes(3);
+  renderSwitcher(root, { ...VIEW, sel: 2 }, c);
+  const after = [...root.querySelectorAll<HTMLElement>('.swgrid .sc')];
+  expect(after[0]).toBe(before[0]);
+  expect(after.map(a => a.classList.contains('sel'))).toEqual([false, false, true, false]);
+  expect(c.picture).toHaveBeenCalledTimes(3);
+  renderSwitcher(root, { ...VIEW, sel: 2, sticky: true }, c);
+  expect(root.querySelector('.swh .keys')!.textContent).toBe('Enter buka · Esc tutup');
+});
+
+test('a new list keeps the pictures it has; a new opening asks again', async () => {
+  const c = calls();
+  c.picture.mockImplementation(async (id: number) => `data:image/png;base64,P${id}`);
+  const { root } = mount(VIEW, c);
+  await new Promise(r => setTimeout(r));
+  renderSwitcher(root, { ...VIEW, items: VIEW.items.slice(1) }, c);
+  expect(c.picture).toHaveBeenCalledTimes(3);
+  // Shown at once, not after a wait.
+  expect(root.querySelector<HTMLImageElement>('.swgrid .sc .box img')!.getAttribute('src')).toBe('data:image/png;base64,P21');
+  root.replaceChildren();
+  renderSwitcher(root, VIEW, c);
+  expect(c.picture).toHaveBeenCalledTimes(6);
+});
+
+test('per app: another window of the same app keeps the row', () => {
+  const { root, c } = mount({ ...VIEW, layout: 'apps', sel: 0, win: 0 });
+  const row = root.querySelector('.apps');
+  renderSwitcher(root, { ...VIEW, layout: 'apps', sel: 0, win: 1 }, c);
+  expect(root.querySelector('.apps')).toBe(row);
+  const wins = [...root.querySelectorAll<HTMLElement>('.subwins .sc')];
+  expect(wins.map(w => w.classList.contains('sel'))).toEqual([false, true]);
+});

@@ -147,6 +147,9 @@ pub fn uninstall_notching(app: AppHandle) -> Result<(), String> {
         e
     })?;
     eprintln!("notching: uninstalled; quitting");
+    // process::exit skips RunEvent::Exit: macOS's ⌘Tab back on here, or it stays
+    // off with Notching already in the Trash.
+    crate::switch_symbolic::restore();
     // A moment for the page to hear the answer, then out without saving anything
     // again: the settings and caches just went to the Trash.
     std::thread::spawn(|| {

@@ -49,6 +49,17 @@ const pointerOf = (root: HTMLElement): Pointer => {
   return p;
 };
 
+// One opening's window pictures, asked for once: a key that only moves the
+// selection, or a new list after a window button, never captures them again.
+interface Pic { src?: string | null; asked: Promise<string | null> }
+const PICTURES = new WeakMap<HTMLElement, Map<number, Pic>>();
+// The last view drawn, to tell a selection move from a new list.
+const DRAWN = new WeakMap<HTMLElement, SwitchView>();
+
+// Everything a view draws but the selection.
+const shape = (v: SwitchView): string => JSON.stringify([v.layout, v.place, v.card, v.material, v.accent, v.lang, v.maxWidth,
+  v.items.map(i => [i.kind, i.pid, i.id, i.title, i.minimized]), v.apps.map(a => [a.pid, a.name, a.count])]);
+
 const where = (e: HTMLElement): [number, number | null] =>
   [Number(e.dataset.index), e.dataset.win === undefined ? null : Number(e.dataset.win)];
 
@@ -89,7 +100,7 @@ function buttons(item: SwitchItem, app: string, s: ReturnType<typeof peekStrings
 }
 
 function card(item: SwitchItem, index: number, win: number | null, chosen: boolean, s: ReturnType<typeof peekStrings>,
-  calls: SwitchCalls): HTMLElement {
+  calls: SwitchCalls, pics: Map<number, Pic>): HTMLElement {
   const c = el('div', ['sc', item.kind === 'app' ? 'app' : '', item.minimized ? 'min' : '', chosen ? 'sel' : ''].filter(Boolean).join(' '));
   c.dataset.index = String(index);
   if (win !== null) c.dataset.win = String(win);
@@ -107,9 +118,19 @@ function card(item: SwitchItem, index: number, win: number | null, chosen: boole
   });
   if (item.kind === 'window' && item.id !== null) {
     const id = item.id;
-    void calls.picture(id).then(src => {
-      if (src && c.isConnected) box.replaceChildren(picture(src, item.title));
-    });
+    let pic = pics.get(id);
+    if (!pic) {
+      const asked = calls.picture(id);
+      const made: Pic = { asked };
+      void asked.then(src => { made.src = src; });
+      pics.set(id, pic = made);
+    }
+    if (pic.src) box.replaceChildren(picture(pic.src, item.title));
+    else if (pic.src === undefined) {
+      void pic.asked.then(src => {
+        if (src && c.isConnected) box.replaceChildren(picture(src, item.title));
+      });
+    }
   }
   return c;
 }
@@ -121,6 +142,23 @@ export function renderSwitcher(root: HTMLElement, v: SwitchView, calls: SwitchCa
   const s = peekStrings(v.lang);
   applyAccent(document.documentElement, v.accent);
   const entering = !root.firstChild;
+  const before = DRAWN.get(root);
+  DRAWN.set(root, v);
+  const keys = v.sticky ? s.keysSticky : v.layout === 'apps' ? s.keysApps : s.keys;
+  // Only the selection moved: the cards stay as they are, lit anew.
+  if (!entering && before && shape(before) === shape(v) && (v.layout === 'windows' || before.sel === v.sel)) {
+    const cards = root.querySelectorAll<HTMLElement>(v.layout === 'windows' ? '.swgrid .sc' : '.subwins .sc');
+    cards.forEach((c, i) => c.classList.toggle('sel', i === (v.layout === 'windows' ? v.sel : v.win)));
+    const k = root.querySelector('.swh .keys');
+    if (k) k.textContent = keys;
+    return;
+  }
+  if (entering) {
+    PICTURES.delete(root);
+    POINTERS.delete(root);
+  }
+  const pics = PICTURES.get(root) ?? new Map<number, Pic>();
+  PICTURES.set(root, pics);
   const sw = el('div', [v.place, dark(v.card) ? 'card-dark' : 'card-light', `mat-${v.material}`].join(' '));
   sw.id = 'sw';
   if (v.maxWidth) sw.style.setProperty('--max-w', `${v.maxWidth}px`);
@@ -130,13 +168,12 @@ export function renderSwitcher(root: HTMLElement, v: SwitchView, calls: SwitchCa
   const count = v.layout === 'windows'
     ? fill(v.items.length === 1 ? s.window : s.windows, { n: v.items.length })
     : fill(v.apps.length === 1 ? s.app : s.apps, { n: v.apps.length });
-  const keys = v.sticky ? s.keysSticky : v.layout === 'apps' ? s.keysApps : s.keys;
   head.append(el('span', 'cond', count), el('span', 'keys', keys));
   sw.append(head);
 
   if (v.layout === 'windows') {
     const grid = el('div', 'swgrid');
-    v.items.forEach((item, i) => grid.append(card(item, i, null, i === v.sel, s, calls)));
+    v.items.forEach((item, i) => grid.append(card(item, i, null, i === v.sel, s, calls, pics)));
     sw.append(grid);
   } else {
     const row = el('div', 'apps');
@@ -151,7 +188,7 @@ export function renderSwitcher(root: HTMLElement, v: SwitchView, calls: SwitchCa
     const chosen = v.apps[v.sel];
     const sub = el('div', 'subwins');
     const windows = v.items.filter(it => it.kind === 'window' && it.pid === chosen?.pid);
-    windows.forEach((item, j) => sub.append(card(item, v.sel, j, j === v.win, s, calls)));
+    windows.forEach((item, j) => sub.append(card(item, v.sel, j, j === v.win, s, calls, pics)));
     sw.append(row, sub);
   }
   root.replaceChildren(sw);

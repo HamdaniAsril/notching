@@ -8,7 +8,7 @@
 //! never leaves it off for longer than until the next start.
 
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Once, OnceLock};
 
 type SetFn = unsafe extern "C" fn(hot_key: i32, enabled: bool) -> i32;
@@ -19,7 +19,8 @@ const COMMAND_SHIFT_TAB: i32 = 2;
 
 static SET: OnceLock<Option<SetFn>> = OnceLock::new();
 static MISSING: Once = Once::new();
-static OFF: AtomicBool = AtomicBool::new(false);
+// Which of the two are off: bit 0 ⌘Tab, bit 1 ⌘⇧Tab.
+static OFF: AtomicU8 = AtomicU8::new(0);
 
 fn load() -> Option<SetFn> {
     // SAFETY: dlopen and dlsym with C strings; the symbol has this type in every
@@ -37,23 +38,30 @@ fn load() -> Option<SetFn> {
     }
 }
 
-/// macOS's own ⌘Tab and ⌘⇧Tab on or off. Safe from any thread.
-pub fn set_native(enabled: bool) {
+/// macOS's own ⌘Tab and ⌘⇧Tab, each on or off. Safe from any thread.
+pub fn set_native(cmd_tab: bool, cmd_shift_tab: bool) {
     let Some(set) = *SET.get_or_init(load) else {
         MISSING.call_once(|| eprintln!("notching: macOS's ⌘Tab cannot be switched (SkyLight symbol missing)"));
         return;
     };
     // SAFETY: two known hot key ids and a bool.
     unsafe {
-        set(COMMAND_TAB, enabled);
-        set(COMMAND_SHIFT_TAB, enabled);
+        set(COMMAND_TAB, cmd_tab);
+        set(COMMAND_SHIFT_TAB, cmd_shift_tab);
     }
-    if OFF.swap(!enabled, Ordering::SeqCst) == enabled {
-        eprintln!("notching: macOS's ⌘Tab {}", if enabled { "back on" } else { "off while the switcher takes it" });
+    let off = u8::from(!cmd_tab) | u8::from(!cmd_shift_tab) << 1;
+    if OFF.swap(off, Ordering::SeqCst) != off {
+        let say = match off {
+            0 => "back on",
+            2 => "⌘⇧Tab off while the switcher takes it",
+            _ => "off while the switcher takes it",
+        };
+        eprintln!("notching: macOS's ⌘Tab {say}");
     }
 }
 
-/// macOS's own ⌘Tab back on: at start, at quit, and whenever the switcher lets go.
+/// macOS's own ⌘Tab back on: at start, at quit, at uninstall, and whenever the
+/// switcher lets go.
 pub fn restore() {
-    set_native(true);
+    set_native(true, true);
 }

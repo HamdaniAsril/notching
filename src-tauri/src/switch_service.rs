@@ -29,7 +29,8 @@ use crate::module_commands::change;
 use crate::peek_rules::{card_point, CardColor, Material, PeekSettings, SwitchLayout, SwitchPlace};
 use crate::shot_keys::{switch_from_web, Combo};
 use crate::switch_rules::{
-    apps_of, first_selection, items, needs_symbolic_off, refusal, step, Act, Item, SwitchAction, SwitchKeyError,
+    apps_of, first_selection, items, native_off, nothing_left, refusal, show_delay, step, Act, Item, PointerGate, SwitchAction,
+    SwitchKeyError,
 };
 
 const PANEL: &str = "switcher";
@@ -51,6 +52,8 @@ struct Open {
     sticky: bool,
     screen: Rect,
     visible: Rect,
+    // The panel may show: SHOW_AFTER has passed since the key.
+    shown: bool,
 }
 
 static OPEN: Mutex<Option<Open>> = Mutex::new(None);
@@ -59,9 +62,12 @@ static ROUND: AtomicU64 = AtomicU64::new(0);
 // Keys pressed before the list was ready: moves, and whether it was let go.
 static EARLY_STEPS: AtomicI32 = AtomicI32::new(0);
 static EARLY_COMMIT: AtomicBool = AtomicBool::new(false);
+static EARLY_ACT: Mutex<Option<Act>> = Mutex::new(None);
+// One sync at a time: two at once could leave the tap out and macOS's ⌘Tab off.
+static SYNC: Mutex<()> = Mutex::new(());
 static ICONS: Mutex<Option<HashMap<i32, Option<String>>>> = Mutex::new(None);
 static FRAME: Mutex<Option<Rect>> = Mutex::new(None);
-static LAST_POINT: Mutex<Option<Option<(f64, f64)>>> = Mutex::new(None);
+static GATE: Mutex<PointerGate> = Mutex::new(PointerGate::new());
 
 thread_local! {
     static MONITORS: RefCell<Vec<Retained<AnyObject>>> = const { RefCell::new(Vec::new()) };
@@ -80,10 +86,12 @@ pub fn holds(app: &AppHandle, c: Combo) -> bool {
 /// The key tap and macOS's own ⌘Tab as the tool, the switcher and the
 /// permission say. Safe from any thread.
 pub fn sync(app: &AppHandle) {
+    let _one = SYNC.lock().unwrap_or_else(|e| e.into_inner());
     let s = settings(app);
     let want = crate::peek_service::installed_and_on(app) && crate::keyclean_tap::trusted(false) && s.switcher;
     let on = crate::switch_tap::sync(app, want, s.switcher_key);
-    crate::switch_symbolic::set_native(!(on && needs_symbolic_off(s.switcher_key)));
+    let (tab, shift_tab) = if on { native_off(s.switcher_key) } else { (false, false) };
+    crate::switch_symbolic::set_native(!tab, !shift_tab);
     if !on {
         let handle = app.clone();
         let _ = app.run_on_main_thread(move || hide(&handle));
@@ -264,7 +272,7 @@ fn target(app: &AppHandle, o: &Open) -> Option<Target> {
 }
 
 fn emit(app: &AppHandle) {
-    let Some(o) = OPEN.lock().unwrap().clone() else { return };
+    let Some(o) = OPEN.lock().unwrap().clone().filter(|o| o.shown) else { return };
     let v = view(app, &o);
     let _ = app.emit_to(EventTarget::webview_window(PANEL), VIEW_EVENT, &v);
 }
@@ -310,7 +318,11 @@ fn commit(app: &AppHandle) {
 
 // A window button, by key or click: the switcher stays, sticky, and lists again.
 fn act(app: &AppHandle, a: Act) {
-    let Some(o) = OPEN.lock().unwrap().clone() else { return };
+    let Some(o) = OPEN.lock().unwrap().clone() else {
+        // Pressed before the list was ready: done on the selection once it is.
+        *EARLY_ACT.lock().unwrap() = Some(a);
+        return;
+    };
     let Some(chosen) = target(app, &o) else { return };
     crate::switch_tap::acted();
     if let Some(open) = OPEN.lock().unwrap().as_mut() {
@@ -356,7 +368,7 @@ fn relist(app: &AppHandle) {
                 }
                 let mut open = OPEN.lock().unwrap();
                 let Some(o) = open.as_mut() else { return };
-                if list.is_empty() {
+                if nothing_left(&list) {
                     drop(open);
                     hide(&handle);
                     return;
@@ -379,9 +391,11 @@ fn relist(app: &AppHandle) {
 // Starts a new switcher: the list on threads of its own, then the panel, or,
 // let go already, the second item opened at once.
 fn open(app: &AppHandle) {
+    let started = Instant::now();
     let round = ROUND.fetch_add(1, Ordering::SeqCst) + 1;
     EARLY_STEPS.store(0, Ordering::SeqCst);
     EARLY_COMMIT.store(false, Ordering::SeqCst);
+    *EARLY_ACT.lock().unwrap() = None;
     *OPEN.lock().unwrap() = None;
     let Some(mtm) = MainThreadMarker::new() else { return };
     let screens = crate::win_service::screens(mtm);
@@ -405,23 +419,49 @@ fn open(app: &AppHandle) {
                 SwitchLayout::Apps => apps.len(),
             };
             let sel = step(first_selection(len), len, EARLY_STEPS.swap(0, Ordering::SeqCst));
-            *OPEN.lock().unwrap() = Some(Open { items: list, apps, names, sel, win: 0, sticky: false, screen, visible });
+            *OPEN.lock().unwrap() =
+                Some(Open { items: list, apps, names, sel, win: 0, sticky: false, screen, visible, shown: false });
             if EARLY_COMMIT.swap(false, Ordering::SeqCst) {
                 eprintln!("notching: switcher let go before it showed; opening the selection");
                 commit(&app);
                 return;
             }
-            crate::peek_service::make_panel(&app, PANEL, "switcher.html", LEVEL);
-            emit(&app);
+            if let Some(a) = EARLY_ACT.lock().unwrap().take() {
+                act(&app, a);
+            }
+            // A quick ⌘Tab is let go before this: nothing flashes on screen.
+            let wait = show_delay(started.elapsed());
+            if wait.is_zero() {
+                show(&app, round);
+                return;
+            }
+            std::thread::spawn(move || {
+                std::thread::sleep(wait);
+                let handle = app.clone();
+                let _ = app.run_on_main_thread(move || show(&handle, round));
+            });
         });
     });
+}
+
+// The panel for this opening, if it is still the one. Main thread.
+fn show(app: &AppHandle, round: u64) {
+    if ROUND.load(Ordering::SeqCst) != round {
+        return;
+    }
+    match OPEN.lock().unwrap().as_mut() {
+        Some(o) => o.shown = true,
+        None => return,
+    }
+    crate::peek_service::make_panel(app, PANEL, "switcher.html", LEVEL);
+    emit(app);
 }
 
 fn hide(app: &AppHandle) {
     ROUND.fetch_add(1, Ordering::SeqCst);
     *OPEN.lock().unwrap() = None;
     *FRAME.lock().unwrap() = None;
-    *LAST_POINT.lock().unwrap() = None;
+    GATE.lock().unwrap().reset();
     watch_pointer(app, false);
     crate::switch_tap::closed();
     if let Ok(panel) = app.get_webview_panel(PANEL) {
@@ -466,12 +506,9 @@ fn send_pointer(app: &AppHandle, clicked: bool) {
         hide(app);
         return;
     }
-    {
-        let mut last = LAST_POINT.lock().unwrap();
-        if *last == Some(point) {
-            return;
-        }
-        *last = Some(point);
+    // Only a pointer that moved picks: one resting where the panel appeared does not.
+    if !GATE.lock().unwrap().moved((p.x, p.y)) {
+        return;
     }
     let _ = app.emit_to(EventTarget::webview_window(PANEL), POINTER_EVENT, point.map(|(x, y)| PointDto { x, y }));
 }
@@ -519,7 +556,7 @@ fn watch_pointer(app: &AppHandle, on: bool) {
 pub fn switch_size(app: AppHandle, width: f64, height: f64) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
-        let Some(o) = OPEN.lock().unwrap().clone() else { return };
+        let Some(o) = OPEN.lock().unwrap().clone().filter(|o| o.shown) else { return };
         let s = settings(&handle);
         let (w, h) = (width.min(o.visible.w - 24.0), height.min(o.visible.h - 24.0));
         let x = o.screen.x + (o.screen.w - w) / 2.0;
@@ -539,9 +576,9 @@ pub fn switch_size(app: AppHandle, width: f64, height: f64) {
             eprintln!("notching: switcher shown ({} items)", o.items.len());
         }
         *FRAME.lock().unwrap() = Some(Rect { x: at.origin.x, y: at.origin.y, w: at.size.width, h: at.size.height });
-        *LAST_POINT.lock().unwrap() = None;
+        let p = NSEvent::mouseLocation();
+        GATE.lock().unwrap().shown((p.x, p.y));
         watch_pointer(&handle, true);
-        send_pointer(&handle, false);
     });
 }
 
@@ -601,7 +638,7 @@ pub async fn switch_picture(id: u32) -> Option<String> {
 /// The switcher's view, for a page that loaded after it went out.
 #[tauri::command]
 pub fn switch_view(app: AppHandle) -> Option<SwitchViewDto> {
-    OPEN.lock().unwrap().clone().map(|o| view(&app, &o))
+    OPEN.lock().unwrap().clone().filter(|o| o.shown).map(|o| view(&app, &o))
 }
 
 /// At launch: the tap and macOS's ⌘Tab as the settings say.
