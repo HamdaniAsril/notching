@@ -156,6 +156,9 @@ export async function mountSettings(root: HTMLElement, bridge: SettingsBridge, e
     if (!target) return;
     const fold = target.closest('details');
     if (fold) fold.open = true;
+    // A tool's row on Pintasan folded shut: open it through its head.
+    const body = target.closest<HTMLElement>('.fold-body');
+    if (body?.hidden) (body.previousElementSibling as HTMLElement | null)?.click();
     target.classList.add('found');
     target.scrollIntoView?.({ block: 'nearest' });
     env.setTimer(() => target.classList.remove('found'), FOUND_MS);

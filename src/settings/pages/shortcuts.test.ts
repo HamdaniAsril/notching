@@ -176,3 +176,26 @@ test('Intip jendela in English', async () => {
   expect(body.textContent).toContain('Card colour');
   expect(body.textContent).toContain('Peek from the Dock');
 });
+
+test('the Intip jendela fold stays open while its settings change', async () => {
+  const { root, bridge } = await peekFold();
+  option(root, 'peek.material', 'Liquid glass').click();
+  bridge.emitModuleState({ ...WITH_PEEK, peek: { ...DEFAULT_PEEK, material: 'glass' } });
+  await settle();
+  const body = cap(root, 'module.window-peek').nextElementSibling as HTMLElement;
+  expect(body.hidden).toBe(false);
+  expect(cap(root, 'module.window-peek').getAttribute('aria-expanded')).toBe('true');
+});
+
+test('a search result inside a closed fold opens it', async () => {
+  const t = await mountForTest(WITH_PEEK, TEST_INFO);
+  t.bridge.appKeys.mockResolvedValue(appKeys());
+  const box = t.root.querySelector<HTMLInputElement>('input.search')!;
+  box.value = 'liquid';
+  box.dispatchEvent(new Event('input'));
+  t.root.querySelector<HTMLElement>('[data-key="result.peek.material"]')!.click();
+  await settle();
+  const row = t.root.querySelector<HTMLElement>('[data-row="peek.material"]')!;
+  expect((row.closest('.fold-body') as HTMLElement).hidden).toBe(false);
+  expect(cap(t.root, 'module.window-peek').getAttribute('aria-expanded')).toBe('true');
+});

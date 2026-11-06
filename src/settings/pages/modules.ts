@@ -320,6 +320,15 @@ function shelfSettings(ctx: PageContext): HTMLElement {
   }));
 }
 
+// The tool rows folded open, kept while Pengaturan is open: a setting changed
+// inside one redraws the page, which must not snap it shut.
+const OPEN_FOLDS = new Set<string>();
+
+// For tests: every fold shut again.
+export function shutFolds(): void {
+  OPEN_FOLDS.clear();
+}
+
 // A background tool on Pintasan (owner, 4 Nov): its row folds open in place,
 // showing its permission and its keys inside the same card, instead of a page.
 export function toolFold(ctx: PageContext, m: ModuleInfo): HTMLElement[] {
@@ -328,10 +337,11 @@ export function toolFold(ctx: PageContext, m: ModuleInfo): HTMLElement[] {
   head.classList.add('fold-head');
   head.dataset.key = `module.${m.id}`;
   head.setAttribute('role', 'button');
-  head.setAttribute('aria-expanded', 'false');
   head.tabIndex = 0;
   const body = el('div', 'fold-body perms');
-  body.hidden = true;
+  body.hidden = !OPEN_FOLDS.has(m.id);
+  head.setAttribute('aria-expanded', String(!body.hidden));
+  head.classList.toggle('open', !body.hidden);
   if (m.id === 'window-peek') {
     body.append(...peekRows(ctx));
   } else {
@@ -342,6 +352,8 @@ export function toolFold(ctx: PageContext, m: ModuleInfo): HTMLElement[] {
   }
   const toggle = () => {
     body.hidden = !body.hidden;
+    if (body.hidden) OPEN_FOLDS.delete(m.id);
+    else OPEN_FOLDS.add(m.id);
     head.setAttribute('aria-expanded', String(!body.hidden));
     head.classList.toggle('open', !body.hidden);
   };

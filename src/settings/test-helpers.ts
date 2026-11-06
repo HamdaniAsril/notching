@@ -3,6 +3,7 @@ import type { ModuleState, PeekSettings, Placement } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
+import { shutFolds } from './pages/modules';
 import type { ShotKeys } from '../bridge';
 import { shotKeys } from '../shot/test-helpers';
 import type { AppAction, AppKey, LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress, ThemeChoice, UninstallPreview, UpdateInfo, AboutLink, WindowCell, WindowKey } from './types';
@@ -127,6 +128,7 @@ const mounted: SettingsApp[] = [];
 
 afterEach(() => {
   mounted.splice(0).forEach(app => app.destroy());
+  shutFolds();
   document.body.innerHTML = '';
   document.documentElement.lang = '';
 });
