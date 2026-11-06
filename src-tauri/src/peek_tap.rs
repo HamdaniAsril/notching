@@ -105,7 +105,9 @@ fn start_timer() {
 // Off the tap's thread: Accessibility may take a moment.
 fn act(pid: i32, at: CGPoint) {
     let windows = crate::peek_windows::app_windows(pid);
-    match click_plan(pid, &windows, crate::peek_windows::front_pid()) {
+    let plan = click_plan(pid, &windows, crate::peek_windows::front_pid());
+    eprintln!("notching: dock click on pid {pid}: {plan:?}");
+    match plan {
         ClickPlan::MinimizeAll(ids) => {
             // Pictures first, side by side, so the windows then go down together.
             crate::peek_capture::remember_all_before_minimize(&ids, Duration::from_millis(600));

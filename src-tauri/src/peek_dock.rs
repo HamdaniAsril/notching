@@ -32,8 +32,9 @@ pub struct DockItem {
 }
 
 static DOCK_PID: AtomicI32 = AtomicI32::new(0);
-// The app icon under the pointer, as the Dock last said; for the click tap.
-static HOVERED: Mutex<Option<DockItem>> = Mutex::new(None);
+// The app icon under the pointer, as the Dock last said, with its element; for
+// the click tap.
+static HOVERED: Mutex<Option<(DockItem, Cf)>> = Mutex::new(None);
 
 type Launches = Option<Retained<ProtocolObject<dyn NSObjectProtocol>>>;
 type OnHover = fn(Option<DockItem>);
@@ -83,15 +84,23 @@ fn item(element: &Cf) -> Option<DockItem> {
 }
 
 /// The app icon the pointer is on, if it contains this point (global CG
-/// points). Asks nothing of the Dock, so a click elsewhere costs nothing.
-/// Safe from any thread.
+/// points). Its frame is read again from the Dock: minimized windows joining
+/// the Dock, magnification or auto-hide move the icons after they were
+/// hovered. With no icon hovered nothing is asked, so a click elsewhere costs
+/// nothing. Safe from any thread.
 pub fn hovered_at(x: f64, y: f64) -> Option<DockItem> {
-    HOVERED.lock().unwrap().clone().filter(|i| i.frame.contains(x, y))
+    let (item, element) = HOVERED.lock().unwrap().clone()?;
+    let frame = ax::frame(&element).unwrap_or(item.frame);
+    frame.contains(x, y).then_some(DockItem { frame, ..item })
 }
 
 unsafe extern "C" fn on_selected(_observer: *const c_void, _element: *const c_void, _name: *const c_void, _refcon: *mut c_void) {
-    let hovered = WATCH.with(|w| w.borrow().as_ref().and_then(|w| ax::selected_children(&w.list).first().and_then(item)));
-    *HOVERED.lock().unwrap() = hovered.clone();
+    let hovered = WATCH.with(|w| {
+        w.borrow().as_ref().and_then(|w| ax::selected_children(&w.list).into_iter().next().and_then(|e| item(&e).map(|i| (i, e))))
+    });
+    let item = hovered.as_ref().map(|(i, _)| i.clone());
+    *HOVERED.lock().unwrap() = hovered;
+    let hovered = item;
     if let Some(on_hover) = ON_HOVER.get() {
         on_hover(hovered);
     }

@@ -251,6 +251,21 @@ pub fn peek_frame(icon: Rect, edge: DockEdge, size: (f64, f64), visible: Rect) -
     }
 }
 
+/// The pointer is still on the peek: on its icon (with a little slack), on the
+/// card, or in the gap between them, in global CG points. Off all three the card
+/// goes; the Dock does not always say when the pointer leaves it.
+pub fn near_peek(mouse: (f64, f64), icon: Rect, card: Rect, edge: DockEdge) -> bool {
+    const SLACK: f64 = 6.0;
+    let (x, y) = mouse;
+    let grown = Rect { x: icon.x - SLACK, y: icon.y - SLACK, w: icon.w + 2.0 * SLACK, h: icon.h + 2.0 * SLACK };
+    let gap = match edge {
+        DockEdge::Bottom => Rect { x: icon.x, y: card.max_y(), w: icon.w, h: (icon.y - card.max_y()).max(0.0) },
+        DockEdge::Left => Rect { x: icon.max_x(), y: icon.y, w: (card.x - icon.max_x()).max(0.0), h: icon.h },
+        DockEdge::Right => Rect { x: card.max_x(), y: icon.y, w: (icon.x - card.max_x()).max(0.0), h: icon.h },
+    };
+    grown.contains(x, y) || card.contains(x, y) || gap.contains(x, y)
+}
+
 /// `w` × `h` scaled down to fit `max_w` × `max_h`, keeping its shape; never up.
 pub fn fit(w: f64, h: f64, max_w: f64, max_h: f64) -> (f64, f64) {
     let k = (max_w / w).min(max_h / h).min(1.0);
@@ -549,5 +564,28 @@ mod tests {
     fn a_restarted_dock_is_tried_again_a_few_times() {
         let delays: Vec<u64> = (0..).map_while(retry_delay).collect();
         assert_eq!(delays, vec![250, 500, 1000, 2000, 4000]);
+    }
+
+    #[test]
+    fn the_pointer_stays_near_the_peek_on_its_icon_the_gap_and_the_card() {
+        // A bottom Dock: icon at the bottom, the card 10 pt above it.
+        let icon = r(700.0, 840.0, 52.0, 52.0);
+        let card = r(526.0, 630.0, 400.0, 200.0);
+        let near = |x: f64, y: f64| near_peek((x, y), icon, card, DockEdge::Bottom);
+        assert!(near(726.0, 866.0)); // on the icon
+        assert!(near(726.0, 835.0)); // in the gap between icon and card
+        assert!(near(600.0, 700.0)); // on the card
+        assert!(near(703.0, 895.0)); // the icon's edge, with a little slack
+        assert!(!near(300.0, 866.0)); // along the Dock, on another icon
+        assert!(!near(726.0, 500.0)); // above the card
+        assert!(!near(560.0, 835.0)); // beside the gap, off the icon's column
+    }
+
+    #[test]
+    fn the_near_area_follows_a_side_dock() {
+        let icon = r(8.0, 400.0, 52.0, 52.0);
+        let card = r(70.0, 326.0, 300.0, 200.0);
+        assert!(near_peek((65.0, 426.0), icon, card, DockEdge::Left)); // the gap
+        assert!(!near_peek((65.0, 340.0), icon, card, DockEdge::Left));
     }
 }

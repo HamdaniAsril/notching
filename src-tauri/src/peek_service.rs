@@ -32,7 +32,9 @@ use crate::geometry::Rect;
 use crate::locale::Lang;
 use crate::peek_capture::{self, PictureSize};
 use crate::peek_dock::{self, DockItem};
-use crate::peek_rules::{card_point, dock_edge, find_window, peek_frame, CardColor, DockClick, Material, PeekSettings, WinInfo, WindowAct};
+use crate::peek_rules::{
+    card_point, dock_edge, find_window, near_peek, peek_frame, CardColor, DockClick, DockEdge, Material, PeekSettings, WinInfo, WindowAct,
+};
 use crate::peek_windows;
 
 pub const MODULE_ID: &str = "window-peek";
@@ -132,6 +134,10 @@ static HOVER_ID: Mutex<Option<u32>> = Mutex::new(None);
 // The card's AppKit frame while it is up, and the last pointer sent to it.
 static CARD_FRAME: Mutex<Option<Rect>> = Mutex::new(None);
 static LAST_POINT: Mutex<Option<Option<(f64, f64)>>> = Mutex::new(None);
+// While the card is up: its icon and its frame in CG points, the Dock's side,
+// and the main screen's height, to tell when the pointer has left the peek.
+static PEEK_AREA: Mutex<Option<(Rect, Rect, DockEdge, f64)>> = Mutex::new(None);
+static AWAY: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
     // Mouse-move monitors, only while the card is up.
@@ -149,6 +155,7 @@ struct PointDto {
 fn send_pointer(app: &AppHandle) {
     let Some(frame) = *CARD_FRAME.lock().unwrap() else { return };
     let p = NSEvent::mouseLocation();
+    leave_or_stay((p.x, p.y));
     let point = card_point((p.x, p.y), frame);
     {
         let mut last = LAST_POINT.lock().unwrap();
@@ -158,6 +165,23 @@ fn send_pointer(app: &AppHandle) {
         *last = Some(point);
     }
     let _ = app.emit_to(EventTarget::webview_window(CARD), POINTER_EVENT, point.map(|(x, y)| PointDto { x, y }));
+}
+
+// The Dock does not always say when the pointer leaves it, so the card's own
+// pointer watch decides: off the icon, the gap and the card, the card goes
+// after CLOSE_MS; back on them, it stays.
+fn leave_or_stay(mouse: (f64, f64)) {
+    let Some((icon, card, edge, primary)) = *PEEK_AREA.lock().unwrap() else { return };
+    let near = near_peek((mouse.0, primary - mouse.1), icon, card, edge);
+    if !near && !AWAY.swap(true, Ordering::SeqCst) {
+        *HOVER.lock().unwrap() = None;
+        later_hide();
+    } else if near && AWAY.swap(false, Ordering::SeqCst) {
+        GENERATION.fetch_add(1, Ordering::SeqCst);
+        if let Some(item) = SHOWN.lock().unwrap().as_ref().map(|s| s.item.clone()) {
+            *HOVER.lock().unwrap() = Some(item);
+        }
+    }
 }
 
 // Follows the pointer while the card is up: over other apps (global) and over
@@ -423,10 +447,17 @@ pub fn peek_size(app: AppHandle, width: f64, height: f64) {
         let frame = peek_frame(icon, dock_edge(icon, shown.screen), (width, height), shown.visible);
         let Ok(panel) = app.get_webview_panel(CARD) else { return };
         dress(app, settings(app));
-        let at = appkit(frame, primary_height());
+        let primary = primary_height();
+        let at = appkit(frame, primary);
         panel.as_panel().setFrame_display(at, true);
         panel.as_panel().invalidateShadow();
+        let first = !panel.as_panel().isVisible();
         panel.as_panel().orderFrontRegardless();
+        if first {
+            eprintln!("notching: peek card shown for pid {} ({} windows)", shown.pid, shown.windows.len());
+        }
+        *PEEK_AREA.lock().unwrap() = Some((icon, frame, dock_edge(icon, shown.screen), primary));
+        AWAY.store(false, Ordering::SeqCst);
         *CARD_FRAME.lock().unwrap() = Some(Rect { x: at.origin.x, y: at.origin.y, w: at.size.width, h: at.size.height });
         *LAST_POINT.lock().unwrap() = None;
         watch_pointer(app, true);
@@ -464,6 +495,7 @@ pub fn peek_act(app: AppHandle, id: u32, act: WindowAct) {
     on_main(&app, clear_stage);
     std::thread::spawn(move || {
         let found = find_window(&peek_windows::app_windows(pid), id).is_some();
+        eprintln!("notching: peek button {act:?} on a window of pid {pid} (found: {found})");
         if found {
             match act {
                 WindowAct::Minimize => {
@@ -547,7 +579,10 @@ pub fn peek_view() -> Option<PeekViewDto> {
 
 fn hide_now(app: &AppHandle) {
     GENERATION.fetch_add(1, Ordering::SeqCst);
-    *SHOWN.lock().unwrap() = None;
+    if SHOWN.lock().unwrap().take().is_some() {
+        eprintln!("notching: peek card hidden");
+    }
+    *PEEK_AREA.lock().unwrap() = None;
     *HOVER_ID.lock().unwrap() = None;
     *CARD_FRAME.lock().unwrap() = None;
     *LAST_POINT.lock().unwrap() = None;

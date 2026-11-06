@@ -71,6 +71,13 @@ pub struct Cf(*const c_void);
 // SAFETY: AXUIElements and AXValues are immutable CF objects, usable from any thread.
 unsafe impl Send for Cf {}
 
+impl Clone for Cf {
+    fn clone(&self) -> Self {
+        // SAFETY: one more reference to a live CF object, released by its own Drop.
+        Cf(unsafe { CFRetain(self.0) })
+    }
+}
+
 impl Drop for Cf {
     fn drop(&mut self) {
         // SAFETY: created or copied by this module, released once.

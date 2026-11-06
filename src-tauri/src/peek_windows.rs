@@ -86,11 +86,13 @@ pub fn raise(pid: i32, id: u32) -> bool {
 /// raised first, so the first ends on top.
 pub fn show_all(pid: i32, ids: &[u32]) {
     let windows = ax_windows(pid);
+    let mut restored = 0;
     for id in ids {
         if let Some((_, w)) = windows.iter().find(|(w, _)| w.id == *id && w.minimized) {
-            ax::set_minimized(w, false);
+            restored += usize::from(ax::set_minimized(w, false));
         }
     }
+    eprintln!("notching: show all of pid {pid}: {} windows, {restored} restored", ids.len());
     activate(pid);
     for id in ids.iter().rev() {
         if let Some((_, w)) = windows.iter().find(|(w, _)| w.id == *id) {
