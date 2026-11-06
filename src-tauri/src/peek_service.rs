@@ -19,12 +19,15 @@ use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2::MainThreadMarker;
 use objc2_app_kit::{
+    NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
     NSEvent, NSEventMask, NSRunningApplication, NSWindowAnimationBehavior, NSWorkspace, NSWorkspaceDidTerminateApplicationNotification,
 };
-use objc2_foundation::{NSDistributedNotificationCenter, NSNotification, NSObjectProtocol, NSOperationQueue, NSPoint, NSRect, NSSize, NSString};
+use objc2_foundation::{
+    NSDistributedNotificationCenter, NSNotification, NSObjectProtocol, NSOperationQueue, NSPoint, NSRect, NSSize, NSString, NSUserDefaults,
+};
 use serde::Serialize;
 use tauri::window::{Effect, EffectState, EffectsBuilder};
-use tauri::{AppHandle, Emitter, EventTarget, LogicalSize, Manager, Size, Theme, WebviewUrl};
+use tauri::{AppHandle, Emitter, EventTarget, LogicalSize, Manager, Size, WebviewUrl};
 use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, StyleMask};
 
 use crate::app_core::CoreState;
@@ -423,12 +426,13 @@ fn dress(app: &AppHandle, s: PeekSettings) {
 /// as the panel's own macOS effect under the page.
 pub(crate) fn dress_window(app: &AppHandle, label: &str, s: PeekSettings) {
     let Some(window) = app.get_webview_window(label) else { return };
-    let theme = match s.card {
-        CardColor::System => None,
-        CardColor::Light => Some(Theme::Light),
-        CardColor::Dark => Some(Theme::Dark),
-    };
-    let _ = window.set_theme(theme);
+    // On this window only: tao's set_theme changes the whole app's look.
+    if let Ok(panel) = app.get_webview_panel(label) {
+        let dark = crate::peek_rules::card_dark(s.card, system_dark());
+        // SAFETY: AppKit's appearance names are static strings.
+        let name = unsafe { if dark { NSAppearanceNameDarkAqua } else { NSAppearanceNameAqua } };
+        panel.as_panel().setAppearance(NSAppearance::appearanceNamed(name).as_deref());
+    }
     let effects = (s.material == Material::Glass).then(|| {
         EffectsBuilder::new()
             // Popover: macOS's lightest see-through material, light or dark with the window's theme.
@@ -438,6 +442,13 @@ pub(crate) fn dress_window(app: &AppHandle, label: &str, s: PeekSettings) {
             .build()
     });
     let _ = window.set_effects(effects);
+}
+
+// macOS's own light or dark look right now, whatever Notching's own theme.
+fn system_dark() -> bool {
+    NSUserDefaults::standardUserDefaults()
+        .stringForKey(&NSString::from_str("AppleInterfaceStyle"))
+        .is_some_and(|v| v.to_string() == "Dark")
 }
 
 /// The page's size: the card is placed beside its icon and shown.

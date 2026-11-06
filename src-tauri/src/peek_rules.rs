@@ -458,6 +458,15 @@ pub fn dock_pid(found: Option<i32>, own: i32) -> Option<i32> {
     found.filter(|&pid| pid != own)
 }
 
+/// Whether a card or the switcher is dark: as chosen, or as macOS is now.
+pub fn card_dark(card: CardColor, system_dark: bool) -> bool {
+    match card {
+        CardColor::Dark => true,
+        CardColor::Light => false,
+        CardColor::System => system_dark,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -771,5 +780,15 @@ mod tests {
         assert_eq!(dock_pid(Some(42), 42), None);
         assert_eq!(dock_pid(Some(7), 42), Some(7));
         assert_eq!(dock_pid(None, 42), None);
+    }
+
+    #[test]
+    fn the_card_color_decides_its_own_window_only() {
+        // Set on the card's window, never on the whole app (tao's set_theme
+        // turned every Notching window to macOS's light look, 6 Nov 2026).
+        assert!(card_dark(CardColor::Dark, false));
+        assert!(!card_dark(CardColor::Light, true));
+        assert!(card_dark(CardColor::System, true));
+        assert!(!card_dark(CardColor::System, false));
     }
 }
