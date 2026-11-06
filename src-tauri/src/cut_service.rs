@@ -119,6 +119,7 @@ const UC_NO_DEAD_KEYS: u32 = 1; // kUCKeyTranslateNoDeadKeysMask
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static TAP: Mutex<Option<Tap>> = Mutex::new(None);
+static REVIVE: Mutex<crate::tap_rules::Revive> = Mutex::new(crate::tap_rules::Revive::new());
 // The live tap's port, for re-enabling it on its own thread.
 static PORT: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 // Finder's pid while it is the app in front, else 0.
@@ -196,7 +197,7 @@ fn typed_char(event: *mut c_void) -> Option<char> {
 extern "C" fn on_event(_proxy: *mut c_void, kind: u32, event: *mut c_void, _info: *mut c_void) -> *mut c_void {
     if kind == DISABLED_BY_TIMEOUT || kind == DISABLED_BY_USER_INPUT {
         let port = PORT.load(Ordering::SeqCst);
-        if !port.is_null() {
+        if !port.is_null() && crate::tap_guard::revive(&REVIVE, "cut-files", kind) {
             // SAFETY: the port is released only on this same thread, after its run loop ends.
             unsafe { CGEventTapEnable(port, true) };
         }
@@ -430,6 +431,10 @@ impl Drop for Tap {
 pub fn sync(app: &AppHandle) {
     let wanted = enabled(app) && crate::keyclean_tap::trusted(false);
     let mut tap = TAP.lock().unwrap();
+    if tap.is_some() && crate::tap_guard::dead(&REVIVE) {
+        tap.take();
+        eprintln!("notching: cut-files tap taken out (macOS turned it off)");
+    }
     if !wanted {
         if tap.take().is_some() {
             eprintln!("notching: cut-files tap removed");
@@ -438,6 +443,7 @@ pub fn sync(app: &AppHandle) {
         return;
     }
     if tap.is_none() {
+        crate::tap_guard::fresh(&REVIVE);
         *tap = Tap::install();
         eprintln!("notching: cut-files tap installed: {}", tap.is_some());
     }

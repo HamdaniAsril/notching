@@ -71,6 +71,7 @@ const FIELD_CLICK_STATE: u32 = 1; // kCGMouseEventClickState
 static TAP: Mutex<Option<Tap>> = Mutex::new(None);
 static PORT: AtomicPtr<c_void> = AtomicPtr::new(std::ptr::null_mut());
 static PRESS: Mutex<DockPress> = Mutex::new(DockPress::new());
+static REVIVE: Mutex<crate::tap_rules::Revive> = Mutex::new(crate::tap_rules::Revive::new());
 // Where the press being held went down, to replay it there.
 static HELD: Mutex<CGPoint> = Mutex::new(CGPoint { x: 0.0, y: 0.0 });
 static START: LazyLock<Instant> = LazyLock::new(Instant::now);
@@ -129,7 +130,7 @@ fn act(pid: i32, at: CGPoint) {
 extern "C" fn on_event(_proxy: *mut c_void, kind: u32, event: *mut c_void, _info: *mut c_void) -> *mut c_void {
     if kind == DISABLED_BY_TIMEOUT || kind == DISABLED_BY_USER_INPUT {
         let port = PORT.load(Ordering::SeqCst);
-        if !port.is_null() {
+        if !port.is_null() && crate::tap_guard::revive(&REVIVE, "dock click", kind) {
             // SAFETY: the port is released only on this same thread, after its run loop ends.
             unsafe { CGEventTapEnable(port, true) };
         }
@@ -257,6 +258,10 @@ impl Drop for Tap {
 /// Accessibility given), out otherwise. Safe from any thread.
 pub fn sync(want: bool) {
     let mut tap = TAP.lock().unwrap();
+    if tap.is_some() && crate::tap_guard::dead(&REVIVE) {
+        tap.take();
+        eprintln!("notching: dock click tap taken out (macOS turned it off)");
+    }
     if !want {
         if tap.take().is_some() {
             eprintln!("notching: dock click tap removed");
@@ -265,6 +270,7 @@ pub fn sync(want: bool) {
         return;
     }
     if tap.is_none() {
+        crate::tap_guard::fresh(&REVIVE);
         *tap = Tap::install();
         eprintln!("notching: dock click tap installed: {}", tap.is_some());
     }

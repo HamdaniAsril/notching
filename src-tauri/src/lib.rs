@@ -15,6 +15,7 @@ mod page_commands;
 mod pages;
 mod peek_rules;
 mod switch_rules;
+mod tap_rules;
 mod prefs;
 mod settings;
 mod shelf;
@@ -87,6 +88,8 @@ mod switch_service;
 mod switch_symbolic;
 #[cfg(target_os = "macos")]
 mod switch_tap;
+#[cfg(target_os = "macos")]
+mod tap_guard;
 #[cfg(target_os = "macos")]
 mod shot_hotkey;
 #[cfg(target_os = "macos")]
@@ -322,6 +325,7 @@ pub fn run() {
             cut_service::start(app.handle());
             peek_service::start(app.handle());
             switch_service::start(app.handle());
+            tap_guard::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());

@@ -13,6 +13,7 @@ use tauri::AppHandle;
 
 use crate::shot_keys::{Combo, CMD, CONTROL, OPTION, SHIFT};
 use crate::switch_rules::{SwitchAction, SwitchKey, SwitchKeys};
+use crate::tap_rules::Revive;
 
 // Marks the keys Notching posts, so the tap lets them through: "ncsw".
 const MARK: i64 = 0x6e63_7377;
@@ -71,6 +72,7 @@ static KEYS: Mutex<SwitchKeys> = Mutex::new(SwitchKeys::new());
 static TRIGGER: Mutex<Combo> = Mutex::new(crate::peek_rules::SWITCHER_KEY);
 // While a key is being recorded in Settings: every key passes.
 static HELD: AtomicBool = AtomicBool::new(false);
+static REVIVE: Mutex<Revive> = Mutex::new(Revive::new());
 
 /// CGEventFlags as Carbon modifiers, the way combos are kept.
 fn carbon(flags: u64) -> u32 {
@@ -90,8 +92,15 @@ extern "C" fn on_event(_proxy: *mut c_void, kind: u32, event: *mut c_void, _info
     if kind == DISABLED_BY_TIMEOUT || kind == DISABLED_BY_USER_INPUT {
         let port = PORT.load(Ordering::SeqCst);
         if !port.is_null() {
-            // SAFETY: the port is released only on this same thread, after its run loop ends.
-            unsafe { CGEventTapEnable(port, true) };
+            if crate::tap_guard::revive(&REVIVE, "switcher key", kind) {
+                // SAFETY: the port is released only on this same thread, after its run loop ends.
+                unsafe { CGEventTapEnable(port, true) };
+            } else {
+                // Left off: macOS's own ⌘Tab back at once, and the switcher closed.
+                crate::switch_symbolic::restore();
+                closed();
+                send(SwitchAction::Cancel);
+            }
         }
         return event;
     }
@@ -232,6 +241,10 @@ pub fn sync(app: &AppHandle, want: bool, trigger: Combo) -> bool {
     let _ = APP.set(app.clone());
     *TRIGGER.lock().unwrap() = trigger;
     let mut tap = TAP.lock().unwrap();
+    if tap.is_some() && crate::tap_guard::dead(&REVIVE) {
+        tap.take();
+        eprintln!("notching: switcher key tap taken out (macOS turned it off)");
+    }
     if !want {
         if tap.take().is_some() {
             eprintln!("notching: switcher key tap removed");
@@ -240,6 +253,7 @@ pub fn sync(app: &AppHandle, want: bool, trigger: Combo) -> bool {
         return false;
     }
     if tap.is_none() {
+        crate::tap_guard::fresh(&REVIVE);
         *tap = Tap::install();
         eprintln!("notching: switcher key tap installed: {}", tap.is_some());
     }

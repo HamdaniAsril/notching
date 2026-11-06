@@ -111,11 +111,13 @@ pub fn classify(kind: u32, keycode: i64, flags: u64, autorepeat: bool) -> Key {
 // Where swallowed keys go; set by the one live tap.
 static ON_KEY: std::sync::Mutex<Option<fn(Key)>> = std::sync::Mutex::new(None);
 static PORT: std::sync::atomic::AtomicPtr<c_void> = std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());
+static REVIVE: std::sync::Mutex<crate::tap_rules::Revive> = std::sync::Mutex::new(crate::tap_rules::Revive::new());
 
 extern "C" fn on_event(_proxy: *mut c_void, kind: u32, event: *mut c_void, _info: *mut c_void) -> *mut c_void {
     if kind == DISABLED_BY_TIMEOUT || kind == DISABLED_BY_USER_INPUT {
         let port = PORT.load(std::sync::atomic::Ordering::SeqCst);
-        if !port.is_null() {
+        // Left off, the lock simply stops holding keys: the Mac stays usable.
+        if !port.is_null() && crate::tap_guard::revive(&REVIVE, "keyboard lock", kind) {
             // SAFETY: the port lives until the tap is dropped, which clears PORT first.
             unsafe { CGEventTapEnable(port, true) };
         }
@@ -168,6 +170,7 @@ impl Tap {
                 return None;
             }
             *ON_KEY.lock().unwrap() = Some(on_key);
+            crate::tap_guard::fresh(&REVIVE);
             PORT.store(port, std::sync::atomic::Ordering::SeqCst);
             CFRunLoopAddSource(CFRunLoopGetMain(), source, kCFRunLoopCommonModes);
             CGEventTapEnable(port, true);
