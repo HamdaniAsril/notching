@@ -26,14 +26,14 @@ export interface PeekCalls {
   picture(id: number): Promise<string | null>;
 }
 
-const ICON: Record<'minimize' | 'restore' | 'close' | 'quit', string> = {
+export const ICON: Record<'minimize' | 'restore' | 'close' | 'quit', string> = {
   minimize: '<svg viewBox="0 0 16 16"><path d="M4 8.5h8"/></svg>',
   restore: '<svg viewBox="0 0 16 16"><path d="M5 11l6-6M6.5 5H11v4.5"/></svg>',
   close: '<svg viewBox="0 0 16 16"><path d="M5 5l6 6M11 5l-6 6"/></svg>',
   quit: '<svg viewBox="0 0 16 16"><path d="M8 2.8v5"/><path d="M5 4.8a4.4 4.4 0 1 0 6 0"/></svg>',
 };
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
+export function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
   if (text !== undefined) e.textContent = text;
@@ -41,12 +41,12 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 }
 
 // The cards' colour: "system" follows the Mac's light or dark.
-function dark(card: PeekView['card']): boolean {
+export function dark(card: PeekView['card']): boolean {
   if (card !== 'system') return card === 'dark';
   return typeof matchMedia !== 'function' || matchMedia('(prefers-color-scheme: dark)').matches;
 }
 
-function picture(src: string | null, alt: string, cls?: string): HTMLElement {
+export function picture(src: string | null, alt: string, cls?: string): HTMLElement {
   if (!src) return el('span', 'blank');
   const img = el('img', cls);
   img.src = src;

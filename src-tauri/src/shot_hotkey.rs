@@ -576,6 +576,7 @@ fn watch(app: &AppHandle) {
 #[tauri::command]
 pub fn shot_keys_hold(app: AppHandle, hold: bool) {
     crate::win_service::hold(&app, hold);
+    crate::switch_service::hold(hold);
     crate::app_keys_service::hold(&app, hold);
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {

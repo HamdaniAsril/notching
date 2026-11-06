@@ -180,6 +180,13 @@ pub fn run() {
             peek_service::peek_view,
             switch_service::switch_set_key,
             switch_service::switch_reset_key,
+            switch_service::switch_size,
+            switch_service::switch_pointer,
+            switch_service::switch_pick,
+            switch_service::switch_open,
+            switch_service::switch_act,
+            switch_service::switch_picture,
+            switch_service::switch_view,
             settings_window::set_theme,
             self_uninstall::uninstall_preview,
             self_uninstall::release_permissions,
@@ -314,6 +321,7 @@ pub fn run() {
             update_service::start(app.handle());
             cut_service::start(app.handle());
             peek_service::start(app.handle());
+            switch_service::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());

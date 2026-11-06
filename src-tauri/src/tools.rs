@@ -16,6 +16,7 @@ pub fn module_changed(app: &AppHandle, id: &str, on: bool) {
     }
     if id == crate::peek_service::MODULE_ID {
         crate::peek_service::sync(app);
+        crate::switch_service::sync(app);
         if on && !crate::keyclean_tap::trusted(false) {
             crate::keyclean_tap::trusted(true);
             crate::peek_service::no_access(app);
@@ -37,4 +38,5 @@ pub fn module_changed(app: &AppHandle, id: &str, on: bool) {
 pub fn settings_opened(app: &AppHandle) {
     crate::cut_service::sync(app);
     crate::peek_service::sync(app);
+    crate::switch_service::sync(app);
 }

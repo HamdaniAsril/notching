@@ -115,6 +115,12 @@
     }
   },
   "peek": {
+    "app": "{n} app",
+    "apps": "{n} apps",
+    "min": "Min",
+    "keys": "Tab next · ⇧Tab back · let go of ⌘ to open",
+    "keysApps": "Tab next · ↓ next window · let go of ⌘ to open",
+    "keysSticky": "Return opens · Esc closes",
     "window": "{n} window",
     "windows": "{n} windows",
     "front": "In front",

@@ -181,6 +181,7 @@ pub fn set_peek_settings(
 ) -> Result<(), String> {
     change(&app, &core, |c| c.set_peek_settings(settings))?;
     crate::peek_service::sync(&app);
+    crate::switch_service::sync(&app);
     Ok(())
 }
 

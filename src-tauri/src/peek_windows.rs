@@ -19,12 +19,10 @@ const ROUNDS: usize = 3;
 
 // The app's standard windows that have a number, with their elements: its
 // windows list, plus any window among its children the list leaves out (some
-// apps drop minimized windows from AXWindows). One log line per call says
-// what the app answered, for checking on the Mac.
+// apps drop minimized windows from AXWindows).
 fn ax_windows(pid: i32) -> Vec<(AxWin, Cf)> {
     let Some(app) = ax::app(pid) else { return Vec::new() };
     let mut all = ax::windows(&app);
-    let listed = all.len();
     all.extend(ax::children(&app).into_iter().filter(|c| ax::role(c).as_deref() == Some("AXWindow")));
     // The app's windows as the window server has them, for windows that give no
     // number, and those on screen.
@@ -32,7 +30,6 @@ fn ax_windows(pid: i32) -> Vec<(AxWin, Cf)> {
         crate::notify::all_windows().iter().filter(|w| w.pid == pid && w.layer == 0).map(|w| (w.number, w.bounds)).collect();
     let on_screen: Vec<u32> =
         crate::notify::window_list().iter().filter(|w| w.pid == pid && w.layer == 0).map(|w| w.number).collect();
-    let (mut standard, mut yes, mut no, mut unknown) = (0, 0, 0, 0);
     let mut out: Vec<(AxWin, Cf)> = Vec::new();
     for w in all {
         let subrole = ax::subrole(&w);
@@ -44,7 +41,6 @@ fn ax_windows(pid: i32) -> Vec<(AxWin, Cf)> {
         if !keep_window(subrole.as_deref(), minimized, frame.w, frame.h, shown) {
             continue;
         }
-        standard += 1;
         let title = ax::title(&w).unwrap_or_default();
         let id = match number {
             Some(id) => id,
@@ -57,18 +53,9 @@ fn ax_windows(pid: i32) -> Vec<(AxWin, Cf)> {
         if out.iter().any(|(o, _)| o.id == id) {
             continue;
         }
-        match minimized {
-            Some(true) => yes += 1,
-            Some(false) => no += 1,
-            None => unknown += 1,
-        }
         let info = AxWin { id, title, minimized, frame };
         out.push((info, w));
     }
-    eprintln!(
-        "notching: ax windows of pid {pid}: {listed} listed, {standard} standard, {} numbered (minimized {yes} yes, {no} no, {unknown} unknown)",
-        out.len()
-    );
     out
 }
 
@@ -104,9 +91,9 @@ pub fn restore(pid: i32, id: u32) -> bool {
     element(pid, id).is_some_and(|w| ax::set_minimized(&w, false))
 }
 
-// Brings the app forward. The old activation option is ignored from macOS 14,
-// so Accessibility's AXFrontmost is set as well.
-fn activate(pid: i32) {
+/// Brings the app forward. The old activation option is ignored from macOS 14,
+/// so Accessibility's AXFrontmost is set as well.
+pub fn activate(pid: i32) {
     if let Some(app) = NSRunningApplication::runningApplicationWithProcessIdentifier(pid) {
         #[allow(deprecated)]
         app.activateWithOptions(NSApplicationActivationOptions::ActivateIgnoringOtherApps);

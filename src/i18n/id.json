@@ -115,6 +115,12 @@
     }
   },
   "peek": {
+    "app": "{n} app",
+    "apps": "{n} app",
+    "min": "Min",
+    "keys": "Tab berikutnya · ⇧Tab sebelumnya · lepas ⌘ untuk buka",
+    "keysApps": "Tab berikutnya · ↓ jendela berikutnya · lepas ⌘ untuk buka",
+    "keysSticky": "Enter buka · Esc tutup",
     "window": "{n} jendela",
     "windows": "{n} jendela",
     "front": "Di depan",

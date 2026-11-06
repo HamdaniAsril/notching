@@ -297,11 +297,11 @@ fn on_hover(item: Option<DockItem>) {
     }
 }
 
-fn data_url(png: &[u8]) -> String {
+pub(crate) fn data_url(png: &[u8]) -> String {
     format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png))
 }
 
-fn app_icon(pid: i32) -> Option<String> {
+pub(crate) fn app_icon(pid: i32) -> Option<String> {
     let app = NSRunningApplication::runningApplicationWithProcessIdentifier(pid)?;
     let icon = app.icon()?;
     let png = crate::shelf_service::image_png(&icon)?;
@@ -309,7 +309,7 @@ fn app_icon(pid: i32) -> Option<String> {
 }
 
 // The screen (full, visible; CG) holding a point, else the main one.
-fn screen_at(screens: &[(Rect, Rect)], x: f64, y: f64) -> (Rect, Rect) {
+pub(crate) fn screen_at(screens: &[(Rect, Rect)], x: f64, y: f64) -> (Rect, Rect) {
     screens.iter().copied().find(|(full, _)| full.contains(x, y)).or_else(|| screens.first().copied()).unwrap_or((
         Rect { x: 0.0, y: 0.0, w: 1440.0, h: 900.0 },
         Rect { x: 0.0, y: 0.0, w: 1440.0, h: 900.0 },
@@ -368,7 +368,7 @@ fn show_for(app: &AppHandle, item: DockItem) {
     });
 }
 
-fn make_panel(app: &AppHandle, label: &str, url: &str, level: i32) -> Option<std::sync::Arc<dyn tauri_nspanel::Panel>> {
+pub(crate) fn make_panel(app: &AppHandle, label: &str, url: &str, level: i32) -> Option<std::sync::Arc<dyn tauri_nspanel::Panel>> {
     if let Ok(panel) = app.get_webview_panel(label) {
         return Some(panel);
     }
@@ -381,7 +381,7 @@ fn make_panel(app: &AppHandle, label: &str, url: &str, level: i32) -> Option<std
         )
         .style_mask(StyleMask::empty().borderless().nonactivating_panel())
         .transparent(true)
-        .has_shadow(label == CARD)
+        .has_shadow(label != STAGE)
         .no_activate(true)
         .hides_on_deactivate(false)
         .accepts_mouse_moved_events(true)
@@ -404,11 +404,11 @@ fn ensure_panels(app: &AppHandle) {
 }
 
 // A CG rect (top-left of the main screen) as an AppKit frame.
-fn appkit(r: Rect, primary_height: f64) -> NSRect {
+pub(crate) fn appkit(r: Rect, primary_height: f64) -> NSRect {
     NSRect::new(NSPoint::new(r.x, primary_height - r.y - r.h), NSSize::new(r.w, r.h))
 }
 
-fn primary_height() -> f64 {
+pub(crate) fn primary_height() -> f64 {
     MainThreadMarker::new()
         .and_then(|mtm| crate::win_service::screens(mtm).first().map(|(full, _)| full.h))
         .unwrap_or(0.0)
@@ -416,7 +416,13 @@ fn primary_height() -> f64 {
 
 // The card's look: Liquid glass is the panel's own macOS effect under the page.
 fn dress(app: &AppHandle, s: PeekSettings) {
-    let Some(window) = app.get_webview_window(CARD) else { return };
+    dress_window(app, CARD, s);
+}
+
+/// A peek panel's look (the card or the switcher): its theme, and Liquid glass
+/// as the panel's own macOS effect under the page.
+pub(crate) fn dress_window(app: &AppHandle, label: &str, s: PeekSettings) {
+    let Some(window) = app.get_webview_window(label) else { return };
     let theme = match s.card {
         CardColor::System => None,
         CardColor::Light => Some(Theme::Light),
@@ -646,6 +652,8 @@ pub fn start(app: &AppHandle) {
         std::thread::spawn(move || {
             std::thread::sleep(ACCESS_SETTLE);
             sync(&handle);
+            // The switcher's tap, and macOS's ⌘Tab back on if the permission went.
+            crate::switch_service::sync(&handle);
         });
     });
     let center = NSDistributedNotificationCenter::defaultCenter();

@@ -7,16 +7,19 @@
 html, body { margin: 0; background: transparent; overflow: hidden; }
 body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: none; user-select: none; cursor: default; }
 
-#peek {
+/* The colours of the card and the switcher (switcher.css), by colour and material. */
+#peek, #sw {
   --c-bg: #000; --c-ink: #f3f5f0; --c-ink2: #c4c8bf; --c-muted: #8c9187; --c-box: #111210; --c-hover: #ffffff12;
   --c-ring: #ffffff14; --c-acc: var(--v-acc); --c-acc-soft: var(--v-acc-soft); --c-chip: #23251f;
   --c-btn: #22241f; --c-btn-ink: #f3f5f0;
   --c-sheen: rgba(255, 255, 255, .16); --c-sheen2: rgba(255, 255, 255, .06); --c-edge: rgba(255, 255, 255, .35); --c-edge2: rgba(255, 255, 255, .12);
+}
+#peek {
   position: absolute; left: 0; top: 0; width: max-content; max-width: var(--max-w, 1416px);
   border-radius: 20px; padding: 14px 14px 12px; background: var(--c-bg); color: var(--c-ink);
   box-shadow: inset 0 0 0 1px var(--c-ring);
 }
-#peek.card-light {
+#peek.card-light, #sw.card-light {
   --c-bg: #f7f7f5; --c-ink: #111210; --c-ink2: #33352f; --c-muted: #6b7066; --c-box: #e3e3df; --c-hover: #0000000b;
   --c-ring: #0000001a; --c-acc: var(--v-acc-deep); --c-acc-soft: var(--v-acc-deep-soft); --c-chip: #e3e3df;
   --c-btn: #fff; --c-btn-ink: #111210;
@@ -24,9 +27,9 @@ body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: n
 }
 /* A light tint over the panel's own macOS blur, so what is behind shows through;
    the dark one a little deeper, so text reads over white windows. */
-#peek.mat-glass.card-dark { --c-bg: rgba(16, 17, 15, .1); --c-box: rgba(0, 0, 0, .14); --c-chip: rgba(255, 255, 255, .12); --c-btn: rgba(34, 36, 31, .9); --c-hover: #ffffff17; }
-#peek.mat-glass.card-light { --c-bg: rgba(255, 255, 255, .06); --c-box: rgba(255, 255, 255, .45); --c-chip: rgba(255, 255, 255, .6); --c-hover: rgba(255, 255, 255, .35); }
-#peek.mat-glass {
+#peek.mat-glass.card-dark, #sw.mat-glass.card-dark { --c-bg: rgba(16, 17, 15, .1); --c-box: rgba(0, 0, 0, .14); --c-chip: rgba(255, 255, 255, .12); --c-btn: rgba(34, 36, 31, .9); --c-hover: #ffffff17; }
+#peek.mat-glass.card-light, #sw.mat-glass.card-light { --c-bg: rgba(255, 255, 255, .06); --c-box: rgba(255, 255, 255, .45); --c-chip: rgba(255, 255, 255, .6); --c-hover: rgba(255, 255, 255, .35); }
+#peek.mat-glass, #sw.mat-glass {
   background: linear-gradient(135deg, var(--c-sheen), transparent 40%, transparent 70%, var(--c-sheen2)), var(--c-bg);
   box-shadow: inset 0 1px 0 var(--c-edge), inset 0 0 0 1px var(--c-edge2);
 }
