@@ -81,6 +81,8 @@ pub enum AppKeyError {
     Shot,
     /// One of Atur jendela's nine keys while that tool is on.
     Window,
+    /// Intip jendela's switcher key while it is on (design 5 Nov).
+    Peek,
 }
 
 /// One action set to `combo`. `shot` and `window` say whether Screenshot or

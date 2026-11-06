@@ -82,6 +82,8 @@ mod peek_dock;
 #[cfg(target_os = "macos")]
 mod peek_tap;
 #[cfg(target_os = "macos")]
+mod switch_service;
+#[cfg(target_os = "macos")]
 mod shot_hotkey;
 #[cfg(target_os = "macos")]
 mod shot_pick;
@@ -172,6 +174,8 @@ pub fn run() {
             peek_service::peek_hover,
             peek_service::peek_picture,
             peek_service::peek_view,
+            switch_service::switch_set_key,
+            switch_service::switch_reset_key,
             settings_window::set_theme,
             self_uninstall::uninstall_preview,
             self_uninstall::release_permissions,

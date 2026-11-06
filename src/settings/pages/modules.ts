@@ -5,7 +5,7 @@ import { isModule, isTool, MODULE_CATEGORIES, type ModuleCategory, type ModuleIn
 import { DEFAULT_LABELS } from '../../shot/keys';
 import { button, choice, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
-import type { PageContext, PageRender, SettingsInfo, ShotKeyPress, WindowCell, WindowKey, WindowKeyError } from '../types';
+import type { PageContext, PageRender, SettingsInfo, ShotKeyPress, SwitchKeyError, WindowCell, WindowKey, WindowKeyError } from '../types';
 
 export const UNINSTALL_CONFIRM_MS = 4000;
 
@@ -120,7 +120,7 @@ export function screenshotKeys(ctx: PageContext, title?: string): HTMLElement {
     save: (which, key) => ctx.bridge.shotSetKey(which, key),
     saved: next => { keys = next; },
     refused: (which, reason) => (reason === 'duplicate' ? fill(s.duplicate, { row: names[which === 'screen' ? 'pick' : 'screen'] })
-      : reason === 'tool' ? s.tool : reason === 'app' ? s.app : s.invalid),
+      : reason === 'tool' ? s.tool : reason === 'app' ? s.app : reason === 'peek' ? s.peek : s.invalid),
     draw: () => draw(),
     gone: () => gone,
   });
@@ -266,6 +266,19 @@ function peekRows(ctx: PageContext): HTMLElement[] {
     rows.push(row({ key: 'peek.dockHint', label: s.minimizeTip,
       control: button('peek.dockSettings', s.minimizeTipButton, () => void ctx.bridge.openDockSettings()) }));
   }
+  rows.push(switcherRow(ctx), ...(p.switcherKey.code === 48 && p.switcherKey.mods === 0x0100 ? [] : [
+    row({ key: 'peek.switcherReset', label: s.switcherReset,
+      control: button('peek.switcherReset', s.switcherReset, () => ctx.save('peek.switcherReset', ctx.bridge.switchResetKey())) }),
+  ]),
+  row({ key: 'peek.layout', label: s.layout,
+    control: choice<PeekSettings['layout']>('peek.layout', [
+      { value: 'windows', label: s.layoutWindows }, { value: 'apps', label: s.layoutApps },
+    ], p.layout, v => save('peek.layout', { layout: v })) }),
+  row({ key: 'peek.place', label: s.place,
+    control: choice<PeekSettings['place']>('peek.place', [
+      { value: 'center', label: s.placeCenter }, { value: 'notch', label: s.placeNotch },
+    ], p.place, v => save('peek.place', { place: v })) }),
+  );
   rows.push(
     row({ key: 'peek.card', label: s.card,
       control: choice<PeekSettings['card']>('peek.card', [
@@ -279,6 +292,42 @@ function peekRows(ctx: PageContext): HTMLElement[] {
       control: toggle('peek.minimized', s.minimized, p.minimized, on => save('peek.minimized', { minimized: on })) }),
   );
   return rows;
+}
+
+// The switcher's row: its key, recorded by clicking it and pressing a new one
+// (refused when Screenshot, Atur jendela or an app key holds it), and its switch.
+function switcherRow(ctx: PageContext): HTMLElement {
+  const s = ctx.strings.peek;
+  const k = ctx.strings.shortcuts;
+  const p = ctx.state.peek;
+  const box = el('div', 'peek-switcher');
+  let gone = false;
+  ctx.onCleanup(() => { gone = true; });
+  const rec = recorder<'switcher', void>(ctx, box, {
+    save: (_w, key) => ctx.bridge.switchSetKey(key),
+    saved: () => {},
+    refused: (_w, reason) => {
+      const r = reason as SwitchKeyError | undefined;
+      return r?.kind === 'shot' ? k.shot : r?.kind === 'window' ? k.window : r?.kind === 'app' ? ctx.strings.tools.app : k.invalid;
+    },
+    draw: () => draw(),
+    gone: () => gone,
+  });
+  function draw(): void {
+    const on = rec.at() === 'switcher';
+    const cap = button('peek.switcherKey', on ? k.recording : ctx.state.peekKeyLabel, () => (on ? undefined : rec.start('switcher')));
+    cap.classList.add('keycap');
+    cap.classList.toggle('recording', on);
+    const ctl = el('div', 'ctl');
+    ctl.append(cap, toggle('peek.switcher', s.switcher, p.switcher,
+      v => ctx.save('peek.switcher', ctx.bridge.setPeekSettings({ ...p, switcher: v }))));
+    const error = on ? rec.error() : '';
+    const r = row({ key: 'peek.switcher', label: s.switcher, hint: error || s.switcherHint, control: ctl });
+    if (error) r.querySelector('small')?.classList.add('err');
+    box.replaceChildren(r);
+  }
+  draw();
+  return box;
 }
 
 // Intip jendela's own page, reached another way: the same rows in one card.
@@ -430,7 +479,7 @@ function windowKeysBox(ctx: PageContext, folded: boolean): HTMLElement {
     refused: (_cell, reason) => {
       const r = reason as WindowKeyError | undefined;
       return r?.kind === 'duplicate' ? fill(s.duplicate, { cell: s.cells[r.cell] }) : r?.kind === 'shot' ? s.shot
-        : r?.kind === 'app' ? s.app : s.invalid;
+        : r?.kind === 'app' ? s.app : r?.kind === 'peek' ? s.peek : s.invalid;
     },
     draw: () => draw(),
     gone: () => gone,

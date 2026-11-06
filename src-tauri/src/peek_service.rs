@@ -233,7 +233,7 @@ fn settings(app: &AppHandle) -> PeekSettings {
     app.state::<CoreState>().0.lock().unwrap().peek_settings()
 }
 
-fn installed_and_on(app: &AppHandle) -> bool {
+pub(crate) fn installed_and_on(app: &AppHandle) -> bool {
     app.state::<CoreState>().0.lock().unwrap().module(MODULE_ID).is_some_and(|e| e.installed && e.enabled)
 }
 

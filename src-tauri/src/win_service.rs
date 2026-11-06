@@ -265,6 +265,9 @@ pub async fn window_set_key(
     if combo.is_some_and(|c| crate::app_keys_service::holds(&app, c)) {
         return Err(WinKeyError::App);
     }
+    if combo.is_some_and(|c| crate::switch_service::holds(&app, c)) {
+        return Err(WinKeyError::Peek);
+    }
     let shot = crate::shot_service::enabled(&app).then(|| app.state::<CoreState>().0.lock().unwrap().shot_keys());
     let next = set_key(saved_keys(&app), cell, combo, shot)?;
     save_keys(&app, next);

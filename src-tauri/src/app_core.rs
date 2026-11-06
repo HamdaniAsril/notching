@@ -99,8 +99,9 @@ pub struct ModuleStateDto {
     pub panel_glass: bool,
     /// Shelf opens as soon as a file drag starts anywhere.
     pub shelf_open_on_drag: bool,
-    /// Intip jendela's settings.
+    /// Intip jendela's settings, and its switcher key as Settings shows it ("⌘⇥").
     pub peek: crate::peek_rules::PeekSettings,
+    pub peek_key_label: String,
 }
 
 #[derive(Debug, PartialEq)]
@@ -227,6 +228,7 @@ impl AppCore {
             panel_glass: self.settings.panel_glass,
             shelf_open_on_drag: self.settings.shelf_open_on_drag,
             peek: self.settings.window_peek,
+            peek_key_label: crate::shot_keys::label(self.settings.window_peek.switcher_key),
         }
     }
 

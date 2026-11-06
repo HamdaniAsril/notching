@@ -106,3 +106,8 @@ test("Intip jendela's settings are found on Pintasan, only while it is installed
   expect(hit([...mods, peek], 'en', 'glass')).toBeDefined();
   expect(hit([...mods, { ...peek, installed: false, enabled: false }])).toBeUndefined();
 });
+
+test("the switcher's key is found by 'pengalih'", () => {
+  const peek = moduleInfo('window-peek', { name: 'Intip jendela', tool: true, entry: null, card: null });
+  expect(search(idx([...mods, peek]), 'pengalih').some(e => e.key === 'peek.switcher')).toBe(true);
+});

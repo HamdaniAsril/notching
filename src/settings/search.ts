@@ -89,7 +89,8 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
     }
     if (page === 'shortcuts' && modules.some(m => m.id === 'window-peek' && m.installed)) {
       const p = s.peek;
-      for (const [key, label] of [['peek.dock', p.dock], ['peek.dockClick', p.dockClick], ['peek.card', p.card],
+      for (const [key, label] of [['peek.dock', p.dock], ['peek.dockClick', p.dockClick], ['peek.switcher', p.switcher],
+        ['peek.layout', p.layout], ['peek.place', p.place], ['peek.card', p.card],
         ['peek.material', p.material], ['peek.minimized', p.minimized]] as const) {
         mods.push(entry(key, label, where, { page: 'shortcuts' }, k.peek));
       }

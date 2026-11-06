@@ -103,6 +103,7 @@ export interface ModuleState {
   panelGlass: boolean; // the open panel fades toward its bottom; false: solid black
   shelfOpenOnDrag: boolean; // Shelf opens as soon as a file drag starts anywhere
   peek: PeekSettings; // Intip jendela (design 5 Nov §4)
+  peekKeyLabel: string; // its switcher key as shown ("⌘⇥")
 }
 
 // Intip jendela's settings on Pintasan (design 5 Nov §4).

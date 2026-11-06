@@ -140,7 +140,7 @@ test('Intip jendela folds open with its two permissions and every setting, in or
   expect(body.hidden).toBe(false);
   expect([...body.querySelectorAll<HTMLElement>('[data-row]')].map(r => r.dataset.row)).toEqual([
     'tool.window-peek.access', 'tool.window-peek.screen', 'peek.dock', 'peek.dockClick', 'peek.dockHint',
-    'peek.card', 'peek.material', 'peek.minimized',
+    'peek.switcher', 'peek.layout', 'peek.place', 'peek.card', 'peek.material', 'peek.minimized',
   ]);
   expect(body.querySelector('[data-row="peek.material"]')!.textContent).toContain('Liquid glass');
   expect(body.querySelector('[data-row="tool.window-peek.screen"]')!.textContent).toContain('Perekaman Layar');
@@ -198,4 +198,42 @@ test('a search result inside a closed fold opens it', async () => {
   const row = t.root.querySelector<HTMLElement>('[data-row="peek.material"]')!;
   expect((row.closest('.fold-body') as HTMLElement).hidden).toBe(false);
   expect(cap(t.root, 'module.window-peek').getAttribute('aria-expanded')).toBe('true');
+});
+
+test('the switcher key is recorded like the others, and its clashes are named', async () => {
+  const { root, bridge } = await peekFold();
+  expect(cap(root, 'peek.switcherKey').textContent).toBe('⌘⇥');
+  expect(root.querySelector('[data-row="peek.switcherReset"]')).toBeNull();
+  cap(root, 'peek.switcherKey').click();
+  bridge.switchSetKey.mockRejectedValueOnce({ kind: 'shot' });
+  press({ code: 'Tab', altKey: true });
+  await settle();
+  expect(bridge.switchSetKey).toHaveBeenCalledWith({ code: 'Tab', cmd: false, ctrl: false, alt: true, shift: false });
+  expect(hint(root, 'peek.switcher')).toBe('Dipakai Screenshot');
+});
+
+test('a switcher key other than ⌘Tab can go back to it', async () => {
+  const { root, bridge } = await peekFold({ ...WITH_PEEK, peek: { ...DEFAULT_PEEK, switcherKey: { code: 48, mods: 0x0800 } }, peekKeyLabel: '⌥⇥' });
+  expect(cap(root, 'peek.switcherKey').textContent).toBe('⌥⇥');
+  cap(root, 'peek.switcherReset').click();
+  expect(bridge.switchResetKey).toHaveBeenCalledTimes(1);
+});
+
+test('the switcher shows windows or apps, centred or from the notch', async () => {
+  const { root, bridge } = await peekFold();
+  option(root, 'peek.layout', 'Per app').click();
+  expect(bridge.setPeekSettings).toHaveBeenLastCalledWith({ ...DEFAULT_PEEK, layout: 'apps' });
+  option(root, 'peek.place', 'Dari notch').click();
+  expect(bridge.setPeekSettings).toHaveBeenLastCalledWith({ ...DEFAULT_PEEK, place: 'notch' });
+  root.querySelector<HTMLElement>('[data-key="peek.switcher"]')!.click();
+  expect(bridge.setPeekSettings).toHaveBeenLastCalledWith({ ...DEFAULT_PEEK, switcher: false });
+});
+
+test('other keys refuse the switcher key while it is on', async () => {
+  const { root, bridge } = await onShortcuts(WITH_PEEK);
+  cap(root, 'shortcuts.awake').click();
+  bridge.appSetKey.mockRejectedValueOnce({ kind: 'peek' });
+  press({ code: 'Tab', metaKey: true });
+  await settle();
+  expect(hint(root, 'shortcuts.awake')).toBe('Dipakai Intip jendela');
 });

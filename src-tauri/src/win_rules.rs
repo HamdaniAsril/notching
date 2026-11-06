@@ -166,6 +166,8 @@ pub enum WinKeyError {
     Shot,
     /// Keep awake's or Shelf's key while its module is on (Pintasan, owner 4 Nov).
     App,
+    /// Intip jendela's switcher key while it is on (design 5 Nov).
+    Peek,
 }
 
 /// One cell set to `combo`. `shot` is Screenshot's keys while it is on.

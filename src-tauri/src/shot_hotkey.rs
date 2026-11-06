@@ -605,6 +605,9 @@ pub async fn shot_set_key(
     if combo.is_some_and(|c| crate::app_keys_service::holds(&app, c)) {
         return Err(SetKeyError::App);
     }
+    if combo.is_some_and(|c| crate::switch_service::holds(&app, c)) {
+        return Err(SetKeyError::Peek);
+    }
     let next = set_key(saved_keys(&app), which, combo)?;
     save_keys(&app, next);
     Ok(keys(&app))

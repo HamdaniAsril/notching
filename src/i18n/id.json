@@ -348,9 +348,19 @@
       "shortcut": "Dipakai pintasan Mac",
       "other": "Dipakai app lain",
       "open": "Buka Pengaturan Sistem",
-      "app": "Dipakai pintasan Keep awake atau Shelf"
+      "app": "Dipakai pintasan Keep awake atau Shelf",
+      "peek": "Dipakai Intip jendela"
     },
     "peek": {
+      "switcher": "Pengalih jendela",
+      "switcherHint": "Menggantikan ⌘Tab bawaan macOS. Klik tombolnya untuk mengganti.",
+      "switcherReset": "Kembalikan ke ⌘Tab",
+      "layout": "Tampilkan",
+      "layoutWindows": "Per jendela",
+      "layoutApps": "Per app",
+      "place": "Muncul di",
+      "placeCenter": "Tengah layar",
+      "placeNotch": "Dari notch",
       "dock": "Intip dari Dock",
       "dockHint": "Arahkan kursor ke ikon app di Dock.",
       "dockClick": "Klik ikon Dock",
@@ -403,7 +413,8 @@
         "bottomRight": "Kanan bawah",
         "fill": "Penuhi layar"
       },
-      "app": "Dipakai pintasan Keep awake atau Shelf"
+      "app": "Dipakai pintasan Keep awake atau Shelf",
+      "peek": "Dipakai Intip jendela"
     },
     "permissions": {
       "sub": "Belum ada modul yang butuh izin sistem.",
@@ -520,7 +531,7 @@
       "accent": "warna aksen tema hijau lime warna sendiri accent colour color",
       "shotKeys": "tombol pintasan shortcut keyboard screenshot cmd shift ⌘⇧3 ⌘⇧4",
       "shelfDrag": "seret tarik file shelf titipan buka otomatis drag drop",
-      "peek": "intip jendela dock kartu terang gelap kaca liquid glass minimize",
+      "peek": "intip jendela dock kartu terang gelap kaca liquid glass minimize pengalih switcher tab cmd",
       "language": "bahasa indonesia inggris english language otomatis",
       "screen": "layar monitor eksternal display screen",
       "login": "login masuk mulai startup otomatis",
@@ -555,6 +566,7 @@
       "duplicate": "Sudah dipakai untuk {row}",
       "shot": "Dipakai Screenshot",
       "window": "Dipakai Atur jendela",
+      "peek": "Dipakai Intip jendela",
       "shortcut": "Dipakai pintasan Mac",
       "other": "Dipakai app lain",
       "reset": "Kembalikan ke ⌃⌥K dan ⌃⌥V",

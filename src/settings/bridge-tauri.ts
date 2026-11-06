@@ -43,6 +43,8 @@ export function tauriSettingsBridge(): SettingsBridge {
     setPanelGlass: on => invoke('set_panel_glass', { on }),
     setShelfOpenOnDrag: on => invoke('set_shelf_open_on_drag', { on }),
     setPeekSettings: settings => invoke('set_peek_settings', { settings }),
+    switchSetKey: key => invoke('switch_set_key', { ...key }),
+    switchResetKey: () => invoke('switch_reset_key'),
     setNoticeGlow: on => invoke('set_notice_glow', { on }),
     setNoticeSeconds: seconds => invoke('set_notice_seconds', { seconds }),
     setChannel: (module, channel, { on, sound }) => invoke('set_channel', { module, channel, on, sound }),

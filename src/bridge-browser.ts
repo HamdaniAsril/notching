@@ -152,6 +152,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     panelGlass: params.get('glass') !== 'off',
     shelfOpenOnDrag: true,
     peek: DEFAULT_PEEK,
+    peekKeyLabel: '⌘⇥',
   };
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);

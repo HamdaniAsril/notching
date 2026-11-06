@@ -151,6 +151,32 @@ impl SwitchKeys {
     }
 }
 
+/// Why a key recorded for the switcher was refused.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum SwitchKeyError {
+    /// Not a key that can be recorded, or no ⌘, ⌃ or ⌥.
+    Invalid,
+    /// One of Screenshot's two keys while Screenshot is on.
+    Shot,
+    /// One of Atur jendela's keys while that tool is on.
+    Window,
+    /// Keep awake's or Shelf's key while its module is on.
+    App,
+}
+
+/// The switcher's key `combo` (None: not a key that can be recorded) refused
+/// when Screenshot, Atur jendela or an app key holds it.
+pub fn refusal(combo: Option<Combo>, shot: bool, window: bool, app: bool) -> Option<SwitchKeyError> {
+    match combo {
+        None => Some(SwitchKeyError::Invalid),
+        Some(_) if shot => Some(SwitchKeyError::Shot),
+        Some(_) if window => Some(SwitchKeyError::Window),
+        Some(_) if app => Some(SwitchKeyError::App),
+        Some(_) => None,
+    }
+}
+
 /// ⌘Tab or ⌘⇧Tab: macOS's own switcher must be off for Notching to hear it.
 pub fn needs_symbolic_off(c: Combo) -> bool {
     c.code == u32::from(TAB) && c.mods & CMD != 0 && c.mods & !(CMD | SHIFT) == 0
@@ -305,5 +331,34 @@ mod tests {
         assert!(needs_symbolic_off(Combo { code: 48, mods: CMD | SHIFT }));
         assert!(!needs_symbolic_off(Combo { code: 48, mods: OPTION }));
         assert!(!needs_symbolic_off(Combo { code: 50, mods: CMD }));
+    }
+
+    #[test]
+    fn the_switcher_key_refuses_keys_others_hold() {
+        let k = Some(Combo { code: 48, mods: OPTION });
+        assert_eq!(refusal(None, false, false, false), Some(SwitchKeyError::Invalid));
+        assert_eq!(refusal(k, true, false, false), Some(SwitchKeyError::Shot));
+        assert_eq!(refusal(k, false, true, false), Some(SwitchKeyError::Window));
+        assert_eq!(refusal(k, false, false, true), Some(SwitchKeyError::App));
+        assert_eq!(refusal(k, false, false, false), None);
+        assert_eq!(serde_json::to_value(SwitchKeyError::Shot).unwrap(), serde_json::json!({"kind": "shot"}));
+    }
+
+    #[test]
+    fn other_keys_name_the_switcher_when_it_holds_theirs() {
+        assert_eq!(serde_json::to_value(crate::shot_keys::SetKeyError::Peek).unwrap(), serde_json::json!("peek"));
+        assert_eq!(serde_json::to_value(crate::win_rules::WinKeyError::Peek).unwrap(), serde_json::json!({"kind": "peek"}));
+        assert_eq!(serde_json::to_value(crate::app_keys::AppKeyError::Peek).unwrap(), serde_json::json!({"kind": "peek"}));
+        assert_eq!(crate::shot_keys::label(Combo { code: 48, mods: CMD }), "⌘⇥");
+    }
+
+    #[test]
+    fn the_switcher_may_take_tab_where_other_keys_may_not() {
+        use crate::shot_keys::{from_web, switch_from_web};
+        assert_eq!(switch_from_web("Tab", false, false, true, false), Some(Combo { code: 48, mods: OPTION }));
+        assert_eq!(switch_from_web("Tab", true, false, false, true), Some(Combo { code: 48, mods: CMD | SHIFT }));
+        assert_eq!(switch_from_web("Tab", false, false, false, true), None);
+        assert_eq!(switch_from_web("Backquote", true, false, false, false), Some(Combo { code: 0x32, mods: CMD }));
+        assert_eq!(from_web("Tab", true, false, false, false), None);
     }
 }

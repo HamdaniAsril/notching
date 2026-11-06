@@ -139,6 +139,7 @@ export const TEST_STATE: ModuleState = {
   panelGlass: true,
   shelfOpenOnDrag: true,
   peek: DEFAULT_PEEK,
+  peekKeyLabel: '⌘⇥',
 };
 
 // Bridge whose methods are mocks; emit* plays the native side's events.

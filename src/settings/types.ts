@@ -53,19 +53,22 @@ export type Route = { page: SectionId } | { page: 'module'; id: string } | { pag
 // (KeyboardEvent.code) and the modifiers held.
 export interface ShotKeyPress { code: string; cmd: boolean; ctrl: boolean; alt: boolean; shift: boolean }
 
+// Why the switcher's key was refused (SwitchKeyError in src-tauri/src/switch_rules.rs).
+export type SwitchKeyError = { kind: 'invalid' | 'shot' | 'window' | 'app' };
+
 // Atur jendela's keys (WindowKeyDto in src-tauri/src/win_service.rs): its cell
 // of the 3×3 grid, its label ("⌃⌥Q") and whether it reaches Notching.
 export type WindowCell = 'topLeft' | 'top' | 'topRight' | 'left' | 'center' | 'right' | 'bottomLeft' | 'bottom' | 'bottomRight' | 'fill';
 export interface WindowKey { cell: WindowCell; label: string; state: 'ok' | 'off' | 'other' | 'shortcut' | 'mac' }
 // Why a recorded key was refused (WinKeyError in src-tauri/src/win_rules.rs).
-export type WindowKeyError = { kind: 'invalid' } | { kind: 'duplicate'; cell: WindowCell } | { kind: 'shot' } | { kind: 'app' };
+export type WindowKeyError = { kind: 'invalid' } | { kind: 'duplicate'; cell: WindowCell } | { kind: 'shot' } | { kind: 'app' } | { kind: 'peek' };
 
 // Keep awake's and Shelf's keys on the Pintasan page (AppKeyDto in
 // src-tauri/src/app_keys_service.rs).
 export type AppAction = 'awake' | 'shelf';
 export interface AppKey { action: AppAction; label: string; state: 'ok' | 'off' | 'other' | 'shortcut' | 'mac' }
 // Why a recorded key was refused (AppKeyError in src-tauri/src/app_keys.rs).
-export type AppKeyError = { kind: 'invalid' } | { kind: 'duplicate'; action: AppAction } | { kind: 'shot' } | { kind: 'window' };
+export type AppKeyError = { kind: 'invalid' } | { kind: 'duplicate'; action: AppAction } | { kind: 'shot' } | { kind: 'window' } | { kind: 'peek' };
 
 // What Copot Notching takes (UninstallDto in src-tauri/src/self_uninstall.rs):
 // the installed app, null in a dev build, and Notching's own files, as "~/…".
@@ -104,6 +107,8 @@ export interface SettingsBridge {
   setPanelGlass(on: boolean): Promise<void>; // off: the open panel is solid black
   setShelfOpenOnDrag(on: boolean): Promise<void>; // off: Shelf opens when a drag reaches the notch
   setPeekSettings(p: PeekSettings): Promise<void>; // Intip jendela's settings, whole
+  switchSetKey(key: ShotKeyPress): Promise<void>; // the switcher's key; rejects with SwitchKeyError
+  switchResetKey(): Promise<void>; // back to ⌘Tab
   setLaunchAtLogin(on: boolean): Promise<void>;
   openLoginItems(): Promise<void>;
   setModuleEnabled(id: string, enabled: boolean): Promise<void>;

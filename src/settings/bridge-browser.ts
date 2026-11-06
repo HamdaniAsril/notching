@@ -64,6 +64,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     notifications: { glow: true, seconds: 3.5 }, missed: [], sampleStatus: false, accent: '#c8f04a', accentCustom: null, panelGlass: true,
     shelfOpenOnDrag: true,
     peek: DEFAULT_PEEK,
+    peekKeyLabel: '⌘⇥',
   };
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();
@@ -99,6 +100,8 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setPanelGlass: async panelGlass => setState({ ...state, panelGlass }),
     setShelfOpenOnDrag: async shelfOpenOnDrag => setState({ ...state, shelfOpenOnDrag }),
     setPeekSettings: async peek => setState({ ...state, peek }),
+    switchSetKey: async () => {},
+    switchResetKey: async () => setState({ ...state, peek: { ...state.peek, switcherKey: DEFAULT_PEEK.switcherKey }, peekKeyLabel: '⌘⇥' }),
     setAccent: async (accent, custom) => setState({ ...state, accent, accentCustom: custom ?? state.accentCustom }),
     // The page cannot change its own light or dark here; the app sets the window's.
     setTheme: async theme => setInfo({ ...info, theme }),

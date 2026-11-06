@@ -24,7 +24,7 @@ function appKeys(ctx: PageContext): HTMLElement {
     refused: (_action, reason) => {
       const r = reason as AppKeyError | undefined;
       if (r?.kind === 'duplicate') return fill(s.duplicate, { row: names[r.action] });
-      return r?.kind === 'shot' ? s.shot : r?.kind === 'window' ? s.window : s.invalid;
+      return r?.kind === 'shot' ? s.shot : r?.kind === 'window' ? s.window : r?.kind === 'peek' ? s.peek : s.invalid;
     },
     draw: () => draw(),
     gone: () => gone,

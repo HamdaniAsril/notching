@@ -222,6 +222,9 @@ pub async fn app_set_key(
         }
     });
     let window = combo.is_some_and(|c| crate::win_service::holds(&app, c));
+    if combo.is_some_and(|c| crate::switch_service::holds(&app, c)) {
+        return Err(AppKeyError::Peek);
+    }
     let next = set_key(saved_keys(&app), action, combo, shot, window)?;
     save_keys(&app, next);
     Ok(keys(&app))

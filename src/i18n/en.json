@@ -348,9 +348,19 @@
       "shortcut": "Taken by a Mac shortcut",
       "other": "Taken by another app",
       "open": "Open System Settings",
-      "app": "Used by the Keep awake or Shelf shortcut"
+      "app": "Used by the Keep awake or Shelf shortcut",
+      "peek": "Used by Window peek"
     },
     "peek": {
+      "switcher": "Window switcher",
+      "switcherHint": "Takes over macOS's ⌘Tab. Click the key to change it.",
+      "switcherReset": "Back to ⌘Tab",
+      "layout": "Show",
+      "layoutWindows": "Per window",
+      "layoutApps": "Per app",
+      "place": "Appears at",
+      "placeCenter": "Screen centre",
+      "placeNotch": "From the notch",
       "dock": "Peek from the Dock",
       "dockHint": "Point at an app's icon in the Dock.",
       "dockClick": "Click a Dock icon",
@@ -403,7 +413,8 @@
         "bottomRight": "Bottom right",
         "fill": "Fill screen"
       },
-      "app": "Used by the Keep awake or Shelf shortcut"
+      "app": "Used by the Keep awake or Shelf shortcut",
+      "peek": "Used by Window peek"
     },
     "permissions": {
       "sub": "No module needs a system permission yet.",
@@ -520,7 +531,7 @@
       "accent": "accent colour color theme green lime custom warna aksen",
       "shotKeys": "keys shortcut keyboard screenshot cmd shift ⌘⇧3 ⌘⇧4 tombol",
       "shelfDrag": "drag drop file shelf open automatically seret",
-      "peek": "peek window dock card light dark glass liquid minimize",
+      "peek": "peek window dock card light dark glass liquid minimize switcher pengalih tab cmd",
       "language": "language english indonesian bahasa automatic",
       "screen": "screen display monitor external",
       "login": "login startup launch automatic",
@@ -555,6 +566,7 @@
       "duplicate": "Already used for {row}",
       "shot": "Used by Screenshot",
       "window": "Used by Arrange windows",
+      "peek": "Used by Window peek",
       "shortcut": "Used by a Mac shortcut",
       "other": "Used by another app",
       "reset": "Back to ⌃⌥K and ⌃⌥V",

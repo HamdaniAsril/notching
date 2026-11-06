@@ -56,6 +56,8 @@ pub enum SetKeyError {
     Tool,
     /// Keep awake's or Shelf's key while its module is on (Pintasan, owner 4 Nov).
     App,
+    /// Intip jendela's switcher key while it is on (design 5 Nov).
+    Peek,
 }
 
 // The keys that can be recorded: (virtual key code, KeyboardEvent.code, label).
@@ -89,9 +91,29 @@ pub fn label(c: Combo) -> String {
         .collect();
     match KEYS.iter().find(|k| k.0 == c.code) {
         Some(k) => s.push_str(k.2),
+        None if c.code == TAB => s.push('⇥'),
         None => s.push_str(&format!("#{}", c.code)),
     }
     s
+}
+
+// Tab: only Intip jendela's switcher may take it (⌘Tab is its key); the other
+// keys are Carbon hot keys, which cannot.
+const TAB: u32 = 0x30;
+
+/// Like `from_web`, for the switcher's key, which may also be Tab with ⌘, ⌃ or ⌥.
+pub fn switch_from_web(code: &str, cmd: bool, ctrl: bool, alt: bool, shift: bool) -> Option<Combo> {
+    if code != "Tab" {
+        return from_web(code, cmd, ctrl, alt, shift);
+    }
+    if !(cmd || ctrl || alt) {
+        return None;
+    }
+    let mods = [(cmd, CMD), (ctrl, CONTROL), (alt, OPTION), (shift, SHIFT)]
+        .into_iter()
+        .filter(|&(on, _)| on)
+        .fold(0, |m, (_, bit)| m | bit);
+    Some(Combo { code: TAB, mods })
 }
 
 /// The combo a keydown in Settings makes, by the key's place on the keyboard; None
