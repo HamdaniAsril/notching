@@ -154,6 +154,18 @@ Bagian ini menetapkan batasannya. Pilihan teknis di dalamnya adalah **keputusan 
 - **Panel intip dan pengalih:** panel Notching yang tidak mengaktifkan diri dan tidak pernah ditutup, hanya disembunyikan, sama dengan aturan semua panel Notching. "Dari notch" boleh memakai overlay notch yang sudah ada.
 - **Memunculkan, minimize, tutup:** Aksesibilitas (atribut minimize, aksi raise, tombol tutup), ditambah mengaktifkan app. Keluar: meminta app keluar.
 
+### Mengambil alih ⌘Tab (pemilik, 6 November 2026)
+
+macOS menangani ⌘Tab sebelum event tap app lain menerimanya. Jadi, selama pengalih menyala dengan tombol ⌘Tab (atau ⌘⇧Tab), Notching mematikan ⌘Tab bawaan lewat fungsi macOS yang tidak resmi (`CGSSetSymbolicHotKeyEnabled`, seperti AltTab). Pemilik memilih ini dengan tahu risikonya: kalau Notching crash, ⌘Tab bawaan tetap mati sampai Notching dibuka lagi.
+
+⌘Tab bawaan dinyalakan kembali:
+- saat pengalih atau alatnya dimatikan,
+- saat izin Aksesibilitas dicabut,
+- saat Notching keluar,
+- setiap Notching dibuka, sebelum hal lain, supaya crash sebelumnya pulih.
+
+Dengan tombol lain, ⌘Tab bawaan tidak disentuh.
+
 ## 9. Teks (keputusan penulis)
 
 | | Indonesia | English |
