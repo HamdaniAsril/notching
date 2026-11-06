@@ -451,6 +451,13 @@ impl PictureCache {
     }
 }
 
+/// The app behind a Dock icon, as Intip jendela sees it: never Notching
+/// itself (`own`), whose windows only AppKit's main thread may touch; its
+/// icon stays the Dock's.
+pub fn dock_pid(found: Option<i32>, own: i32) -> Option<i32> {
+    found.filter(|&pid| pid != own)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -755,5 +762,14 @@ mod tests {
         assert_eq!((p.layout, p.place), (SwitchLayout::Windows, SwitchPlace::Center));
         let odd: PeekSettings = serde_json::from_str(r#"{"layout":"nonsense","place":"notch"}"#).unwrap();
         assert_eq!((odd.layout, odd.place), (SwitchLayout::Windows, SwitchPlace::Notch));
+    }
+
+    #[test]
+    fn notching_never_peeks_at_itself() {
+        // Its own windows are AppKit's on the main thread only: Accessibility
+        // from another thread stops the app (crash, 6 Nov 2026).
+        assert_eq!(dock_pid(Some(42), 42), None);
+        assert_eq!(dock_pid(Some(7), 42), Some(7));
+        assert_eq!(dock_pid(None, 42), None);
     }
 }

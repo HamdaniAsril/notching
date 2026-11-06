@@ -79,7 +79,7 @@ fn item(element: &Cf) -> Option<DockItem> {
         return None;
     }
     let frame = ax::frame(element)?;
-    let pid = ax::url(element).and_then(|p| pid_of_bundle(&p));
+    let pid = crate::peek_rules::dock_pid(ax::url(element).and_then(|p| pid_of_bundle(&p)), std::process::id() as i32);
     Some(DockItem { pid, name: ax::title(element).unwrap_or_default(), frame })
 }
 
