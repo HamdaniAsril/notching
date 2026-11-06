@@ -46,21 +46,14 @@ impl Revive {
     }
 }
 
-// TCCAccessPreflight's "not allowed" (an app with no Accessibility entry, 6 Nov 2026).
-const TCC_DENIED: i32 = 1;
-
-/// Whether Notching has Accessibility: AXIsProcessTrusted's word (`ax`),
-/// unless TCC's own answer (`tcc`, read fresh; None when this macOS gives
-/// none) is "not allowed" after it said yes before (`seen_yes`).
-/// AXIsProcessTrusted keeps saying yes after the permission was taken away
-/// (owner's Mac, 6 Nov 2026), so alone it never lets the taps go.
-pub fn access_from(ax: bool, tcc: Option<i32>, seen_yes: bool) -> bool {
-    ax && !(seen_yes && tcc == Some(TCC_DENIED))
-}
-
-/// TCC's answer is a yes in its own terms: anything but "not allowed".
-pub fn tcc_yes(tcc: Option<i32>) -> bool {
-    tcc.is_some_and(|v| v != TCC_DENIED)
+/// Whether Notching has Accessibility. A no from AXIsProcessTrusted (`ax`)
+/// stands. Its yes is checked by `can_tap` (making a tap and taking it down
+/// again): when the permission is removed with "−", AXIsProcessTrusted keeps
+/// its yes for the app's life, and TCC's own preflight keeps its first answer
+/// too, but macOS refuses a new tap at once (CekIzin probe, owner's Mac, 6 Nov
+/// 2026).
+pub fn access_from(ax: bool, can_tap: impl FnOnce() -> bool) -> bool {
+    ax && can_tap()
 }
 
 /// The Accessibility permission as last read, to tell when it changed.
@@ -140,22 +133,15 @@ mod tests {
 
     #[test]
     fn a_permission_removed_counts_even_when_accessibility_still_says_yes() {
-        // AXIsProcessTrusted keeps its first yes for the app's life; TCC's own
-        // answer is read fresh. 1 is TCC's "not allowed" (seen 6 Nov 2026).
-        assert!(!access_from(true, Some(1), true));
-        assert!(access_from(true, Some(0), true));
-        assert!(!access_from(false, Some(0), true));
-        assert!(!access_from(false, None, false));
+        // Removed with "−", AXIsProcessTrusted keeps its yes; macOS refuses a
+        // new tap at once (CekIzin probe, 6 Nov 2026).
+        assert!(!access_from(true, || false));
+        assert!(access_from(true, || true));
     }
 
     #[test]
-    fn tccs_no_counts_only_once_it_has_said_yes() {
-        // Should TCC answer 1 even with the permission there, its 1 tells
-        // nothing, and Accessibility's word stands: the tools keep working.
-        assert!(access_from(true, Some(1), false));
-        assert!(access_from(true, None, false)); // no TCC answer on this macOS
-        assert!(tcc_yes(Some(0)));
-        assert!(!tcc_yes(Some(1)));
-        assert!(!tcc_yes(None));
+    fn accessibilitys_no_needs_no_test_tap() {
+        // Switched off, AXIsProcessTrusted says no at once: no tap is tried.
+        assert!(!access_from(false, || panic!("no test tap without Accessibility's yes")));
     }
 }

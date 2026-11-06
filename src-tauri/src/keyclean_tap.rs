@@ -28,16 +28,9 @@ const ACCESSIBILITY_PANE: &str = "x-apple.systempreferences:com.apple.preference
 
 /// Whether macOS lets Notching filter keys. `prompt` also shows macOS's own
 /// request when it does not.
-// TCC answered yes while Accessibility did: its "not allowed" now means taken away.
-static TCC_SAID_YES: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-
 pub fn trusted(prompt: bool) -> bool {
     if !prompt {
-        let (ax, tcc) = (ax_says(), crate::tap_guard::tcc_answer());
-        if ax && crate::tap_rules::tcc_yes(tcc) {
-            TCC_SAID_YES.store(true, std::sync::atomic::Ordering::SeqCst);
-        }
-        return crate::tap_rules::access_from(ax, tcc, TCC_SAID_YES.load(std::sync::atomic::Ordering::SeqCst));
+        return crate::tap_rules::access_from(ax_says(), crate::tap_guard::can_tap);
     }
     // SAFETY: the key is a CFStringRef constant, toll-free bridged to NSString.
     let key: &NSString = unsafe { &*(kAXTrustedCheckOptionPrompt as *const NSString) };
@@ -47,8 +40,8 @@ pub fn trusted(prompt: bool) -> bool {
     unsafe { AXIsProcessTrustedWithOptions(Retained::as_ptr(&options) as *const c_void) }
 }
 
-/// AXIsProcessTrusted alone: it keeps its yes after the permission is taken
-/// away, so `trusted` also asks TCC.
+/// AXIsProcessTrusted alone: it keeps its yes after the permission is removed,
+/// so `trusted` also makes a test tap.
 pub fn ax_says() -> bool {
     // SAFETY: no arguments; safe from any thread.
     unsafe { AXIsProcessTrusted() }

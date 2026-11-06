@@ -5,11 +5,9 @@
 //! macOS says the list changed.
 
 use std::ffi::c_void;
-use std::sync::{Mutex, OnceLock};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
-use objc2::rc::Retained;
-use objc2_foundation::NSString;
 use tauri::AppHandle;
 
 use crate::tap_rules::{AccessWatch, Revive};
@@ -17,44 +15,51 @@ use crate::tap_rules::{AccessWatch, Revive};
 const READ_EVERY: Duration = Duration::from_secs(1);
 const DISABLED_BY_TIMEOUT: u32 = 0xFFFF_FFFE;
 
-type PreflightFn = unsafe extern "C" fn(service: *const c_void, options: *const c_void) -> i32;
+// kCGSessionEventTap, kCGTailAppendEventTap, kCGEventTapOptionDefault, and
+// kCGEventOtherMouseDragged: the test tap the CekIzin probe made.
+const SESSION_TAP: u32 = 1;
+const TAIL_APPEND: u32 = 1;
+const FILTER: u32 = 0;
+const OTHER_MOUSE_DRAGGED: u64 = 27;
 
-struct Tcc {
-    preflight: PreflightFn,
-    service: Retained<NSString>,
+#[link(name = "CoreGraphics", kind = "framework")]
+unsafe extern "C" {
+    fn CGEventTapCreate(
+        tap: u32,
+        place: u32,
+        options: u32,
+        events: u64,
+        callback: extern "C" fn(*mut c_void, u32, *mut c_void, *mut c_void) -> *mut c_void,
+        user_info: *mut c_void,
+    ) -> *mut c_void;
+    fn CGEventTapEnable(tap: *mut c_void, enable: bool);
 }
 
-// SAFETY: a function pointer and an immutable NSString, read from any thread.
-unsafe impl Send for Tcc {}
-unsafe impl Sync for Tcc {}
+#[link(name = "CoreFoundation", kind = "framework")]
+unsafe extern "C" {
+    fn CFMachPortInvalidate(port: *mut c_void);
+    fn CFRelease(cf: *const c_void);
+}
 
-static TCC: OnceLock<Option<Tcc>> = OnceLock::new();
+extern "C" fn pass(_proxy: *mut c_void, _kind: u32, event: *mut c_void, _info: *mut c_void) -> *mut c_void {
+    event
+}
 
-fn load_tcc() -> Option<Tcc> {
-    // SAFETY: dlopen and dlsym with C strings; TCCAccessPreflight has this
-    // type in every macOS that has it (private, as Notching's other system calls).
+/// Whether macOS still lets Notching make a tap: a test tap for a rare event
+/// (a middle-button drag) is made and taken down at once, never put on a run
+/// loop. macOS answers this fresh. Safe from any thread.
+pub fn can_tap() -> bool {
+    // SAFETY: a tap made here and released here, once; a null result means refused.
     unsafe {
-        let lib = libc::dlopen(c"/System/Library/PrivateFrameworks/TCC.framework/TCC".as_ptr(), libc::RTLD_LAZY);
-        if lib.is_null() {
-            return None;
+        let port = CGEventTapCreate(SESSION_TAP, TAIL_APPEND, FILTER, 1 << OTHER_MOUSE_DRAGGED, pass, std::ptr::null_mut());
+        if port.is_null() {
+            return false;
         }
-        let f = libc::dlsym(lib, c"TCCAccessPreflight".as_ptr());
-        if f.is_null() {
-            return None;
-        }
-        Some(Tcc {
-            preflight: std::mem::transmute::<*mut c_void, PreflightFn>(f),
-            service: NSString::from_str("kTCCServiceAccessibility"),
-        })
+        CGEventTapEnable(port, false);
+        CFMachPortInvalidate(port);
+        CFRelease(port);
+        true
     }
-}
-
-/// TCC's own answer for Notching's Accessibility, asked fresh each time; None
-/// when this macOS has no such call. Safe from any thread.
-pub fn tcc_answer() -> Option<i32> {
-    let tcc = TCC.get_or_init(load_tcc).as_ref()?;
-    // SAFETY: an NSString is a CFStringRef; no options.
-    Some(unsafe { (tcc.preflight)(Retained::as_ptr(&tcc.service).cast(), std::ptr::null()) })
 }
 
 /// macOS turned the tap `name` off (`kind`): true when it may come back on.
@@ -92,10 +97,10 @@ pub fn start(app: &AppHandle) {
             let told = watch.changed(now);
             if first || told {
                 eprintln!(
-                    "notching: Accessibility {} (AXIsProcessTrusted {}, TCC {:?})",
+                    "notching: Accessibility {} (AXIsProcessTrusted {}, test tap {})",
                     if first { "at launch" } else if now { "given; the taps follow" } else { "taken away; the taps follow" },
                     crate::keyclean_tap::ax_says(),
-                    tcc_answer(),
+                    can_tap(),
                 );
                 first = false;
             }
