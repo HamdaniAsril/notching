@@ -58,6 +58,9 @@ const CARD_LEVEL: i32 = 26;
 const STAGE_LEVEL: i32 = 24;
 const OPEN_MS: u64 = 350;
 const CLOSE_MS: u64 = 220;
+// How long the Dock takes to settle (magnification, auto-hide, its name label)
+// before the screen behind the card is pictured again (design 7 Nov §4).
+const SETTLE_MS: u64 = 500;
 const ACCESS_CHANGED: &str = "com.apple.accessibility.api";
 const ACCESS_SETTLE: Duration = Duration::from_millis(1500);
 const NOTICE_EVERY: Duration = Duration::from_secs(60);
@@ -149,6 +152,8 @@ static PEEK_AREA: Mutex<Option<(Rect, Rect, DockEdge, f64)>> = Mutex::new(None);
 static AWAY: AtomicBool = AtomicBool::new(false);
 // Notching's own glass: the pointer reached the card once this opening, and the screen was pictured again.
 static RETOOK: AtomicBool = AtomicBool::new(false);
+// Bumped by each request for a settled picture; only the last one is taken.
+static SETTLE: AtomicU64 = AtomicU64::new(0);
 // While a window is peeked at: the layer's shade and that window's picture,
 // which the card's own glass shows too (design 7 Nov §4).
 static PEEKING: Mutex<Option<crate::glass_draw::Overlay>> = Mutex::new(None);
@@ -298,6 +303,8 @@ fn on_hover(item: Option<DockItem>) {
             *HOVER.lock().unwrap() = Some(item.clone());
             card_picture(&app, &item);
             if SHOWN.lock().unwrap().is_some() {
+                // The card moves to another icon: the Dock there is pictured once it settles.
+                retake_settled(&app);
                 GENERATION.fetch_add(1, Ordering::SeqCst);
                 show_for(&app, item);
             } else {
@@ -325,6 +332,21 @@ fn card_picture(app: &AppHandle, item: &DockItem) {
     let screens = crate::win_service::screens(mtm);
     let (screen, _) = screen_at(&screens, item.frame.x + item.frame.w / 2.0, item.frame.y + item.frame.h / 2.0);
     glass_capture::begin(app, Owner::Card, screen, card_exclude(app), card_glass_ready);
+}
+
+// A new picture of the screen behind the card once the Dock has settled, if
+// the card is still up; a newer request replaces this one.
+fn retake_settled(app: &AppHandle) {
+    let n = SETTLE.fetch_add(1, Ordering::SeqCst) + 1;
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(SETTLE_MS));
+        on_main(&app, move |app| {
+            if SETTLE.load(Ordering::SeqCst) == n && SHOWN.lock().unwrap().is_some() {
+                glass_capture::retake(app, Owner::Card, card_exclude(app), card_glass_ready);
+            }
+        });
+    });
 }
 
 // The card and the peek layer stay out of the card's picture.
@@ -607,11 +629,12 @@ pub fn peek_pointer(inside: bool) {
     if inside {
         GENERATION.fetch_add(1, Ordering::SeqCst);
         // On the card, the Dock lets go of its name label, magnified icons or
-        // shown auto-hide: the screen behind is pictured once more (design 7 Nov §4).
+        // shown auto-hide: the screen behind is pictured once more when it has
+        // settled (design 7 Nov §4).
         if !RETOOK.swap(true, Ordering::SeqCst)
             && let Some(app) = APP.get()
         {
-            on_main(app, |app| glass_capture::retake(app, Owner::Card, card_exclude(app), card_glass_ready));
+            retake_settled(app);
         }
     } else {
         later_hide();
