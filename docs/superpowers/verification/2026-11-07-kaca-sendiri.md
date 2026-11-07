@@ -66,10 +66,58 @@ Diukur dengan waktu CPU `notching` (`ps -o time`) selama satu menit tanpa sentuh
 | Sesudah kartu Dock, ⌘Tab, dan mengintip | 0,02 detik dalam 30 detik (0,07%, sebatas ketelitian `ps`), display link mati. |
 | Sesudah Pengaturan (ganti warna kartu), Kurangi transparansi nyala-mati, dan kartu dengan kaca macOS | Display link menyala hanya selama dipakai, lalu mati. 0,02 detik dalam 30 detik (0,07%). |
 
-Kesimpulan: kaca buatan Notching tidak meninggalkan beban saat diam. Pada sesi pertama, ada satu langkah yang membuat display link WebKit terus menyala sampai app ditutup, dengan beban 0,5–0,6%. Langkah itu belum ditemukan. Dua putaran percobaan, yaitu kartu, ⌘Tab, mengintip, Pengaturan, Kurangi transparansi, dan Jaga terjaga, tidak bisa memunculkannya lagi. Tidak diketahui apakah ini sudah ada sebelum pekerjaan kaca. Lihat bagian "Untuk nanti".
+Kesimpulan: kaca buatan Notching tidak meninggalkan beban saat diam. Pada sesi pertama, ada satu langkah yang membuat display link WebKit terus menyala sampai app ditutup, dengan beban 0,5–0,6%. Langkah itu belum ditemukan. Dua putaran percobaan, yaitu kartu, ⌘Tab, mengintip, Pengaturan, Kurangi transparansi, dan Jaga terjaga, tidak bisa memunculkannya lagi. Tidak diketahui apakah ini sudah ada sebelum pekerjaan kaca. Pemicunya ditemukan di cek 4.
+
+## Cek 4: display link yang menyala terus (7 November 2026)
+
+Dicari di sesi terpisah. Alat ukurnya ada empat:
+- `sample` setiap beberapa detik.
+- Waktu CPU `notching` (`ps -o time`) selama satu menit tanpa sentuhan (`HIDIdleTime`).
+- Log app.
+- Log WebKit milik proses `notching` (`log show` dan `log stream`, kategori ProcessSuspension, ViewState, RemoteLayerTree).
+
+### Penyebab
+
+Pemicunya dua hal yang terjadi berurutan:
+1. **WebKit menidurkan halaman yang tidak terlihat.** Halaman sebuah jendela yang tidak terlihat selama 240 detik ditidurkan: proses WebContent-nya dihentikan sementara. Log mencatat `View was recently visible (timeout: 240 sec)`, lalu `prepareToSuspend`, lalu `freezeLayerTree reason=4`. Di Notching, ini mengenai kartu Dock, stage, dan pengalih yang tersembunyi, serta Pengaturan yang di-minimize.
+2. **Halaman yang tertidur itu dibangunkan sebentar.** Pembangunnya event dari core, misalnya `module-state` dan `settings` saat ⌃⌥K ditekan atau saat layar bangun. Halaman itu lalu langsung ditidurkan lagi. Dalam beberapa milidetik, prosesnya dibangunkan, menjalankan JS, lalu tidur lagi.
+
+Kalau giliran tidur jatuh di tengah satu gambar, sisi app menunggu gambar yang tidak pernah dikirim. Akibatnya `RemoteLayerTreeDrawingAreaProxy` tidak pernah menghentikan display link-nya, dan display link berdetak 60 kali per detik sampai halaman itu menggambar lagi. Proses WebContent tetap diam karena sedang tidur. Kejadian ini tidak selalu muncul: tergantung waktu, seperti adu cepat.
+
+Masalah ini tidak berasal dari kaca buatan Notching. App uji kecil tanpa kode Notching menunjukkan siklus tidur-bangun yang sama. Halaman pelakunya, Pengaturan atau salah satu panel, tidak bisa dipisahkan dari log, jadi perbaikannya menutup semua halaman.
+
+### Bukti
+
+| Yang dicoba | Bukti |
+|---|---|
+| Sesi uji pertama, build `a0579a3`, dicek ulang dari log WebKit | Layar tidur 15.55.19 dan bangun 15.55.54. Pengaturan dibuka 15.49 lalu tidak terlihat. Halamannya dibangunkan untuk event pada 15.55.56, 15.56.07 (⌃⌥K), dan 15.56.12, dan setiap kali ditidurkan lagi dalam beberapa milidetik. Pengalih ditidurkan 15.55.40 dan kartu 15.56.37. `sample` 15.55.24 menunjukkan satu CVDisplayLink yang diam; `sample` 15.58.24 menunjukkan dua yang keduanya menyala. Tidak ada panel yang terlihat lagi sampai app ditutup. |
+| Notching 0.1.3 terpasang, belum punya kartu, pengalih, dan kaca: ⌃⌥K dua kali | Tidak ada display link sama sekali. |
+| `a0579a3`: ⌃⌥K, kartu, dan ⌘Tab, sebelum ada halaman yang ditidurkan | Display link mati setelah dipakai. Satu menit diam 0,03 detik. |
+| `a0579a3`: Pengaturan di-minimize dan ditidurkan, lalu ⌃⌥K dua kali | Setiap ⌃⌥K membangunkan Pengaturan sebentar, lalu Pengaturan tidur lagi. Kali ini tidak macet. |
+| `a0579a3`: Pengaturan, kartu, dan stage sedang tertidur; layar tidur 18.04.39 dan bangun 18.05.13; lalu ⌃⌥K | **Macet.** Pada diam 97 detik, sampel 6 detik menunjukkan `RemoteLayerTreeDisplayLinkClient::displayLinkFired`. Dua menit diam berturut-turut masing-masing 0,11 detik (0,18%); normalnya 0,02–0,03 detik. Pulih sekitar 18.14, saat kartu dibuka dan Pengaturan dibangunkan. |
+| App uji kecil: WKWebView di jendela yang di-`orderOut`, dibangunkan 60 kali dengan JS yang mengubah halaman | Dengan bawaan WebKit: 61 kali `prepareToSuspend`, display link menyala setiap kali dibangunkan, CPU 1,22 detik. Dengan `inactiveSchedulingPolicy = none` sebelum halaman dimuat: tidak pernah ditidurkan, display link nyaris tidak menyala, CPU 0,31 detik. |
+| App uji kecil: kapan pengaturan itu harus dipasang | Dipasang 1,5 detik setelah halaman mulai dimuat: halaman tetap ditidurkan. Jendela yang di-minimize dengan pengaturan sejak awal: tidak ditidurkan. |
+
+### Perbaikan
+
+- **`src-tauri/src/webview_awake.rs`**:
+  - Setiap webview Notching dibuat dengan konfigurasi yang `inactiveSchedulingPolicy`-nya `none`, sehingga halamannya tidak pernah ditidurkan saat tidak terlihat.
+  - Berlaku di macOS 14 ke atas. macOS 13 tetap memakai bawaan WebKit.
+  - Dipasang di enam tempat pembuatan jendela: notch, kartu/stage/pengalih, Pengaturan, editor screenshot, pemilih area screenshot, dan layar gelap Mode Bersihkan Keyboard.
+  - Halaman yang tidak terlihat memang tidak menjalankan apa-apa, jadi tetap bangun tidak menambah CPU.
+- **`src/settings/pages/info.ts`**: halaman Izin berhenti bertanya ke macOS setiap 2 detik selama jendela Pengaturan tidak terlihat, lalu bertanya lagi saat terlihat. Tanpa ini, Pengaturan yang di-minimize di halaman Izin akan terus bertanya, karena halamannya tidak lagi ditidurkan.
+
+### Cek di Mac dengan perbaikan
+
+| Build | Yang dicoba | Bukti | Lulus? |
+|---|---|---|---|
+| Perbaikan 1: pengaturan dipasang lewat `on_webview_ready`, setelah halaman mulai dimuat | Langkah yang memicu: Pengaturan di-minimize, kartu, ⌘Tab, 5 menit, layar tidur dan bangun, ⌃⌥K dua kali | Kartu, stage, dan pengalih tidak ditidurkan: tidak ada `prepareToSuspend` saat batas 240 detik (18.35.14–18.35.19). Pengaturan tetap ditidurkan pada 18.35.10, lalu dibangunkan bolak-balik oleh layar bangun dan ⌃⌥K. Satu menit diam 0,02 detik, tetapi celahnya masih ada. | Belum, lanjut ke perbaikan 2 |
+| Perbaikan 2: pengaturan dipasang saat jendela dibuat | Pengaturan di-minimize, kartu, ⌘Tab, lalu pemakaian biasa | Log app mencatat `page … stays awake out of sight` untuk notch-0, settings, peek, peek-stage, dan switcher. Keempat halaman tersembunyi mencapai batas 240 detik (18.53.03–18.53.11) tanpa satu pun `prepareToSuspend` atau `freezeLayerTree reason=4`. Satu menit diam sesudahnya 0,03 detik (0,05%), tanpa display link. Angka ini sama dengan build yang sama sebelum dipakai (0,02–0,03 detik); `ps` hanya teliti sampai 0,01 detik. | Lulus |
+
+Langkah layar tidur dan ⌃⌥K tidak diulang di perbaikan 2, karena keduanya hanya bisa membuat macet halaman yang sedang tertidur, dan di perbaikan 2 tidak ada halaman yang ditidurkan.
 
 ## Untuk nanti
 
-- **Display link yang menyala terus** (lihat CPU di atas): cari langkah pemicunya dengan pengamat (`sample` + log) selama pemakaian biasa, termasuk di Notching terpasang yang belum punya kaca sendiri.
 - **Belum dicek di Mac:** monitor kedua dengan skala lain, dan keadaan tanpa izin Rekaman Layar.
+- **macOS 13** tetap memakai bawaan WebKit: halaman bisa ditidurkan, jadi celah display link yang menyala terus masih ada. Belum dicek, karena tidak ada Mac dengan macOS 13.
 - **Minor dari tinjauan akhir yang ditunda**: daftarnya ada di laporan akhir sesi (ledger).
