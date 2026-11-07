@@ -22,6 +22,7 @@ use crate::peek_rules::GlassShape;
 
 /// What the peek layer draws over the screen while a window is peeked at: the
 /// shade, and that window's picture (PNG) in its place, CG points.
+#[derive(Clone)]
 pub struct Overlay {
     pub frame: Rect,
     pub picture: Option<Arc<Vec<u8>>>,

@@ -17,6 +17,7 @@ use block2::RcBlock;
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2::MainThreadMarker;
+use objc2_core_graphics::CGImage;
 use objc2_app_kit::{NSApplicationActivationPolicy, NSEvent, NSEventMask, NSWorkspace};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, EventTarget, Manager};
@@ -24,6 +25,9 @@ use tauri_nspanel::ManagerExt;
 
 use crate::app_core::CoreState;
 use crate::geometry::Rect;
+use crate::glass_capture::{self, Owner};
+use crate::glass_rules::{opening, Snap};
+use crate::glass_view::{self, Enter};
 use crate::locale::Lang;
 use crate::module_commands::change;
 use crate::peek_rules::{card_point, CardColor, Material, PeekSettings, SwitchLayout, SwitchPlace};
@@ -68,6 +72,8 @@ static EARLY_ACT: Mutex<Option<Act>> = Mutex::new(None);
 static SYNC: Mutex<()> = Mutex::new(());
 static ICONS: Mutex<Option<HashMap<i32, Option<String>>>> = Mutex::new(None);
 static FRAME: Mutex<Option<Rect>> = Mutex::new(None);
+// The panel's frame in CG points while it is up, for Notching's own glass.
+static GLASS_AT: Mutex<Option<Rect>> = Mutex::new(None);
 static GATE: Mutex<PointerGate> = Mutex::new(PointerGate::new());
 
 thread_local! {
@@ -470,6 +476,8 @@ fn relist(app: &AppHandle) {
                 o.win = 0;
                 drop(open);
                 emit(&handle);
+                // What is behind the switcher has changed: its glass is pictured again.
+                glass_capture::retake(&handle, Owner::Switcher, exclude(&handle), glass_ready);
             });
         });
     });
@@ -493,6 +501,10 @@ fn open(app: &AppHandle) {
     let own = own_windows(app);
     let names = names_of(app, apps.clone(), &own);
     let s = settings(app);
+    // Notching's own glass (design 7 Nov §4): the screen behind is pictured while the list is made.
+    if glass_capture::can_draw(s.material) {
+        glass_capture::begin(app, Owner::Switcher, screen, exclude(app), glass_ready);
+    }
     let handle = app.clone();
     std::thread::spawn(move || {
         let list = list(&apps, s.minimized, own);
@@ -545,10 +557,41 @@ fn show(app: &AppHandle, round: u64) {
     emit(app);
 }
 
+// The switcher stays out of its own picture.
+fn exclude(app: &AppHandle) -> Vec<u32> {
+    app.get_webview_panel(PANEL).ok().map(|p| p.as_panel().windowNumber() as u32).into_iter().collect()
+}
+
+// The switcher's glass at `frame` (CG points) from its picture, when it can be drawn there.
+fn glass_at(frame: Rect, s: PeekSettings) -> Option<Retained<CGImage>> {
+    if !glass_capture::can_draw(s.material) {
+        return None;
+    }
+    let snap = glass_capture::snapshot(Owner::Switcher)?;
+    if !snap.screen.contains(frame.x + frame.w / 2.0, frame.y + frame.h / 2.0) {
+        return None;
+    }
+    crate::glass_draw::render(&snap, frame, crate::peek_rules::glass_shape(Some(s.place)), crate::glass_draw::current_look(), None)
+}
+
+// The switcher's picture came while it is up: its glass fades in.
+fn glass_ready(app: &AppHandle, _owner: Owner) {
+    let Some(frame) = *GLASS_AT.lock().unwrap() else { return };
+    let s = settings(app);
+    let Some(image) = glass_at(frame, s) else { return };
+    let Ok(panel) = app.get_webview_panel(PANEL) else { return };
+    let shape = crate::peek_rules::glass_shape(Some(s.place));
+    crate::peek_service::dress_window(app, PANEL, s, shape, true);
+    glass_view::show(app, PANEL, panel.as_panel(), &image, shape, crate::glass_draw::current_look(), Enter::Fade);
+}
+
 fn hide(app: &AppHandle) {
     ROUND.fetch_add(1, Ordering::SeqCst);
     *OPEN.lock().unwrap() = None;
     *FRAME.lock().unwrap() = None;
+    *GLASS_AT.lock().unwrap() = None;
+    glass_capture::forget(Owner::Switcher);
+    glass_view::clear(app, PANEL);
     GATE.lock().unwrap().reset();
     watch_pointer(app, false);
     crate::switch_tap::closed();
@@ -653,13 +696,32 @@ pub fn switch_size(app: AppHandle, width: f64, height: f64) {
             SwitchPlace::Notch => o.screen.y,
         };
         let primary = crate::peek_service::primary_height();
-        let at = crate::peek_service::appkit(Rect { x, y, w, h }, primary);
+        let frame = Rect { x, y, w, h };
+        let at = crate::peek_service::appkit(frame, primary);
         let Ok(panel) = handle.get_webview_panel(PANEL) else { return };
-        crate::peek_service::dress_window(&handle, PANEL, s, crate::peek_rules::glass_shape(Some(s.place)), false);
+        let shape = crate::peek_rules::glass_shape(Some(s.place));
+        let glass = glass_at(frame, s);
+        crate::peek_service::dress_window(&handle, PANEL, s, shape, glass.is_some());
         panel.as_panel().setFrame_display(at, true);
         panel.as_panel().invalidateShadow();
         let first = !panel.as_panel().isVisible();
         panel.as_panel().orderFrontRegardless();
+        *GLASS_AT.lock().unwrap() = Some(frame);
+        match glass {
+            Some(image) => {
+                let enter = if first {
+                    Enter::Opening(opening(Some(s.place)))
+                } else if glass_view::showing(PANEL) {
+                    Enter::Now
+                } else {
+                    Enter::Fade
+                };
+                glass_view::show(&handle, PANEL, panel.as_panel(), &image, shape, crate::glass_draw::current_look(), enter);
+            }
+            // No picture yet: macOS's glass now, Notching's when it comes, or none after a second.
+            None if first && glass_capture::state(Owner::Switcher) == Snap::Waiting => glass_capture::give_up_later(&handle, Owner::Switcher),
+            None => {}
+        }
         if first {
             eprintln!("notching: switcher shown ({} items)", o.items.len());
         }

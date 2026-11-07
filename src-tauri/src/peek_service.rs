@@ -149,6 +149,9 @@ static PEEK_AREA: Mutex<Option<(Rect, Rect, DockEdge, f64)>> = Mutex::new(None);
 static AWAY: AtomicBool = AtomicBool::new(false);
 // Notching's own glass: the pointer reached the card once this opening, and the screen was pictured again.
 static RETOOK: AtomicBool = AtomicBool::new(false);
+// While a window is peeked at: the layer's shade and that window's picture,
+// which the card's own glass shows too (design 7 Nov §4).
+static PEEKING: Mutex<Option<crate::glass_draw::Overlay>> = Mutex::new(None);
 
 thread_local! {
     // Mouse-move monitors, only while the card is up.
@@ -233,6 +236,9 @@ fn clear_stage(app: &AppHandle) {
     let _ = app.emit_to(EventTarget::webview_window(STAGE), STAGE_EVENT, None::<StageViewDto>);
     if let Ok(stage) = app.get_webview_panel(STAGE) {
         stage.hide();
+    }
+    if PEEKING.lock().unwrap().take().is_some() && glass_view::showing(CARD) {
+        card_glass_again(app, Enter::Now);
     }
 }
 
@@ -335,18 +341,24 @@ fn card_glass(frame: Rect, s: PeekSettings) -> Option<Retained<CGImage>> {
     if !snap.screen.contains(frame.x + frame.w / 2.0, frame.y + frame.h / 2.0) {
         return None;
     }
-    crate::glass_draw::render(&snap, frame, crate::peek_rules::glass_shape(None), crate::glass_draw::current_look(), None)
+    let peeking = PEEKING.lock().unwrap().clone();
+    crate::glass_draw::render(&snap, frame, crate::peek_rules::glass_shape(None), crate::glass_draw::current_look(), peeking.as_ref())
 }
 
 // The card's picture came while the card is up: its glass fades in.
 fn card_glass_ready(app: &AppHandle, _owner: Owner) {
+    card_glass_again(app, Enter::Fade);
+}
+
+// The card's glass drawn again where the card is: a new picture, or peeking began or ended.
+fn card_glass_again(app: &AppHandle, enter: Enter) {
     let Some((_, frame, _, _)) = *PEEK_AREA.lock().unwrap() else { return };
     let s = settings(app);
     let Some(image) = card_glass(frame, s) else { return };
     let Ok(panel) = app.get_webview_panel(CARD) else { return };
     let shape = crate::peek_rules::glass_shape(None);
     dress_window(app, CARD, s, shape, true);
-    glass_view::show(app, CARD, panel.as_panel(), &image, shape, crate::glass_draw::current_look(), Enter::Fade);
+    glass_view::show(app, CARD, panel.as_panel(), &image, shape, crate::glass_draw::current_look(), enter);
 }
 
 pub(crate) fn data_url(png: &[u8]) -> String {
@@ -649,6 +661,8 @@ pub fn peek_act(app: AppHandle, id: u32, act: WindowAct) {
         on_main(&app, move |app| {
             if running {
                 show_for(app, item);
+                // What is behind the card has changed: its glass is pictured again.
+                glass_capture::retake(app, Owner::Card, card_exclude(app), card_glass_ready);
             } else {
                 hide_now(app);
             }
@@ -668,7 +682,8 @@ pub fn peek_hover(app: AppHandle, id: Option<u32>) {
     let Some(shown) = SHOWN.lock().unwrap().clone() else { return };
     let Some(window) = find_window(&shown.windows, id).cloned() else { return };
     std::thread::spawn(move || {
-        let picture = peek_capture::picture(id, window.minimized, PictureSize::Full).map(|png| data_url(&png));
+        let png = peek_capture::picture(id, window.minimized, PictureSize::Full);
+        let picture = png.as_deref().map(|png| data_url(png));
         on_main(&app, move |app| {
             // Still over this window's card? A slow picture for another is dropped.
             if *HOVER_ID.lock().unwrap() != Some(id) || SHOWN.lock().unwrap().as_ref().is_none_or(|s| s.pid != shown.pid) {
@@ -686,6 +701,11 @@ pub fn peek_hover(app: AppHandle, id: Option<u32>) {
             stage.as_panel().setFrame_display(appkit(screen, primary_height()), true);
             let _ = app.emit_to(EventTarget::webview_window(STAGE), STAGE_EVENT, &view);
             stage.as_panel().orderFrontRegardless();
+            // The card's own glass darkens with the screen, the window in its place.
+            *PEEKING.lock().unwrap() = Some(crate::glass_draw::Overlay { frame: window.frame, picture: png });
+            if glass_view::showing(CARD) {
+                card_glass_again(app, Enter::Now);
+            }
         });
     });
 }
@@ -714,6 +734,7 @@ fn hide_now(app: &AppHandle) {
     }
     glass_capture::forget(Owner::Card);
     RETOOK.store(false, Ordering::SeqCst);
+    *PEEKING.lock().unwrap() = None;
     *PEEK_AREA.lock().unwrap() = None;
     *HOVER_ID.lock().unwrap() = None;
     *CARD_FRAME.lock().unwrap() = None;

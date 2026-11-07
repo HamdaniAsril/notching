@@ -67,7 +67,9 @@ pub fn look(tuned: Option<&str>) -> GlassLook {
 
 /// How far out a point `depth` points in from the edge reaches for what it
 /// shows: all of `bend` at the edge, none from `rim` inward, along a quarter
-/// circle (design §5 step 3).
+/// circle (design §5 step 3). The kernel in glass_draw.rs draws this curve
+/// in CIKL; here it is written out so it is tested.
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn bend_at(depth: f64, look: &GlassLook) -> f64 {
     if look.rim <= 0.0 {
         return 0.0;

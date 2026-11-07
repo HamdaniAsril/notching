@@ -15,8 +15,6 @@ mod modules;
 mod page_commands;
 mod pages;
 mod peek_rules;
-// Used piece by piece as the own-glass tasks land (plan 2026-11-07-kaca-sendiri).
-#[allow(dead_code)]
 mod glass_rules;
 mod switch_rules;
 mod tap_rules;
@@ -83,10 +81,8 @@ mod peek_windows;
 #[cfg(target_os = "macos")]
 mod peek_capture;
 #[cfg(target_os = "macos")]
-#[allow(dead_code)] // used piece by piece as the own-glass tasks land
 mod glass_capture;
 #[cfg(target_os = "macos")]
-#[allow(dead_code)] // used piece by piece as the own-glass tasks land
 mod glass_draw;
 #[cfg(target_os = "macos")]
 mod glass_view;
