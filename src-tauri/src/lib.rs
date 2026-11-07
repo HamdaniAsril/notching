@@ -15,6 +15,9 @@ mod modules;
 mod page_commands;
 mod pages;
 mod peek_rules;
+// Used piece by piece as the own-glass tasks land (plan 2026-11-07-kaca-sendiri).
+#[allow(dead_code)]
+mod glass_rules;
 mod switch_rules;
 mod tap_rules;
 mod prefs;
