@@ -31,3 +31,19 @@ test('the card colour fades as the glass changes', async () => {
   expect(text).toMatch(/@property --c-bg \{\s*syntax: '<color>';/);
   expect(rule(text, '#peek.mat-glass, #sw.mat-glass')).toContain('transition: --c-bg .15s');
 });
+
+async function file(path: string): Promise<string> {
+  // @ts-expect-error: as above.
+  const { readFileSync } = await import('node:fs');
+  return readFileSync(path, 'utf8');
+}
+
+test("Intip's titles are in Inter, as the owner asked (7 Nov), not the number face", async () => {
+  const card = rule(await css(), '.ph .nm');
+  const sw = rule(await file('src/peek/switcher.css'), '.swh .cond');
+  for (const body of [card, sw]) {
+    expect(body).toContain('"Inter"');
+    expect(body).not.toContain('Barlow');
+    expect(body).not.toContain('uppercase');
+  }
+});

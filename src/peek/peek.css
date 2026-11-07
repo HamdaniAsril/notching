@@ -49,7 +49,8 @@ body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: n
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 .ph { display: flex; align-items: baseline; gap: 10px; margin: 0 4px 10px; }
-.ph .nm { font: 700 18px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .05em; }
+/* The title in Inter, as the owner asked (7 Nov); Barlow Condensed stays for the chips. */
+.ph .nm { font: 600 15px/1.2 "Inter", -apple-system, sans-serif; letter-spacing: -.01em; }
 .ph .ct { color: var(--c-muted); font-size: 12px; }
 .empty { color: var(--c-muted); padding: 10px 6px 14px; font-size: 12px; }
 
