@@ -331,7 +331,7 @@ fn card_picture(app: &AppHandle, item: &DockItem) {
     let Some(mtm) = MainThreadMarker::new() else { return };
     let screens = crate::win_service::screens(mtm);
     let (screen, _) = screen_at(&screens, item.frame.x + item.frame.w / 2.0, item.frame.y + item.frame.h / 2.0);
-    glass_capture::begin(app, Owner::Card, screen, card_exclude(app), card_glass_ready);
+    glass_capture::begin(app, Owner::Card, screen, glass_exclude(app), card_glass_ready);
 }
 
 // A new picture of the screen behind the card once the Dock has settled, if
@@ -343,15 +343,19 @@ fn retake_settled(app: &AppHandle) {
         std::thread::sleep(Duration::from_millis(SETTLE_MS));
         on_main(&app, move |app| {
             if SETTLE.load(Ordering::SeqCst) == n && SHOWN.lock().unwrap().is_some() {
-                glass_capture::retake(app, Owner::Card, card_exclude(app), card_glass_ready);
+                glass_capture::retake(app, Owner::Card, glass_exclude(app), card_glass_ready);
             }
         });
     });
 }
 
-// The card and the peek layer stay out of the card's picture.
-fn card_exclude(app: &AppHandle) -> Vec<u32> {
-    [CARD, STAGE].iter().filter_map(|label| app.get_webview_panel(label).ok()).map(|p| p.as_panel().windowNumber() as u32).collect()
+// The card, the peek layer and the switcher stay out of every glass picture (design 7 Nov §3).
+pub(crate) fn glass_exclude(app: &AppHandle) -> Vec<u32> {
+    [CARD, STAGE, crate::switch_service::PANEL]
+        .iter()
+        .filter_map(|label| app.get_webview_panel(label).ok())
+        .map(|p| p.as_panel().windowNumber() as u32)
+        .collect()
 }
 
 // The card's glass at `frame` (CG points) from its picture, when it can be drawn there.
@@ -685,7 +689,7 @@ pub fn peek_act(app: AppHandle, id: u32, act: WindowAct) {
             if running {
                 show_for(app, item);
                 // What is behind the card has changed: its glass is pictured again.
-                glass_capture::retake(app, Owner::Card, card_exclude(app), card_glass_ready);
+                glass_capture::retake(app, Owner::Card, glass_exclude(app), card_glass_ready);
             } else {
                 hide_now(app);
             }

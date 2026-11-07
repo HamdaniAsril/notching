@@ -38,7 +38,7 @@ use crate::switch_rules::{
     PointerGate, SwitchAction, SwitchKeyError,
 };
 
-const PANEL: &str = "switcher";
+pub(crate) const PANEL: &str = "switcher";
 const VIEW_EVENT: &str = "notching://switch";
 const POINTER_EVENT: &str = "notching://switch-pointer";
 /// Above the Dock and the notch panels, like the peek card.
@@ -477,7 +477,7 @@ fn relist(app: &AppHandle) {
                 drop(open);
                 emit(&handle);
                 // What is behind the switcher has changed: its glass is pictured again.
-                glass_capture::retake(&handle, Owner::Switcher, exclude(&handle), glass_ready);
+                glass_capture::retake(&handle, Owner::Switcher, crate::peek_service::glass_exclude(&handle), glass_ready);
             });
         });
     });
@@ -503,7 +503,7 @@ fn open(app: &AppHandle) {
     let s = settings(app);
     // Notching's own glass (design 7 Nov §4): the screen behind is pictured while the list is made.
     if glass_capture::can_draw(s.material) {
-        glass_capture::begin(app, Owner::Switcher, screen, exclude(app), glass_ready);
+        glass_capture::begin(app, Owner::Switcher, screen, crate::peek_service::glass_exclude(app), glass_ready);
     }
     let handle = app.clone();
     std::thread::spawn(move || {
@@ -555,11 +555,6 @@ fn show(app: &AppHandle, round: u64) {
     }
     crate::peek_service::make_panel(app, PANEL, "switcher.html", LEVEL);
     emit(app);
-}
-
-// The switcher stays out of its own picture.
-fn exclude(app: &AppHandle) -> Vec<u32> {
-    app.get_webview_panel(PANEL).ok().map(|p| p.as_panel().windowNumber() as u32).into_iter().collect()
 }
 
 // The switcher's glass at `frame` (CG points) from its picture, when it can be drawn there.

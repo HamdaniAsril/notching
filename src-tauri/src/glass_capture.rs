@@ -9,12 +9,13 @@ use std::sync::{Arc, LazyLock, Mutex, Once};
 use std::time::Instant;
 
 use block2::RcBlock;
+use objc2::rc::Retained;
 use objc2::AllocAnyThread;
 use objc2_app_kit::NSWorkspace;
 use objc2_core_foundation::CFRetained;
 use objc2_core_graphics::CGImage;
 use objc2_foundation::{NSArray, NSError, NSProcessInfo};
-use objc2_screen_capture_kit::{SCContentFilter, SCScreenshotManager, SCShareableContent, SCStreamConfiguration, SCWindow};
+use objc2_screen_capture_kit::{SCContentFilter, SCDisplay, SCScreenshotManager, SCShareableContent, SCStreamConfiguration, SCWindow};
 use tauri::AppHandle;
 
 use crate::geometry::Rect;
@@ -142,6 +143,34 @@ fn finish(app: &AppHandle, owner: Owner, ticket: u64, picture: Option<Snapshot>,
     }
 }
 
+// Notching's windows in `exclude` stay out of the picture, also one that comes
+// on screen while it is taken (the switcher after its 140 ms); its other
+// windows, such as the notch, stay in it.
+unsafe fn leave_out(content: &SCShareableContent, display: &SCDisplay, exclude: &[u32]) -> Retained<SCContentFilter> {
+    let own = std::process::id() as libc::pid_t;
+    let ours = |w: &SCWindow| unsafe { w.owningApplication() }.is_some_and(|a| unsafe { a.processID() } == own);
+    // SAFETY: plain reads on the content ScreenCaptureKit gave, and filters made for this display.
+    unsafe {
+        let windows = content.windows();
+        match content.applications().iter().find(|a| a.processID() == own) {
+            Some(me) => {
+                let keep: Vec<_> = windows.iter().filter(|w| ours(w) && !exclude.contains(&w.windowID())).collect();
+                SCContentFilter::initWithDisplay_excludingApplications_exceptingWindows(
+                    SCContentFilter::alloc(),
+                    display,
+                    &NSArray::from_retained_slice(&[me]),
+                    &NSArray::from_retained_slice(&keep),
+                )
+            }
+            // Not listed (no window of ours on screen): the panels by number.
+            None => {
+                let skip: Vec<_> = windows.iter().filter(|w| exclude.contains(&w.windowID())).collect();
+                SCContentFilter::initWithDisplay_excludingWindows(SCContentFilter::alloc(), display, &NSArray::from_retained_slice(&skip))
+            }
+        }
+    }
+}
+
 // The screen's content, then its picture, through ScreenCaptureKit's two
 // completion handlers on its own queue.
 fn take(app: AppHandle, owner: Owner, ticket: u64, screen: Rect, exclude: Vec<u32>, ready: fn(&AppHandle, Owner)) {
@@ -165,12 +194,9 @@ fn take(app: AppHandle, owner: Owner, ticket: u64, screen: Rect, exclude: Vec<u3
             finish(&app, owner, ticket, None, ready);
             return;
         };
-        // SAFETY: as above.
-        let skip: Vec<_> = unsafe { content.windows() }.iter().filter(|w| exclude.contains(&unsafe { w.windowID() })).collect();
-        let skip = NSArray::<SCWindow>::from_retained_slice(&skip);
         // SAFETY: a filter and a configuration made here for this one display.
         unsafe {
-            let filter = SCContentFilter::initWithDisplay_excludingWindows(SCContentFilter::alloc(), &display, &skip);
+            let filter = leave_out(content, &display, &exclude);
             let frame = display.frame();
             let scale = SCShareableContent::infoForFilter(&filter).pointPixelScale() as f64;
             let scale = if scale > 0.0 { scale } else { 2.0 };
