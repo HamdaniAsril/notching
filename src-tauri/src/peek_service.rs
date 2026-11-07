@@ -476,6 +476,11 @@ fn set_glass(label: &str, panel: &NSPanel, on: bool, shape: crate::peek_rules::G
         });
         view.setStyle(NSGlassEffectViewStyle::Clear);
         view.setCornerRadius(shape.radius);
+        let alpha = crate::peek_rules::glass_alpha(std::env::var("NOTCHING_GLASS_ALPHA").ok().as_deref());
+        if view.alphaValue() != alpha {
+            eprintln!("notching: Liquid Glass under {label} at strength {alpha}");
+            view.setAlphaValue(alpha);
+        }
         // Hanging from the notch: the top corners go past the panel's edge, so they are square.
         let b = content.bounds();
         let extra = if shape.flat_top { shape.radius } else { 0.0 };
