@@ -108,6 +108,15 @@ objc2-quick-look-thumbnailing = { version = "0.3", default-features = false, fea
   "QLThumbnailRepresentation",
 ] }
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage", "CGColorSpace", "CGColor"] }
+# The pages stay awake out of sight (webview_awake.rs); the same crate and
+# features wry already builds.
+objc2-web-kit = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "objc2-app-kit",
+  "WKWebView",
+  "WKWebViewConfiguration",
+  "WKPreferences",
+] }
 # Notching's own glass, drawn from a picture of the screen (design 7 Nov §5).
 objc2-core-image = { version = "0.3", default-features = false, features = [
   "std",

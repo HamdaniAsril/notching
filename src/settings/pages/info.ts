@@ -70,13 +70,30 @@ export const permissionsPage: PageRender = ctx => {
   });
   page.append(group(...rows));
   show(ctx.info);
+  // Asks only while the window is in sight: a minimized Settings window stays
+  // awake (webview_awake.rs) and would otherwise ask every 2 s for nothing.
+  const doc = page.ownerDocument;
   let stop = () => {};
-  const poll = () => {
+  let round = 0;
+  const poll = (r: number) => {
     stop = ctx.env.setTimer(() => {
-      ctx.bridge.settings().then(show, () => {}).finally(poll);
+      if (r !== round || doc.visibilityState !== 'visible') return;
+      ctx.bridge.settings().then(show, () => {}).finally(() => {
+        if (r === round) poll(r);
+      });
     }, ACCESS_POLL_MS);
   };
-  poll();
-  ctx.onCleanup(() => stop());
+  const seen = () => {
+    if (doc.visibilityState !== 'visible') return;
+    stop();
+    poll(++round);
+  };
+  doc.addEventListener('visibilitychange', seen);
+  poll(round);
+  ctx.onCleanup(() => {
+    round += 1; // an answer still on its way does not start it again
+    stop();
+    doc.removeEventListener('visibilitychange', seen);
+  });
   return page;
 };

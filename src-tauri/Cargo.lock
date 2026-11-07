@@ -1929,6 +1929,7 @@ dependencies = [
  "objc2-quick-look-thumbnailing",
  "objc2-screen-capture-kit",
  "objc2-service-management",
+ "objc2-web-kit",
  "plist",
  "serde",
  "serde_json",

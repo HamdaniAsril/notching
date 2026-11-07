@@ -119,6 +119,8 @@ mod self_uninstall;
 mod update_rules;
 #[cfg(target_os = "macos")]
 mod update_service;
+#[cfg(target_os = "macos")]
+mod webview_awake;
 
 #[cfg(target_os = "macos")]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

@@ -279,6 +279,7 @@ fn key_to_cursor(app: &AppHandle) {
 }
 
 fn create(app: &AppHandle, label: &str) -> tauri::Result<std::sync::Arc<dyn tauri_nspanel::Panel>> {
+    let awake = crate::webview_awake::configuration(app, label);
     let panel = PanelBuilder::<_, PickPanel>::new(app, label)
         .url(WebviewUrl::App("pick.html".into()))
         .size(Size::Logical(LogicalSize::new(800.0, 600.0)))
@@ -292,8 +293,9 @@ fn create(app: &AppHandle, label: &str) -> tauri::Result<std::sync::Arc<dyn taur
         .no_activate(true)
         .hides_on_deactivate(false)
         .accepts_mouse_moved_events(true)
-        .with_window(|w| {
-            w.accept_first_mouse(true).transparent(true).decorations(false).visible(false).focused(false).skip_taskbar(true)
+        .with_window(move |w| {
+            let w = w.accept_first_mouse(true).transparent(true).decorations(false).visible(false).focused(false).skip_taskbar(true);
+            crate::webview_awake::apply(w, awake)
         })
         .build()?;
     // Gone at once when ordered out, with no fade for the settle wait to outlast.

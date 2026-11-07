@@ -462,6 +462,7 @@ pub(crate) fn make_panel(app: &AppHandle, label: &str, url: &str, level: i32) ->
     if let Ok(panel) = app.get_webview_panel(label) {
         return Some(panel);
     }
+    let awake = crate::webview_awake::configuration(app, label);
     let panel = PanelBuilder::<_, PeekPanel>::new(app, label)
         .url(WebviewUrl::App(url.into()))
         .size(Size::Logical(LogicalSize::new(800.0, 300.0)))
@@ -475,8 +476,9 @@ pub(crate) fn make_panel(app: &AppHandle, label: &str, url: &str, level: i32) ->
         .no_activate(true)
         .hides_on_deactivate(false)
         .accepts_mouse_moved_events(true)
-        .with_window(|w| {
-            w.accept_first_mouse(true).transparent(true).decorations(false).visible(false).focused(false).skip_taskbar(true)
+        .with_window(move |w| {
+            let w = w.accept_first_mouse(true).transparent(true).decorations(false).visible(false).focused(false).skip_taskbar(true);
+            crate::webview_awake::apply(w, awake)
         })
         .build()
         .map_err(|e| eprintln!("notching: peek panel {label} not made: {e}"))

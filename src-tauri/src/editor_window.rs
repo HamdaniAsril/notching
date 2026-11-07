@@ -572,7 +572,9 @@ pub async fn open_editor(app: AppHandle, window: WebviewWindow, id: u64) -> Resu
     }
 
     *editor() = Editor { id: Some(id), screen: open.screen, ..Editor::new() };
-    let builder = WebviewWindowBuilder::new(&app, EDITOR_LABEL, WebviewUrl::App("editor.html".into()))
+    let awake = crate::webview_awake::configuration(&app, EDITOR_LABEL);
+    let builder = WebviewWindowBuilder::new(&app, EDITOR_LABEL, WebviewUrl::App("editor.html".into()));
+    let builder = crate::webview_awake::apply(builder, awake)
         .title(title(size))
         .inner_size(open.frame.w, open.frame.h)
         .min_inner_size(MIN_SIZE.0, MIN_SIZE.1)

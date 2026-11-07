@@ -61,6 +61,7 @@ pub fn hide(app: &AppHandle) {
 }
 
 fn create(app: &AppHandle, label: &str) -> tauri::Result<std::sync::Arc<dyn tauri_nspanel::Panel>> {
+    let awake = crate::webview_awake::configuration(app, label);
     let panel = PanelBuilder::<_, DimPanel>::new(app, label)
         .url(WebviewUrl::App("clean.html".into()))
         .size(Size::Logical(LogicalSize::new(800.0, 600.0)))
@@ -73,7 +74,10 @@ fn create(app: &AppHandle, label: &str) -> tauri::Result<std::sync::Arc<dyn taur
         .has_shadow(false)
         .no_activate(true)
         .hides_on_deactivate(false)
-        .with_window(|w| w.transparent(true).decorations(false).visible(false).focused(false).skip_taskbar(true))
+        .with_window(move |w| {
+            let w = w.transparent(true).decorations(false).visible(false).focused(false).skip_taskbar(true);
+            crate::webview_awake::apply(w, awake)
+        })
         .build()?;
     Ok(panel)
 }

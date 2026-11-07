@@ -250,7 +250,9 @@ fn open(app: AppHandle, window: WebviewWindow, route: Option<String>) -> Result<
     let (w, h) = SETTINGS_SIZE;
     let url = settings_url(route.as_deref());
     let theme = window_theme(app.state::<CoreState>().0.lock().unwrap().theme());
-    let mut builder = WebviewWindowBuilder::new(&app, SETTINGS_LABEL, WebviewUrl::App(url.into()))
+    let awake = crate::webview_awake::configuration(&app, SETTINGS_LABEL);
+    let mut builder = WebviewWindowBuilder::new(&app, SETTINGS_LABEL, WebviewUrl::App(url.into()));
+    builder = crate::webview_awake::apply(builder, awake)
         .theme(theme)
         .title("Notching")
         .inner_size(w, h)

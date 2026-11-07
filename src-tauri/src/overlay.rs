@@ -157,6 +157,7 @@ fn place<R: tauri::Runtime>(panel: &dyn tauri_nspanel::Panel<R>, frame: Rect) {
 }
 
 fn create_panel(app: &AppHandle, label: &str, frame: Rect) -> tauri::Result<()> {
+    let awake = crate::webview_awake::configuration(app, label);
     let panel = PanelBuilder::<_, NotchPanel>::new(app, label)
         .url(WebviewUrl::App("index.html".into()))
         .size(Size::Logical(LogicalSize::new(OVERLAY_W, OVERLAY_H)))
@@ -173,13 +174,15 @@ fn create_panel(app: &AppHandle, label: &str, frame: Rect) -> tauri::Result<()> 
         // Off until the cursor reaches a notch (pointer.rs), or AppKit hands
         // this window every mouse move on the screen.
         .accepts_mouse_moved_events(false)
-        .with_window(|w| {
-            w.accept_first_mouse(true)
+        .with_window(move |w| {
+            let w = w
+                .accept_first_mouse(true)
                 .transparent(true)
                 .decorations(false)
                 .visible(false)
                 .focused(false)
-                .skip_taskbar(true)
+                .skip_taskbar(true);
+            crate::webview_awake::apply(w, awake)
         })
         .build()?;
 

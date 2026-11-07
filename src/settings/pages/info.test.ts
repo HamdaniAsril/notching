@@ -30,6 +30,50 @@ test('its button opens System Settings, and the state follows what macOS says', 
   expect(root.querySelector('[data-row="permission.accessibility"]')!.textContent).toContain('Diizinkan');
 });
 
+test('out of sight it stops asking macOS, and asks again once seen', async () => {
+  let seen: DocumentVisibilityState = 'visible';
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => seen });
+  const turn = (to: DocumentVisibilityState) => {
+    seen = to;
+    document.dispatchEvent(new Event('visibilitychange'));
+  };
+  try {
+    const { app, bridge } = await mountForTest(WITH, { ...TEST_INFO, accessibility: false });
+    app.go({ page: 'permissions' });
+    bridge.settings.mockClear();
+    turn('hidden');
+    timers.advance(10000);
+    await settle();
+    expect(bridge.settings).not.toHaveBeenCalled();
+    expect(timers.pending).toHaveLength(0);
+    turn('visible');
+    timers.advance(2000);
+    await settle();
+    expect(bridge.settings).toHaveBeenCalledTimes(1);
+    timers.advance(2000);
+    await settle();
+    expect(bridge.settings).toHaveBeenCalledTimes(2);
+  } finally {
+    delete (document as { visibilityState?: unknown }).visibilityState;
+  }
+});
+
+test('leaving the page while an answer is on its way stops the asking', async () => {
+  const { app, bridge } = await mountForTest(WITH, { ...TEST_INFO, accessibility: false });
+  app.go({ page: 'permissions' });
+  let answer: (i: typeof TEST_INFO) => void = () => {};
+  bridge.settings.mockClear();
+  bridge.settings.mockImplementationOnce(() => new Promise(resolve => { answer = resolve; }));
+  timers.advance(2000);
+  expect(bridge.settings).toHaveBeenCalledTimes(1);
+  app.go({ page: 'general' });
+  answer(TEST_INFO);
+  await settle();
+  timers.advance(10000);
+  await settle();
+  expect(bridge.settings).toHaveBeenCalledTimes(1);
+});
+
 test('without such modules it keeps the old note', async () => {
   const { root, app } = await mountForTest(TEST_STATE, TEST_INFO);
   app.go({ page: 'permissions' });
