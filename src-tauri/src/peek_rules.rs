@@ -485,11 +485,12 @@ pub fn glass_shape(switcher: Option<SwitchPlace>) -> GlassShape {
 }
 
 /// How strongly macOS's own Liquid Glass shows under the card and the switcher
-/// (0 none, 1 full): half, so what is behind reads through (owner, 7 Nov: "about
-/// 10–15% opacity"). `tuned` is NOTCHING_GLASS_ALPHA, for trying values on the
-/// owner's Mac with a relaunch instead of a rebuild; out of range, the default.
+/// (0 none, 1 full): 0.3, the owner's pick after trying 0 to 1 on their Mac
+/// (7 Nov; they asked for "about 10–15% opacity"). `tuned` is
+/// NOTCHING_GLASS_ALPHA, for trying values with a relaunch instead of a
+/// rebuild; out of range, the default.
 pub fn glass_alpha(tuned: Option<&str>) -> f64 {
-    tuned.and_then(|v| v.trim().parse::<f64>().ok()).filter(|a| (0.0..=1.0).contains(a)).unwrap_or(0.5)
+    tuned.and_then(|v| v.trim().parse::<f64>().ok()).filter(|a| (0.0..=1.0).contains(a)).unwrap_or(0.3)
 }
 
 #[cfg(test)]
@@ -497,14 +498,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_glass_is_half_strength_unless_tuned() {
-        assert_eq!(glass_alpha(None), 0.5);
+    fn the_glass_is_at_the_owners_strength_unless_tuned() {
+        assert_eq!(glass_alpha(None), 0.3);
         assert_eq!(glass_alpha(Some("0.3")), 0.3);
         assert_eq!(glass_alpha(Some("0")), 0.0);
         assert_eq!(glass_alpha(Some("1")), 1.0);
-        assert_eq!(glass_alpha(Some("lots")), 0.5);
-        assert_eq!(glass_alpha(Some("2")), 0.5);
-        assert_eq!(glass_alpha(Some("-0.1")), 0.5);
+        assert_eq!(glass_alpha(Some("lots")), 0.3);
+        assert_eq!(glass_alpha(Some("2")), 0.3);
+        assert_eq!(glass_alpha(Some("-0.1")), 0.3);
     }
 
     #[test]
