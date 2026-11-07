@@ -41,7 +41,7 @@ objc2 = "0.6"
 objc2-service-management = { version = "0.3", default-features = false, features = ["std", "objc2", "objc2-foundation", "SMAppService"] }
 block2 = "0.6"
 # Notching's own glass keeps ScreenCaptureKit's picture (design 7 Nov §6).
-objc2-core-foundation = { version = "0.3", default-features = false, features = ["std"] }
+objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFCGTypes"] }
 libc = "0.2"
 objc2-foundation = { version = "0.3", default-features = false, features = [
   "std",
@@ -105,7 +105,18 @@ objc2-quick-look-thumbnailing = { version = "0.3", default-features = false, fea
   "QLThumbnailGenerationRequest",
   "QLThumbnailRepresentation",
 ] }
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage", "CGColorSpace"] }
+# Notching's own glass, drawn from a picture of the screen (design 7 Nov §5).
+objc2-core-image = { version = "0.3", default-features = false, features = [
+  "std",
+  "block2",
+  "objc2-core-foundation",
+  "objc2-core-graphics",
+  "CIContext",
+  "CIImage",
+  "CIKernel",
+  "CIVector",
+] }
 # Intip jendela's window pictures on macOS 14+ (design 5 Nov §8).
 objc2-screen-capture-kit = { version = "0.3", default-features = false, features = [
   "std",

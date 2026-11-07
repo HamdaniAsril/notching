@@ -86,6 +86,9 @@ mod peek_capture;
 #[allow(dead_code)] // used piece by piece as the own-glass tasks land
 mod glass_capture;
 #[cfg(target_os = "macos")]
+#[allow(dead_code)] // used piece by piece as the own-glass tasks land
+mod glass_draw;
+#[cfg(target_os = "macos")]
 mod peek_dock;
 #[cfg(target_os = "macos")]
 mod peek_tap;

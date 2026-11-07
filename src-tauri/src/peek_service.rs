@@ -725,6 +725,8 @@ pub fn sync(app: &AppHandle) {
 /// Accessibility list so a permission given later works without a restart.
 pub fn start(app: &AppHandle) {
     let _ = APP.set(app.clone());
+    // Notching's own glass: its kernels compile once, off the main thread.
+    std::thread::spawn(crate::glass_draw::warm_up);
     sync(app);
     let handle = app.clone();
     let block = RcBlock::new(move |_: NonNull<NSNotification>| {
