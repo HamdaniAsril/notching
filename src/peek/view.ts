@@ -142,7 +142,7 @@ export function renderPeek(root: HTMLElement, v: PeekView, calls: PeekCalls): vo
     const acts = el('div', 'acts');
     const first = w.minimized ? 'restore' : 'minimize';
     for (const [act, cls, label] of [
-      [first, 'min', w.minimized ? s.restore : s.minimize],
+      [first, w.minimized ? 'restore' : 'min', w.minimized ? s.restore : s.minimize],
       ['close', 'close', s.close],
       ['quit', 'quit', fill(s.quit, { app: v.app })],
     ] as const) {

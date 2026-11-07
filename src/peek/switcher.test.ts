@@ -37,6 +37,8 @@ test('per window: one card per item, the app card with its icon only, the select
   expect(cards).toHaveLength(4);
   expect(cards[1].classList.contains('sel')).toBe(true);
   expect(cards[2].querySelector('.chip')!.textContent).toBe('Min');
+  expect(cards[2].querySelector('.ab')!.classList.contains('restore')).toBe(true); // green, as macOS's
+  expect(cards[0].querySelector('.ab')!.classList.contains('min')).toBe(true);
   expect(cards[3].classList.contains('app')).toBe(true);
   expect(cards[3].querySelector('.cap span')!.textContent).toBe('Musik');
   expect(root.querySelector('.swh .cond')!.textContent).toBe('4 jendela');

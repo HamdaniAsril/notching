@@ -9,9 +9,8 @@ body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: n
 
 /* The colours of the card and the switcher (switcher.css), by colour and material. */
 #peek, #sw {
-  --c-bg: #000; --c-ink: #f3f5f0; --c-ink2: #c4c8bf; --c-muted: #8c9187; --c-box: #111210; --c-hover: #ffffff12;
+  --c-bg: #000; --c-ink: #f3f5f0; --c-ink2: #e6e9e2; --c-muted: #8c9187; --c-box: #111210; --c-hover: #ffffff12;
   --c-ring: #ffffff14; --c-acc: var(--v-acc); --c-acc-soft: var(--v-acc-soft); --c-chip: #23251f;
-  --c-btn: #22241f; --c-btn-ink: #f3f5f0;
   --c-sheen: rgba(255, 255, 255, .16); --c-sheen2: rgba(255, 255, 255, .06); --c-edge: rgba(255, 255, 255, .35); --c-edge2: rgba(255, 255, 255, .12);
 }
 #peek {
@@ -22,13 +21,12 @@ body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: n
 #peek.card-light, #sw.card-light {
   --c-bg: #f7f7f5; --c-ink: #111210; --c-ink2: #33352f; --c-muted: #6b7066; --c-box: #e3e3df; --c-hover: #0000000b;
   --c-ring: #0000001a; --c-acc: var(--v-acc-deep); --c-acc-soft: var(--v-acc-deep-soft); --c-chip: #e3e3df;
-  --c-btn: #fff; --c-btn-ink: #111210;
   --c-sheen: rgba(255, 255, 255, .7); --c-sheen2: rgba(255, 255, 255, .3); --c-edge: rgba(255, 255, 255, .95); --c-edge2: rgba(255, 255, 255, .5);
 }
 /* A tint of about 10–15% over the panel's own Liquid Glass (owner, 7 Nov), so
    what is behind shows through; the sheen stays faint, as it adds to the tint. */
 #peek.mat-glass.card-dark, #sw.mat-glass.card-dark {
-  --c-bg: rgba(16, 17, 15, .12); --c-box: rgba(0, 0, 0, .12); --c-chip: rgba(255, 255, 255, .12); --c-btn: rgba(34, 36, 31, .9); --c-hover: #ffffff17;
+  --c-bg: rgba(16, 17, 15, .12); --c-box: rgba(0, 0, 0, .12); --c-chip: rgba(255, 255, 255, .12); --c-hover: #ffffff17;
   --c-sheen: rgba(255, 255, 255, .08); --c-sheen2: rgba(255, 255, 255, .03);
 }
 #peek.mat-glass.card-light, #sw.mat-glass.card-light {
@@ -67,13 +65,16 @@ body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: n
 .chip { flex: none; font: 600 11px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 3px 6px; border-radius: 5px; background: var(--c-chip); color: var(--c-ink2); font-style: normal; }
 .chip.acc { background: var(--c-acc-soft); color: var(--c-acc); }
 
-/* Minimize or restore, close, quit: one colour, red only for close and quit. */
-.acts { position: absolute; top: 11px; right: 11px; display: none; gap: 2px; padding: 3px; border-radius: 999px; background: var(--c-btn); color: var(--c-btn-ink);
-  box-shadow: 0 0 0 1px var(--c-ring), 0 4px 14px rgba(0, 0, 0, .3); z-index: 2; }
+/* Minimize or restore, close, quit (owner, 7 Nov): round and filled in
+   macOS's own colours, the mark on them; quit is purple. */
+.acts { position: absolute; top: 12px; right: 12px; display: none; gap: 6px; z-index: 2; }
 .th.hover .acts { display: flex; }
-.ab { appearance: none; border: 0; padding: 0; margin: 0; background: transparent; color: inherit; font: inherit;
-  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
-.ab svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.ab.hover { background: var(--c-hover); }
-.ab.close.hover { background: rgba(229, 72, 77, .18); color: #e5484d; }
-.ab.quit.hover { background: #e5484d; color: #fff; }
+.ab { appearance: none; border: 0; padding: 0; margin: 0; font: inherit;
+  width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  background: var(--ab); color: var(--ab-ink); box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .25), 0 1px 4px rgba(0, 0, 0, .35); }
+.ab svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ab.min { --ab: #febc2e; --ab-ink: #8f5a00; }
+.ab.restore { --ab: #28c840; --ab-ink: #0b6519; }
+.ab.close { --ab: #ff5f57; --ab-ink: #8c1a10; }
+.ab.quit { --ab: #bf5af2; --ab-ink: #4a1170; }
+.ab.hover { filter: brightness(1.12); }

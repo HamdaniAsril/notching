@@ -84,7 +84,7 @@ export function pointSwitcher(root: HTMLElement, target: Element | null, calls: 
 function buttons(item: SwitchItem, app: string, s: ReturnType<typeof peekStrings>): HTMLElement {
   const acts = el('div', 'acts');
   const list: [SwitchAct, string, string, string][] = item.kind === 'window'
-    ? [['minimize', 'min', item.minimized ? s.restore : s.minimize, item.minimized ? ICON.restore : ICON.minimize],
+    ? [['minimize', item.minimized ? 'restore' : 'min', item.minimized ? s.restore : s.minimize, item.minimized ? ICON.restore : ICON.minimize],
       ['close', 'close', s.close, ICON.close], ['quit', 'quit', fill(s.quit, { app }), ICON.quit]]
     : [['quit', 'quit', fill(s.quit, { app }), ICON.quit]];
   for (const [act, cls, label, svg] of list) {

@@ -47,3 +47,15 @@ test("Intip's titles are in Inter, as the owner asked (7 Nov), not the number fa
     expect(body).not.toContain('uppercase');
   }
 });
+
+test('in the dark, the captions under the pictures are nearly white (owner, 7 Nov)', async () => {
+  expect(rule(await css(), '#peek, #sw')).toContain('--c-ink2: #e6e9e2');
+});
+
+test("the window buttons are macOS's colours, and quit is purple (owner, 7 Nov)", async () => {
+  const text = await css();
+  expect(rule(text, '.ab.min')).toContain('#febc2e');
+  expect(rule(text, '.ab.restore')).toContain('#28c840');
+  expect(rule(text, '.ab.close')).toContain('#ff5f57');
+  expect(rule(text, '.ab.quit')).toContain('#bf5af2');
+});

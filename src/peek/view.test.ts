@@ -33,6 +33,7 @@ test('each window is a card with its marks, and a minimized one offers Pulihkan'
   expect(card(root, 3).querySelector('.chip')!.textContent).toBe('Diminimize');
   const first = card(root, 3).querySelector<HTMLElement>('.ab')!;
   expect([first.dataset.act, first.getAttribute('aria-label')]).toEqual(['restore', 'Pulihkan']);
+  expect(first.classList.contains('restore')).toBe(true); // green, as macOS's
   expect(card(root, 1).querySelector<HTMLElement>('.ab')!.dataset.act).toBe('minimize');
   expect(card(root, 1).querySelector('.ab.quit')!.getAttribute('aria-label')).toBe('Keluar dari Word');
 });
