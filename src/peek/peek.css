@@ -25,10 +25,16 @@ body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: n
   --c-btn: #fff; --c-btn-ink: #111210;
   --c-sheen: rgba(255, 255, 255, .7); --c-sheen2: rgba(255, 255, 255, .3); --c-edge: rgba(255, 255, 255, .95); --c-edge2: rgba(255, 255, 255, .5);
 }
-/* A light tint over the panel's own macOS blur, so what is behind shows through;
-   the dark one a little deeper, so text reads over white windows. */
-#peek.mat-glass.card-dark, #sw.mat-glass.card-dark { --c-bg: rgba(16, 17, 15, .1); --c-box: rgba(0, 0, 0, .14); --c-chip: rgba(255, 255, 255, .12); --c-btn: rgba(34, 36, 31, .9); --c-hover: #ffffff17; }
-#peek.mat-glass.card-light, #sw.mat-glass.card-light { --c-bg: rgba(255, 255, 255, .06); --c-box: rgba(255, 255, 255, .45); --c-chip: rgba(255, 255, 255, .6); --c-hover: rgba(255, 255, 255, .35); }
+/* A tint of about 10–15% over the panel's own Liquid Glass (owner, 7 Nov), so
+   what is behind shows through; the sheen stays faint, as it adds to the tint. */
+#peek.mat-glass.card-dark, #sw.mat-glass.card-dark {
+  --c-bg: rgba(16, 17, 15, .12); --c-box: rgba(0, 0, 0, .12); --c-chip: rgba(255, 255, 255, .12); --c-btn: rgba(34, 36, 31, .9); --c-hover: #ffffff17;
+  --c-sheen: rgba(255, 255, 255, .08); --c-sheen2: rgba(255, 255, 255, .03);
+}
+#peek.mat-glass.card-light, #sw.mat-glass.card-light {
+  --c-bg: rgba(255, 255, 255, .1); --c-box: rgba(255, 255, 255, .15); --c-chip: rgba(255, 255, 255, .35); --c-hover: rgba(255, 255, 255, .2);
+  --c-sheen: rgba(255, 255, 255, .12); --c-sheen2: rgba(255, 255, 255, .05);
+}
 #peek.mat-glass, #sw.mat-glass {
   background: linear-gradient(135deg, var(--c-sheen), transparent 40%, transparent 70%, var(--c-sheen2)), var(--c-bg);
   box-shadow: inset 0 1px 0 var(--c-edge), inset 0 0 0 1px var(--c-edge2);
