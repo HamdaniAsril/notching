@@ -59,3 +59,11 @@ test("the window buttons are macOS's colours, and quit is purple (owner, 7 Nov)"
   expect(rule(text, '.ab.close')).toContain('#ff5f57');
   expect(rule(text, '.ab.quit')).toContain('#bf5af2');
 });
+
+test("the switcher's title is in the card's ink, readable on dark glass (owner, 7 Nov)", async () => {
+  expect(rule(await file('src/peek/switcher.css'), '.swh .cond')).toContain('color: var(--c-ink)');
+});
+
+test('on dark glass the quiet text is lighter than on solid black', async () => {
+  expect(rule(await css(), '#peek.mat-glass.card-dark, #sw.mat-glass.card-dark')).toContain('--c-muted: #b9bdb3');
+});

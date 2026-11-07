@@ -15,7 +15,7 @@
 @keyframes drop { from { clip-path: inset(0 40% 92% 40% round 0 0 14px 14px); } to { clip-path: inset(0 0 0 0 round 0 0 30px 30px); } }
 
 .swh { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; margin: 0 6px 12px; }
-.swh .cond { font: 600 12px/1.2 "Inter", -apple-system, sans-serif; color: var(--c-muted); }
+.swh .cond { font: 600 12px/1.2 "Inter", -apple-system, sans-serif; color: var(--c-ink); }
 .swh .keys { color: var(--c-muted); font-size: 11px; }
 .swgrid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .sc { position: relative; width: 200px; border-radius: 14px; padding: 7px; cursor: pointer; }

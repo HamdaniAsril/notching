@@ -26,7 +26,7 @@ body { font: 13px/1.4 "Inter", -apple-system, sans-serif; -webkit-user-select: n
 /* A tint of about 10–15% over the panel's own Liquid Glass (owner, 7 Nov), so
    what is behind shows through; the sheen stays faint, as it adds to the tint. */
 #peek.mat-glass.card-dark, #sw.mat-glass.card-dark {
-  --c-bg: rgba(16, 17, 15, .12); --c-box: rgba(0, 0, 0, .12); --c-chip: rgba(255, 255, 255, .12); --c-hover: #ffffff17;
+  --c-bg: rgba(16, 17, 15, .12); --c-muted: #b9bdb3; --c-box: rgba(0, 0, 0, .12); --c-chip: rgba(255, 255, 255, .12); --c-hover: #ffffff17;
   --c-sheen: rgba(255, 255, 255, .08); --c-sheen2: rgba(255, 255, 255, .03);
 }
 #peek.mat-glass.card-light, #sw.mat-glass.card-light {
