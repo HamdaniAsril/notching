@@ -655,7 +655,7 @@ pub fn switch_size(app: AppHandle, width: f64, height: f64) {
         let primary = crate::peek_service::primary_height();
         let at = crate::peek_service::appkit(Rect { x, y, w, h }, primary);
         let Ok(panel) = handle.get_webview_panel(PANEL) else { return };
-        crate::peek_service::dress_window(&handle, PANEL, s, crate::peek_rules::glass_shape(Some(s.place)));
+        crate::peek_service::dress_window(&handle, PANEL, s, crate::peek_rules::glass_shape(Some(s.place)), false);
         panel.as_panel().setFrame_display(at, true);
         panel.as_panel().invalidateShadow();
         let first = !panel.as_panel().isVisible();

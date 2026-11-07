@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { expect, test, vi } from 'vitest';
-import { pointPeek, renderPeek, type PeekCalls, type PeekView } from './view';
+import { pointPeek, renderPeek, setOwnGlass, type PeekCalls, type PeekView } from './view';
 
 const calls = (): PeekCalls & { [K in keyof PeekCalls]: ReturnType<typeof vi.fn> } => ({
   size: vi.fn(), pointer: vi.fn(), open: vi.fn(), act: vi.fn(), hover: vi.fn(),
@@ -133,4 +133,21 @@ test('the cards wrap onto more rows instead of leaving the screen', async () => 
   const { readFileSync } = await import('node:fs');
   const css: string = readFileSync('src/peek/peek.css', 'utf8');
   expect(css).toMatch(/\.thumbs\s*\{[^}]*flex-wrap:\s*wrap/);
+});
+
+test("Notching's own glass adds its class and tint, and keeps them across renders", () => {
+  const glass: PeekView = { ...VIEW, material: 'glass' };
+  const { root, c } = mount(glass);
+  setOwnGlass(root, true, 0.4);
+  let peek = root.querySelector<HTMLElement>('#peek')!;
+  expect(peek.className).toBe('card-dark mat-glass own');
+  expect(peek.style.getPropertyValue('--own-tint')).toBe('0.4');
+  renderPeek(root, { ...glass, app: 'Pages' }, c);
+  peek = root.querySelector<HTMLElement>('#peek')!;
+  expect(peek.classList.contains('own')).toBe(true);
+  expect(peek.style.getPropertyValue('--own-tint')).toBe('0.4');
+  setOwnGlass(root, false, 0.4);
+  peek = root.querySelector<HTMLElement>('#peek')!;
+  expect(peek.classList.contains('own')).toBe(false);
+  expect(peek.style.getPropertyValue('--own-tint')).toBe('');
 });

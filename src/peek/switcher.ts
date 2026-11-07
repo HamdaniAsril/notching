@@ -1,7 +1,7 @@
 import { applyAccent } from '../kit/accent';
 import type { Lang } from '../kit/protocol';
 import { fill, peekStrings } from '../i18n';
-import { dark, el, ICON, picture, type PeekView } from './view';
+import { applyOwnGlass, dark, el, ICON, picture, type PeekView } from './view';
 
 // Same shapes as SwitchViewDto in src-tauri/src/switch_service.rs.
 export interface SwitchItem {
@@ -162,6 +162,7 @@ export function renderSwitcher(root: HTMLElement, v: SwitchView, calls: SwitchCa
   const sw = el('div', [v.place, dark(v.card) ? 'card-dark' : 'card-light', `mat-${v.material}`].join(' '));
   sw.id = 'sw';
   if (v.maxWidth) sw.style.setProperty('--max-w', `${v.maxWidth}px`);
+  applyOwnGlass(root, sw);
   if (entering) sw.dataset.enter = '';
 
   const head = el('div', 'swh');

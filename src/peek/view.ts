@@ -91,6 +91,22 @@ export function pointPeek(root: HTMLElement, target: Element | null, calls: Peek
   }
 }
 
+// Notching's own glass under the card or the switcher (design 7 Nov §4): the
+// native side says when it is up, and the card's colour then takes `tint`
+// (40% unless tuned) instead of the 10–12% it has over macOS's glass.
+export function setOwnGlass(root: HTMLElement, own: boolean, tint: number): void {
+  root.dataset.ownGlass = own ? String(tint) : '';
+  const panel = root.querySelector<HTMLElement>('#peek, #sw');
+  if (panel) applyOwnGlass(root, panel);
+}
+
+export function applyOwnGlass(root: HTMLElement, panel: HTMLElement): void {
+  const tint = root.dataset.ownGlass;
+  panel.classList.toggle('own', !!tint);
+  if (tint) panel.style.setProperty('--own-tint', tint);
+  else panel.style.removeProperty('--own-tint');
+}
+
 // Intip jendela's card (design 5 Nov §2, prototype): the app's name and count,
 // then one card per window with its marks and its three buttons. Each window
 // starts with the app's icon; its picture takes that place once it comes.
@@ -101,6 +117,7 @@ export function renderPeek(root: HTMLElement, v: PeekView, calls: PeekCalls): vo
   const peek = el('div', `${dark(v.card) ? 'card-dark' : 'card-light'} mat-${v.material}`);
   peek.id = 'peek';
   if (v.maxWidth) peek.style.setProperty('--max-w', `${v.maxWidth}px`);
+  applyOwnGlass(root, peek);
   const p = pointerOf(root);
   // Rises in only as the panel appears, not when it changes to another app.
   if (entering) peek.dataset.enter = '';

@@ -35,6 +35,9 @@ use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, St
 use crate::app_core::CoreState;
 use crate::geometry::Rect;
 use crate::glass_capture::{self, Owner};
+use crate::glass_rules::{opening, Snap};
+use crate::glass_view::{self, Enter};
+use objc2_core_graphics::CGImage;
 use crate::locale::Lang;
 use crate::peek_capture::{self, PictureSize};
 use crate::peek_dock::{self, DockItem};
@@ -144,6 +147,8 @@ static LAST_POINT: Mutex<Option<Option<(f64, f64)>>> = Mutex::new(None);
 // and the main screen's height, to tell when the pointer has left the peek.
 static PEEK_AREA: Mutex<Option<(Rect, Rect, DockEdge, f64)>> = Mutex::new(None);
 static AWAY: AtomicBool = AtomicBool::new(false);
+// Notching's own glass: the pointer reached the card once this opening, and the screen was pictured again.
+static RETOOK: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
     // Mouse-move monitors, only while the card is up.
@@ -321,8 +326,28 @@ fn card_exclude(app: &AppHandle) -> Vec<u32> {
     [CARD, STAGE].iter().filter_map(|label| app.get_webview_panel(label).ok()).map(|p| p.as_panel().windowNumber() as u32).collect()
 }
 
-// The card's picture came; the glass is drawn from it from plan task 5 on.
-fn card_glass_ready(_app: &AppHandle, _owner: Owner) {}
+// The card's glass at `frame` (CG points) from its picture, when it can be drawn there.
+fn card_glass(frame: Rect, s: PeekSettings) -> Option<Retained<CGImage>> {
+    if !glass_capture::can_draw(s.material) {
+        return None;
+    }
+    let snap = glass_capture::snapshot(Owner::Card)?;
+    if !snap.screen.contains(frame.x + frame.w / 2.0, frame.y + frame.h / 2.0) {
+        return None;
+    }
+    crate::glass_draw::render(&snap, frame, crate::peek_rules::glass_shape(None), crate::glass_draw::current_look(), None)
+}
+
+// The card's picture came while the card is up: its glass fades in.
+fn card_glass_ready(app: &AppHandle, _owner: Owner) {
+    let Some((_, frame, _, _)) = *PEEK_AREA.lock().unwrap() else { return };
+    let s = settings(app);
+    let Some(image) = card_glass(frame, s) else { return };
+    let Ok(panel) = app.get_webview_panel(CARD) else { return };
+    let shape = crate::peek_rules::glass_shape(None);
+    dress_window(app, CARD, s, shape, true);
+    glass_view::show(app, CARD, panel.as_panel(), &image, shape, crate::glass_draw::current_look(), Enter::Fade);
+}
 
 pub(crate) fn data_url(png: &[u8]) -> String {
     format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png))
@@ -441,19 +466,15 @@ pub(crate) fn primary_height() -> f64 {
         .unwrap_or(0.0)
 }
 
-// The card's look: Liquid glass is the panel's own macOS effect under the page.
-fn dress(app: &AppHandle, s: PeekSettings) {
-    dress_window(app, CARD, s, crate::peek_rules::glass_shape(None));
-}
-
 thread_local! {
     // Each panel's Liquid Glass view, under its page, while Liquid glass is on.
     static GLASS: RefCell<HashMap<String, Retained<NSGlassEffectView>>> = RefCell::new(HashMap::new());
 }
 
 /// A peek panel's look (the card or the switcher): light or dark on this
-/// window only, and Liquid glass under the page in `shape`. Main thread.
-pub(crate) fn dress_window(app: &AppHandle, label: &str, s: PeekSettings, shape: crate::peek_rules::GlassShape) {
+/// window only, and Liquid glass under the page in `shape`: Notching's own
+/// (`own`, glass_view.rs) or macOS's. Main thread.
+pub(crate) fn dress_window(app: &AppHandle, label: &str, s: PeekSettings, shape: crate::peek_rules::GlassShape, own: bool) {
     let Some(window) = app.get_webview_window(label) else { return };
     let Ok(panel) = app.get_webview_panel(label) else { return };
     let panel = panel.as_panel();
@@ -464,8 +485,11 @@ pub(crate) fn dress_window(app: &AppHandle, label: &str, s: PeekSettings, shape:
     panel.setAppearance(NSAppearance::appearanceNamed(name).as_deref());
     let glass = s.material == Material::Glass;
     // macOS 26 and later: Apple's own Liquid Glass, clear. Before: the frosted popover material.
-    let native = set_glass(label, panel, glass, shape);
-    let effects = (glass && !native).then(|| {
+    let native = set_glass(label, panel, glass && !own, shape);
+    if !own {
+        glass_view::clear(app, label);
+    }
+    let effects = (glass && !own && !native).then(|| {
         EffectsBuilder::new()
             .effect(Effect::Popover)
             .state(EffectState::Active)
@@ -527,13 +551,31 @@ pub fn peek_size(app: AppHandle, width: f64, height: f64) {
         let icon = shown.item.frame;
         let frame = peek_frame(icon, dock_edge(icon, shown.screen), (width, height), shown.visible);
         let Ok(panel) = app.get_webview_panel(CARD) else { return };
-        dress(app, settings(app));
+        let s = settings(app);
+        let shape = crate::peek_rules::glass_shape(None);
+        let glass = card_glass(frame, s);
+        dress_window(app, CARD, s, shape, glass.is_some());
         let primary = primary_height();
         let at = appkit(frame, primary);
         panel.as_panel().setFrame_display(at, true);
         panel.as_panel().invalidateShadow();
         let first = !panel.as_panel().isVisible();
         panel.as_panel().orderFrontRegardless();
+        match glass {
+            Some(image) => {
+                let enter = if first {
+                    Enter::Opening(opening(None))
+                } else if glass_view::showing(CARD) {
+                    Enter::Now
+                } else {
+                    Enter::Fade
+                };
+                glass_view::show(app, CARD, panel.as_panel(), &image, shape, crate::glass_draw::current_look(), enter);
+            }
+            // No picture yet: macOS's glass now, Notching's when it comes, or none after a second.
+            None if first && glass_capture::state(Owner::Card) == Snap::Waiting => glass_capture::give_up_later(app, Owner::Card),
+            None => {}
+        }
         if first {
             eprintln!("notching: peek card shown for pid {} ({} windows)", shown.pid, shown.windows.len());
         }
@@ -552,6 +594,13 @@ pub fn peek_pointer(inside: bool) {
     OVER_CARD.store(inside, Ordering::SeqCst);
     if inside {
         GENERATION.fetch_add(1, Ordering::SeqCst);
+        // On the card, the Dock lets go of its name label, magnified icons or
+        // shown auto-hide: the screen behind is pictured once more (design 7 Nov §4).
+        if !RETOOK.swap(true, Ordering::SeqCst)
+            && let Some(app) = APP.get()
+        {
+            on_main(app, |app| glass_capture::retake(app, Owner::Card, card_exclude(app), card_glass_ready));
+        }
     } else {
         later_hide();
     }
@@ -664,6 +713,7 @@ fn hide_now(app: &AppHandle) {
         eprintln!("notching: peek card hidden");
     }
     glass_capture::forget(Owner::Card);
+    RETOOK.store(false, Ordering::SeqCst);
     *PEEK_AREA.lock().unwrap() = None;
     *HOVER_ID.lock().unwrap() = None;
     *CARD_FRAME.lock().unwrap() = None;
@@ -675,6 +725,7 @@ fn hide_now(app: &AppHandle) {
             panel.hide();
         }
     }
+    glass_view::clear(app, CARD);
     let _ = app.emit_to(EventTarget::webview_window(CARD), VIEW_EVENT, None::<PeekViewDto>);
     let _ = app.emit_to(EventTarget::webview_window(STAGE), STAGE_EVENT, None::<StageViewDto>);
 }

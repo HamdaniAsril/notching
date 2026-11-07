@@ -2,6 +2,7 @@ import './switcher.css';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { pointSwitcher, renderSwitcher, type SwitchCalls, type SwitchView } from './switcher';
+import { setOwnGlass } from './view';
 
 // The switcher's panel (switch_service.rs): drawn from each view the native
 // side sends, which tells it back its size, the pointer and the clicks.
@@ -24,4 +25,6 @@ void win.listen<{ x: number; y: number } | null>('notching://switch-pointer', e 
   const at = e.payload;
   pointSwitcher(root, at ? document.elementFromPoint(at.x, at.y) : null, calls);
 });
+// Notching's own glass came under the switcher, or went (glass_view.rs).
+void win.listen<{ own: boolean; tint: number }>('notching://glass', e => setOwnGlass(root, e.payload.own, e.payload.tint));
 void invoke<SwitchView | null>('switch_view').then(show, () => {});

@@ -93,6 +93,7 @@ objc2-app-kit = { version = "0.3", default-features = false, features = [
   "NSAppearance",
   "NSGlassEffectView",
   "NSAccessibility",
+  "objc2-quartz-core",
 ] }
 objc2-quick-look-thumbnailing = { version = "0.3", default-features = false, features = [
   "std",
@@ -105,7 +106,7 @@ objc2-quick-look-thumbnailing = { version = "0.3", default-features = false, fea
   "QLThumbnailGenerationRequest",
   "QLThumbnailRepresentation",
 ] }
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage", "CGColorSpace"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage", "CGColorSpace", "CGColor"] }
 # Notching's own glass, drawn from a picture of the screen (design 7 Nov §5).
 objc2-core-image = { version = "0.3", default-features = false, features = [
   "std",
@@ -116,6 +117,18 @@ objc2-core-image = { version = "0.3", default-features = false, features = [
   "CIImage",
   "CIKernel",
   "CIVector",
+] }
+# Notching's own glass on screen: a layer under the page (design 7 Nov §4).
+objc2-quartz-core = { version = "0.3", default-features = false, features = [
+  "std",
+  "block2",
+  "objc2-core-foundation",
+  "objc2-core-graphics",
+  "CALayer",
+  "CAAnimation",
+  "CAMediaTiming",
+  "CAMediaTimingFunction",
+  "CATransaction",
 ] }
 # Intip jendela's window pictures on macOS 14+ (design 5 Nov §8).
 objc2-screen-capture-kit = { version = "0.3", default-features = false, features = [

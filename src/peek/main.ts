@@ -1,7 +1,7 @@
 import './peek.css';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { pointPeek, renderPeek, type PeekCalls, type PeekView } from './view';
+import { pointPeek, renderPeek, setOwnGlass, type PeekCalls, type PeekView } from './view';
 
 // The peek card's panel (peek_service.rs): drawn from each view the native
 // side sends, which tells it back its size, the pointer and the clicks.
@@ -24,4 +24,6 @@ void getCurrentWebviewWindow().listen<{ x: number; y: number } | null>('notching
   const at = e.payload;
   pointPeek(root, at ? document.elementFromPoint(at.x, at.y) : null, calls);
 });
+// Notching's own glass came under the card, or went (glass_view.rs).
+void getCurrentWebviewWindow().listen<{ own: boolean; tint: number }>('notching://glass', e => setOwnGlass(root, e.payload.own, e.payload.tint));
 void invoke<PeekView | null>('peek_view').then(show, () => {});

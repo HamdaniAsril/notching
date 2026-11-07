@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { expect, test, vi } from 'vitest';
 import { pointSwitcher, renderSwitcher, type SwitchCalls, type SwitchView } from './switcher';
+import { setOwnGlass } from './view';
 
 const calls = (): SwitchCalls & { [K in keyof SwitchCalls]: ReturnType<typeof vi.fn> } => ({
   size: vi.fn(), pointer: vi.fn(), pick: vi.fn(), open: vi.fn(), act: vi.fn(),
@@ -124,4 +125,22 @@ test('per app: another window of the same app keeps the row', () => {
   expect(root.querySelector('.apps')).toBe(row);
   const wins = [...root.querySelectorAll<HTMLElement>('.subwins .sc')];
   expect(wins.map(w => w.classList.contains('sel'))).toEqual([false, true]);
+});
+
+test("Notching's own glass adds its class and tint to the switcher, also when only the selection moves", () => {
+  const root = document.createElement('div');
+  document.body.replaceChildren(root);
+  const c = calls();
+  const glass: SwitchView = { ...VIEW, material: 'glass' };
+  renderSwitcher(root, glass, c);
+  setOwnGlass(root, true, 0.4);
+  let sw = root.querySelector<HTMLElement>('#sw')!;
+  expect(sw.classList.contains('own')).toBe(true);
+  expect(sw.style.getPropertyValue('--own-tint')).toBe('0.4');
+  renderSwitcher(root, { ...glass, sel: 2 }, c);
+  renderSwitcher(root, { ...glass, layout: 'apps' }, c);
+  sw = root.querySelector<HTMLElement>('#sw')!;
+  expect(sw.classList.contains('own')).toBe(true);
+  setOwnGlass(root, false, 0.4);
+  expect(root.querySelector('#sw')!.classList.contains('own')).toBe(false);
 });
