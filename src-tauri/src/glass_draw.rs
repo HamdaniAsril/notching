@@ -3,6 +3,7 @@
 //! out for what is just outside it with a little rainbow, and a shine.
 
 use std::ffi::c_int;
+use std::ptr::NonNull;
 use std::sync::{Arc, LazyLock};
 use std::time::Instant;
 
@@ -10,9 +11,9 @@ use block2::RcBlock;
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2::Message;
-use objc2_core_foundation::{CGAffineTransform, CGPoint, CGRect, CGSize};
-use objc2_core_graphics::CGImage;
-use objc2_core_image::{kCIContextWorkingColorSpace, kCIFormatRGBA8, CIColorKernel, CIContext, CIImage, CIKernel, CIVector};
+use objc2_core_foundation::{CFRetained, CGAffineTransform, CGPoint, CGRect, CGSize};
+use objc2_core_graphics::{CGColorSpace, CGImage};
+use objc2_core_image::{kCIContextWorkingColorSpace, kCIFormatRGBA8, CIColor, CIColorKernel, CIContext, CIImage, CIKernel, CIVector};
 use objc2_foundation::{NSArray, NSData, NSDictionary, NSNull, NSNumber, NSString};
 
 use crate::geometry::Rect;
@@ -118,9 +119,30 @@ static KERNELS: LazyLock<Option<Kernels>> = LazyLock::new(|| {
     kernels
 });
 
-/// Compiles the kernels once, so the first card does not wait for it.
+/// Compiles the kernels and draws a small glass of each kind once, plain,
+/// hanging from the notch and shaded with a window, so the first card does not
+/// pay for Core Image's first use on the main thread.
 pub fn warm_up() {
-    let _ = KERNELS.as_ref();
+    let Some(k) = KERNELS.as_ref() else { return };
+    let started = Instant::now();
+    // SAFETY: Core Image calls on images made here.
+    let (snap, png) = unsafe {
+        let grey = CIImage::imageWithColor(&CIColor::colorWithRed_green_blue(0.5, 0.5, 0.5));
+        let screen = CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(240.0, 160.0));
+        let Some(image) = k.context.createCGImage_fromRect(&grey, screen) else { return };
+        let window = grey.imageByCroppingToRect(CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(40.0, 40.0)));
+        let png = CGColorSpace::new_device_rgb()
+            .and_then(|space| k.context.PNGRepresentationOfImage_format_colorSpace_options(&window, kCIFormatRGBA8, &space, &NSDictionary::new()));
+        let image = CFRetained::retain(NonNull::from(&*image));
+        (Snapshot { screen: Rect { x: 0.0, y: 0.0, w: 120.0, h: 80.0 }, scale: 2.0, image }, png)
+    };
+    let look = current_look();
+    let panel = Rect { x: 10.0, y: 10.0, w: 80.0, h: 50.0 };
+    let window = Overlay { frame: Rect { x: 20.0, y: 20.0, w: 20.0, h: 20.0 }, picture: png.map(|d| Arc::new(d.to_vec())) };
+    let _ = render(&snap, panel, GlassShape { radius: 20.0, flat_top: false }, look, None);
+    let _ = render(&snap, panel, GlassShape { radius: 30.0, flat_top: true }, look, None);
+    let _ = render(&snap, panel, GlassShape { radius: 20.0, flat_top: false }, look, Some(&window));
+    eprintln!("notching: glass warmed in {} ms", started.elapsed().as_millis());
 }
 
 fn obj<T: Message>(o: Retained<T>) -> Retained<AnyObject> {
@@ -414,6 +436,12 @@ mod tests {
             let want = 204.0 * (1.0 - STAGE_SHADE);
             assert!((got - want).abs() <= 3.0, "scale {scale}: shaded grey {got}, the layer gives {want}");
         }
+    }
+
+    // Smoke test: every kind of warm-up draw runs without a real screen.
+    #[test]
+    fn warming_up_needs_no_screen() {
+        warm_up();
     }
 
     #[test]
