@@ -12,7 +12,7 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.4',
-    date: null,
+    date: '2026-11-07',
     items: {
       id: [
         'Shelf terbuka begitu kamu mulai menyeret file, dari mana saja. Bisa dimatikan di pengaturan Shelf.',
