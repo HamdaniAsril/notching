@@ -12,8 +12,8 @@ use objc2::runtime::AnyObject;
 use objc2::Message;
 use objc2_core_foundation::{CGAffineTransform, CGPoint, CGRect, CGSize};
 use objc2_core_graphics::CGImage;
-use objc2_core_image::{kCIFormatRGBA8, CIColorKernel, CIContext, CIImage, CIKernel, CIVector};
-use objc2_foundation::{NSArray, NSData, NSNumber, NSString};
+use objc2_core_image::{kCIContextWorkingColorSpace, kCIFormatRGBA8, CIColorKernel, CIContext, CIImage, CIKernel, CIVector};
+use objc2_foundation::{NSArray, NSData, NSDictionary, NSNull, NSNumber, NSString};
 
 use crate::geometry::Rect;
 use crate::glass_capture::Snapshot;
@@ -101,8 +101,11 @@ static KERNELS: LazyLock<Option<Kernels>> = LazyLock::new(|| {
     // SAFETY: Core Image calls with kernel sources made above.
     #[allow(deprecated)]
     let kernels = unsafe {
+        // No colour matching: the kernels work on the screen's own values, as
+        // the prototype and the peek layer's shade do, not in linear light.
+        let plain = NSDictionary::from_retained_objects(&[kCIContextWorkingColorSpace], &[obj(NSNull::null())]);
         Some(Kernels {
-            context: CIContext::contextWithOptions(None),
+            context: CIContext::contextWithOptions(Some(&plain)),
             glass: CIKernel::kernelWithString(&NSString::from_str(GLASS))?,
             shade: CIColorKernel::kernelWithString(&NSString::from_str(SHADE))?,
             rounded: CIColorKernel::kernelWithString(&NSString::from_str(ROUNDED))?,
@@ -396,6 +399,20 @@ mod tests {
             let dim = pixels(&render(&grey, PANEL, ROUND, &plain(), Some(&away)).expect("drawn"));
             let (a, b) = (at(&lit, lit.0 / 2, lit.1 / 2), at(&dim, dim.0 / 2, dim.1 / 2));
             assert!((b[0] as f64) < a[0] as f64 * 0.8, "scale {scale}: shaded {b:?} vs plain {a:?}");
+        }
+    }
+
+    // The layer's rgba(0, 0, 0, .55) is blended on the screen's own values, as
+    // the prototype computes: the glass works on them too, not in linear light.
+    #[test]
+    fn the_peek_shade_matches_the_layer_around_the_card() {
+        for scale in [1.0, 2.0] {
+            let grey = picture(scale, &[(SCREEN, [0.8, 0.8, 0.8])]);
+            let away = Overlay { frame: Rect { x: 320.0, y: 220.0, w: 60.0, h: 60.0 }, picture: None };
+            let dim = pixels(&render(&grey, PANEL, ROUND, &plain(), Some(&away)).expect("drawn"));
+            let got = at(&dim, dim.0 / 2, dim.1 / 2)[0] as f64;
+            let want = 204.0 * (1.0 - STAGE_SHADE);
+            assert!((got - want).abs() <= 3.0, "scale {scale}: shaded grey {got}, the layer gives {want}");
         }
     }
 
