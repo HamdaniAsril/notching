@@ -34,6 +34,7 @@ use tauri_nspanel::{CollectionBehavior, ManagerExt, PanelBuilder, PanelLevel, St
 
 use crate::app_core::CoreState;
 use crate::geometry::Rect;
+use crate::glass_capture::{self, Owner};
 use crate::locale::Lang;
 use crate::peek_capture::{self, PictureSize};
 use crate::peek_dock::{self, DockItem};
@@ -284,6 +285,7 @@ fn on_hover(item: Option<DockItem>) {
     match item.filter(|i| i.pid.is_some()) {
         Some(item) => {
             *HOVER.lock().unwrap() = Some(item.clone());
+            card_picture(&app, &item);
             if SHOWN.lock().unwrap().is_some() {
                 GENERATION.fetch_add(1, Ordering::SeqCst);
                 show_for(&app, item);
@@ -301,6 +303,26 @@ fn on_hover(item: Option<DockItem>) {
         }
     }
 }
+
+// Notching's own glass (design 7 Nov §4): the screen behind the card is
+// pictured while the card is on its way, once per screen while it is up.
+fn card_picture(app: &AppHandle, item: &DockItem) {
+    if !glass_capture::can_draw(settings(app).material) {
+        return;
+    }
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    let screens = crate::win_service::screens(mtm);
+    let (screen, _) = screen_at(&screens, item.frame.x + item.frame.w / 2.0, item.frame.y + item.frame.h / 2.0);
+    glass_capture::begin(app, Owner::Card, screen, card_exclude(app), card_glass_ready);
+}
+
+// The card and the peek layer stay out of the card's picture.
+fn card_exclude(app: &AppHandle) -> Vec<u32> {
+    [CARD, STAGE].iter().filter_map(|label| app.get_webview_panel(label).ok()).map(|p| p.as_panel().windowNumber() as u32).collect()
+}
+
+// The card's picture came; the glass is drawn from it from plan task 5 on.
+fn card_glass_ready(_app: &AppHandle, _owner: Owner) {}
 
 pub(crate) fn data_url(png: &[u8]) -> String {
     format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD.encode(png))
@@ -641,6 +663,7 @@ fn hide_now(app: &AppHandle) {
     if SHOWN.lock().unwrap().take().is_some() {
         eprintln!("notching: peek card hidden");
     }
+    glass_capture::forget(Owner::Card);
     *PEEK_AREA.lock().unwrap() = None;
     *HOVER_ID.lock().unwrap() = None;
     *CARD_FRAME.lock().unwrap() = None;
