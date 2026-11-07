@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Kaca buatan Notching (prototipe)</title>
+<style>
+@font-face { font-family: Inter; src: url(../../../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2) format('woff2'); font-weight: 400; }
+@font-face { font-family: Inter; src: url(../../../../node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2) format('woff2'); font-weight: 500; }
+@font-face { font-family: Inter; src: url(../../../../node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2) format('woff2'); font-weight: 600; }
+@font-face { font-family: "Barlow Condensed"; src: url(../../../../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff2) format('woff2'); font-weight: 600; }
+@font-face { font-family: "Barlow Condensed"; src: url(../../../../node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-700-normal.woff2) format('woff2'); font-weight: 700; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #161715; overflow: hidden; color: #e9ebe6;
+  font: 13px/1.4 Inter, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+#view { position: absolute; left: 0; top: 0; bottom: 0; right: 320px; overflow: hidden; }
+body.wide #view { right: 0; }
+body.real #view { overflow: auto; }
+#stage { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; transform-origin: 0 0; border-radius: 10px; overflow: hidden; }
+#gl { position: absolute; left: 0; top: 0; width: 1470px; height: 956px; display: block; }
+
+/* ---- Notching's card and switcher (peek.css / switcher.css, light and dark glass) ---- */
+.pnl { position: absolute; left: 0; top: 0; width: max-content; color: var(--c-ink); cursor: grab; touch-action: none;
+  background: linear-gradient(135deg, var(--c-sheen), transparent 40%, transparent 70%, var(--c-sheen2)), var(--c-bg);
+  box-shadow: 0 22px 48px rgba(0,0,0,.22), 0 3px 10px rgba(0,0,0,.12), inset 0 1px 0 var(--c-edge), inset 0 0 0 1px var(--c-edge2);
+  -webkit-user-select: none; user-select: none; }
+.pnl.drag { cursor: grabbing; }
+.pnl.light {
+  --c-bg: rgba(255,255,255,var(--tint)); --c-ink: #111210; --c-ink2: #33352f; --c-muted: #5d6258; --c-box: rgba(255,255,255,.15);
+  --c-hover: rgba(255,255,255,.2); --c-ring: #0000001a; --c-acc: #4c6b12; --c-acc-soft: rgba(76,107,18,.13); --c-chip: rgba(255,255,255,.35);
+  --c-sheen: rgba(255,255,255,.12); --c-sheen2: rgba(255,255,255,.05); --c-edge: rgba(255,255,255,.95); --c-edge2: rgba(255,255,255,.5); }
+.pnl.dark {
+  --c-bg: rgba(16,17,15,var(--tint)); --c-ink: #f3f5f0; --c-ink2: #c4c8bf; --c-muted: #a3a89e; --c-box: rgba(0,0,0,.12);
+  --c-hover: #ffffff17; --c-ring: #ffffff14; --c-acc: #c8f04a; --c-acc-soft: #1d260b; --c-chip: rgba(255,255,255,.12);
+  --c-sheen: rgba(255,255,255,.08); --c-sheen2: rgba(255,255,255,.03); --c-edge: rgba(255,255,255,.35); --c-edge2: rgba(255,255,255,.12); }
+
+#peek { border-radius: 20px; padding: 14px 14px 12px; }
+.ph { display: flex; align-items: baseline; gap: 10px; margin: 0 4px 10px; }
+.ph .nm { font: 700 18px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .05em; }
+.ph .ct { color: var(--c-muted); font-size: 12px; }
+.thumbs { display: flex; gap: 10px; }
+.th { position: relative; width: 196px; border-radius: 12px; padding: 6px; }
+.th.hover { background: var(--c-hover); }
+.box { position: relative; border-radius: 8px; background: var(--c-box); overflow: hidden; display: grid; place-items: center; }
+.th .box { width: 184px; height: 118px; }
+.box img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.min .box img { opacity: .45; filter: grayscale(.6); }
+.cap { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 12px; color: var(--c-ink2); }
+.cap span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex: 1; }
+.cap img.ico { flex: none; width: 18px; height: 18px; border-radius: 5px; }
+.chip { flex: none; font: 600 11px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 3px 6px; border-radius: 5px; background: var(--c-chip); color: var(--c-ink2); font-style: normal; }
+.chip.acc { background: var(--c-acc-soft); color: var(--c-acc); }
+
+#sw { border-radius: 26px; padding: 18px; }
+.swh { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; margin: 0 6px 12px; }
+.swh .cond { font: 600 13px/1 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .06em; color: var(--c-muted); }
+.swh .keys { color: var(--c-muted); font-size: 11px; }
+.swgrid { display: flex; gap: 8px; }
+.sc { position: relative; width: 200px; border-radius: 14px; padding: 7px; }
+.sc.sel { background: var(--c-hover); box-shadow: inset 0 0 0 2px var(--c-acc); }
+.sc .box { width: 186px; height: 116px; }
+.sc .cap { gap: 7px; margin-top: 8px; }
+
+/* ---- the controls ---- */
+#ctl { position: absolute; top: 0; right: 0; bottom: 0; width: 320px; padding: 18px 18px 24px; background: #1e1f1c; border-left: 1px solid #2c2e2a; overflow-y: auto; }
+body.wide #ctl { display: none; }
+#ctl h1 { font: 700 22px/1.05 "Barlow Condensed", sans-serif; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 6px; color: #f3f5f0; }
+#ctl p.lead { margin: 0 0 16px; color: #a9ada4; font-size: 12.5px; }
+.grp { margin: 0 0 16px; }
+.lbl { display: flex; justify-content: space-between; font-size: 12px; color: #c4c8bf; margin: 0 0 6px; }
+.lbl b { font-weight: 600; color: #f3f5f0; font-variant-numeric: tabular-nums; }
+.seg { display: flex; gap: 4px; background: #121311; padding: 3px; border-radius: 9px; }
+.seg button { flex: 1; appearance: none; border: 0; background: transparent; color: #c4c8bf; font: 500 12px/1 Inter, sans-serif; padding: 8px 6px; border-radius: 7px; cursor: pointer; }
+.seg button.on { background: #c8f04a; color: #0f1404; }
+input[type=range] { width: 100%; accent-color: #c8f04a; margin: 0; }
+.row { display: flex; gap: 8px; margin-top: 8px; }
+.btn { appearance: none; border: 1px solid #3a3d37; background: #262824; color: #e9ebe6; font: 500 12px/1 Inter, sans-serif; padding: 9px 10px; border-radius: 8px; cursor: pointer; flex: 1; }
+.btn.hold:active, .btn.hold.on { background: #c8f04a; color: #0f1404; border-color: #c8f04a; }
+.hint { font-size: 12px; color: #a9ada4; background: #262824; border-radius: 8px; padding: 10px 11px; margin: 0 0 16px; }
+.sep { height: 1px; background: #2c2e2a; margin: 4px 0 16px; }
+#show { position: absolute; right: 12px; top: 12px; display: none; z-index: 5; }
+body.wide #show { display: block; }
+#show .btn { background: rgba(30,31,28,.85); }
+#err { display: none; position: absolute; inset: 0; place-items: center; color: #fff; font-size: 16px; }
+</style>
+</head>
+<body>
+<div id="view">
+  <div id="stage">
+    <canvas id="gl" width="2940" height="1912"></canvas>
+    <div id="peek" class="pnl light" hidden></div>
+    <div id="sw" class="pnl light" hidden></div>
+  </div>
+  <div id="err">Browser ini tidak bisa menggambar WebGL 2.</div>
+</div>
+<div id="show"><button class="btn" id="showCtl">Tampilkan pengatur</button></div>
+
+<aside id="ctl">
+  <h1>Kaca buatan Notching</h1>
+  <p class="lead">Prototipe (desain 7 Nov 2026). Desktop dan wallpaper di sini buatan; kacanya digambar seperti rencananya di Mac, dari potret layar di bawah panel. Angka awalnya pilihan pemilik.</p>
+  <div class="hint">Seret kartunya ke mana saja. Lihat tepinya: isi di belakang ikut melengkung.</div>
+
+  <div class="grp"><div class="lbl">Yang ditampilkan</div>
+    <div class="seg" data-k="view"><button data-v="peek" class="on">Kartu Dock</button><button data-v="sw">Pengalih ⌘Tab</button></div></div>
+  <div class="grp"><div class="lbl">Warna kartu</div>
+    <div class="seg" data-k="theme"><button data-v="light" class="on">Terang</button><button data-v="dark">Gelap</button></div></div>
+  <div class="grp"><div class="lbl">Wallpaper</div>
+    <div class="seg" data-k="bg"><button data-v="warm" class="on">Hangat</button><button data-v="blue">Biru</button><button data-v="silver">Perak</button></div></div>
+
+  <div class="sep"></div>
+  <div class="grp"><div class="lbl">Kepekatan warna <b id="v-tint"></b></div><input type="range" id="tint" min="0" max="40" step="1"></div>
+  <div class="grp"><div class="lbl">Blur latar <b id="v-blur"></b></div><input type="range" id="blur" min="0" max="20" step="0.5"></div>
+  <div class="grp"><div class="lbl">Lengkung di tepi <b id="v-dist"></b></div><input type="range" id="dist" min="0" max="40" step="1"></div>
+  <div class="grp"><div class="lbl">Lebar tepi kaca <b id="v-bevel"></b></div><input type="range" id="bevel" min="6" max="44" step="1"></div>
+  <div class="grp"><div class="lbl">Tepi lebih tajam dari tengah <b id="v-crisp"></b></div><input type="range" id="crisp" min="0" max="100" step="5"></div>
+  <div class="grp"><div class="lbl">Pelangi di tepi <b id="v-chroma"></b></div><input type="range" id="chroma" min="0" max="100" step="5"></div>
+  <div class="grp"><div class="lbl">Kilau tepi <b id="v-shine"></b></div><input type="range" id="shine" min="0" max="100" step="5"></div>
+  <div class="grp"><div class="lbl">Warna latar lebih hidup <b id="v-sat"></b></div><input type="range" id="sat" min="100" max="170" step="5"></div>
+
+  <div class="row"><button class="btn hold" id="off">Tahan: tanpa kaca</button><button class="btn" id="reset">Atur ulang</button></div>
+  <div class="row"><button class="btn" id="real">Ukuran asli 1:1</button><button class="btn" id="hide">Sembunyikan ini</button></div>
+</aside>
+
+<script>
+(() => {
+const SW = 1470, SH = 956, S = 2;            // the owner's screen in points, and Retina
+// The owner's numbers from the prototype (7 Nov 2026), the starting point for the Mac.
+const DEF = { view: 'peek', theme: 'light', bg: 'warm', tint: 40, blur: 3.5, dist: 18, bevel: 26, chroma: 35, shine: 50, sat: 130, crisp: 35 };
+const st = Object.assign({}, DEF);
+const $ = (id) => document.getElementById(id);
+
+// ================= the made-up desktop, drawn at 2x =================
+function rr(c, x, y, w, h, r) { c.beginPath(); c.roundRect(x, y, w, h, r); }
+function wrap(c, text, x, y, maxW, lh, lines) {
+  const words = text.split(' '); let line = '', n = 0;
+  for (const w of words) {
+    const t = line ? line + ' ' + w : w;
+    if (c.measureText(t).width > maxW && line) { c.fillText(line, x, y + n * lh); line = w; if (++n >= lines) return; }
+    else line = t;
+  }
+  if (line) c.fillText(line, x, y + n * lh);
+}
+const TEXT = 'Kaca di macOS terlihat bening, tetapi tepinya hampir tidak membengkokkan apa pun. Prototipe ini memotret layar di bawah kartu, lalu menggambar kacanya sendiri: latar diburamkan sedikit, tepinya membiaskan isi di belakang, dan warnanya hanya sepuluh sampai lima belas persen. Kartu Intip jendela dan pengalih jendela hanya muncul sebentar, jadi potret diam sudah cukup. Notching sudah punya izin Rekaman Layar untuk gambar jendela, jadi tidak perlu izin baru.';
+const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+
+function frame(w, h, title, dark) {
+  const cv = document.createElement('canvas'); cv.width = w * S; cv.height = h * S;
+  const c = cv.getContext('2d'); c.scale(S, S);
+  rr(c, 0, 0, w, h, 16); c.save(); c.clip();
+  c.fillStyle = dark ? '#1f1f22' : '#ffffff'; c.fillRect(0, 0, w, h);
+  c.fillStyle = dark ? '#2a2a2e' : '#f4f4f5'; c.fillRect(0, 0, w, 52);
+  c.fillStyle = dark ? '#3a3a3f' : '#e2e2e4'; c.fillRect(0, 51, w, 1);
+  [['#ff5f57', 22], ['#febc2e', 42], ['#28c840', 62]].forEach(([col, x]) => { c.fillStyle = col; c.beginPath(); c.arc(x, 26, 6, 0, 7); c.fill(); });
+  c.fillStyle = dark ? '#e8e8ea' : '#2b2b2e'; c.font = `600 14px ${SANS}`; c.fillText(title, 90, 31);
+  return { cv, c, done() { c.restore(); c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 1; rr(c, .5, .5, w - 1, h - 1, 16); c.stroke(); return cv; } };
+}
+function article(w, h, seed) {
+  const f = frame(w, h, ''), c = f.c;
+  c.fillStyle = '#e4e4e7'; rr(c, w / 2 - 180, 12, 360, 28, 9); c.fill();
+  c.fillStyle = '#55555a'; c.font = `13px ${SANS}`; c.textAlign = 'center'; c.fillText(seed.url, w / 2, 31); c.textAlign = 'left';
+  c.fillStyle = '#111'; c.font = `700 34px ${SANS}`; c.fillText(seed.head, 40, 104);
+  c.fillStyle = '#888'; c.font = `14px ${SANS}`; c.fillText('7 November 2026 · 4 menit baca', 40, 132);
+  const g = c.createLinearGradient(40, 150, w - 40, 360); seed.hero.forEach((col, i) => g.addColorStop(i / (seed.hero.length - 1), col));
+  c.fillStyle = g; rr(c, 40, 152, w - 80, 190, 12); c.fill();
+  for (let i = 0; i < 7; i++) { c.fillStyle = `rgba(255,255,255,${.15 + (i % 3) * .1})`; c.beginPath(); c.arc(90 + i * 95, 250 + Math.sin(i) * 50, 28 + (i % 4) * 14, 0, 7); c.fill(); }
+  c.fillStyle = '#26262a'; c.font = `16px ${SANS}`; wrap(c, TEXT, 40, 380, w - 80, 27, 12);
+  return f.done();
+}
+function calendar(w, h) {
+  const f = frame(w, h, 'November 2026'), c = f.c;
+  const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'], cw = (w - 20) / 7, top = 86, ch = (h - top - 10) / 5;
+  c.font = `600 12px ${SANS}`; c.fillStyle = '#6b6b70'; days.forEach((d, i) => c.fillText(d, 18 + i * cw, 74));
+  c.strokeStyle = '#d6d6da'; c.lineWidth = 1.5;
+  for (let i = 0; i <= 7; i++) { c.beginPath(); c.moveTo(10 + i * cw, top); c.lineTo(10 + i * cw, h - 10); c.stroke(); }
+  for (let j = 0; j <= 5; j++) { c.beginPath(); c.moveTo(10, top + j * ch); c.lineTo(w - 10, top + j * ch); c.stroke(); }
+  const ev = [['#2f7cf6', 'Rapat tim'], ['#2bb24c', 'Olahraga'], ['#ff8a00', 'Rilis'], ['#a64dff', 'Desain'], ['#ff3b5c', 'Libur']];
+  for (let j = 0; j < 5; j++) for (let i = 0; i < 7; i++) {
+    const n = j * 7 + i - 5; if (n < 1 || n > 30) continue;
+    c.fillStyle = n === 7 ? '#ff3b30' : '#2b2b2e'; c.font = `${n === 7 ? 700 : 500} 13px ${SANS}`; c.fillText(String(n), 18 + i * cw, top + j * ch + 20);
+    if ((i * 3 + j * 5) % 4 === 0) { const e = ev[(i + j) % 5]; c.fillStyle = e[0]; rr(c, 14 + i * cw, top + j * ch + 30, cw - 8, 22, 5); c.fill(); c.fillStyle = '#fff'; c.font = `600 11px ${SANS}`; c.fillText(e[1], 20 + i * cw, top + j * ch + 45); }
+  }
+  return f.done();
+}
+function notes(w, h) {
+  const f = frame(w, h, 'Catatan'), c = f.c;
+  c.fillStyle = '#f7f3e3'; c.fillRect(0, 52, 120, h - 52); c.fillStyle = '#e9e2c6'; c.fillRect(120, 52, 1, h - 52);
+  c.font = `13px ${SANS}`; ['Belanja', 'Ide app', 'Rilis 1.4', 'Resep'].forEach((t, i) => { if (!i) { c.fillStyle = '#f2d34b'; rr(c, 8, 62, 104, 26, 6); c.fill(); } c.fillStyle = '#3a3a3a'; c.fillText(t, 18, 80 + i * 32); });
+  c.fillStyle = '#111'; c.font = `700 22px ${SANS}`; c.fillText('Belanja', 140, 92);
+  ['Kopi susu', 'Roti gandum', 'Telur 1 lusin', 'Sabun cuci', 'Pisang', 'Air mineral'].forEach((t, i) => {
+    c.strokeStyle = '#e0a800'; c.lineWidth = 2; c.beginPath(); c.arc(150, 124 + i * 30, 8, 0, 7); c.stroke();
+    if (i < 2) { c.fillStyle = '#e0a800'; c.beginPath(); c.arc(150, 124 + i * 30, 4, 0, 7); c.fill(); }
+    c.fillStyle = i < 2 ? '#999' : '#222'; c.font = `15px ${SANS}`; c.fillText(t, 168, 129 + i * 30);
+  });
+  return f.done();
+}
+function finder(w, h) {
+  const f = frame(w, h, 'Unduhan'), c = f.c;
+  c.fillStyle = '#f1f1f3'; c.fillRect(0, 52, 140, h - 52);
+  c.font = `13px ${SANS}`; c.fillStyle = '#8a8a8f'; c.fillText('Favorit', 14, 78);
+  ['AirDrop', 'Terbaru', 'Aplikasi', 'Desktop', 'Dokumen', 'Unduhan'].forEach((t, i) => { c.fillStyle = '#2b2b2e'; c.fillText(t, 22, 102 + i * 24); });
+  for (let i = 0; i < 9; i++) {
+    const x = 160 + (i % 3) * 92, y = 72 + Math.floor(i / 3) * 84;
+    c.fillStyle = i % 4 === 3 ? '#e8e8ea' : '#4aa3ff'; rr(c, x + 14, y, 56, 44, 6); c.fill();
+    c.fillStyle = i % 4 === 3 ? '#cfcfd3' : '#7bbcff'; rr(c, x + 14, y, 26, 10, 3); c.fill();
+    c.fillStyle = '#2b2b2e'; c.font = `11px ${SANS}`; c.textAlign = 'center'; c.fillText(['Proyek', 'Foto', 'notch', 'gambar.png', 'Musik', 'Arsip', 'Kerja', 'faktur.pdf', 'Video'][i], x + 42, y + 62); c.textAlign = 'left';
+  }
+  return f.done();
+}
+function icon(kind) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 96; const c = cv.getContext('2d'); c.scale(2, 2);
+  const sq = (fill) => { c.fillStyle = fill; rr(c, 2, 2, 44, 44, 11); c.fill(); };
+  const lg = (a, b) => { const g = c.createLinearGradient(0, 0, 0, 48); g.addColorStop(0, a); g.addColorStop(1, b); return g; };
+  switch (kind) {
+    case 'safari': sq(lg('#5ec8ff', '#1a73e8')); c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.arc(24, 24, 15, 0, 7); c.stroke(); c.fillStyle = '#ff4d4d'; c.beginPath(); c.moveTo(24, 11); c.lineTo(28, 24); c.lineTo(20, 24); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.moveTo(24, 37); c.lineTo(28, 24); c.lineTo(20, 24); c.fill(); break;
+    case 'finder': sq(lg('#6cc3ff', '#2a7de1')); c.fillStyle = '#e9f4ff'; rr(c, 24, 2, 22, 44, [0, 11, 11, 0]); c.fill(); c.fillStyle = '#123'; c.fillRect(16, 16, 3, 7); c.fillRect(30, 16, 3, 7); c.strokeStyle = '#123'; c.lineWidth = 2; c.beginPath(); c.arc(24, 26, 10, .3, 2.8); c.stroke(); break;
+    case 'cal': sq('#fff'); c.fillStyle = '#ff3b30'; c.font = `700 9px ${SANS}`; c.textAlign = 'center'; c.fillText('NOV', 24, 15); c.fillStyle = '#222'; c.font = `300 24px ${SANS}`; c.fillText('7', 24, 39); break;
+    case 'notes': sq(lg('#fff', '#f3f3f3')); c.fillStyle = '#f5c518'; rr(c, 2, 2, 44, 12, [11, 11, 0, 0]); c.fill(); c.strokeStyle = '#ccc'; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(9, 21 + i * 6); c.lineTo(39, 21 + i * 6); c.stroke(); } break;
+    case 'notch': sq('#0b0b0a'); c.fillStyle = '#c8f04a'; rr(c, 14, 10, 20, 7, 3.5); c.fill(); break;
+    case 'music': sq(lg('#ff6b81', '#fa233b')); c.fillStyle = '#fff'; c.font = `700 26px ${SANS}`; c.textAlign = 'center'; c.fillText('♪', 24, 34); break;
+    case 'msg': sq(lg('#6ef07a', '#1fbf3a')); c.fillStyle = '#fff'; c.beginPath(); c.ellipse(24, 23, 14, 11, 0, 0, 7); c.fill(); break;
+    case 'photos': sq('#fff'); ['#ff9500', '#ffcc00', '#34c759', '#32ade6', '#5856d6', '#ff2d55'].forEach((col, i) => { c.fillStyle = col; c.globalAlpha = .85; c.beginPath(); c.ellipse(24 + Math.cos(i) * 7, 24 + Math.sin(i) * 7, 9, 5, i, 0, 7); c.fill(); }); c.globalAlpha = 1; break;
+    case 'term': sq('#1d1d1f'); c.fillStyle = '#e5e5e5'; c.font = `700 14px Menlo, monospace`; c.fillText('>_', 10, 30); break;
+    case 'set': sq(lg('#b8b8bd', '#7d7d83')); c.strokeStyle = '#444'; c.lineWidth = 4; c.beginPath(); c.arc(24, 24, 10, 0, 7); c.stroke(); break;
+    case 'trash': c.fillStyle = 'rgba(255,255,255,.55)'; rr(c, 10, 8, 28, 36, 5); c.fill(); c.strokeStyle = 'rgba(0,0,0,.25)'; c.stroke(); break;
+  }
+  return cv;
+}
+const ICONS = ['finder', 'safari', 'msg', 'photos', 'cal', 'notes', 'music', 'notch', 'term', 'set', 'trash'];
+const ic = Object.fromEntries(ICONS.map((k) => [k, icon(k)]));
+const W = {
+  safari: article(700, 640, { url: 'notching.app/blog', head: 'Liquid glass, dibuat sendiri', hero: ['#ff7a59', '#ffcf5c', '#7ae2b0', '#4aa8ff'] }),
+  safari2: article(700, 640, { url: 'id.wikipedia.org', head: 'Pembiasan cahaya', hero: ['#1b2a6b', '#4b6cff', '#b8f0ff'] }),
+  safari3: article(700, 640, { url: 'github.com/notching', head: 'Rilis 1.4: Intip jendela', hero: ['#0f1404', '#4c6b12', '#c8f04a'] }),
+  cal: calendar(600, 470), notes: notes(380, 330), finder: finder(450, 330),
+};
+const PLACED = [['finder', 990, 60], ['safari', 50, 62], ['cal', 800, 300], ['notes', 520, 520]];
+const imgs = {};
+// Made-up wallpapers (gradients), so the repo carries no Apple wallpaper.
+const WALL = {
+  warm: { sky: ['#ffb26b', '#f0607f', '#7a54e0'], hills: [['#2f9e52', '#a6dc4c'], ['#1f7a43', '#63c25a']] },
+  blue: { sky: ['#9fd3ff', '#3f7cf0', '#1b2f8f'], hills: [['#2a5fd8', '#7fb6ff'], ['#173a9e', '#4f86f2']] },
+  silver: { sky: ['#f4f5f7', '#c9cdd4', '#8e949e'], hills: [['#aeb4bd', '#e6e8ec'], ['#7f8691', '#c3c8cf']] },
+};
+function wallpaper(name) {
+  const p = WALL[name], cv = document.createElement('canvas'); cv.width = SW * S; cv.height = SH * S;
+  const c = cv.getContext('2d'); c.scale(S, S);
+  const g = c.createLinearGradient(0, 0, SW * .4, SH); p.sky.forEach((col, i) => g.addColorStop(i / (p.sky.length - 1), col));
+  c.fillStyle = g; c.fillRect(0, 0, SW, SH);
+  for (let i = 0; i < 6; i++) {
+    const x = (i * 331) % SW, y = 80 + (i * 197) % (SH * .6), r = 220 + (i % 3) * 120;
+    const rg = c.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, 'rgba(255,255,255,.28)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = rg; c.fillRect(0, 0, SW, SH);
+  }
+  p.hills.forEach(([a, b], k) => {
+    const top = SH * (.58 + k * .14), hg = c.createLinearGradient(0, top, SW, SH); hg.addColorStop(0, a); hg.addColorStop(1, b);
+    c.fillStyle = hg; c.beginPath(); c.moveTo(0, SH);
+    for (let x = 0; x <= SW; x += 10) c.lineTo(x, top + Math.sin(x / (260 + k * 90) + k * 2) * 46 + (x / SW) * (k ? -40 : 60));
+    c.lineTo(SW, SH); c.closePath(); c.fill();
+  });
+  return cv;
+}
+function loadBg(name) { if (!imgs[name]) imgs[name] = wallpaper(name); return Promise.resolve(imgs[name]); }
+
+const dock = {};
+function desktop(bg) {
+  const cv = document.createElement('canvas'); cv.width = SW * S; cv.height = SH * S;
+  const c = cv.getContext('2d'); c.scale(S, S);
+  const k = Math.max(SW / bg.width, SH / bg.height); c.drawImage(bg, (SW - bg.width * k) / 2, (SH - bg.height * k) / 2, bg.width * k, bg.height * k);
+  for (const [name, x, y] of PLACED) {
+    const w = W[name]; c.save(); c.shadowColor = 'rgba(0,0,0,.28)'; c.shadowBlur = 40; c.shadowOffsetY = 14;
+    c.drawImage(w, x, y, w.width / S, w.height / S); c.restore();
+  }
+  // menu bar (see-through, as on macOS 26) and the notch
+  c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(0, 0, SW, 33);
+  c.fillStyle = '#111'; c.font = `600 14px ${SANS}`; c.fillText('Safari', 44, 22);
+  c.font = `14px ${SANS}`; ['File', 'Edit', 'View', 'History', 'Bookmarks', 'Window', 'Help'].reduce((x, t) => { c.fillText(t, x, 22); return x + c.measureText(t).width + 22; }, 112);
+  c.beginPath(); c.arc(22, 16.5, 7, 0, 7); c.fill();
+  c.textAlign = 'right'; c.fillText('Sab 7 Nov  10.30', SW - 18, 22); c.textAlign = 'left';
+  c.fillStyle = '#0b0b0a'; rr(c, SW / 2 - 93, -12, 186, 45, 12); c.fill();
+  // the Dock
+  const n = ICONS.length, iw = 50, gap = 6, dw = n * iw + (n - 1) * gap + 20, dx = (SW - dw) / 2, dy = SH - 66;
+  c.fillStyle = 'rgba(255,255,255,.34)'; rr(c, dx, dy, dw, 62, 22); c.fill();
+  c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; rr(c, dx + .5, dy + .5, dw - 1, 61, 22); c.stroke();
+  ICONS.forEach((k, i) => { c.drawImage(ic[k], dx + 10 + i * (iw + gap), dy + 6, iw, iw); });
+  c.fillStyle = 'rgba(0,0,0,.5)'; [1, 4, 5].forEach((i) => { c.beginPath(); c.arc(dx + 10 + i * (iw + gap) + iw / 2, dy + 59, 2, 0, 7); c.fill(); });
+  dock.safariX = dx + 10 + 1 * (iw + gap) + iw / 2; dock.top = dy;
+  return cv;
+}
+
+// ================= the panels' content =================
+const url = (cv) => cv.toDataURL('image/png');
+function buildPeek() {
+  const p = $('peek');
+  const th = (cv, name, chip, min, hover) => `<div class="th${min ? ' min' : ''}${hover ? ' hover' : ''}"><div class="box"><img src="${url(cv)}"></div><div class="cap"><span>${name}</span>${chip}</div></div>`;
+  p.innerHTML = `<div class="ph"><span class="nm">Safari</span><span class="ct">3 jendela</span></div><div class="thumbs">`
+    + th(W.safari, 'Liquid glass, dibuat sendiri', '<i class="chip acc">Di depan</i>', false, false)
+    + th(W.safari2, 'Pembiasan cahaya – Wikipedia', '', false, true)
+    + th(W.safari3, 'Rilis 1.4: Intip jendela', '<i class="chip">Diminimize</i>', true, false) + '</div>';
+}
+function buildSw() {
+  const p = $('sw');
+  const sc = (cv, ico, name, sel, min) => `<div class="sc${sel ? ' sel' : ''}${min ? ' min' : ''}"><div class="box"><img src="${url(cv)}"></div><div class="cap"><img class="ico" src="${url(ic[ico])}"><span>${name}</span>${min ? '<i class="chip">Min</i>' : ''}</div></div>`;
+  p.innerHTML = `<div class="swh"><span class="cond">5 jendela</span><span class="keys">Tab berikutnya · ⇧Tab sebelumnya · lepas ⌘ untuk buka</span></div><div class="swgrid">`
+    + sc(W.safari, 'safari', 'Liquid glass, dibuat sendiri', false) + sc(W.cal, 'cal', 'Kalender', true) + sc(W.notes, 'notes', 'Catatan', false)
+    + sc(W.finder, 'finder', 'Unduhan', false) + sc(W.safari3, 'safari', 'Rilis 1.4: Intip jendela', false, true) + '</div>';
+}
+
+// ================= WebGL: blur + edge refraction, as Core Image would on the Mac =================
+const cvs = $('gl');
+const gl = cvs.getContext('webgl2', { antialias: false, premultipliedAlpha: false, preserveDrawingBuffer: true });
+if (!gl) { $('err').style.display = 'grid'; return; }
+const VS = `#version 300 es
+in vec2 p; void main() { gl_Position = vec4(p, 0., 1.); }`;
+const BLUR = `#version 300 es
+precision highp float; uniform sampler2D t; uniform vec2 size; uniform vec2 dir; uniform float sigma; out vec4 o;
+void main() { vec2 uv = gl_FragCoord.xy / size;
+  if (sigma < .3) { o = texture(t, uv); return; }
+  int r = int(ceil(sigma * 3.)); vec4 a = vec4(0.); float ws = 0.;
+  for (int i = -r; i <= r; i++) { float w = exp(-float(i * i) / (2. * sigma * sigma)); a += texture(t, uv + dir * float(i) / size) * w; ws += w; }
+  o = a / ws; }`;
+const GLASS = `#version 300 es
+precision highp float;
+uniform sampler2D sharp, blurred; uniform vec2 scene, px; uniform vec4 rect;
+uniform float radius, bevel, k, chroma, sat, shine, on, crisp;
+out vec4 o;
+float sdf(vec2 p) { vec2 c = rect.xy + rect.zw * .5; vec2 h = rect.zw * .5 - vec2(radius); vec2 q = abs(p - c) - h;
+  return length(max(q, 0.)) + min(max(q.x, q.y), 0.) - radius; }
+void main() {
+  vec2 uv = vec2(gl_FragCoord.x / px.x, 1. - gl_FragCoord.y / px.y);
+  vec2 p = uv * scene;
+  vec4 s = texture(sharp, uv);
+  float d = sdf(p);
+  if (on < .5 || d > 1.) { o = s; return; }
+  vec2 n = normalize(vec2(sdf(p + vec2(.5, 0.)) - sdf(p - vec2(.5, 0.)), sdf(p + vec2(0., .5)) - sdf(p - vec2(0., .5))) + 1e-5);
+  float u = clamp(-d / bevel, 0., 1.);
+  float m = k * (1. - sqrt(1. - (1. - u) * (1. - u)));
+  vec2 off = n * m;
+  vec2 ur = (p + off * (1. + chroma)) / scene, ug = (p + off) / scene, ub = (p + off * (1. - chroma)) / scene;
+  vec3 cb = vec3(texture(blurred, ur).r, texture(blurred, ug).g, texture(blurred, ub).b);
+  vec3 cs = vec3(texture(sharp, ur).r, texture(sharp, ug).g, texture(sharp, ub).b);
+  vec3 col = mix(cs, cb, mix(1., smoothstep(0., .85, u), crisp));
+  float l = dot(col, vec3(.2126, .7152, .0722)); col = mix(vec3(l), col, sat);
+  float rim = pow(1. - u, 3.);
+  float lit = max(dot(n, normalize(vec2(-.55, -.85))), 0.) + .55 * max(dot(n, normalize(vec2(.55, .85))), 0.);
+  col = mix(col, vec3(1.), clamp(shine * rim * lit * .55, 0., 1.));
+  float a = clamp(.5 - d * 2., 0., 1.);
+  o = vec4(mix(s.rgb, col, a), 1.);
+}`;
+function prog(fs) {
+  const pr = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]]) {
+    const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+    gl.attachShader(pr, sh);
+  }
+  gl.bindAttribLocation(pr, 0, 'p'); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(pr));
+  const U = {}; const n = gl.getProgramParameter(pr, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) { const name = gl.getActiveUniform(pr, i).name; U[name] = gl.getUniformLocation(pr, name); }
+  return { pr, U };
+}
+const pBlur = prog(BLUR), pGlass = prog(GLASS);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+function tex(w, h) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  if (w) gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  return t;
+}
+const sharpT = tex(), tmpT = tex(SW, SH), blurT = tex(SW, SH);
+const fb = gl.createFramebuffer();
+function pass(src, dst, dx, dy) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, dst, 0);
+  gl.viewport(0, 0, SW, SH); gl.useProgram(pBlur.pr);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, src); gl.uniform1i(pBlur.U.t, 0);
+  gl.uniform2f(pBlur.U.size, SW, SH); gl.uniform2f(pBlur.U.dir, dx, dy); gl.uniform1f(pBlur.U.sigma, st.blur);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+function upload(cv) {
+  gl.bindTexture(gl.TEXTURE_2D, sharpT); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+}
+function reblur() { pass(sharpT, tmpT, 1, 0); pass(tmpT, blurT, 0, 1); draw(); }
+
+let off = false, rect = null, dragged = { peek: null, sw: null };
+function panel() { return $(st.view); }
+function place() {
+  const p = panel(); const w = p.offsetWidth, h = p.offsetHeight;
+  let x, y; const d = dragged[st.view];
+  if (d) [x, y] = d;
+  else if (st.view === 'peek') { x = Math.min(Math.max(dock.safariX - w / 2, 8), SW - 8 - w); y = dock.top - 8 - h; }
+  else { x = (SW - w) / 2; y = (SH - h) / 2 - 20; }
+  p.style.transform = `translate(${x}px, ${y}px)`;
+  rect = [x, y, w, h, st.view === 'peek' ? 20 : 26];
+}
+function draw() {
+  if (!rect) return;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, cvs.width, cvs.height); gl.useProgram(pGlass.pr);
+  const U = pGlass.U;
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sharpT); gl.uniform1i(U.sharp, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, st.blur < .3 ? sharpT : blurT); gl.uniform1i(U.blurred, 1);
+  gl.uniform2f(U.scene, SW, SH); gl.uniform2f(U.px, cvs.width, cvs.height);
+  gl.uniform4f(U.rect, rect[0], rect[1], rect[2], rect[3]); gl.uniform1f(U.radius, rect[4]);
+  gl.uniform1f(U.bevel, st.bevel); gl.uniform1f(U.k, st.dist); gl.uniform1f(U.chroma, st.chroma / 100 * .5);
+  gl.uniform1f(U.sat, st.sat / 100); gl.uniform1f(U.shine, st.shine / 100); gl.uniform1f(U.on, off ? 0 : 1); gl.uniform1f(U.crisp, st.crisp / 100);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+// ================= wiring =================
+function fit() {
+  const v = $('view'); const real = document.body.classList.contains('real');
+  const s = real ? 1 : Math.min((v.clientWidth - 24) / SW, (v.clientHeight - 24) / SH);
+  const st2 = $('stage'); st2.style.transform = `scale(${s})`;
+  st2.style.left = real ? '0px' : `${Math.max(12, (v.clientWidth - SW * s) / 2)}px`;
+  st2.style.top = real ? '0px' : `${Math.max(12, (v.clientHeight - SH * s) / 2)}px`;
+  fit.s = s;
+}
+function show() {
+  for (const id of ['peek', 'sw']) { const p = $(id); p.hidden = id !== st.view; p.className = `pnl ${st.theme}`; p.style.setProperty('--tint', st.tint / 100); }
+  place(); draw();
+}
+let sendT = 0;
+function report() { clearTimeout(sendT); sendT = setTimeout(() => { try { window.brainstorm && window.brainstorm.send({ type: 'settings', choice: 'settings', ...st, glass: !off }); } catch (e) {} }, 600); }
+function syncUi() {
+  for (const k of ['tint', 'blur', 'dist', 'bevel', 'crisp', 'chroma', 'shine', 'sat']) {
+    $(k).value = st[k];
+    $('v-' + k).textContent = k === 'tint' || k === 'crisp' || k === 'chroma' || k === 'shine' || k === 'sat' ? `${st[k]}%` : `${st[k]} pt`;
+  }
+  document.querySelectorAll('.seg').forEach((g) => g.querySelectorAll('button').forEach((b) => b.classList.toggle('on', st[g.dataset.k] === b.dataset.v)));
+}
+async function setBg(name) { st.bg = name; const i = await loadBg(name); upload(desktop(i)); reblur(); }
+
+document.querySelectorAll('.seg').forEach((g) => g.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return; st[g.dataset.k] = b.dataset.v; syncUi(); report();
+  if (g.dataset.k === 'bg') setBg(b.dataset.v); else show();
+}));
+for (const k of ['tint', 'blur', 'dist', 'bevel', 'crisp', 'chroma', 'shine', 'sat']) $(k).addEventListener('input', (e) => {
+  st[k] = Number(e.target.value); syncUi(); report();
+  if (k === 'blur') reblur(); else show();
+});
+const offBtn = $('off');
+const setOff = (v) => { off = v; offBtn.classList.toggle('on', v); draw(); };
+offBtn.addEventListener('pointerdown', () => setOff(true));
+for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) offBtn.addEventListener(ev, () => off && setOff(false));
+$('reset').onclick = () => { const bg = st.bg; Object.assign(st, DEF, { bg, view: st.view, theme: st.theme }); dragged = { peek: null, sw: null }; syncUi(); reblur(); show(); report(); };
+$('real').onclick = () => { document.body.classList.toggle('real'); $('real').textContent = document.body.classList.contains('real') ? 'Pas di layar' : 'Ukuran asli 1:1'; fit(); };
+$('hide').onclick = () => { document.body.classList.add('wide'); fit(); };
+$('showCtl').onclick = () => { document.body.classList.remove('wide'); fit(); };
+addEventListener('resize', fit);
+
+for (const id of ['peek', 'sw']) {
+  const p = $(id); let start = null;
+  p.addEventListener('pointerdown', (e) => { p.setPointerCapture(e.pointerId); p.classList.add('drag'); start = [e.clientX, e.clientY, rect[0], rect[1]]; });
+  p.addEventListener('pointermove', (e) => {
+    if (!start) return; const s = fit.s || 1;
+    dragged[id] = [start[2] + (e.clientX - start[0]) / s, start[3] + (e.clientY - start[1]) / s]; place(); draw();
+  });
+  p.addEventListener('pointerup', () => { start = null; p.classList.remove('drag'); });
+}
+
+syncUi(); fit(); buildPeek(); buildSw();
+document.fonts.ready.then(() => setBg(st.bg).then(show));
+})();
+</script>
+</body>
+</html>
