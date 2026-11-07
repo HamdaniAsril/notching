@@ -2,7 +2,8 @@
 //! Every tap asks here before turning itself back on after macOS turned it
 //! off, and a watch reads the Accessibility permission each second, so a
 //! permission taken away takes every tap out within a second, whether or not
-//! macOS says the list changed.
+//! macOS says the list changed. The same watch reads secure input, so a
+//! password field gives ⌘Tab back to macOS while it holds the keys.
 
 use std::ffi::c_void;
 use std::sync::Mutex;
@@ -91,8 +92,17 @@ pub fn start(app: &AppHandle) {
     let app = app.clone();
     let spawned = std::thread::Builder::new().name("notching-access-watch".into()).spawn(move || {
         let mut watch = AccessWatch::default();
+        // Secure input (a password field) hides keys from the switcher's tap:
+        // the switcher hands ⌘Tab back to macOS while it lasts.
+        let mut secure = AccessWatch::default();
         let mut first = true;
         loop {
+            let hidden = crate::keyclean_tap::secure_input();
+            if secure.changed(hidden) {
+                let say = if hidden { "on (a password field): macOS keeps its own ⌘Tab" } else { "off" };
+                eprintln!("notching: secure input {say}");
+                crate::switch_service::sync(&app);
+            }
             let now = crate::keyclean_tap::trusted(false);
             let told = watch.changed(now);
             if first || told {

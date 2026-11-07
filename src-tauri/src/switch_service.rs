@@ -97,7 +97,8 @@ pub fn sync(app: &AppHandle) {
     let s = settings(app);
     let want = crate::peek_service::installed_and_on(app) && crate::keyclean_tap::trusted(false) && s.switcher;
     let on = crate::switch_tap::sync(app, want, s.switcher_key);
-    let (tab, shift_tab) = if on { native_off(s.switcher_key) } else { (false, false) };
+    let secure = crate::keyclean_tap::secure_input();
+    let (tab, shift_tab) = if on { native_off(s.switcher_key, secure) } else { (false, false) };
     crate::switch_symbolic::set_native(!tab, !shift_tab);
     if !on {
         let handle = app.clone();

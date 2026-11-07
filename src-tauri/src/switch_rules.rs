@@ -199,9 +199,11 @@ pub fn needs_symbolic_off(c: Combo) -> bool {
 }
 
 /// Which of macOS's own keys the trigger needs off: (⌘Tab, ⌘⇧Tab). ⌘Tab
-/// also takes ⌘⇧Tab; ⌘⇧Tab leaves plain ⌘Tab to macOS.
-pub fn native_off(c: Combo) -> (bool, bool) {
-    let both = needs_symbolic_off(c);
+/// also takes ⌘⇧Tab; ⌘⇧Tab leaves plain ⌘Tab to macOS. None while secure
+/// input is on (a password field): the tap hears no keys then, so macOS's own
+/// switcher keeps the key instead of ⌘Tab doing nothing.
+pub fn native_off(c: Combo, secure_input: bool) -> (bool, bool) {
+    let both = !secure_input && needs_symbolic_off(c);
     (both && c.mods & SHIFT == 0, both)
 }
 
@@ -471,9 +473,17 @@ mod tests {
 
     #[test]
     fn only_the_mac_keys_the_trigger_needs_are_turned_off() {
-        assert_eq!(native_off(CMD_TAB), (true, true));
-        assert_eq!(native_off(Combo { code: 48, mods: CMD | SHIFT }), (false, true));
-        assert_eq!(native_off(Combo { code: 48, mods: OPTION }), (false, false));
+        assert_eq!(native_off(CMD_TAB, false), (true, true));
+        assert_eq!(native_off(Combo { code: 48, mods: CMD | SHIFT }, false), (false, true));
+        assert_eq!(native_off(Combo { code: 48, mods: OPTION }, false), (false, false));
+    }
+
+    #[test]
+    fn a_password_field_gives_macos_its_own_command_tab_back() {
+        // Secure input hides every key from Notching's tap, so macOS keeps its own.
+        assert_eq!(native_off(CMD_TAB, true), (false, false));
+        assert_eq!(native_off(Combo { code: 48, mods: CMD | SHIFT }, true), (false, false));
+        assert_eq!(native_off(Combo { code: 48, mods: OPTION }, true), (false, false));
     }
 
     #[test]

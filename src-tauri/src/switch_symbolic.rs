@@ -3,7 +3,8 @@
 //! takes ⌘Tab or ⌘⇧Tab, the Mac's own switcher is turned off through SkyLight's
 //! symbolic hot keys. Not documented by Apple (as AltTab does it); loaded at run
 //! time, so a macOS without it still opens Notching. It is turned back on when
-//! the switcher or the tool goes off, when Accessibility is taken away, when
+//! the switcher or the tool goes off, when Accessibility is taken away, while
+//! secure input is on (a password field, where the tap hears no keys), when
 //! Notching quits, and every time Notching opens, first of all, so a crash
 //! never leaves it off for longer than until the next start.
 
