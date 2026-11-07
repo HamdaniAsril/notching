@@ -171,3 +171,8 @@ test('a tool card is labelled Alat and says what it needs', async () => {
   expect(card(root, 'window-keys').textContent).toContain('Butuh izin: Aksesibilitas');
   expect([...root.querySelectorAll('.cat-filter button')].map(b => b.textContent)).toEqual(['Semua', 'Modul', 'Alat', 'Widget']);
 });
+
+test('on macOS 27 a card names the permission as System Settings does', async () => {
+  const { root } = await open({ ...STATE, macos: 27 });
+  expect(card(root, 'window-keys').textContent).toContain('Butuh izin: Kontrol Perangkat dan Akses Data');
+});

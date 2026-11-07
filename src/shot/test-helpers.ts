@@ -14,10 +14,11 @@ export const shot = (id: number, over: Partial<Shot> = {}): Shot => ({
 });
 
 // Deps for both Screenshot pages, as mocks; emitShot plays the core's event.
-export function fakeShotDeps(over: { lang?: Lang; now?: () => number } = {}) {
+export function fakeShotDeps(over: { lang?: Lang; macos?: number; now?: () => number } = {}) {
   const subs = new Set<(e: ShotEvent) => void>();
   return {
     lang: over.lang ?? 'id' as Lang,
+    macos: over.macos ?? 14,
     now: over.now ?? (() => 0),
     close: vi.fn(async () => {}),
     back: vi.fn(() => {}),

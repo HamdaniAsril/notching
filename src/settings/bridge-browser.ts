@@ -65,6 +65,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     shelfOpenOnDrag: true,
     peek: DEFAULT_PEEK,
     peekKeyLabel: '⌘⇥',
+    macos: Number(params.get('macos') ?? 27),
   };
   const stateSubs = new Set<(s: ModuleState) => void>();
   const infoSubs = new Set<(s: SettingsInfo) => void>();

@@ -83,6 +83,8 @@ pub struct ModuleInfoDto {
 #[serde(rename_all = "camelCase")]
 pub struct ModuleStateDto {
     pub lang: Lang,
+    /// This Mac's macOS major version, for System Settings' names of its permissions.
+    pub macos: u32,
     pub modules: Vec<ModuleInfoDto>,
     pub pages: Vec<Page>,
     pub last_page: Option<String>,
@@ -128,6 +130,7 @@ pub struct AppCore {
     settings: Settings,
     store: ModuleStore,
     device_locale: Option<String>,
+    macos: u32,
     modules: Vec<ModuleEntry>,
     // Kept in memory only: a restart forgets missed notices and statuses.
     missed: Vec<String>,
@@ -141,8 +144,8 @@ pub struct StatsState(pub Mutex<SystemStats>);
 
 impl AppCore {
     /// Loads the settings, refreshes the installed modules from the bundle and
-    /// lists them.
-    pub fn open(settings_path: PathBuf, store: ModuleStore, device_locale: Option<String>) -> AppCore {
+    /// lists them. `macos`: the major version, which names the permissions.
+    pub fn open(settings_path: PathBuf, store: ModuleStore, device_locale: Option<String>, macos: u32) -> AppCore {
         let settings = load_settings(&settings_path);
         store.sync(&settings);
         let mut core =
@@ -151,6 +154,7 @@ impl AppCore {
             settings,
             store,
             device_locale,
+            macos,
             modules: Vec::new(),
             missed: Vec::new(),
             live: LiveStatus::default(),
@@ -171,6 +175,7 @@ impl AppCore {
     pub fn state(&self) -> ModuleStateDto {
         ModuleStateDto {
             lang: self.lang(),
+            macos: self.macos,
             modules: self
                 .modules
                 .iter()
@@ -347,9 +352,11 @@ impl AppCore {
         had
     }
 
-    /// A module's text in the language in use, by dotted key.
+    /// A module's text in the language in use, by dotted key, with System
+    /// Settings' names for `{accessibility}` and the other permissions.
     pub fn module_text(&self, id: &str, key: &str) -> Option<String> {
-        self.store.module_text(id, self.lang(), key)
+        let lang = self.lang();
+        self.store.module_text(id, lang, key).map(|t| crate::macos_names::fill(&t, lang, self.macos))
     }
 
     pub fn module(&self, id: &str) -> Option<&ModuleEntry> {
@@ -614,7 +621,7 @@ mod tests {
 
     fn open(d: &tempfile::TempDir, locale: Option<&str>) -> AppCore {
         let store = ModuleStore::new(d.path().join("bundle"), d.path().join("active"));
-        AppCore::open(d.path().join(SETTINGS_FILE), store, locale.map(String::from))
+        AppCore::open(d.path().join(SETTINGS_FILE), store, locale.map(String::from), 14)
     }
 
     fn setup() -> tempfile::TempDir {
@@ -632,6 +639,24 @@ mod tests {
         assert_eq!(s.last_page, None);
         assert_eq!(s.modules[0].card, Some(CardSize { width: 400, height: 90 }));
         assert!(d.path().join("active/a/index.html").exists());
+    }
+
+    #[test]
+    fn module_texts_name_the_permissions_as_this_macos_does() {
+        let d = setup();
+        std::fs::write(
+            d.path().join("bundle/a/locales/id.json"),
+            r#"{"name":"Modul A","description":"Isi A","channels":{"ping":"Ping"},"notice":{"access":{"title":"A butuh izin {accessibility}"}}}"#,
+        )
+        .unwrap();
+        let core = |macos| {
+            let store = ModuleStore::new(d.path().join("bundle"), d.path().join("active"));
+            AppCore::open(d.path().join(SETTINGS_FILE), store, Some("id-ID".into()), macos)
+        };
+        let title = |macos| core(macos).module_text("a", "notice.access.title");
+        assert_eq!(title(27).as_deref(), Some("A butuh izin Kontrol Perangkat dan Akses Data"));
+        assert_eq!(title(14).as_deref(), Some("A butuh izin Aksesibilitas"));
+        assert_eq!(core(27).state().macos, 27);
     }
 
     #[test]

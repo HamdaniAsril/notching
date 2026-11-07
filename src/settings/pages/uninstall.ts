@@ -1,4 +1,4 @@
-import { fill } from '../../i18n';
+import { fill, systemNames } from '../../i18n';
 import { button, el, group, head, note, row } from '../controls';
 import type { PageContext, PageRender, UninstallPreview } from '../types';
 import { UNINSTALL_CONFIRM_MS } from './modules';
@@ -48,7 +48,8 @@ export const uninstallPage: PageRender = ctx => {
       (e: unknown) => permHint(fill(s.releaseFailed, { reason: String(e) }), true),
     ).finally(() => { release.disabled = false; });
   });
-  const permRow = row({ key: 'uninstall.permissions', label: s.permissions, hint: s.permissionsHint, control: release });
+  const hint = fill(s.permissionsHint, systemNames(ctx.lang, ctx.state.macos));
+  const permRow = row({ key: 'uninstall.permissions', label: s.permissions, hint, control: release });
 
   // The app: off in a dev build; what goes to the Trash listed under it.
   const appHint = (text: string, err = false) => {

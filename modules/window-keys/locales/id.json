@@ -4,6 +4,6 @@
   "description": "⌃⌥ dengan panah dan tanda baca untuk menata jendela",
   "channels": { "access": "Izin" },
   "notice": {
-    "access": { "title": "Atur jendela butuh izin Aksesibilitas", "detail": "Buka Pengaturan → Izin" }
+    "access": { "title": "Atur jendela butuh izin {accessibility}", "detail": "Buka Pengaturan → Izin" }
   }
 }

@@ -1,4 +1,4 @@
-import { fill } from '../../i18n';
+import { fill, systemNames } from '../../i18n';
 import { formatBytes } from '../../kit/format';
 import { inCatalog, isModule, isTool, type ModuleInfo } from '../../modules/types';
 import { STRIP_WIDTH } from '../../pages/layout';
@@ -19,9 +19,9 @@ let filter: Filter = 'all';
 // A package card shows this many of its widgets; the count says the rest.
 const PEEK = 3;
 
-// A system permission's name, from the Izin page's words.
+// A system permission's name, as System Settings on this macOS has it.
 function permissionName(ctx: PageContext, p: string): string {
-  const s = ctx.strings.permissions;
+  const s = systemNames(ctx.lang, ctx.state.macos);
   switch (p) {
     case 'accessibility': return s.accessibility;
     case 'camera': return s.camera;

@@ -1,5 +1,5 @@
 import type { Shot } from '../bridge';
-import { fill, hostStrings, type HostStrings } from '../i18n';
+import { fill, hostStrings, systemNames, type HostStrings } from '../i18n';
 import { SHOT } from '../pages/route';
 import { presses } from '../notch/presses';
 import { button, COPY_ICON, DELETE_ICON, el, image, openEditor, SAVE_ICON, SAVED_ICON, saves, type ShotDeps } from './common';
@@ -106,7 +106,7 @@ export function mountShotList(box: HTMLElement, deps: ShotListDeps): ShotList {
       show();
     }
     const lines: HTMLElement[] = [];
-    if (!allowed) lines.push(note(s.permission, deps.openScreenRecordingSettings));
+    if (!allowed) lines.push(note(fill(s.permission, systemNames(deps.lang, deps.macos)), deps.openScreenRecordingSettings));
     const taken = keys ? keyNotices(keys, s) : { mac: null, shortcut: null, other: null };
     if (taken.mac) lines.push(note(taken.mac, deps.openKeyboardShortcuts));
     if (taken.shortcut) lines.push(note(taken.shortcut, deps.openKeyboardShortcuts));

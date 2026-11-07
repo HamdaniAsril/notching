@@ -1,3 +1,4 @@
+import { systemNames, type SystemPermission } from '../../i18n';
 import { button, el, group, head, note, row } from '../controls';
 import type { PageContext, PageRender, SettingsInfo } from '../types';
 
@@ -14,7 +15,7 @@ type PermissionStrings = PageContext['strings']['permissions'];
 // One system permission a manifest can ask for, in the order the page lists them.
 interface Permission {
   id: 'accessibility' | 'screen-recording' | 'full-disk-access' | 'camera';
-  label(s: PermissionStrings): string;
+  name: SystemPermission; // its label: what System Settings calls it on this macOS
   hint(s: PermissionStrings): string;
   granted(info: SettingsInfo): boolean;
   openKey: string;
@@ -23,19 +24,19 @@ interface Permission {
 
 const PERMISSIONS: Permission[] = [
   {
-    id: 'accessibility', label: s => s.accessibility, hint: s => s.accessibilityHint, granted: i => i.accessibility,
+    id: 'accessibility', name: 'accessibility', hint: s => s.accessibilityHint, granted: i => i.accessibility,
     openKey: 'permissions.open', open: b => b.openAccessibility(),
   },
   {
-    id: 'screen-recording', label: s => s.screenRecording, hint: s => s.screenRecordingHint, granted: i => i.screenRecording,
+    id: 'screen-recording', name: 'screenRecording', hint: s => s.screenRecordingHint, granted: i => i.screenRecording,
     openKey: 'permissions.openScreenRecording', open: b => b.openScreenRecordingSettings(),
   },
   {
-    id: 'full-disk-access', label: s => s.fullDiskAccess, hint: s => s.fullDiskAccessHint, granted: i => i.fullDiskAccess,
+    id: 'full-disk-access', name: 'fullDiskAccess', hint: s => s.fullDiskAccessHint, granted: i => i.fullDiskAccess,
     openKey: 'permissions.openFullDiskAccess', open: b => b.openFullDiskAccessSettings(),
   },
   {
-    id: 'camera', label: s => s.camera, hint: s => s.cameraHint, granted: i => i.camera,
+    id: 'camera', name: 'camera', hint: s => s.cameraHint, granted: i => i.camera,
     openKey: 'permissions.openCamera', open: b => b.openCameraSettings(),
   },
 ];
@@ -57,6 +58,7 @@ export const permissionsPage: PageRender = ctx => {
     state.classList.toggle('on', on);
   });
   page.append(head({ title: ctx.strings.sections.permissions, sub: s.need }));
+  const names = systemNames(ctx.lang, ctx.state.macos);
   const rows = asked.map(({ p, modules }) => {
     const state = el('span', 'perm-state');
     state.append(el('i', 'perm-dot'), el('span'));
@@ -64,7 +66,7 @@ export const permissionsPage: PageRender = ctx => {
     const ctl = el('div', 'ctl');
     ctl.append(state, button(p.openKey, s.open, () => void p.open(ctx.bridge)));
     const hint = `${modules.map(m => m.name).join(', ')} · ${p.hint(s)}`;
-    return row({ key: `permission.${p.id}`, label: p.label(s), hint, control: ctl });
+    return row({ key: `permission.${p.id}`, label: names[p.name], hint, control: ctl });
   });
   page.append(group(...rows));
   show(ctx.info);

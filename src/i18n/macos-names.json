@@ -1,0 +1,16 @@
+{
+  "accessibility": [
+    { "from": 27, "id": "Kontrol Perangkat dan Akses Data", "en": "Device Control and Data Access" },
+    { "from": 0, "id": "Aksesibilitas", "en": "Accessibility" }
+  ],
+  "screenRecording": [
+    { "from": 15, "id": "Rekaman Layar & Audio Sistem", "en": "Screen & System Audio Recording" },
+    { "from": 0, "id": "Perekaman Layar", "en": "Screen Recording" }
+  ],
+  "fullDiskAccess": [
+    { "from": 0, "id": "Akses Disk Penuh", "en": "Full Disk Access" }
+  ],
+  "camera": [
+    { "from": 0, "id": "Kamera", "en": "Camera" }
+  ]
+}

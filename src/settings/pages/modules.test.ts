@@ -424,6 +424,12 @@ test('a tool page shows the permission and the fixed keys', async () => {
   expect(root.textContent).not.toContain('Modul ini belum punya pengaturan.');
 });
 
+test('on macOS 27 a tool page names the permission as System Settings does', async () => {
+  const { root, app } = await mountForTest({ ...TOOLS, macos: 27 });
+  app.go({ page: 'module', id: 'cut-files' });
+  expect(root.querySelector('[data-row="tool.cut-files.access"] .label')!.textContent).toBe('Kontrol Perangkat dan Akses Data');
+});
+
 // Rows in the order the page lists them: halves, corners, centre, whole screen.
 const LISTED = ['⌃⌥←', '⌃⌥→', '⌃⌥↑', '⌃⌥↓', '⌃⌥;', "⌃⌥'", '⌃⌥.', '⌃⌥/', '⌃⌥\\', '⌃⌥↩'];
 

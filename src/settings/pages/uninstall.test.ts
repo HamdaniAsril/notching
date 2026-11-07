@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vitest';
-import { timers } from '../../notch/test-helpers';
+import { TEST_STATE, timers } from '../../notch/test-helpers';
 import { mountForTest, settle } from '../test-helpers';
 
 const key = (root: HTMLElement, k: string) => root.querySelector<HTMLButtonElement>(`[data-key="${k}"]`)!;
 const hint = (root: HTMLElement, k: string) => root.querySelector(`[data-row="${k}"] small`)!;
 
-async function onPage() {
-  const t = await mountForTest();
+async function onPage(state = TEST_STATE) {
+  const t = await mountForTest(state);
   t.app.go({ page: 'uninstall' });
   await settle();
   return t;
@@ -30,6 +30,13 @@ test('releasing the permissions asks once more, then says it is done', async () 
   expect(bridge.releasePermissions).toHaveBeenCalledTimes(1);
   await settle();
   expect(hint(root, 'uninstall.permissions').textContent).toContain('Semua izin sudah dilepas');
+});
+
+test('releasing names each permission as System Settings on this macOS does', async () => {
+  expect(hint((await onPage()).root, 'uninstall.permissions').textContent)
+    .toMatch(/^Aksesibilitas, Perekaman Layar, Akses Disk Penuh, dan Kamera dicabut dari Notching\./);
+  expect(hint((await onPage({ ...TEST_STATE, macos: 27 })).root, 'uninstall.permissions').textContent)
+    .toMatch(/^Kontrol Perangkat dan Akses Data, Rekaman Layar & Audio Sistem, Akses Disk Penuh, dan Kamera dicabut dari Notching\./);
 });
 
 test('the confirmation wears off', async () => {

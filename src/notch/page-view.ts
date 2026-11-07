@@ -20,7 +20,7 @@ export interface PageViewDeps {
   onAction: (m: ModuleInfo) => void; // a tile that runs an action instead of opening a page
   onBack: () => void;
   shelf: Omit<ShelfViewDeps, 'strings' | 'backLabel' | 'back'>; // Titipan's drag out, remove and clear
-  shot: Omit<ShotListDeps, 'lang'>; // Screenshot's pages: the core's calls, close and back
+  shot: Omit<ShotListDeps, 'lang' | 'macos'>; // Screenshot's pages: the core's calls, close and back
   cleaner: Omit<CleanerDeps, 'lang' | 'back'>; // Cleaner's pages: the core's calls and the panel's size
 }
 
@@ -102,8 +102,8 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     shot = null;
   }
 
-  function mountShot(box: HTMLElement, v: ShotPage, lang: ModuleState['lang']): { render(v: ShotPage): void; destroy(): void } {
-    const shotDeps = { ...deps.shot, lang };
+  function mountShot(box: HTMLElement, v: ShotPage, s: ModuleState): { render(v: ShotPage): void; destroy(): void } {
+    const shotDeps = { ...deps.shot, lang: s.lang, macos: s.macos };
     if (v.mode === 'result') {
       const view: ShotResult = mountShotResult(box, shotDeps);
       return {
@@ -125,7 +125,7 @@ export function mountPageView(content: HTMLElement, deps: PageViewDeps): PageVie
     if (!shot || shot.sig !== sig || !content.contains(shot.box)) {
       dropShot();
       const box = el(doc, 'div', 'shot');
-      shot = { box, sig, ...mountShot(box, v, s.lang) };
+      shot = { box, sig, ...mountShot(box, v, s) };
       content.replaceChildren(box);
     }
     shot.render(v);

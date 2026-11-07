@@ -146,6 +146,12 @@ test('Intip jendela folds open with its two permissions and every setting, in or
   expect(body.querySelector('[data-row="tool.window-peek.screen"]')!.textContent).toContain('Perekaman Layar');
 });
 
+test('on macOS 27 Intip jendela\'s permissions have System Settings\' new names', async () => {
+  const { body } = await peekFold({ ...WITH_PEEK, macos: 27 });
+  expect(body.querySelector('[data-row="tool.window-peek.access"] .label')!.textContent).toBe('Kontrol Perangkat dan Akses Data');
+  expect(body.querySelector('[data-row="tool.window-peek.screen"] .label')!.textContent).toBe('Rekaman Layar & Audio Sistem');
+});
+
 test('the Dock tip shows only while macOS keeps minimized windows out of their icon', async () => {
   const { body } = await peekFold(WITH_PEEK, { ...TEST_INFO, dockMinimizeToApp: true });
   expect(body.querySelector('[data-row="peek.dockHint"]')).toBeNull();

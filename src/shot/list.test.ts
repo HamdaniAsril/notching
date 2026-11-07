@@ -224,6 +224,15 @@ test('no permission shows its line, with a button to the settings', async () => 
   expect(deps.onNotes).toHaveBeenLastCalledWith(2);
 });
 
+test('on macOS 27 the permission line names it as System Settings does', async () => {
+  deps = fakeShotDeps({ macos: 27 });
+  deps.shotPermission.mockResolvedValue(false);
+  deps.shotKeys.mockResolvedValue(shotKeys('ok', 'ok'));
+  mountShotList(box, deps).render([]);
+  await flush();
+  expect(box.querySelector('.shot-note-text')!.textContent).toBe('Screenshot butuh izin Rekaman Layar & Audio Sistem');
+});
+
 test('two keys held by another app read as plural in English', async () => {
   deps = fakeShotDeps({ lang: 'en' });
   deps.shotKeys.mockResolvedValue(shotKeys('other', 'other'));

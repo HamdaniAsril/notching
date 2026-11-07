@@ -102,7 +102,7 @@ test('the two tiles show their summaries and open their lists', async () => {
 test('without Full Disk Access: unknown parts show "?", and the note opens its settings', async () => {
   const { box, deps } = setup({ fda: false }, Promise.resolve({ ...PARTS, documents: null, photos: null }));
   await tick();
-  expect(text(box, '.cl-note-text')).toBe('Sebagian folder dilewati. Beri izin Full Disk Access');
+  expect(text(box, '.cl-note-text')).toBe('Sebagian folder dilewati. Beri izin Akses Disk Penuh');
   expect(deps.onLayout).toHaveBeenLastCalledWith(true, expect.any(Number));
   expect([...box.querySelectorAll('.cl-leg')].map(l => l.textContent)).toContain('Dokumen ?');
   box.querySelector<HTMLElement>('.cl-note button')!.click();

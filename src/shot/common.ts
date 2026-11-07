@@ -9,6 +9,7 @@ export type ShotBridge = Pick<Bridge,
 
 export interface ShotDeps extends ShotBridge {
   lang: Lang;
+  macos: number; // the macOS major version, which names Screen Recording
   now(): number;
   close(): Promise<void>; // settles once the panel has closed
 }

@@ -1,5 +1,5 @@
 import type { ShotKeys } from '../../bridge';
-import { fill, hostStrings } from '../../i18n';
+import { fill, hostStrings, systemNames } from '../../i18n';
 import { formatBytes } from '../../kit/format';
 import { isModule, isTool, MODULE_CATEGORIES, type ModuleCategory, type ModuleInfo, type PeekSettings } from '../../modules/types';
 import { DEFAULT_LABELS } from '../../shot/keys';
@@ -225,7 +225,7 @@ function accessRow(ctx: PageContext, m: ModuleInfo): HTMLElement {
   ctx.onCleanup(ctx.bridge.onSettings(show));
   const ctl = el('div', 'ctl');
   ctl.append(state, button(`tool.${m.id}.open`, s.open, () => void ctx.bridge.openAccessibility()));
-  return row({ key: `tool.${m.id}.access`, label: s.accessibility, hint: s.accessibilityHint, control: ctl });
+  return row({ key: `tool.${m.id}.access`, label: systemNames(ctx.lang, ctx.state.macos).accessibility, hint: s.accessibilityHint, control: ctl });
 }
 
 // Screen Recording, beside Accessibility, for a tool that also needs it.
@@ -241,7 +241,7 @@ function screenRow(ctx: PageContext, m: ModuleInfo): HTMLElement {
   ctx.onCleanup(ctx.bridge.onSettings(show));
   const ctl = el('div', 'ctl');
   ctl.append(state, button(`tool.${m.id}.openScreen`, s.open, () => void ctx.bridge.openScreenRecordingSettings()));
-  return row({ key: `tool.${m.id}.screen`, label: s.screenRecording, hint: s.screenRecordingHint, control: ctl });
+  return row({ key: `tool.${m.id}.screen`, label: systemNames(ctx.lang, ctx.state.macos).screenRecording, hint: s.screenRecordingHint, control: ctl });
 }
 
 // Intip jendela's rows (design 5 Nov §4): its two permissions, then the Dock,

@@ -1,6 +1,7 @@
 import type { Lang } from '../kit/protocol';
 import en from './en.json';
 import id from './id.json';
+import macosNames from './macos-names.json';
 
 // Text drawn by the notch itself; modules carry their own.
 export interface HostStrings {
@@ -94,4 +95,19 @@ export function cleanStrings(lang: Lang): CleanStrings {
 // "{n} terpasang" with { n: 2 } → "2 terpasang"; unknown names stay as they are.
 export function fill(template: string, values: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (all, name: string) => (name in values ? String(values[name]) : all));
+}
+
+// A system permission Notching asks for, by its {placeholder} in the language files.
+export type SystemPermission = keyof typeof macosNames;
+
+// What System Settings › Privacy & Security calls each permission on macOS
+// `macos` (its major version), in `lang`. macOS 27 renamed Accessibility and
+// macOS 15 Screen Recording; macos-names.json is shared with the core's notices.
+export function systemNames(lang: Lang, macos: number): Record<SystemPermission, string> {
+  // Newest first; an unknown version gets the oldest name.
+  const pick = (p: SystemPermission) => {
+    const names = macosNames[p];
+    return (names.find(n => macos >= n.from) ?? names[names.length - 1])[lang];
+  };
+  return { accessibility: pick('accessibility'), screenRecording: pick('screenRecording'), fullDiskAccess: pick('fullDiskAccess'), camera: pick('camera') };
 }

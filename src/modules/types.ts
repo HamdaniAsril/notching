@@ -91,6 +91,7 @@ export const isTool = (m: ModuleInfo): boolean => m.tool;
 
 export interface ModuleState {
   lang: Lang;
+  macos: number; // this Mac's macOS major version (27), which names its permissions
   modules: ModuleInfo[];
   pages: Page[]; // Beranda first, then the custom pages
   lastPage: string | null; // a page id, 'modules' or 'module:<id>'

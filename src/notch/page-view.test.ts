@@ -307,6 +307,13 @@ test('a screenshot page keeps its view between renders and goes with the page', 
   expect(deps.shot.shotCopy).not.toHaveBeenCalled();
 });
 
+test("the screenshot list names Screen Recording as this Mac's System Settings does", async () => {
+  const { content, pv, deps } = mount();
+  deps.shot.shotPermission.mockResolvedValue(false);
+  pv.show({ kind: 'shot', mode: 'list', key: 'screenshot', shots: [] }, { ...TEST_STATE, macos: 27 }, STR);
+  await vi.waitFor(() => expect(content.querySelector('.shot-note-text')?.textContent).toBe('Screenshot butuh izin Rekaman Layar & Audio Sistem'));
+});
+
 // The notch's card area has no height of its own, so Cleaner's lists are held to the
 // panel by the page: without it the list of apps grew past the panel and never scrolled.
 test("Cleaner's lists are as tall as the panel and scroll inside it; the start view keeps its own height", async () => {

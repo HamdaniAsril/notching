@@ -7,7 +7,7 @@
   },
   "notice": {
     "permission": {
-      "title": "Izinkan Aksesibilitas",
+      "title": "Izinkan {accessibility}",
       "detail": "Agar Notching bisa mengunci keyboard"
     },
     "secure": {

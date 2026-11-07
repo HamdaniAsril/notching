@@ -94,7 +94,7 @@ test('without Full Disk Access, its categories show muted', async () => {
   await tick();
   const muted = [...box.querySelectorAll<HTMLElement>('.cl-cat.muted')].map(c => c.dataset.category);
   expect(muted).toEqual(['trash', 'installer', 'backup']);
-  expect(box.querySelector('.cl-cat.muted')!.textContent).toContain('butuh Full Disk Access');
+  expect(box.querySelector('.cl-cat.muted')!.textContent).toContain('butuh Akses Disk Penuh');
 });
 
 test('Bersihkan hands the ticked ids and the plan to the view', async () => {

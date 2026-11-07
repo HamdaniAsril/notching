@@ -7,7 +7,7 @@
   },
   "notice": {
     "permission": {
-      "title": "Allow Accessibility",
+      "title": "Allow {accessibility}",
       "detail": "So Notching can lock the keyboard"
     },
     "secure": {

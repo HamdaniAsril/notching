@@ -94,7 +94,7 @@ test('full disk access row shows for cleaner and its state', async () => {
   const { root, app, bridge } = await mountForTest({ ...TEST_STATE, modules: [...TEST_STATE.modules, CLEANER] }, { ...TEST_INFO, fullDiskAccess: false });
   app.go({ page: 'permissions' });
   const r = row(root, 'permission.full-disk-access')!;
-  expect(r.querySelector('.label')!.textContent).toBe('Full Disk Access');
+  expect(r.querySelector('.label')!.textContent).toBe('Akses Disk Penuh');
   expect(r.querySelector('.hint')!.textContent).toBe('Cleaner · Untuk membaca cache, Tempat Sampah, dan cadangan iPhone.');
   expect(r.textContent).toContain('Belum diizinkan');
   key(root, 'permissions.openFullDiskAccess')!.click();
@@ -148,6 +148,14 @@ test('two modules that need the same permission share its row', async () => {
   app.go({ page: 'permissions' });
   expect(root.querySelectorAll('[data-row="permission.accessibility"]')).toHaveLength(1);
   expect(row(root, 'permission.accessibility')!.querySelector('.hint')!.textContent).toBe('Keyboard Cleaning Mode, Kunci Lain · Untuk mengunci keyboard, memotong file, mengatur jendela, dan mengintip jendela.');
+});
+
+test('on macOS 27 each row has System Settings\' new name', async () => {
+  const both: ModuleState = { ...TEST_STATE, macos: 27, modules: [...TEST_STATE.modules, CLEAN, SHOT] };
+  const { root, app } = await mountForTest(both, TEST_INFO);
+  app.go({ page: 'permissions' });
+  expect(row(root, 'permission.accessibility')!.querySelector('.label')!.textContent).toBe('Kontrol Perangkat dan Akses Data');
+  expect(row(root, 'permission.screen-recording')!.querySelector('.label')!.textContent).toBe('Rekaman Layar & Audio Sistem');
 });
 
 test('Tentang shows the version in the text font, not the old mono one', async () => {

@@ -4,6 +4,6 @@
   "description": "⌃⌥ with arrows and punctuation places windows",
   "channels": { "access": "Access" },
   "notice": {
-    "access": { "title": "Arrange windows needs Accessibility access", "detail": "Open Settings → Permissions" }
+    "access": { "title": "Arrange windows needs {accessibility}", "detail": "Open Settings → Permissions" }
   }
 }

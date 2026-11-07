@@ -137,9 +137,9 @@ A notch app is open all day, so it has to cost you almost nothing. We spent a lo
 - The Mac app is signed with an Apple Developer ID and notarized by Apple. Before an update installs itself, Notching checks that the new app carries the same signature and passes Apple's Gatekeeper.
 - MIT licensed. Read every line.
 
-On macOS, some modules need a permission, which you grant once in System Settings:
-- Screen Recording for Screenshot, and for Window peek's pictures of windows.
-- Accessibility for Keyboard Cleaning Mode, Cut files, Arrange windows and Window peek.
+On macOS, some modules need a permission, which you grant once in System Settings → Privacy & Security:
+- Screen Recording for Screenshot, and for Window peek's pictures of windows. Since macOS 15 it is called Screen & System Audio Recording.
+- Accessibility for Keyboard Cleaning Mode, Cut files, Arrange windows and Window peek. Since macOS 27 it is called Device Control and Data Access.
 - Full Disk Access for Cleaner.
 - Camera for Mirror.
 

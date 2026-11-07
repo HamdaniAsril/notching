@@ -153,6 +153,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     shelfOpenOnDrag: true,
     peek: DEFAULT_PEEK,
     peekKeyLabel: '⌘⇥',
+    macos: Number(params.get('macos') ?? 27),
   };
   const pointer = localPointer(root);
   const homeCall = fakeHome(params);

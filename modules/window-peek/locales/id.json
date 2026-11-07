@@ -4,6 +4,6 @@
   "description": "Lihat semua jendela app dari Dock dan dari pengalih jendela",
   "channels": { "access": "Izin" },
   "notice": {
-    "access": { "title": "Intip jendela butuh izin Aksesibilitas", "detail": "Buka Pengaturan → Izin" }
+    "access": { "title": "Intip jendela butuh izin {accessibility}", "detail": "Buka Pengaturan → Izin" }
   }
 }

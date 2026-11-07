@@ -9,6 +9,7 @@ mod cleaner_scan;
 mod geometry;
 mod home;
 mod locale;
+mod macos_names;
 mod module_commands;
 mod modules;
 mod page_commands;
@@ -301,7 +302,7 @@ pub fn run() {
                 paths.app_data_dir()?.join("modules"),
             );
             let settings = paths.app_config_dir()?.join(settings::SETTINGS_FILE);
-            let core = app_core::AppCore::open(settings, store, locale::device_locale());
+            let core = app_core::AppCore::open(settings, store, locale::device_locale(), macos_names::major());
             app.manage(app_core::CoreState(std::sync::Mutex::new(core)));
             app.manage(app_core::StatsState(std::sync::Mutex::new(system_stats::SystemStats::new())));
             let home = home::Home::open(&paths.app_data_dir()?, &paths.app_cache_dir()?);

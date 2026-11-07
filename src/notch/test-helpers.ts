@@ -140,6 +140,7 @@ export const TEST_STATE: ModuleState = {
   shelfOpenOnDrag: true,
   peek: DEFAULT_PEEK,
   peekKeyLabel: '⌘⇥',
+  macos: 14, // the old permission names; a test of macOS 27 says so
 };
 
 // Bridge whose methods are mocks; emit* plays the native side's events.
