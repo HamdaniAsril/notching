@@ -28,9 +28,10 @@ use crate::locale::Lang;
 use crate::module_commands::change;
 use crate::peek_rules::{card_point, CardColor, Material, PeekSettings, SwitchLayout, SwitchPlace};
 use crate::shot_keys::{switch_from_web, Combo};
+use crate::peek_rules::WinInfo;
 use crate::switch_rules::{
-    apps_of, first_selection, items, native_off, nothing_left, refusal, show_delay, step, Act, Item, PointerGate, SwitchAction,
-    SwitchKeyError,
+    apps_of, first_selection, items, native_off, nothing_left, own_act, own_listed, refusal, show_delay, step, Act, Item, OwnAct,
+    PointerGate, SwitchAction, SwitchKeyError,
 };
 
 const PANEL: &str = "switcher";
@@ -121,9 +122,63 @@ fn running_apps() -> Vec<(i32, String)> {
         .collect()
 }
 
+// Notching's own windows a person works in. Their state and actions come from
+// AppKit on the main thread: Accessibility on Notching's own windows off the
+// main thread crashes it (Task 7, 6 Nov).
+const OWN_LABELS: [&str; 2] = [crate::settings_window::SETTINGS_LABEL, crate::editor_window::EDITOR_LABEL];
+
+fn own_pid() -> i32 {
+    std::process::id() as i32
+}
+
+fn ns_window(w: &tauri::WebviewWindow, _mtm: MainThreadMarker) -> Option<&objc2_app_kit::NSWindow> {
+    let ptr = w.ns_window().ok()?;
+    // SAFETY: Tauri hands out its own live NSWindow; the marker says this is the main thread.
+    Some(unsafe { &*(ptr as *const objc2_app_kit::NSWindow) })
+}
+
+// Notching's own open or minimized windows, for the list. Main thread.
+fn own_windows(app: &AppHandle) -> Vec<WinInfo> {
+    let Some(mtm) = MainThreadMarker::new() else { return Vec::new() };
+    OWN_LABELS
+        .iter()
+        .filter_map(|l| app.get_webview_window(l))
+        .filter_map(|w| {
+            let ns = ns_window(&w, mtm)?;
+            let minimized = ns.isMiniaturized();
+            own_listed(ns.isVisible(), minimized).then(|| WinInfo {
+                id: ns.windowNumber() as u32,
+                pid: own_pid(),
+                title: ns.title().to_string(),
+                minimized,
+                frame: Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 },
+            })
+        })
+        .collect()
+}
+
+// Notching's own window numbered `id`. Main thread.
+fn own_window(app: &AppHandle, id: u32) -> Option<tauri::WebviewWindow> {
+    let mtm = MainThreadMarker::new()?;
+    OWN_LABELS
+        .iter()
+        .filter_map(|l| app.get_webview_window(l))
+        .find(|w| ns_window(w, mtm).is_some_and(|ns| ns.windowNumber() as u32 == id))
+}
+
+// The apps' names, with Notching's own when one of its windows is listed.
+fn names_of(app: &AppHandle, apps: Vec<(i32, String)>, own: &[WinInfo]) -> HashMap<i32, String> {
+    let mut names: HashMap<i32, String> = apps.into_iter().collect();
+    if !own.is_empty() {
+        names.insert(own_pid(), app.package_info().name.clone());
+    }
+    names
+}
+
 // Every app's windows, each app on a thread of its own, waited for together at
 // most LIST_WAIT: a hung app does not hold the switcher up (it shows as an app).
-fn list(apps: &[(i32, String)], minimized: bool) -> Vec<Item> {
+// `own`: Notching's own windows, read on the main thread.
+fn list(apps: &[(i32, String)], minimized: bool, own: Vec<WinInfo>) -> Vec<Item> {
     let (sent, got) = mpsc::channel();
     for &(pid, _) in apps {
         let sent = sent.clone();
@@ -133,7 +188,7 @@ fn list(apps: &[(i32, String)], minimized: bool) -> Vec<Item> {
     }
     drop(sent);
     let end = Instant::now() + LIST_WAIT;
-    let mut windows = Vec::new();
+    let mut windows = own;
     for _ in apps {
         match got.recv_timeout(end.saturating_duration_since(Instant::now())) {
             Ok(w) => windows.extend(w),
@@ -304,6 +359,13 @@ fn commit(app: &AppHandle) {
     let chosen = OPEN.lock().unwrap().clone().and_then(|o| target(app, &o));
     hide(app);
     match chosen {
+        Some(Target::Window(pid, id, _)) if pid == own_pid() => {
+            if let Some(w) = own_window(app, id) {
+                let _ = w.unminimize();
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+        }
         Some(Target::Window(pid, id, _)) => {
             std::thread::spawn(move || {
                 crate::peek_windows::raise(pid, id);
@@ -329,6 +391,30 @@ fn act(app: &AppHandle, a: Act) {
         open.sticky = true;
     }
     let handle = app.clone();
+    if let Target::Window(pid, id, minimized) = chosen
+        && pid == own_pid()
+    {
+        let own = own_window(app, id);
+        std::thread::spawn(move || {
+            if let Some(w) = own {
+                match own_act(a, minimized) {
+                    OwnAct::Minimize => {
+                        crate::peek_capture::remember_before_minimize(id);
+                        let _ = w.minimize();
+                    }
+                    OwnAct::Restore => {
+                        let _ = w.unminimize();
+                    }
+                    OwnAct::Close => {
+                        let _ = w.close();
+                    }
+                }
+            }
+            std::thread::sleep(Duration::from_millis(250));
+            relist(&handle);
+        });
+        return;
+    }
     std::thread::spawn(move || {
         match (a, chosen) {
             (Act::Minimize, Target::Window(pid, id, minimized)) => {
@@ -355,12 +441,13 @@ fn relist(app: &AppHandle) {
     let handle = app.clone();
     let _ = app.run_on_main_thread(move || {
         let apps = running_apps();
+        let own = own_windows(&handle);
+        let names = names_of(&handle, apps.clone(), &own);
         let minimized = settings(&handle).minimized;
         let round = ROUND.load(Ordering::SeqCst);
         let app = handle.clone();
         std::thread::spawn(move || {
-            let list = list(&apps, minimized);
-            let names: HashMap<i32, String> = apps.into_iter().collect();
+            let list = list(&apps, minimized, own);
             let handle = app.clone();
             let _ = app.run_on_main_thread(move || {
                 if ROUND.load(Ordering::SeqCst) != round {
@@ -403,11 +490,12 @@ fn open(app: &AppHandle) {
     let p = NSEvent::mouseLocation();
     let (screen, visible) = crate::peek_service::screen_at(&screens, p.x, primary - p.y);
     let apps = running_apps();
+    let own = own_windows(app);
+    let names = names_of(app, apps.clone(), &own);
     let s = settings(app);
     let handle = app.clone();
     std::thread::spawn(move || {
-        let list = list(&apps, s.minimized);
-        let names: HashMap<i32, String> = apps.into_iter().collect();
+        let list = list(&apps, s.minimized, own);
         let app = handle.clone();
         let _ = handle.run_on_main_thread(move || {
             if ROUND.load(Ordering::SeqCst) != round {

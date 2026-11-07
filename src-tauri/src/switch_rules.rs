@@ -261,6 +261,29 @@ pub fn step(sel: usize, len: usize, d: i32) -> usize {
     (sel as i64 + i64::from(d)).rem_euclid(len as i64) as usize
 }
 
+/// What a window button does to one of Notching's own windows (Settings, the
+/// screenshot editor). Q closes the window: quitting would take the switcher
+/// and the notch away with it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OwnAct {
+    Minimize,
+    Restore,
+    Close,
+}
+
+pub fn own_act(a: Act, minimized: bool) -> OwnAct {
+    match a {
+        Act::Minimize if minimized => OwnAct::Restore,
+        Act::Minimize => OwnAct::Minimize,
+        Act::Close | Act::Quit => OwnAct::Close,
+    }
+}
+
+/// One of Notching's own windows is listed while it is open or minimized.
+pub fn own_listed(visible: bool, minimized: bool) -> bool {
+    visible || minimized
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -482,5 +505,21 @@ mod tests {
         g.reset();
         g.shown((40.0, 40.0));
         assert!(!g.moved((40.0, 40.0)));
+    }
+
+    #[test]
+    fn notchings_own_window_closes_on_q_and_never_quits_notching() {
+        assert_eq!(own_act(Act::Minimize, false), OwnAct::Minimize);
+        assert_eq!(own_act(Act::Minimize, true), OwnAct::Restore);
+        assert_eq!(own_act(Act::Close, false), OwnAct::Close);
+        assert_eq!(own_act(Act::Quit, false), OwnAct::Close);
+        assert_eq!(own_act(Act::Quit, true), OwnAct::Close);
+    }
+
+    #[test]
+    fn notchings_own_window_is_listed_open_or_minimized_only() {
+        assert!(own_listed(true, false));
+        assert!(own_listed(false, true));
+        assert!(!own_listed(false, false)); // made, not shown yet (the page still loading)
     }
 }
