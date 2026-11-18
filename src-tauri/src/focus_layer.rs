@@ -274,8 +274,8 @@ fn clear_masks(slot: &Slot) {
     }
 }
 
-/// Opens a peek hole (CG points), or closes it, fading over PEEK_FADE_MS.
-pub fn set_peek(_mtm: MainThreadMarker, hole: Option<&PeekHole>) {
+/// Opens a peek hole (CG points), or closes it. `fade`: over PEEK_FADE_MS, else at once.
+pub fn set_peek(_mtm: MainThreadMarker, hole: Option<&PeekHole>, fade: bool) {
     let h = PRIMARY_H.with(|h| h.get());
     SLOTS.with(|slots| {
         for slot in slots.borrow().iter().filter(|s| s.shown) {
@@ -293,7 +293,7 @@ pub fn set_peek(_mtm: MainThreadMarker, hole: Option<&PeekHole>) {
                 match here {
                     Some(hole) => {
                         let covers: Vec<Rect> = hole.covers.iter().map(|&c| local(c)).collect();
-                        open_hole(&layer, s.w, s.h, local(hole.open), &covers, hole.radius);
+                        open_hole(&layer, s.w, s.h, local(hole.open), &covers, hole.radius, fade);
                     }
                     None => close_hole(&layer),
                 }
@@ -305,7 +305,7 @@ pub fn set_peek(_mtm: MainThreadMarker, hole: Option<&PeekHole>) {
 /// The mask: opaque everywhere but `whole`, a window-shaped hole where `covers`
 /// stay opaque; a cover over the hole fades out, and stays the last sublayer for
 /// close_hole.
-fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, covers: &[Rect], radius: f64) {
+fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, covers: &[Rect], radius: f64, fade: bool) {
     let black = CGColor::new_generic_gray(0.0, 1.0);
     let mask = CALayer::new();
     mask.setFrame(cg_rect(0.0, 0.0, w, h));
@@ -334,15 +334,20 @@ fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, covers: &[Rect], radi
     cover.setBackgroundColor(Some(&black));
     mask.addSublayer(&cover);
 
+    if !fade {
+        cover.setOpacity(0.0);
+    }
     CATransaction::begin();
     CATransaction::setDisableActions(true);
     // SAFETY: the view's own layer takes a fresh mask.
     unsafe { layer.setMask(Some(&mask)) };
     CATransaction::commit();
-    CATransaction::begin();
-    CATransaction::setAnimationDuration(PEEK_FADE_MS as f64 / 1000.0);
-    cover.setOpacity(0.0);
-    CATransaction::commit();
+    if fade {
+        CATransaction::begin();
+        CATransaction::setAnimationDuration(PEEK_FADE_MS as f64 / 1000.0);
+        cover.setOpacity(0.0);
+        CATransaction::commit();
+    }
 }
 
 /// The hole fills back in, then the mask goes.

@@ -26,7 +26,7 @@ use tauri::{AppHandle, Manager};
 use crate::app_core::CoreState;
 use crate::ax::{self, Cf};
 use crate::focus_layer;
-use crate::focus_rules::{blur_screens, peek_hole, peek_target, Below, Desk, Event, Layer, Win, WinId};
+use crate::focus_rules::{blur_screens, peek_hole, peek_target, windows_below, Below, Desk, Event, Layer, Win, WinId};
 use crate::geometry::Rect;
 use crate::shelf_watch::Watch;
 use crate::status::{self, Activity};
@@ -35,12 +35,20 @@ pub const MODULE_ID: &str = "window-focus";
 
 /// The permission notice, at most once a minute (design §7).
 const NOTICE_EVERY: Duration = Duration::from_secs(60);
-/// Over the desktop the window list is read at most this often while the pointer moves.
-const PEEK_READ_MS: u64 = 100;
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static DESK: LazyLock<Mutex<Desk>> = LazyLock::new(|| Mutex::new(Desk::default()));
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
+/// NOTCHING_FOCUS_DEBUG set: every peek and every layer change goes to the log.
+static DEBUG: LazyLock<bool> = LazyLock::new(|| std::env::var_os("NOTCHING_FOCUS_DEBUG").is_some());
+
+macro_rules! debug {
+    ($($arg:tt)*) => {
+        if *DEBUG {
+            eprintln!("notching: focus debug: {}", format!($($arg)*));
+        }
+    };
+}
 
 
 /// What is listening while some screen's focus is on. Main thread only.
@@ -56,8 +64,6 @@ thread_local! {
     static LISTENING: RefCell<Option<Listening>> = const { RefCell::new(None) };
     /// The window the peek shows now, and the blurred windows above it.
     static PEEK: RefCell<Option<(Below, Vec<Rect>)>> = const { RefCell::new(None) };
-    /// When the window list was last read for a peek that found nothing.
-    static PEEK_READ: RefCell<Option<u64>> = const { RefCell::new(None) };
     static DRAG: RefCell<Watch> = RefCell::new(Watch::default());
     static DRAGGING: RefCell<bool> = const { RefCell::new(false) };
     static CLOCK: Instant = Instant::now();
@@ -200,6 +206,7 @@ fn send(app: &AppHandle, screen: usize, e: Event) {
 /// One screen as the rules say. Main thread; `finish` follows.
 fn apply(app: &AppHandle, screen: usize, layer: Layer) {
     let Some(mtm) = MainThreadMarker::new() else { return };
+    debug!("apply screen {screen}: {layer:?}");
     clear_peek(mtm);
     match layer {
         Layer::Off | Layer::Paused => focus_layer::hide_screen(mtm, screen),
@@ -394,24 +401,17 @@ fn moved_window(app: &AppHandle) {
 
 // ---- The pointer on the blur ----
 
-/// Windows under one screen's layer, front to back, without Notching's own or the picked ones.
+/// Windows under one screen's layer, front to back (focus_rules::windows_below).
 fn below_layer(mtm: MainThreadMarker, screen: usize) -> Vec<Below> {
     let Some(panel) = focus_layer::own_window(mtm, screen) else { return Vec::new() };
-    let list = crate::notify::window_list();
-    let own = focus_layer::own_windows(mtm);
-    let me = std::process::id() as i32;
+    let list: Vec<(WinId, i32, i64, Rect)> = crate::notify::window_list().iter().map(|w| (w.number, w.pid, w.layer, w.bounds)).collect();
     let picked: Vec<WinId> = DESK.lock().unwrap().picked_wins().iter().map(|w| w.id).collect();
-    let Some(at) = list.iter().position(|w| w.number == panel) else { return Vec::new() };
-    list[at + 1..]
-        .iter()
-        .filter(|w| w.layer == 0 && w.pid != me && !own.contains(&w.number) && !picked.contains(&w.number))
-        .map(|w| Below { id: w.number, pid: w.pid, frame: w.bounds })
-        .collect()
+    windows_below(&list, panel, &focus_layer::own_windows(mtm), &picked)
 }
 
 fn clear_peek(mtm: MainThreadMarker) {
     if PEEK.with(|p| p.borrow_mut().take()).is_some() {
-        focus_layer::set_peek(mtm, None);
+        focus_layer::set_peek(mtm, None, true);
     }
 }
 
@@ -425,26 +425,29 @@ fn moved(x: f64, y: f64) {
     if same {
         return;
     }
+    // Read on every move over the blur, never skipped: a skipped last move left
+    // a window unpeeked until the pointer moved again (owner, 18 Nov).
     let was = PEEK.with(|p| p.borrow().is_some());
-    if !was {
-        let now = now_ms();
-        let recent = PEEK_READ.with(|r| r.borrow().is_some_and(|t| now.saturating_sub(t) < PEEK_READ_MS));
-        if recent {
-            return;
-        }
-        PEEK_READ.with(|r| *r.borrow_mut() = Some(now));
-    }
     let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
     let below = below_layer(mtm, screen);
     let at = below.iter().position(|b| b.frame.contains(x, y));
     let hole = at.map(|i| peek_hole(below[i], &below[..i]));
+    debug!(
+        "peek at ({x:.0},{y:.0}) screen {screen}: below {:?} -> {:?}, covers {}",
+        below.iter().map(|b| (b.id, b.pid)).collect::<Vec<_>>(),
+        at.map(|i| below[i].id),
+        hole.as_ref().map_or(0, |h| h.covers.len())
+    );
     PEEK.with(|p| *p.borrow_mut() = at.map(|i| (below[i], below[..i].iter().map(|b| b.frame).collect())));
     if hole.is_some() || was {
-        focus_layer::set_peek(mtm, hole.as_ref());
+        // Fades only from no peek; one window to the next is at once, or the
+        // blur blinks in between (owner, 18 Nov).
+        focus_layer::set_peek(mtm, hole.as_ref(), !was);
     }
 }
 
 fn left() {
+    debug!("pointer left the blur");
     if let Some(mtm) = MainThreadMarker::new() {
         clear_peek(mtm);
     }

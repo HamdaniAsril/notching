@@ -340,6 +340,19 @@ pub const PEEK_RADIUS: f64 = 26.0;
 /// How long a peek takes to open or close.
 pub const PEEK_FADE_MS: u64 = 120;
 
+/// The normal windows under one screen's `panel`, front to back: not the blur
+/// panels (`panels`), not the picked windows, not other levels. Notching's own
+/// windows, Settings among them, count like any other.
+/// `list` is the window server's (id, pid, layer, frame), front to back.
+pub fn windows_below(list: &[(WinId, i32, i64, Rect)], panel: WinId, panels: &[WinId], picked: &[WinId]) -> Vec<Below> {
+    let Some(at) = list.iter().position(|w| w.0 == panel) else { return Vec::new() };
+    list[at + 1..]
+        .iter()
+        .filter(|w| w.2 == 0 && !panels.contains(&w.0) && !picked.contains(&w.0))
+        .map(|&(id, pid, _, frame)| Below { id, pid, frame })
+        .collect()
+}
+
 /// The topmost window under the point; `below` is front to back.
 pub fn peek_target(x: f64, y: f64, below: &[Below]) -> Option<Below> {
     below.iter().find(|b| b.frame.contains(x, y)).copied()
@@ -686,4 +699,22 @@ mod tests {
         assert_eq!(d.pids(), vec![10, 30]);
     }
 
+
+    #[test]
+    fn below_the_layer_is_every_normal_window_under_the_panel() {
+        // (id, pid, layer, frame), front to back.
+        let me = 99;
+        let list = [
+            (300, 1, 0, r(0., 0., 10., 10.)),   // the focused window, above the panel
+            (900, me, 0, r(0., 0., 10., 10.)),  // this screen's panel
+            (4485, me, 0, r(0., 0., 10., 10.)), // Notching's own Settings window: peekable
+            (61, 2, 0, r(0., 0., 10., 10.)),    // picked on another screen
+            (901, me, 0, r(0., 0., 10., 10.)),  // another screen's panel
+            (77, 3, 25, r(0., 0., 10., 10.)),   // a status-level window
+            (57, 4, 0, r(0., 0., 10., 10.)),
+        ];
+        let below = windows_below(&list, 900, &[900, 901], &[61, 300]);
+        assert_eq!(below.iter().map(|b| b.id).collect::<Vec<_>>(), vec![4485, 57]);
+        assert_eq!(windows_below(&list, 12345, &[], &[]), vec![]);
+    }
 }
