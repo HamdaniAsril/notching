@@ -108,7 +108,7 @@ objc2-quick-look-thumbnailing = { version = "0.3", default-features = false, fea
   "QLThumbnailGenerationRequest",
   "QLThumbnailRepresentation",
 ] }
-objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage", "CGColorSpace", "CGColor", "CGPath"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "CGEventSource", "CGEventTypes", "CGWindow", "CGImage", "CGColorSpace", "CGColor"] }
 # The pages stay awake out of sight (webview_awake.rs); the same crate and
 # features wry already builds.
 objc2-web-kit = { version = "0.3.2", default-features = false, features = [
@@ -137,7 +137,6 @@ objc2-quartz-core = { version = "0.3", default-features = false, features = [
   "objc2-core-foundation",
   "objc2-core-graphics",
   "CALayer",
-  "CAShapeLayer",
   "CAAnimation",
   "CAMediaTiming",
   "CAMediaTimingFunction",

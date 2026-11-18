@@ -15,10 +15,10 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: null,
     items: {
       id: [
-        'Fokus jendela (pasang dari Katalog): tekan ⌃⌥F dan semua yang di belakang jendelamu jadi blur. Fokus ikut pindah saat kamu pindah jendela, arahkan kursor ke area blur untuk mengintip, dan ⌃⌥⇧F menambah jendela kedua.',
+        'Fokus jendela (pasang dari Katalog): tekan ⌃⌥F dan semua yang di belakang jendelamu jadi blur. Fokus ikut pindah saat kamu pindah jendela atau mengklik jendela yang ter-blur, setiap monitor punya mode fokus sendiri, dan ⌃⌥⇧F menambah jendela kedua.',
       ],
       en: [
-        'Window focus (install it from the Catalog): press ⌃⌥F and everything behind your window blurs. Focus follows you to another window, point at the blur to peek, and ⌃⌥⇧F adds a second window.',
+        'Window focus (install it from the Catalog): press ⌃⌥F and everything behind your window blurs. Focus follows you when you switch windows or click a blurred one, every screen has its own focus, and ⌃⌥⇧F adds a second window.',
       ],
     },
   },

@@ -39,7 +39,7 @@ Nama "Fokus" saja tidak dipakai karena sudah menjadi nama paket widget (`modules
 - **⌃⌥F di jendela yang sedang difokuskan** mematikan mode fokus. **(keputusan penulis)**
 - **⌃⌥F di jendela lain yang jelas tapi belum difokuskan**, misalnya jendela baru di 4.3: fokus pindah ke jendela itu saja, dan yang lain blur. **(pemilik)**
 - **⌃⌥⇧F menambah jendela kedua.** **(pemilik: fokus di dua jendela pilihan pengguna; caranya keputusan penulis)** Ada dua cara memilih jendela kedua:
-  - **⇧-klik jendela yang sedang diintip** (bagian 4.4): jendela itu ikut difokuskan, dan fokus yang ada tetap.
+  - **⇧-klik jendela yang ter-blur** (bagian 4.4): jendela itu ikut difokuskan, dan fokus yang ada tetap.
   - **⌃⌥⇧F** setelah klik biasa memindahkan fokus ke jendela B (4.2): jendela yang difokuskan sebelumnya ikut kembali jelas. Hasilnya, sebelumnya plus B.
   - Kalau sudah ada dua, menambah jendela ketiga menggantikan yang paling lama difokuskan.
 - Kedua shortcut bisa diganti di Pengaturan → Pintasan, seperti shortcut alat lain. Notching menolak kombinasi yang sudah dipakai shortcutnya sendiri.
@@ -63,16 +63,13 @@ App yang sedang difokuskan membuka jendela baru, misalnya dialog Simpan, jendela
 
 Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir dipilih, oleh app yang sama. Jendela lama yang dimunculkan dari belakang blur mengikuti 4.2, bukan 4.3. **(keputusan penulis)**
 
-### 4.4 Mengintip jendela di area blur (pemilik)
+### 4.4 Klik di area blur (pemilik)
 
-- Kursor di atas area blur: jendela yang paling atas di bawah kursor (di antara jendela yang ter-blur) diintip.
-- **Seluruh jendela itu tampil jelas**, dengan sudut membulat seperti jendela macOS 27 (radius 26 pt, lebih kecil untuk jendela yang sangat kecil). Radius sudut jendela app lain tidak bisa dibaca, jadi dipakai radius standar. **(pemilik, 18 November 2026: "hapus aturan setengah fokus … langsung tampil full", sudut membulat tetap)**
-  Riwayat: awalnya setengah atas, lalu sepertiga, lalu seperlima dengan gradasi. Semuanya diganti dengan jendela utuh.
-- Pindah ke jendela lain langsung mengganti intipan. Kursor keluar dari area blur, ke jendela fokus, atau ke area tanpa jendela (desktop): tidak ada yang diintip.
-- Muncul dan hilangnya intipan memakai transisi singkat, sekitar 120 ms. **(keputusan penulis)**
-- Kalau jendela yang diintip tertutup jendela lain yang juga ter-blur, bagian yang menutupinya **tetap blur**. Jendela yang diintip tidak dipindah urutannya. **(pemilik, 18 November 2026.** Sempat dicoba: jendela yang diintip dinaikkan ke atas jendela blur lain. Masih berkedip, jadi pemilik memilih menghapusnya.**)**
-- **Klik** jendela yang diintip: fokus pindah ke jendela itu (4.2). **⇧-klik**: jendela itu ditambahkan (4.1).
+- **Klik** jendela yang ter-blur: fokus pindah ke jendela itu (4.2). **⇧-klik**: jendela itu ditambahkan (4.1).
 - Klik di area blur tanpa jendela di bawahnya (desktop) tidak melakukan apa-apa. **(keputusan penulis)**
+- **Tidak ada intipan.** Menggerakkan kursor di atas area blur tidak memicu apa pun. **(pemilik, 18 November 2026: "matikan saja fitur intipnya")**
+
+  Riwayat: intipan sempat dibangun dan diuji pemilik dalam beberapa putaran. Bagian yang jelas mula-mula setengah atas jendela, lalu sepertiga, lalu seperlima dengan gradasi, dan akhirnya jendela utuh dengan sudut membulat. Jendela yang diintip sempat dinaikkan ke atas jendela blur lain, lalu aturan itu dihapus lagi. Kedipnya tetap ada walaupun log menunjukkan pemilihan jendela dan kenaikannya benar. Penyebab sisanya belum ketemu. Kalau intipan mau dicoba lagi, lihat catatan verifikasi nomor 6 sampai 14.
 
 ### 4.5 Mouse di area blur (pemilik, "setuju", 18 November 2026)
 
@@ -104,9 +101,9 @@ Blurnya hidup dan dikerjakan oleh window server di GPU: video di belakang tetap 
 
 Semua pendengar dilepas saat mode fokus mati.
 
-**Mengintip.** Panel punya tracking area. Selama kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor dari daftar jendela window server (`CGWindowListCopyWindowInfo`, hanya jendela di bawah panel, tanpa jendela Notching sendiri). Bingkai jendela itu lalu dilubangi dari blur dengan mask: transparan seukuran jendela dengan sudut membulat; bagian yang tertutup jendela blur lain tetap blur. Daftar jendela dibaca sekali saat kursor masuk ke jendela baru, bukan di setiap gerakan.
+~~**Mengintip.**~~ Dihapus (bagian 4.4). Uraian lama: Panel punya tracking area. Selama kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor dari daftar jendela window server (`CGWindowListCopyWindowInfo`, hanya jendela di bawah panel, tanpa jendela Notching sendiri). Bingkai jendela itu lalu dilubangi dari blur dengan mask: transparan seukuran jendela dengan sudut membulat; bagian yang tertutup jendela blur lain tetap blur. Daftar jendela dibaca sekali saat kursor masuk ke jendela baru, bukan di setiap gerakan.
 
-**Klik di blur.** Panel menerima klik. Klik pada jendela yang diintip mengaktifkan app-nya, menaikkan jendela itu (`ax::set_frontmost`, `ax::raise`), lalu fokus diperbarui seperti 4.2.
+**Klik di blur.** Panel menerima klik. Klik pada jendela teratas di bawah kursor mengaktifkan app-nya, menaikkan jendela itu (`ax::set_frontmost`, `ax::raise`), lalu fokus diperbarui seperti 4.2.
 
 **Aturan tanpa AppKit.** Keputusan tentang siapa yang difokuskan ada di modul aturan tersendiri (misalnya `focus_rules.rs`), bebas AppKit, dan diuji unit. Isinya: kumpulan jendela fokus dan perubahannya karena shortcut, app aktif, jendela fokus, jendela dibuat, dan jendela ditutup. Polanya sama dengan `win_rules.rs` dan `peek_rules.rs`.
 
@@ -153,11 +150,11 @@ Risiko lain yang harus dicek di Mac sungguhan:
 
 1. Nama **Fokus jendela**, id `window-focus`, sebagai alat latar di Katalog.
 2. ⌃⌥F di jendela yang sedang difokuskan mematikan mode fokus.
-3. Cara memilih jendela kedua: ⇧-klik jendela yang diintip, atau ⌃⌥⇧F setelah pindah fokus untuk mengembalikan jendela sebelumnya. Jendela ketiga menggantikan yang paling lama.
+3. Cara memilih jendela kedua: ⇧-klik jendela yang ter-blur, atau ⌃⌥⇧F setelah pindah fokus untuk mengembalikan jendela sebelumnya. Jendela ketiga menggantikan yang paling lama.
 4. Saat fokus di dua jendela, ⌘Tab ke app milik salah satunya tidak memecah pasangan.
 5. ⌘\` ke jendela lama di app yang sama dianggap pindah fokus, bukan jendela baru.
 6. App aktif tanpa jendela, atau jendela fokus ditutup tanpa pengganti: blur dijeda, bukan dimatikan.
-7. Intipan: seluruh jendela, sudut membulat 26 pt (radius dari penulis). Transisi 120 ms.
+7. (Tidak berlaku lagi: intipan dihapus pemilik.)
 8. Klik di desktop yang ter-blur tidak melakukan apa-apa.
 9. Pindah Space memindah fokus. App layar penuh tanpa blur. (Bagian monitor diganti pemilik: hanya monitor jendela fokus yang di-blur, bagian 4.6.)
 10. Ikon alat tanpa teks di samping notch selama mode fokus menyala.

@@ -1,6 +1,6 @@
 //! Fokus jendela's native side (design 18 Nov §5): ⌃⌥F and ⌃⌥⇧F, following the
-//! window in use through NSWorkspace and Accessibility, the peek and the click on
-//! the blur, letting drags through, the notch icon and the permission notice.
+//! window in use through NSWorkspace and Accessibility, the click on the blur,
+//! letting drags through, the notch icon and the permission notice.
 //! Every screen has its own focus (owner, 18 Nov). The rules live in
 //! focus_rules.rs, the panels in focus_layer.rs.
 //!
@@ -26,7 +26,7 @@ use tauri::{AppHandle, Manager};
 use crate::app_core::CoreState;
 use crate::ax::{self, Cf};
 use crate::focus_layer;
-use crate::focus_rules::{blur_screens, peek_hole, peek_target, windows_below, Below, Desk, Event, Layer, Win, WinId};
+use crate::focus_rules::{blur_screens, window_at, windows_below, Below, Desk, Event, Layer, Win, WinId};
 use crate::geometry::Rect;
 use crate::shelf_watch::Watch;
 use crate::status::{self, Activity};
@@ -39,7 +39,7 @@ const NOTICE_EVERY: Duration = Duration::from_secs(60);
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static DESK: LazyLock<Mutex<Desk>> = LazyLock::new(|| Mutex::new(Desk::default()));
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
-/// NOTCHING_FOCUS_DEBUG set: every peek and every layer change goes to the log.
+/// NOTCHING_FOCUS_DEBUG set: every layer change goes to the log.
 static DEBUG: LazyLock<bool> = LazyLock::new(|| std::env::var_os("NOTCHING_FOCUS_DEBUG").is_some());
 
 macro_rules! debug {
@@ -62,8 +62,6 @@ struct Listening {
 
 thread_local! {
     static LISTENING: RefCell<Option<Listening>> = const { RefCell::new(None) };
-    /// The window the peek shows now, and the blurred windows above it.
-    static PEEK: RefCell<Option<(Below, Vec<Rect>)>> = const { RefCell::new(None) };
     static DRAG: RefCell<Watch> = RefCell::new(Watch::default());
     static DRAGGING: RefCell<bool> = const { RefCell::new(false) };
     static CLOCK: Instant = Instant::now();
@@ -93,7 +91,7 @@ fn dim(app: &AppHandle) -> f64 {
 /// At launch: the panels' hooks.
 pub fn start(app: &AppHandle) {
     let _ = APP.set(app.clone());
-    focus_layer::init(focus_layer::Hooks { moved, left, clicked });
+    focus_layer::init(focus_layer::Hooks { clicked });
 }
 
 /// ⌃⌥F (`add` false) or ⌃⌥⇧F (`add` true) was pressed: it acts on the screen of
@@ -207,7 +205,6 @@ fn send(app: &AppHandle, screen: usize, e: Event) {
 fn apply(app: &AppHandle, screen: usize, layer: Layer) {
     let Some(mtm) = MainThreadMarker::new() else { return };
     debug!("apply screen {screen}: {layer:?}");
-    clear_peek(mtm);
     match layer {
         Layer::Off | Layer::Paused => focus_layer::hide_screen(mtm, screen),
         Layer::Shown { raise } => {
@@ -399,7 +396,7 @@ fn moved_window(app: &AppHandle) {
     }
 }
 
-// ---- The pointer on the blur ----
+// ---- A click on the blur ----
 
 /// Windows under one screen's layer, front to back (focus_rules::windows_below).
 fn below_layer(mtm: MainThreadMarker, screen: usize) -> Vec<Below> {
@@ -409,55 +406,11 @@ fn below_layer(mtm: MainThreadMarker, screen: usize) -> Vec<Below> {
     windows_below(&list, panel, &focus_layer::own_windows(mtm), &picked)
 }
 
-fn clear_peek(mtm: MainThreadMarker) {
-    if PEEK.with(|p| p.borrow_mut().take()).is_some() {
-        focus_layer::set_peek(mtm, None, true);
-    }
-}
-
-fn moved(x: f64, y: f64) {
-    let Some(mtm) = MainThreadMarker::new() else { return };
-    if DRAGGING.with(|d| *d.borrow()) {
-        return;
-    }
-    // Still on the visible part of the same window: nothing to redo.
-    let same = PEEK.with(|p| p.borrow().as_ref().is_some_and(|(b, front)| b.frame.contains(x, y) && !front.iter().any(|f| f.contains(x, y))));
-    if same {
-        return;
-    }
-    // Read on every move over the blur, never skipped: a skipped last move left
-    // a window unpeeked until the pointer moved again (owner, 18 Nov).
-    let was = PEEK.with(|p| p.borrow().is_some());
-    let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
-    let below = below_layer(mtm, screen);
-    let at = below.iter().position(|b| b.frame.contains(x, y));
-    let hole = at.map(|i| peek_hole(below[i], &below[..i]));
-    debug!(
-        "peek at ({x:.0},{y:.0}) screen {screen}: below {:?} -> {:?}, covers {}",
-        below.iter().map(|b| (b.id, b.pid)).collect::<Vec<_>>(),
-        at.map(|i| below[i].id),
-        hole.as_ref().map_or(0, |h| h.covers.len())
-    );
-    PEEK.with(|p| *p.borrow_mut() = at.map(|i| (below[i], below[..i].iter().map(|b| b.frame).collect())));
-    if hole.is_some() || was {
-        // Fades only from no peek; one window to the next is at once, or the
-        // blur blinks in between (owner, 18 Nov).
-        focus_layer::set_peek(mtm, hole.as_ref(), !was);
-    }
-}
-
-fn left() {
-    debug!("pointer left the blur");
-    if let Some(mtm) = MainThreadMarker::new() {
-        clear_peek(mtm);
-    }
-}
-
 fn clicked(x: f64, y: f64, shift: bool) {
     let (Some(app), Some(mtm)) = (APP.get(), MainThreadMarker::new()) else { return };
     let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
-    // Read afresh: the click lands on the topmost window under it.
-    let target = peek_target(x, y, &below_layer(mtm, screen));
+    // The click lands on the topmost window under it.
+    let target = window_at(x, y, &below_layer(mtm, screen));
     // The desktop under the blur: nothing (design §4.4).
     let Some(target) = target else { return };
     let win = Win { id: target.id, pid: target.pid };
@@ -489,7 +442,6 @@ fn on_mouse(event: &NSEvent) {
             let began = DRAG.with(|d| d.borrow_mut().dragged(now_ms(), || drag_pasteboard().changeCount()));
             if began {
                 DRAGGING.with(|d| *d.borrow_mut() = true);
-                clear_peek(mtm);
                 focus_layer::pass_through(mtm, true);
             }
         }

@@ -1,5 +1,6 @@
-//! Fokus jendela (design 18 Nov): its setting, which windows stay clear, and
-//! which window a peek shows. Free of AppKit so it can be unit tested.
+//! Fokus jendela (design 18 Nov): its setting, which windows stay clear, which
+//! screens blur, and which window a click on the blur lands on. Free of AppKit
+//! so it can be unit tested.
 
 use crate::geometry::Rect;
 
@@ -50,9 +51,9 @@ pub enum Event {
     Toggle(Option<Win>),
     /// ⌃⌥⇧F.
     Add(Option<Win>),
-    /// A click on the peeked window.
+    /// A click on a blurred window.
     Click(Win),
-    /// A ⇧-click on the peeked window.
+    /// A ⇧-click on a blurred window.
     ShiftClick(Win),
     /// The active app or the Space changed. None: no window here, or full screen.
     Front(Option<Win>),
@@ -334,12 +335,6 @@ pub struct Below {
     pub frame: Rect,
 }
 
-/// The hole's corners round like a macOS 27 window's (owner, 18 Nov). Other
-/// apps' corner radii cannot be read, so this is the standard one.
-pub const PEEK_RADIUS: f64 = 26.0;
-/// How long a peek takes to open or close.
-pub const PEEK_FADE_MS: u64 = 120;
-
 /// The normal windows under one screen's `panel`, front to back: not the blur
 /// panels (`panels`), not the picked windows, not other levels. Notching's own
 /// windows, Settings among them, count like any other.
@@ -353,20 +348,10 @@ pub fn windows_below(list: &[(WinId, i32, i64, Rect)], panel: WinId, panels: &[W
         .collect()
 }
 
-/// The topmost window under the point; `below` is front to back.
-pub fn peek_target(x: f64, y: f64, below: &[Below]) -> Option<Below> {
+/// The window a click on the blur lands on: the topmost under the point;
+/// `below` is front to back.
+pub fn window_at(x: f64, y: f64, below: &[Below]) -> Option<Below> {
     below.iter().find(|b| b.frame.contains(x, y)).copied()
-}
-
-/// Where the blur opens for a peek, in CG points.
-#[derive(Clone, Debug, PartialEq)]
-pub struct PeekHole {
-    /// The whole window, shown clear (owner, 18 Nov: no half, no fade).
-    pub open: Rect,
-    /// Parts of `open` that other blurred windows cover: they stay blurred (owner, 18 Nov).
-    pub covers: Vec<Rect>,
-    /// The corner radius of `open`.
-    pub radius: f64,
 }
 
 /// The overlap of two rects, if any.
@@ -374,16 +359,6 @@ fn overlap(a: Rect, b: Rect) -> Option<Rect> {
     let (x, y) = (a.x.max(b.x), a.y.max(b.y));
     let (w, h) = (a.max_x().min(b.max_x()) - x, a.max_y().min(b.max_y()) - y);
     (w > 0.0 && h > 0.0).then_some(Rect { x, y, w, h })
-}
-
-/// The hole over `target`; `in_front` are the blurred windows above it.
-pub fn peek_hole(target: Below, in_front: &[Below]) -> PeekHole {
-    let open = target.frame;
-    PeekHole {
-        open,
-        covers: in_front.iter().filter_map(|b| overlap(b.frame, open)).collect(),
-        radius: PEEK_RADIUS.min(open.w / 2.0).min(open.h / 2.0),
-    }
 }
 
 /// The screens to blur: the one holding most of each picked window, else the
@@ -591,39 +566,13 @@ mod tests {
     }
 
     #[test]
-    fn peek_target_is_the_topmost_under_the_point() {
+    fn a_click_lands_on_the_topmost_window_under_it() {
         let front = Below { id: 7, pid: 1, frame: r(0., 0., 400., 300.) };
         let back = Below { id: 8, pid: 2, frame: r(200., 100., 400., 300.) };
         let below = [front, back];
-        assert_eq!(peek_target(250., 150., &below), Some(front));
-        assert_eq!(peek_target(500., 350., &below), Some(back));
-        assert_eq!(peek_target(900., 900., &below), None);
-    }
-
-    #[test]
-    fn peek_hole_opens_the_whole_window() {
-        let target = Below { id: 7, pid: 1, frame: r(100., 50., 400., 500.) };
-        let hole = peek_hole(target, &[]);
-        assert_eq!(hole.open, r(100., 50., 400., 500.));
-        assert!(hole.covers.is_empty());
-    }
-
-    #[test]
-    fn peek_hole_rounds_its_corners_like_a_window() {
-        let big = peek_hole(Below { id: 7, pid: 1, frame: r(0., 0., 800., 600.) }, &[]);
-        assert_eq!(big.radius, 26.);
-        // A small window's hole cannot round more than half its height.
-        let small = peek_hole(Below { id: 7, pid: 1, frame: r(0., 0., 300., 40.) }, &[]);
-        assert_eq!(small.radius, 20.);
-    }
-
-    #[test]
-    fn peek_hole_keeps_what_lies_in_front_blurred() {
-        let target = Below { id: 8, pid: 2, frame: r(0., 0., 400., 500.) };
-        let front = Below { id: 7, pid: 1, frame: r(300., 50., 400., 300.) };
-        let away = Below { id: 9, pid: 3, frame: r(900., 0., 100., 100.) };
-        let hole = peek_hole(target, &[front, away]);
-        assert_eq!(hole.covers, vec![r(300., 50., 100., 300.)]);
+        assert_eq!(window_at(250., 150., &below), Some(front));
+        assert_eq!(window_at(500., 350., &below), Some(back));
+        assert_eq!(window_at(900., 900., &below), None);
     }
 
     #[test]
@@ -707,7 +656,7 @@ mod tests {
         let list = [
             (300, 1, 0, r(0., 0., 10., 10.)),   // the focused window, above the panel
             (900, me, 0, r(0., 0., 10., 10.)),  // this screen's panel
-            (4485, me, 0, r(0., 0., 10., 10.)), // Notching's own Settings window: peekable
+            (4485, me, 0, r(0., 0., 10., 10.)), // Notching's own Settings window: clickable
             (61, 2, 0, r(0., 0., 10., 10.)),    // picked on another screen
             (901, me, 0, r(0., 0., 10., 10.)),  // another screen's panel
             (77, 3, 25, r(0., 0., 10., 10.)),   // a status-level window

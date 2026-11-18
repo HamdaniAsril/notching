@@ -89,7 +89,7 @@ Add or remove any of them, and any widget pack, from the Catalog in Settings. No
 - **Cut files.** ⌘X and ⌘V move files in Finder, just as they move text.
 - **Arrange windows.** `⌃⌥` with an arrow key snaps the front window to half of its screen, with `;` `'` `.` `/` to a corner, with `\` to the centre, and with Return it fills the screen.
 - **Window peek.** Point at a Dock icon to see every window of the app, minimized ones too; click the icon to minimize them all or bring them all back; ⌘Tab shows every window, minimized ones too. Install it from the Catalog.
-- **Window focus.** `⌃⌥F` blurs everything behind the window you work in; focus follows you to another window, point at the blur to peek at what is behind, and `⌃⌥⇧F` keeps a second window clear. Install it from the Catalog.
+- **Window focus.** `⌃⌥F` blurs everything behind the window you work in; focus follows you to another window or a blurred one you click, every screen has its own, and `⌃⌥⇧F` keeps a second window clear. Install it from the Catalog.
 
 ## Shortcuts
 
