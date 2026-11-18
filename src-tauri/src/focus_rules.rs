@@ -51,8 +51,6 @@ pub enum Event {
     Toggle(Option<Win>),
     /// ⌃⌥⇧F.
     Add(Option<Win>),
-    /// A click on a blurred window.
-    Click(Win),
     /// A ⇧-click on a blurred window.
     ShiftClick(Win),
     /// The active app or the Space changed. None: no window here, or full screen.
@@ -150,7 +148,6 @@ impl Focus {
                 self.paused = false;
                 Some(self.layer())
             }
-            Event::Click(w) => self.replace(w),
             Event::ShiftClick(w) => {
                 if !self.has(w.id) {
                     self.picked.push(w);
@@ -446,15 +443,9 @@ mod tests {
     }
 
     #[test]
-    fn click_moves_focus() {
+    fn add_after_moving_on_brings_back_the_previous() {
         let mut f = Focus::default();
-        assert_eq!(run(&mut f, &[Event::Toggle(Some(A)), Event::Click(C)]), shown(&[3]));
-    }
-
-    #[test]
-    fn add_after_a_click_brings_back_the_previous() {
-        let mut f = Focus::default();
-        assert_eq!(run(&mut f, &[Event::Toggle(Some(A)), Event::Click(C), Event::Add(Some(C))]), shown(&[1, 3]));
+        assert_eq!(run(&mut f, &[Event::Toggle(Some(A)), Event::Front(Some(C)), Event::Add(Some(C))]), shown(&[1, 3]));
     }
 
     #[test]
@@ -510,7 +501,7 @@ mod tests {
     #[test]
     fn focused_picked_is_nothing() {
         let mut f = Focus::default();
-        assert_eq!(run(&mut f, &[Event::Toggle(Some(A)), Event::Click(C), Event::Focused(C)]), None);
+        assert_eq!(run(&mut f, &[Event::Toggle(Some(A)), Event::Front(Some(C)), Event::Focused(C)]), None);
     }
 
     #[test]
@@ -541,7 +532,7 @@ mod tests {
     #[test]
     fn off_ignores_everything_but_the_keys() {
         let mut f = Focus::default();
-        for e in [Event::Front(Some(A)), Event::Click(A), Event::Gone(1), Event::Focused(A), Event::Created(A), Event::ShiftClick(A)] {
+        for e in [Event::Front(Some(A)), Event::Gone(1), Event::Focused(A), Event::Created(A), Event::ShiftClick(A)] {
             assert_eq!(f.step(e), None);
         }
         assert!(!f.is_on());

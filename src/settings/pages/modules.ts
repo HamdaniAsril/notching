@@ -229,7 +229,8 @@ function accessRow(ctx: PageContext, m: ModuleInfo): HTMLElement {
 }
 
 // Screen Recording, beside Accessibility, for a tool that also needs it.
-function screenRow(ctx: PageContext, m: ModuleInfo): HTMLElement {
+// `hint`: what the tool does without it.
+function screenRow(ctx: PageContext, m: ModuleInfo, hint = ctx.strings.tools.screenRecordingHint): HTMLElement {
   const s = ctx.strings.tools;
   const state = el('span', 'perm-state');
   state.append(el('i', 'perm-dot'), el('span'));
@@ -241,7 +242,7 @@ function screenRow(ctx: PageContext, m: ModuleInfo): HTMLElement {
   ctx.onCleanup(ctx.bridge.onSettings(show));
   const ctl = el('div', 'ctl');
   ctl.append(state, button(`tool.${m.id}.openScreen`, s.open, () => void ctx.bridge.openScreenRecordingSettings()));
-  return row({ key: `tool.${m.id}.screen`, label: systemNames(ctx.lang, ctx.state.macos).screenRecording, hint: s.screenRecordingHint, control: ctl });
+  return row({ key: `tool.${m.id}.screen`, label: systemNames(ctx.lang, ctx.state.macos).screenRecording, hint, control: ctl });
 }
 
 // Intip jendela's rows (design 5 Nov §4): its two permissions, then the Dock,
@@ -337,6 +338,7 @@ function focusRows(ctx: PageContext): HTMLElement[] {
   const f = ctx.state.focus;
   return [
     accessRow(ctx, m),
+    screenRow(ctx, m, s.screenHint),
     row({ key: 'focus.dim', label: s.dim, hint: s.dimHint,
       control: choice<FocusSettings['dim']>('focus.dim', [
         { value: 'none', label: s.dimNone }, { value: 'little', label: s.dimLittle }, { value: 'much', label: s.dimMuch },

@@ -14,7 +14,7 @@ test('a tool after Intip jendela, before the widget packages, waiting to be inst
   expect(ids.indexOf('waktu')).toBe(ids.indexOf('window-focus') + 1);
   const m = all.find(x => x.id === 'window-focus')!;
   expect([m.entry, m.card, m.action, m.tool]).toEqual([null, null, null, true]);
-  expect(m.permissions).toEqual(['accessibility']);
+  expect(m.permissions).toEqual(['accessibility', 'screen-recording']);
   expect(m.category).toBe('window');
   expect([m.installed, m.enabled]).toEqual([false, false]);
   expect(m.name).toBe('Fokus jendela');

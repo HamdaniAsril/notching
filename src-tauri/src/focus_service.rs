@@ -407,6 +407,10 @@ fn below_layer(mtm: MainThreadMarker, screen: usize) -> Vec<Below> {
 }
 
 fn clicked(x: f64, y: f64, shift: bool) {
+    // A plain click on the blur does nothing (owner, 18 Nov); ⇧-click adds.
+    if !shift {
+        return;
+    }
     let (Some(app), Some(mtm)) = (APP.get(), MainThreadMarker::new()) else { return };
     let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
     // The click lands on the topmost window under it.
@@ -414,7 +418,7 @@ fn clicked(x: f64, y: f64, shift: bool) {
     // The desktop under the blur: nothing (design §4.4).
     let Some(target) = target else { return };
     let win = Win { id: target.id, pid: target.pid };
-    send(app, screen, if shift { Event::ShiftClick(win) } else { Event::Click(win) });
+    send(app, screen, Event::ShiftClick(win));
     finish(app);
     if let Some(element) = ax::app(win.pid) {
         ax::set_frontmost(&element);

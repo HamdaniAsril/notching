@@ -358,6 +358,7 @@
       "peek": "Used by Window peek"
     },
     "focus": {
+      "screenHint": "Without it, there is no peek.",
       "dim": "Darken",
       "dimHint": "A thin dark layer over the blur.",
       "dimNone": "None",

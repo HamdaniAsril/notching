@@ -358,6 +358,7 @@
       "peek": "Dipakai Intip jendela"
     },
     "focus": {
+      "screenHint": "Tanpa izin ini, intip tidak muncul.",
       "dim": "Gelapkan",
       "dimHint": "Lapisan gelap tipis di atas blur.",
       "dimNone": "Tidak",
