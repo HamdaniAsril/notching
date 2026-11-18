@@ -332,6 +332,9 @@ pub struct Below {
     pub frame: Rect,
 }
 
+/// How long a peek takes to appear or go (design §4.4).
+pub const PEEK_FADE_MS: u64 = 120;
+
 /// The normal windows under one screen's `panel`, front to back: not the blur
 /// panels (`panels`), not the picked windows, not other levels. Notching's own
 /// windows, Settings among them, count like any other.

@@ -1,6 +1,7 @@
 //! Fokus jendela's native side (design 18 Nov §5): ⌃⌥F and ⌃⌥⇧F, following the
-//! window in use through NSWorkspace and Accessibility, the click on the blur,
-//! letting drags through, the notch icon and the permission notice.
+//! window in use through NSWorkspace and Accessibility, the peek (a picture of
+//! the window under the pointer) and the ⇧-click on the blur, letting drags
+//! through, the notch icon and the permission notice.
 //! Every screen has its own focus (owner, 18 Nov). The rules live in
 //! focus_rules.rs, the panels in focus_layer.rs.
 //!
@@ -9,7 +10,9 @@
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::ptr::NonNull;
-use std::sync::{LazyLock, Mutex, OnceLock};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, LazyLock, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use block2::RcBlock;
@@ -28,6 +31,7 @@ use crate::ax::{self, Cf};
 use crate::focus_layer;
 use crate::focus_rules::{blur_screens, window_at, windows_below, Below, Desk, Event, Layer, Win, WinId};
 use crate::geometry::Rect;
+use crate::peek_capture::{self, PictureSize};
 use crate::shelf_watch::Watch;
 use crate::status::{self, Activity};
 
@@ -39,6 +43,10 @@ const NOTICE_EVERY: Duration = Duration::from_secs(60);
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static DESK: LazyLock<Mutex<Desk>> = LazyLock::new(|| Mutex::new(Desk::default()));
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
+/// Pictures of the windows peeked at while the focus is on, in memory only.
+static PICTURES: LazyLock<Mutex<HashMap<WinId, Arc<Vec<u8>>>>> = LazyLock::new(Mutex::default);
+/// Bumped by every peek change, so a slow picture for an earlier one is dropped.
+static PEEK_ROUND: AtomicU64 = AtomicU64::new(0);
 /// NOTCHING_FOCUS_DEBUG set: every layer change goes to the log.
 static DEBUG: LazyLock<bool> = LazyLock::new(|| std::env::var_os("NOTCHING_FOCUS_DEBUG").is_some());
 
@@ -62,6 +70,8 @@ struct Listening {
 
 thread_local! {
     static LISTENING: RefCell<Option<Listening>> = const { RefCell::new(None) };
+    /// The window the peek is for, and whether its picture shows yet.
+    static PEEK: RefCell<Option<(Below, bool)>> = const { RefCell::new(None) };
     static DRAG: RefCell<Watch> = RefCell::new(Watch::default());
     static DRAGGING: RefCell<bool> = const { RefCell::new(false) };
     static CLOCK: Instant = Instant::now();
@@ -91,7 +101,7 @@ fn dim(app: &AppHandle) -> f64 {
 /// At launch: the panels' hooks.
 pub fn start(app: &AppHandle) {
     let _ = APP.set(app.clone());
-    focus_layer::init(focus_layer::Hooks { clicked });
+    focus_layer::init(focus_layer::Hooks { moved, left, clicked });
 }
 
 /// ⌃⌥F (`add` false) or ⌃⌥⇧F (`add` true) was pressed: it acts on the screen of
@@ -205,6 +215,7 @@ fn send(app: &AppHandle, screen: usize, e: Event) {
 fn apply(app: &AppHandle, screen: usize, layer: Layer) {
     let Some(mtm) = MainThreadMarker::new() else { return };
     debug!("apply screen {screen}: {layer:?}");
+    clear_peek(mtm, false);
     match layer {
         Layer::Off | Layer::Paused => focus_layer::hide_screen(mtm, screen),
         Layer::Shown { raise } => {
@@ -231,6 +242,7 @@ fn finish(app: &AppHandle) {
             focus_layer::hide(mtm);
         }
         let was = LISTENING.with(|l| l.borrow().is_some());
+        PICTURES.lock().unwrap().clear();
         stop_listening();
         status::clear(app, MODULE_ID);
         if was {
@@ -396,7 +408,7 @@ fn moved_window(app: &AppHandle) {
     }
 }
 
-// ---- A click on the blur ----
+// ---- The pointer on the blur ----
 
 /// Windows under one screen's layer, front to back (focus_rules::windows_below).
 fn below_layer(mtm: MainThreadMarker, screen: usize) -> Vec<Below> {
@@ -404,6 +416,71 @@ fn below_layer(mtm: MainThreadMarker, screen: usize) -> Vec<Below> {
     let list: Vec<(WinId, i32, i64, Rect)> = crate::notify::window_list().iter().map(|w| (w.number, w.pid, w.layer, w.bounds)).collect();
     let picked: Vec<WinId> = DESK.lock().unwrap().picked_wins().iter().map(|w| w.id).collect();
     windows_below(&list, panel, &focus_layer::own_windows(mtm), &picked)
+}
+
+/// The peek goes, at once or fading.
+fn clear_peek(mtm: MainThreadMarker, fade: bool) {
+    PEEK_ROUND.fetch_add(1, Ordering::SeqCst);
+    if PEEK.with(|p| p.borrow_mut().take()).is_some() {
+        focus_layer::hide_picture(mtm, fade);
+    }
+}
+
+/// The peek follows the pointer: a picture of the topmost blurred window under
+/// it, over the blur (design §4.4). Nothing moves or opens in the blur itself.
+fn moved(x: f64, y: f64) {
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    if DRAGGING.with(|d| *d.borrow()) {
+        return;
+    }
+    let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
+    let target = window_at(x, y, &below_layer(mtm, screen));
+    let current = PEEK.with(|p| p.borrow().map(|(b, _)| b.id));
+    if target.map(|t| t.id) == current {
+        return;
+    }
+    debug!("peek at ({x:.0},{y:.0}) screen {screen}: {:?} -> {:?}", current, target.map(|t| t.id));
+    let Some(target) = target else {
+        clear_peek(mtm, true);
+        return;
+    };
+    // Without Screen Recording there is no picture, so no peek (design §4.4).
+    if !crate::shot_service::screen_access() {
+        return;
+    }
+    let was_showing = PEEK.with(|p| p.borrow().is_some_and(|(_, shown)| shown));
+    let round = PEEK_ROUND.fetch_add(1, Ordering::SeqCst) + 1;
+    let cached = PICTURES.lock().unwrap().get(&target.id).cloned();
+    if let Some(png) = cached {
+        focus_layer::show_picture(mtm, target.frame, &png, !was_showing);
+        PEEK.with(|p| *p.borrow_mut() = Some((target, true)));
+        return;
+    }
+    // One window to the next: the old picture goes at once, the new one fades in.
+    if was_showing {
+        focus_layer::hide_picture(mtm, false);
+    }
+    PEEK.with(|p| *p.borrow_mut() = Some((target, false)));
+    std::thread::spawn(move || {
+        let Some(png) = peek_capture::picture(target.id, false, PictureSize::Full) else { return };
+        PICTURES.lock().unwrap().insert(target.id, png.clone());
+        let Some(app) = APP.get() else { return };
+        let _ = app.run_on_main_thread(move || {
+            if PEEK_ROUND.load(Ordering::SeqCst) != round {
+                return;
+            }
+            let Some(mtm) = MainThreadMarker::new() else { return };
+            focus_layer::show_picture(mtm, target.frame, &png, true);
+            PEEK.with(|p| *p.borrow_mut() = Some((target, true)));
+        });
+    });
+}
+
+fn left() {
+    debug!("pointer left the blur");
+    if let Some(mtm) = MainThreadMarker::new() {
+        clear_peek(mtm, true);
+    }
 }
 
 fn clicked(x: f64, y: f64, shift: bool) {
@@ -446,6 +523,7 @@ fn on_mouse(event: &NSEvent) {
             let began = DRAG.with(|d| d.borrow_mut().dragged(now_ms(), || drag_pasteboard().changeCount()));
             if began {
                 DRAGGING.with(|d| *d.borrow_mut() = true);
+                clear_peek(mtm, false);
                 focus_layer::pass_through(mtm, true);
             }
         }

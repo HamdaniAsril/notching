@@ -1,24 +1,28 @@
 //! Fokus jendela's blur (design 18 Nov §5): one plain panel per screen at the
 //! normal window level, holding macOS's own behind-window blur and a thin dark
-//! layer, ordered right below that screen's focused window. It catches clicks,
-//! which move the focus, and nothing else. Main thread only. Like the sensors,
-//! the panels are never closed, only ordered out.
+//! layer, ordered right below that screen's focused window. Over them, a picture
+//! of the window under the pointer: the peek (design §4.4). It catches every
+//! click; only a ⇧-click does something. Main thread only. Like the sensors, the
+//! panels are never closed, only ordered out.
 
 use std::cell::RefCell;
 use std::sync::OnceLock;
 
 use objc2::rc::Retained;
-use objc2::{define_class, msg_send, MainThreadMarker, MainThreadOnly};
+use objc2::runtime::AnyObject;
+use objc2::{define_class, msg_send, AllocAnyThread, MainThreadMarker, MainThreadOnly};
 use objc2_app_kit::{
     NSAppearance, NSAppearanceCustomization, NSAppearanceNameDarkAqua, NSAutoresizingMaskOptions, NSBackingStoreType, NSColor,
-    NSEvent, NSEventModifierFlags, NSPanel, NSResponder, NSView, NSVisualEffectBlendingMode,
+    NSEvent, NSEventModifierFlags, NSImage, NSPanel, NSResponder, NSTrackingArea, NSTrackingAreaOptions, NSView,
+    NSVisualEffectBlendingMode,
     NSVisualEffectMaterial, NSVisualEffectState, NSVisualEffectView, NSWindowCollectionBehavior, NSWindowOrderingMode,
     NSWindowStyleMask,
 };
 use objc2_core_graphics::CGColor;
-use objc2_foundation::{NSObject, NSPoint, NSRect, NSSize};
+use objc2_foundation::{NSData, NSObject, NSPoint, NSRect, NSSize};
 use objc2_quartz_core::CATransaction;
 
+use crate::focus_rules::PEEK_FADE_MS;
 use crate::geometry::{to_cg, Rect};
 use crate::screens::current_screens;
 
@@ -27,6 +31,8 @@ const NORMAL_LEVEL: isize = 0;
 
 /// What the layer tells the service, in CG points (top-left of the main screen).
 pub struct Hooks {
+    pub moved: fn(f64, f64),
+    pub left: fn(),
     pub clicked: fn(f64, f64, bool),
 }
 
@@ -55,7 +61,22 @@ define_class!(
             true
         }
 
-        // A click moves focus and goes no further (design §4.5).
+        #[unsafe(method(mouseMoved:))]
+        fn mouse_moved(&self, _event: &NSEvent) {
+            if let Some(h) = HOOKS.get() {
+                let (x, y) = pointer();
+                (h.moved)(x, y);
+            }
+        }
+
+        #[unsafe(method(mouseExited:))]
+        fn mouse_exited(&self, _event: &NSEvent) {
+            if let Some(h) = HOOKS.get() {
+                (h.left)();
+            }
+        }
+
+        // No click goes further (design §4.5); the service acts on ⇧-click only.
         #[unsafe(method(mouseDown:))]
         fn mouse_down(&self, event: &NSEvent) {
             if let Some(h) = HOOKS.get() {
@@ -81,6 +102,10 @@ struct Slot {
     panel: Retained<NSPanel>,
     blur: Retained<NSVisualEffectView>,
     dark: Retained<NSView>,
+    /// The peek: a picture of one window, over the blur.
+    picture: Retained<NSView>,
+    /// The screen in Cocoa points.
+    screen: Rect,
     shown: bool,
 }
 
@@ -118,6 +143,19 @@ fn new_slot(mtm: MainThreadMarker) -> Slot {
 
     let view: Retained<FocusView> = unsafe { msg_send![FocusView::alloc(mtm), init] };
     view.setWantsLayer(true);
+    let area = unsafe {
+        NSTrackingArea::initWithRect_options_owner_userInfo(
+            NSTrackingArea::alloc(),
+            NSRect::ZERO,
+            NSTrackingAreaOptions::MouseMoved
+                | NSTrackingAreaOptions::MouseEnteredAndExited
+                | NSTrackingAreaOptions::ActiveAlways
+                | NSTrackingAreaOptions::InVisibleRect,
+            Some(&view),
+            None,
+        )
+    };
+    view.addTrackingArea(&area);
 
     let fill = NSAutoresizingMaskOptions::ViewWidthSizable | NSAutoresizingMaskOptions::ViewHeightSizable;
     let blur = NSVisualEffectView::new(mtm);
@@ -141,8 +179,15 @@ fn new_slot(mtm: MainThreadMarker) -> Slot {
     dark.setAutoresizingMask(fill);
     view.addSubview(&dark);
 
+    let picture = NSView::new(mtm);
+    picture.setWantsLayer(true);
+    if let Some(layer) = picture.layer() {
+        layer.setOpacity(0.0);
+    }
+    view.addSubview(&picture);
+
     panel.setContentView(Some(&view));
-    Slot { panel, blur, dark, shown: false }
+    Slot { panel, blur, dark, picture, screen: Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }, shown: false }
 }
 
 /// The screens now, in CG points, in the order `show` takes them.
@@ -166,6 +211,7 @@ pub fn show_screen(mtm: MainThreadMarker, screen: usize, window: u32, dim: f64) 
             slots.push(new_slot(mtm));
         }
         let slot = &mut slots[screen];
+        slot.screen = info.frame;
         let size = NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(info.frame.w, info.frame.h));
         slot.panel.setFrame_display(ns_rect(info.frame), false);
         if let Some(content) = slot.panel.contentView() {
@@ -184,10 +230,61 @@ pub fn show_screen(mtm: MainThreadMarker, screen: usize, window: u32, dim: f64) 
     });
 }
 
+/// The peek: `png`, a picture of a window at `frame` (CG points), over the blur
+/// of the screen it is on. `fade`: from nothing, over PEEK_FADE_MS; else at once.
+pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], fade: bool) {
+    let Some(image) = NSImage::initWithData(NSImage::alloc(), &NSData::with_bytes(png)) else { return };
+    let h = PRIMARY_H.with(|h| h.get());
+    let cocoa = to_cg(frame, h);
+    hide_picture(mtm, false);
+    SLOTS.with(|slots| {
+        let slots = slots.borrow();
+        let center = (cocoa.x + cocoa.w / 2.0, cocoa.y + cocoa.h / 2.0);
+        let Some(slot) = slots.iter().find(|s| s.shown && s.screen.contains(center.0, center.1)) else { return };
+        let local = Rect { x: cocoa.x - slot.screen.x, y: cocoa.y - slot.screen.y, ..cocoa };
+        slot.picture.setFrame(ns_rect(local));
+        let Some(layer) = slot.picture.layer() else { return };
+        CATransaction::begin();
+        CATransaction::setDisableActions(true);
+        // SAFETY: an NSImage, which a layer on macOS takes as its contents.
+        unsafe { layer.setContents(Some(&*(Retained::as_ptr(&image) as *const AnyObject))) };
+        if !fade {
+            layer.setOpacity(1.0);
+        }
+        CATransaction::commit();
+        if fade {
+            CATransaction::begin();
+            CATransaction::setAnimationDuration(PEEK_FADE_MS as f64 / 1000.0);
+            layer.setOpacity(1.0);
+            CATransaction::commit();
+        }
+    });
+}
+
+/// The peek goes. `fade`: over PEEK_FADE_MS; else at once.
+pub fn hide_picture(_mtm: MainThreadMarker, fade: bool) {
+    SLOTS.with(|slots| {
+        for slot in slots.borrow().iter() {
+            let Some(layer) = slot.picture.layer() else { continue };
+            CATransaction::begin();
+            if fade {
+                CATransaction::setAnimationDuration(PEEK_FADE_MS as f64 / 1000.0);
+            } else {
+                CATransaction::setDisableActions(true);
+            }
+            layer.setOpacity(0.0);
+            CATransaction::commit();
+        }
+    });
+}
+
 /// One screen's panel goes; that screen is as it was.
 pub fn hide_screen(_mtm: MainThreadMarker, screen: usize) {
     SLOTS.with(|slots| {
         if let Some(slot) = slots.borrow_mut().get_mut(screen) {
+            if let Some(layer) = slot.picture.layer() {
+                layer.setOpacity(0.0);
+            }
             slot.panel.orderOut(None);
             slot.shown = false;
         }
