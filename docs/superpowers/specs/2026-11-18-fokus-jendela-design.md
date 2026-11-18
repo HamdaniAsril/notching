@@ -70,7 +70,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
   Riwayat: awalnya setengah atas, lalu sepertiga, lalu seperlima dengan gradasi. Semuanya diganti dengan jendela utuh.
 - Pindah ke jendela lain langsung mengganti intipan. Kursor keluar dari area blur, ke jendela fokus, atau ke area tanpa jendela (desktop): tidak ada yang diintip.
 - Muncul dan hilangnya intipan memakai transisi singkat, sekitar 120 ms. **(keputusan penulis)**
-- Kalau jendela yang diintip tertutup jendela lain yang juga ter-blur, jendela itu **maju ke atas jendela-jendela blur lainnya**, tetap di bawah lapisan blur dan di bawah jendela fokus. Urutan barunya bertahan setelah kursor pergi. Kalau macOS menolak menaikkannya, bagian yang tertutup tetap blur. **(pemilik, 18 November 2026)**
+- Kalau jendela yang diintip tertutup jendela lain yang juga ter-blur, bagian yang menutupinya **tetap blur**. Jendela yang diintip tidak dipindah urutannya. **(pemilik, 18 November 2026.** Sempat dicoba: jendela yang diintip dinaikkan ke atas jendela blur lain. Masih berkedip, jadi pemilik memilih menghapusnya.**)**
 - **Klik** jendela yang diintip: fokus pindah ke jendela itu (4.2). **⇧-klik**: jendela itu ditambahkan (4.1).
 - Klik di area blur tanpa jendela di bawahnya (desktop) tidak melakukan apa-apa. **(keputusan penulis)**
 
@@ -104,7 +104,7 @@ Blurnya hidup dan dikerjakan oleh window server di GPU: video di belakang tetap 
 
 Semua pendengar dilepas saat mode fokus mati.
 
-**Mengintip.** Panel punya tracking area. Selama kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor dari daftar jendela window server (`CGWindowListCopyWindowInfo`, hanya jendela di bawah panel, tanpa jendela Notching sendiri). Bingkai jendela itu lalu dilubangi dari blur dengan mask: transparan seukuran jendela dengan sudut membulat; jendela yang tertutup jendela blur lain dinaikkan dulu, dan kalau gagal, bagian yang tertutup tetap blur. Daftar jendela dibaca sekali saat kursor masuk ke jendela baru, bukan di setiap gerakan.
+**Mengintip.** Panel punya tracking area. Selama kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor dari daftar jendela window server (`CGWindowListCopyWindowInfo`, hanya jendela di bawah panel, tanpa jendela Notching sendiri). Bingkai jendela itu lalu dilubangi dari blur dengan mask: transparan seukuran jendela dengan sudut membulat; bagian yang tertutup jendela blur lain tetap blur. Daftar jendela dibaca sekali saat kursor masuk ke jendela baru, bukan di setiap gerakan.
 
 **Klik di blur.** Panel menerima klik. Klik pada jendela yang diintip mengaktifkan app-nya, menaikkan jendela itu (`ax::set_frontmost`, `ax::raise`), lalu fokus diperbarui seperti 4.2.
 

@@ -226,15 +226,6 @@ pub fn show_screen(mtm: MainThreadMarker, screen: usize, window: u32, dim: f64) 
     });
 }
 
-/// One screen's panel goes right below `window` again, nothing else changes.
-pub fn reorder(_mtm: MainThreadMarker, screen: usize, window: u32) {
-    SLOTS.with(|slots| {
-        if let Some(slot) = slots.borrow().get(screen).filter(|s| s.shown) {
-            slot.panel.orderWindow_relativeTo(NSWindowOrderingMode::Below, window as isize);
-        }
-    });
-}
-
 /// One screen's panel goes; that screen is as it was.
 pub fn hide_screen(_mtm: MainThreadMarker, screen: usize) {
     SLOTS.with(|slots| {
