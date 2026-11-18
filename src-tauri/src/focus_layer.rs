@@ -23,7 +23,7 @@ use objc2_core_graphics::CGColor;
 use objc2_foundation::{NSArray, NSObject, NSPoint, NSRect, NSSize};
 use objc2_quartz_core::{CAGradientLayer, CALayer, CATransaction};
 
-use crate::focus_rules::{peek_hole, PEEK_FADE_MS};
+use crate::focus_rules::{PeekHole, PEEK_FADE_MS};
 use crate::geometry::{to_cg, Rect};
 use crate::screens::current_screens;
 
@@ -186,8 +186,16 @@ fn new_slot(mtm: MainThreadMarker) -> Slot {
     Slot { panel, blur, dark, screen: Rect { x: 0.0, y: 0.0, w: 0.0, h: 0.0 }, shown: false }
 }
 
-/// One panel per screen now, each ordered right below `window`; `dim` is Dim::alpha().
-pub fn show(mtm: MainThreadMarker, window: u32, dim: f64) {
+/// The screens now, in CG points, in the order `show` takes them.
+pub fn screens_cg(mtm: MainThreadMarker) -> Vec<Rect> {
+    let screens = current_screens(mtm);
+    let h = screens.first().map_or(0.0, |s| s.frame.h);
+    screens.iter().map(|s| to_cg(s.frame, h)).collect()
+}
+
+/// A panel on each screen in `only` (indices of screens_cg), ordered right below
+/// `window`; the other screens stay as they are. `dim` is Dim::alpha().
+pub fn show(mtm: MainThreadMarker, window: u32, dim: f64, only: &[usize]) {
     let screens = current_screens(mtm);
     if let Some(main) = screens.first() {
         PRIMARY_H.with(|h| h.set(main.frame.h));
@@ -198,7 +206,8 @@ pub fn show(mtm: MainThreadMarker, window: u32, dim: f64) {
             slots.push(new_slot(mtm));
         }
         for (i, slot) in slots.iter_mut().enumerate() {
-            let Some(screen) = screens.get(i) else {
+            let Some(screen) = screens.get(i).filter(|_| only.contains(&i)) else {
+                clear_masks(slot);
                 slot.panel.orderOut(None);
                 slot.shown = false;
                 continue;
@@ -254,31 +263,28 @@ fn clear_masks(slot: &Slot) {
     }
 }
 
-/// Opens a peek hole over `frame` (CG points), or closes it, fading over PEEK_FADE_MS.
-pub fn set_peek(_mtm: MainThreadMarker, frame: Option<Rect>) {
+/// Opens a peek hole (CG points), or closes it, fading over PEEK_FADE_MS.
+pub fn set_peek(_mtm: MainThreadMarker, hole: Option<&PeekHole>) {
     let h = PRIMARY_H.with(|h| h.get());
     SLOTS.with(|slots| {
         for slot in slots.borrow().iter().filter(|s| s.shown) {
-            let hole = frame.map(|f| (to_cg(f, h), peek_hole(f)));
-            // This screen's part, in its view's points (Cocoa: y up).
-            let local = hole.and_then(|(whole, (_, fade))| {
-                let s = slot.screen;
-                let whole = Rect { x: whole.x - s.x, y: whole.y - s.y, ..whole };
-                let fade = to_cg(fade, h);
-                let fade = Rect { x: fade.x - s.x, y: fade.y - s.y, ..fade };
-                let crosses = whole.x < s.w && whole.max_x() > 0.0 && whole.y < s.h && whole.max_y() > 0.0;
-                crosses.then_some((whole, fade))
+            let s = slot.screen;
+            // A CG rect in this screen's view points (Cocoa: y up).
+            let local = |r: Rect| {
+                let c = to_cg(r, h);
+                Rect { x: c.x - s.x, y: c.y - s.y, ..c }
+            };
+            let here = hole.filter(|hole| {
+                let o = local(hole.open);
+                o.x < s.w && o.max_x() > 0.0 && o.y < s.h && o.max_y() > 0.0
             });
-            match local {
-                Some((whole, fade)) => {
-                    for layer in [slot.blur.layer(), slot.dark.layer()].into_iter().flatten() {
-                        open_hole(&layer, slot.screen.w, slot.screen.h, whole, fade);
+            for layer in [slot.blur.layer(), slot.dark.layer()].into_iter().flatten() {
+                match here {
+                    Some(hole) => {
+                        let covers: Vec<Rect> = hole.covers.iter().map(|&c| local(c)).collect();
+                        open_hole(&layer, s.w, s.h, local(hole.open), local(hole.fade), &covers);
                     }
-                }
-                None => {
-                    for layer in [slot.blur.layer(), slot.dark.layer()].into_iter().flatten() {
-                        close_hole(&layer);
-                    }
+                    None => close_hole(&layer),
                 }
             }
         }
@@ -292,8 +298,9 @@ fn as_object(c: &CGColor) -> &AnyObject {
 }
 
 /// The mask: opaque everywhere but `whole`, where the fade part goes from blur at
-/// its bottom to clear at its top; a cover over the hole fades out.
-fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, fade: Rect) {
+/// its bottom to clear at its top and `covers` stay opaque; a cover over the hole
+/// fades out, and stays the last sublayer for close_hole.
+fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, fade: Rect, covers: &[Rect]) {
     let black = CGColor::new_generic_gray(0.0, 1.0);
     let clear = CGColor::new_generic_gray(0.0, 0.0);
     let mask = CALayer::new();
@@ -317,6 +324,12 @@ fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, fade: Rect) {
     gradient.setStartPoint(CGPoint::new(0.5, 0.0));
     gradient.setEndPoint(CGPoint::new(0.5, 1.0));
     mask.addSublayer(&gradient);
+    for c in covers {
+        let block = CALayer::new();
+        block.setFrame(cg_rect(c.x, c.y, c.w, c.h));
+        block.setBackgroundColor(Some(&black));
+        mask.addSublayer(&block);
+    }
     let cover = CALayer::new();
     cover.setFrame(cg_rect(whole.x, whole.y, whole.w, whole.h));
     cover.setBackgroundColor(Some(&black));

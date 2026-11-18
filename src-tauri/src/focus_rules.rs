@@ -242,8 +242,10 @@ pub struct Below {
     pub frame: Rect,
 }
 
-/// The top third of a peeked window is clear (owner, 18 Nov, after the first test).
-pub const PEEK_CLEAR: f64 = 1.0 / 3.0;
+/// The top fifth of a peeked window is clear (owner, 18 Nov, after trying it)…
+pub const PEEK_CLEAR: f64 = 0.2;
+/// …then a short fade back to blur (owner: "lebih tegas").
+pub const PEEK_FADE: f64 = 0.08;
 /// How long a peek takes to open or close.
 pub const PEEK_FADE_MS: u64 = 120;
 
@@ -252,13 +254,60 @@ pub fn peek_target(x: f64, y: f64, below: &[Below]) -> Option<Below> {
     below.iter().find(|b| b.frame.contains(x, y)).copied()
 }
 
-/// The clear top part and the fading bottom part of `frame`.
-pub fn peek_hole(frame: Rect) -> (Rect, Rect) {
-    let clear = frame.h * PEEK_CLEAR;
-    (
-        Rect { h: clear, ..frame },
-        Rect { y: frame.y + clear, h: frame.h - clear, ..frame },
-    )
+/// Where the blur opens for a peek, in CG points.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PeekHole {
+    /// The top of the window: clear, then fading.
+    pub open: Rect,
+    /// The fading band at the bottom of `open`.
+    pub fade: Rect,
+    /// Parts of `open` that other blurred windows cover: they stay blurred (owner, 18 Nov).
+    pub covers: Vec<Rect>,
+}
+
+/// The overlap of two rects, if any.
+fn overlap(a: Rect, b: Rect) -> Option<Rect> {
+    let (x, y) = (a.x.max(b.x), a.y.max(b.y));
+    let (w, h) = (a.max_x().min(b.max_x()) - x, a.max_y().min(b.max_y()) - y);
+    (w > 0.0 && h > 0.0).then_some(Rect { x, y, w, h })
+}
+
+/// The hole over `target`; `in_front` are the blurred windows above it.
+pub fn peek_hole(target: Below, in_front: &[Below]) -> PeekHole {
+    let f = target.frame;
+    let clear = f.h * PEEK_CLEAR;
+    let fade = f.h * PEEK_FADE;
+    let open = Rect { h: clear + fade, ..f };
+    PeekHole {
+        open,
+        fade: Rect { y: f.y + clear, h: fade, ..f },
+        covers: in_front.iter().filter_map(|b| overlap(b.frame, open)).collect(),
+    }
+}
+
+/// The screens to blur: the one holding most of each picked window, else the
+/// nearest (owner, 18 Nov: other monitors stay as they are). Sorted, each once.
+pub fn blur_screens(screens: &[Rect], picked: &[Rect]) -> Vec<usize> {
+    let mut out: Vec<usize> = Vec::new();
+    for w in picked {
+        let area = |s: &Rect| overlap(*s, *w).map_or(0.0, |o| o.w * o.h);
+        let (cx, cy) = (w.x + w.w / 2.0, w.y + w.h / 2.0);
+        let distance = |s: &Rect| {
+            let dx = (s.x + s.w / 2.0 - cx).abs();
+            let dy = (s.y + s.h / 2.0 - cy).abs();
+            dx * dx + dy * dy
+        };
+        let best = screens
+            .iter()
+            .enumerate()
+            .max_by(|(_, a), (_, b)| area(a).total_cmp(&area(b)).then(distance(b).total_cmp(&distance(a))))
+            .map(|(i, _)| i);
+        if let Some(i) = best.filter(|i| !out.contains(i)) {
+            out.push(i);
+        }
+    }
+    out.sort_unstable();
+    out
 }
 
 #[cfg(test)]
@@ -451,7 +500,32 @@ mod tests {
     }
 
     #[test]
-    fn peek_hole_keeps_the_top_third_clear() {
-        assert_eq!(peek_hole(r(100., 50., 400., 300.)), (r(100., 50., 400., 100.), r(100., 150., 400., 200.)));
+    fn peek_hole_opens_the_top_fifth_with_a_short_fade() {
+        let target = Below { id: 7, pid: 1, frame: r(100., 50., 400., 500.) };
+        let hole = peek_hole(target, &[]);
+        assert_eq!(hole.open, r(100., 50., 400., 140.));
+        assert_eq!(hole.fade, r(100., 150., 400., 40.));
+        assert!(hole.covers.is_empty());
+    }
+
+    #[test]
+    fn peek_hole_keeps_what_lies_in_front_blurred() {
+        let target = Below { id: 8, pid: 2, frame: r(0., 0., 400., 500.) };
+        let front = Below { id: 7, pid: 1, frame: r(300., 50., 400., 300.) };
+        let away = Below { id: 9, pid: 3, frame: r(900., 0., 100., 100.) };
+        let hole = peek_hole(target, &[front, away]);
+        assert_eq!(hole.covers, vec![r(300., 50., 100., 90.)]);
+    }
+
+    #[test]
+    fn blur_only_the_screens_of_the_picked_windows() {
+        let screens = [r(0., 0., 1440., 900.), r(1440., 0., 1920., 1080.)];
+        assert_eq!(blur_screens(&screens, &[r(1800., 100., 600., 400.)]), vec![1]);
+        // Most of it on the first screen, a little on the second.
+        assert_eq!(blur_screens(&screens, &[r(900., 100., 700., 400.)]), vec![0]);
+        assert_eq!(blur_screens(&screens, &[r(100., 100., 600., 400.), r(1800., 100., 600., 400.)]), vec![0, 1]);
+        // Off every screen: the screen nearest still blurs, never none.
+        assert_eq!(blur_screens(&screens, &[r(-900., 100., 600., 400.)]), vec![0]);
+        assert_eq!(blur_screens(&screens, &[]), Vec::<usize>::new());
     }
 }

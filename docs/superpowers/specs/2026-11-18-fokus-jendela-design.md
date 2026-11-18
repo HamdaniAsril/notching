@@ -66,7 +66,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
 ### 4.4 Mengintip jendela di area blur (pemilik)
 
 - Kursor di atas area blur: jendela yang paling atas di bawah kursor (di antara jendela yang ter-blur) diintip.
-- **Sepertiga atas jendela itu jelas, lalu makin ke bawah makin blur.** (Awalnya setengah atas. Diubah pemilik setelah melihat uji pertama, 18 November 2026.)
+- **Seperlima atas jendela itu jelas, lalu gradasi pendek kembali ke blur.** (Awalnya setengah atas, lalu sepertiga. Diubah pemilik setelah mencoba di app, 18 November 2026: "geser lagi area fokusnya lebih keatas" dan transisinya "lebih tegas".)
   ```
   ░┌──────────┐░
   ░│ Chrome   │░   ← jelas
@@ -75,10 +75,10 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
   ░│░░░░░░░░░░│░   ← blur penuh
   ░└──────────┘░
   ```
-- Gradasinya dimulai di sepertiga tinggi jendela dan menjadi blur penuh di tepi bawahnya. **(pemilik)**
+- Gradasinya mulai di 20% tinggi jendela dan menjadi blur penuh di 28%. Sisanya tetap blur. **(pemilik: lebih ke atas dan lebih tegas; angka pastinya keputusan penulis)**
 - Pindah ke jendela lain langsung mengganti intipan. Kursor keluar dari area blur, ke jendela fokus, atau ke area tanpa jendela (desktop): tidak ada yang diintip.
 - Muncul dan hilangnya intipan memakai transisi singkat, sekitar 120 ms. **(keputusan penulis)**
-- Kalau sebagian jendela yang diintip tertutup jendela lain yang juga ter-blur, bagian yang menutupinya ikut terlihat jelas di area itu, karena yang dibuka adalah lubang di blur, bukan gambar jendelanya. **(keputusan penulis, konsekuensi cara 1)**
+- Kalau sebagian jendela yang diintip tertutup jendela lain yang juga ter-blur, bagian yang menutupinya **tetap blur**. Hanya bagian jendela yang terlihat yang menjadi jelas. **(pemilik, 18 November 2026)**
 - **Klik** jendela yang diintip: fokus pindah ke jendela itu (4.2). **⇧-klik**: jendela itu ditambahkan (4.1).
 - Klik di area blur tanpa jendela di bawahnya (desktop) tidak melakukan apa-apa. **(keputusan penulis)**
 
@@ -90,7 +90,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
 
 ### 4.6 Layar, Space, dan app layar penuh
 
-- **Monitor lain** di-blur seluruhnya. **(keputusan penulis, disebut ke pemilik tanpa keberatan)**
+- **Hanya monitor tempat jendela fokus berada** yang di-blur. Monitor lain tidak terdampak. Dua jendela fokus di dua monitor: kedua monitor itu yang di-blur. Jendela fokus diseret ke monitor lain: blurnya ikut pindah. **(pemilik, 18 November 2026, mengganti keputusan penulis "monitor lain di-blur seluruhnya")**
 - **Menu bar, Dock, menu yang terbuka, notifikasi, dan panel Notching** tetap jelas, karena semuanya ada di level jendela di atas lapisan blur.
 - **Pindah Space:** lapisan ikut ke Space yang baru, dan fokus pindah ke jendela aktif di sana, sama seperti ⌘Tab. **(keputusan penulis)**
 - **App layar penuh:** tidak ada blur, karena di sana tidak ada jendela lain untuk di-blur. **(keputusan penulis)**
@@ -112,7 +112,7 @@ Blurnya hidup dan dikerjakan oleh window server di GPU: video di belakang tetap 
 
 Semua pendengar dilepas saat mode fokus mati.
 
-**Mengintip.** Panel punya tracking area. Selama kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor dari daftar jendela window server (`CGWindowListCopyWindowInfo`, hanya jendela di bawah panel, tanpa jendela Notching sendiri). Bingkai jendela itu lalu dilubangi dari blur dengan mask: transparan di sepertiga atas, gradasi sampai blur penuh di bawah. Daftar jendela dibaca sekali saat kursor masuk ke jendela baru, bukan di setiap gerakan.
+**Mengintip.** Panel punya tracking area. Selama kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor dari daftar jendela window server (`CGWindowListCopyWindowInfo`, hanya jendela di bawah panel, tanpa jendela Notching sendiri). Bingkai jendela itu lalu dilubangi dari blur dengan mask: transparan di seperlima atas, gradasi pendek sampai blur penuh, dengan bagian yang tertutup jendela lain tetap blur. Daftar jendela dibaca sekali saat kursor masuk ke jendela baru, bukan di setiap gerakan.
 
 **Klik di blur.** Panel menerima klik. Klik pada jendela yang diintip mengaktifkan app-nya, menaikkan jendela itu (`ax::set_frontmost`, `ax::raise`), lalu fokus diperbarui seperti 4.2.
 
@@ -141,7 +141,7 @@ Langkah pertama pembangunan adalah uji kecil (spike) untuk tiga hal yang belum p
 
 Kalau nomor 1 atau 2 gagal, pembangunan berhenti dan penulis kembali ke pemilik dengan pilihan cara lain (cara 3, atau cara 2 dengan gambar diam).
 
-Kalau nomor 3 gagal (blur tidak menerima mask lembut), intipan memakai lubang bertepi tegas di sepertiga atas jendela, dan penulis memberi tahu pemilik saat menyerahkan hasil uji. **(keputusan penulis)**
+Kalau nomor 3 gagal (blur tidak menerima mask lembut), intipan memakai lubang bertepi tegas di bagian atas jendela, dan penulis memberi tahu pemilik saat menyerahkan hasil uji. **(keputusan penulis)**
 
 Kalau nomor 4 gagal, pembangunan berhenti di bagian pasangan dan penulis kembali ke pemilik dengan pilihan: pasangan hanya dari app yang sama, atau jendela lain milik app aktif ikut jelas dalam mode pasangan. Fokus satu jendela tetap dikerjakan. **(keputusan penulis)**
 
@@ -165,9 +165,9 @@ Risiko lain yang harus dicek di Mac sungguhan:
 4. Saat fokus di dua jendela, ⌘Tab ke app milik salah satunya tidak memecah pasangan.
 5. ⌘\` ke jendela lama di app yang sama dianggap pindah fokus, bukan jendela baru.
 6. App aktif tanpa jendela, atau jendela fokus ditutup tanpa pengganti: blur dijeda, bukan dimatikan.
-7. Gradasi intipan selesai di tepi bawah (titik mulainya, sepertiga atas, diputuskan pemilik). Transisi 120 ms.
+7. Intipan: jelas 20% teratas, gradasi sampai 28% (arah dari pemilik, angka dari penulis). Transisi 120 ms.
 8. Klik di desktop yang ter-blur tidak melakukan apa-apa.
-9. Monitor lain di-blur seluruhnya. Pindah Space memindah fokus. App layar penuh tanpa blur.
+9. Pindah Space memindah fokus. App layar penuh tanpa blur. (Bagian monitor diganti pemilik: hanya monitor jendela fokus yang di-blur, bagian 4.6.)
 10. Ikon alat tanpa teks di samping notch selama mode fokus menyala.
 11. Setelan Gelapkan: Tidak, Sedikit (bawaan), Banyak.
 12. Mode fokus tidak diingat setelah Notching ditutup.

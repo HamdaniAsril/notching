@@ -25,7 +25,8 @@ use tauri::{AppHandle, Manager};
 use crate::app_core::CoreState;
 use crate::ax::{self, Cf};
 use crate::focus_layer;
-use crate::focus_rules::{peek_target, Below, Event, Focus, Layer, Win, WinId};
+use crate::focus_rules::{blur_screens, peek_hole, peek_target, Below, Event, Focus, Layer, Win, WinId};
+use crate::geometry::Rect;
 use crate::shelf_watch::Watch;
 use crate::status::{self, Activity};
 
@@ -51,8 +52,10 @@ struct Listening {
 
 thread_local! {
     static LISTENING: RefCell<Option<Listening>> = const { RefCell::new(None) };
-    /// The window the peek shows now.
-    static PEEK: RefCell<Option<Below>> = const { RefCell::new(None) };
+    /// The window the peek shows now, and the blurred windows above it.
+    static PEEK: RefCell<Option<(Below, Vec<Rect>)>> = const { RefCell::new(None) };
+    /// The screens blurred now, so a moving window re-orders only when that changes.
+    static BLURRED: RefCell<Vec<usize>> = const { RefCell::new(Vec::new()) };
     /// When the window list was last read for a peek that found nothing.
     static PEEK_READ: RefCell<Option<u64>> = const { RefCell::new(None) };
     static DRAG: RefCell<Watch> = RefCell::new(Watch::default());
@@ -90,6 +93,7 @@ pub fn start(app: &AppHandle) {
 /// ⌃⌥F (`add` false) or ⌃⌥⇧F (`add` true) was pressed. Main thread.
 pub fn pressed(app: &AppHandle, add: bool) {
     if !crate::keyclean_tap::trusted(false) {
+        eprintln!("notching: window focus key pressed without Accessibility");
         no_access(app);
         return;
     }
@@ -151,6 +155,34 @@ fn front_window() -> Option<Win> {
     Some(Win { id: ax::window_id(&window)?, pid })
 }
 
+/// The screens holding the picked windows (owner, 18 Nov: other monitors stay as they are).
+fn screens_for(mtm: MainThreadMarker, picked: &[Win]) -> Vec<usize> {
+    let list = crate::notify::window_list();
+    let frames: Vec<Rect> = picked
+        .iter()
+        .filter_map(|w| {
+            list.iter().find(|b| b.number == w.id).map(|b| b.bounds).or_else(|| window_element(w.pid, w.id).and_then(|e| ax::frame(&e)))
+        })
+        .collect();
+    blur_screens(&focus_layer::screens_cg(mtm), &frames)
+}
+
+/// A picked window moved: when it lands on another screen, the blur goes with it.
+fn moved_window(app: &AppHandle) {
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    let (layer, picked) = {
+        let focus = FOCUS.lock().unwrap();
+        (focus.layer(), focus.picked_wins())
+    };
+    if !matches!(layer, Layer::Shown { .. }) {
+        return;
+    }
+    let now = screens_for(mtm, &picked);
+    if BLURRED.with(|b| *b.borrow() != now) {
+        apply(app, layer);
+    }
+}
+
 /// One of the app's windows by its window server number.
 fn window_element(pid: i32, id: WinId) -> Option<Cf> {
     ax::windows(&ax::app(pid)?).into_iter().find(|w| ax::window_id(w) == Some(id))
@@ -189,7 +221,9 @@ fn apply(app: &AppHandle, layer: Layer) {
                     }
                 }
             }
-            focus_layer::show(mtm, raise[0], dim(app));
+            let only = screens_for(mtm, &pids);
+            focus_layer::show(mtm, raise[0], dim(app), &only);
+            BLURRED.with(|b| *b.borrow_mut() = only);
             if let Err(e) = status::set_icon(app, MODULE_ID, Activity::On) {
                 eprintln!("notching: window focus status: {e}");
             }
@@ -270,6 +304,7 @@ fn rewatch() {
                 if let Some(element) = window_element(pid, w.id) {
                     observer.watch(&element, "AXUIElementDestroyed");
                     observer.watch(&element, "AXWindowMiniaturized");
+                    observer.watch(&element, "AXMoved");
                 }
             }
             listening.apps.push((pid, observer));
@@ -297,6 +332,7 @@ unsafe extern "C" fn on_ax(_observer: *const c_void, element: *const c_void, nam
             let win = Win { id, pid };
             send(app, if name == "AXWindowCreated" { Event::Created(win) } else { Event::Focused(win) });
         }
+        "AXMoved" => moved_window(app),
         _ => gone(app),
     }
 }
@@ -337,7 +373,9 @@ fn moved(x: f64, y: f64) {
     if DRAGGING.with(|d| *d.borrow()) {
         return;
     }
-    if PEEK.with(|p| p.borrow().is_some_and(|b| b.frame.contains(x, y))) {
+    // Still on the visible part of the same window: nothing to redo.
+    let same = PEEK.with(|p| p.borrow().as_ref().is_some_and(|(b, front)| b.frame.contains(x, y) && !front.iter().any(|f| f.contains(x, y))));
+    if same {
         return;
     }
     let was = PEEK.with(|p| p.borrow().is_some());
@@ -349,10 +387,12 @@ fn moved(x: f64, y: f64) {
         }
         PEEK_READ.with(|r| *r.borrow_mut() = Some(now));
     }
-    let target = peek_target(x, y, &below_layer(mtm));
-    PEEK.with(|p| *p.borrow_mut() = target);
-    if target.is_some() || was {
-        focus_layer::set_peek(mtm, target.map(|t| t.frame));
+    let below = below_layer(mtm);
+    let at = below.iter().position(|b| b.frame.contains(x, y));
+    let hole = at.map(|i| peek_hole(below[i], &below[..i]));
+    PEEK.with(|p| *p.borrow_mut() = at.map(|i| (below[i], below[..i].iter().map(|b| b.frame).collect())));
+    if hole.is_some() || was {
+        focus_layer::set_peek(mtm, hole.as_ref());
     }
 }
 
@@ -364,7 +404,8 @@ fn left() {
 
 fn clicked(x: f64, y: f64, shift: bool) {
     let (Some(app), Some(mtm)) = (APP.get(), MainThreadMarker::new()) else { return };
-    let target = PEEK.with(|p| *p.borrow()).filter(|b| b.frame.contains(x, y)).or_else(|| peek_target(x, y, &below_layer(mtm)));
+    // Read afresh: the click lands on the topmost window under it.
+    let target = peek_target(x, y, &below_layer(mtm));
     // The desktop under the blur: nothing (design §4.4).
     let Some(target) = target else { return };
     let win = Win { id: target.id, pid: target.pid };

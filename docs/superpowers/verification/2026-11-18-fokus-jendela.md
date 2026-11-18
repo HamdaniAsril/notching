@@ -12,3 +12,12 @@ Skrip AppKit buang-pakai (`spike.swift`, tidak di-commit): panel transparan beri
 4. **Dua jendela dari dua app (AXRaise): belum diuji.** Proses skrip tidak punya izin Aksesibilitas. Diuji di dalam Notching, yang punya izin itu, pada uji di Mac (rencana Task 9).
 
 Skrip tidak bisa memotret layar (tanpa izin Screen Recording), jadi nomor 2 dan 3 dinilai dari mata pemilik.
+
+## Uji di app (rencana Task 9), putaran 1
+
+Notching Dev (`id.web.notching.dev`, bundle debug dibuka lewat `open`). Versi dev yang dijalankan dari terminal Claude Code tidak bisa diberi izin Aksesibilitas: macOS memeriksa izin app yang menjalankannya. Bundle dengan identitas sendiri memisahkan izin dan setelannya dari Notching yang terpasang.
+
+⌃⌥F berjalan. Catatan pemilik, diterapkan:
+1. Bagian jelas intipan lebih ke atas dan transisinya lebih tegas: jelas 20% teratas, gradasi sampai 28%.
+2. Blur hanya di monitor tempat jendela fokus berada.
+3. Saat mengintip jendela paling belakang, bagian jendela lain yang menutupinya ikut jelas. Diperbaiki: bagian itu tetap blur.
