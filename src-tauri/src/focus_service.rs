@@ -304,6 +304,7 @@ fn front_changed(app: &AppHandle) {
     let Some(mtm) = MainThreadMarker::new() else { return };
     let front = front_window();
     let screen = front.and_then(|w| screen_of(mtm, w)).or_else(|| pointer_screen(mtm));
+    debug!("front app {:?}: window {:?} on screen {screen:?}", active_pid(), front.map(|w| w.id));
     if let Some(screen) = screen {
         send(app, screen, Event::Front(front));
     }
@@ -509,12 +510,10 @@ fn clicked(x: f64, y: f64, shift: bool) {
     // A click moves the focus there, a ⇧-click adds it (owner, 18 Nov).
     send(app, screen, if shift { Event::ShiftClick(win) } else { Event::Click(win) });
     finish(app);
-    if let Some(element) = ax::app(win.pid) {
-        ax::set_frontmost(&element);
-    }
-    if let Some(window) = window_element(win.pid, win.id) {
-        ax::raise(&window);
-    }
+    let frontmost = ax::app(win.pid).map(|element| ax::set_frontmost(&element));
+    let window = window_element(win.pid, win.id);
+    let raised = window.as_ref().map(ax::raise);
+    debug!("click on {} (pid {}, shift {shift}): frontmost {frontmost:?}, window found {}, raised {raised:?}", win.id, win.pid, window.is_some());
 }
 
 // ---- Drags go through ----
