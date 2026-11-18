@@ -246,6 +246,9 @@ pub struct Below {
 pub const PEEK_CLEAR: f64 = 0.2;
 /// …then a short fade back to blur (owner: "lebih tegas").
 pub const PEEK_FADE: f64 = 0.08;
+/// The hole's top corners round like a macOS 27 window's (owner, 18 Nov). Other
+/// apps' corner radii cannot be read, so this is the standard one.
+pub const PEEK_RADIUS: f64 = 26.0;
 /// How long a peek takes to open or close.
 pub const PEEK_FADE_MS: u64 = 120;
 
@@ -263,6 +266,8 @@ pub struct PeekHole {
     pub fade: Rect,
     /// Parts of `open` that other blurred windows cover: they stay blurred (owner, 18 Nov).
     pub covers: Vec<Rect>,
+    /// The corner radius of `open`.
+    pub radius: f64,
 }
 
 /// The overlap of two rects, if any.
@@ -282,6 +287,7 @@ pub fn peek_hole(target: Below, in_front: &[Below]) -> PeekHole {
         open,
         fade: Rect { y: f.y + clear, h: fade, ..f },
         covers: in_front.iter().filter_map(|b| overlap(b.frame, open)).collect(),
+        radius: PEEK_RADIUS.min(open.w / 2.0).min(open.h / 2.0),
     }
 }
 
@@ -506,6 +512,15 @@ mod tests {
         assert_eq!(hole.open, r(100., 50., 400., 140.));
         assert_eq!(hole.fade, r(100., 150., 400., 40.));
         assert!(hole.covers.is_empty());
+    }
+
+    #[test]
+    fn peek_hole_rounds_its_top_corners_like_a_window() {
+        let big = peek_hole(Below { id: 7, pid: 1, frame: r(0., 0., 800., 600.) }, &[]);
+        assert_eq!(big.radius, 26.);
+        // A small window's hole cannot round more than half its height.
+        let small = peek_hole(Below { id: 7, pid: 1, frame: r(0., 0., 300., 100.) }, &[]);
+        assert_eq!(small.radius, 14.);
     }
 
     #[test]

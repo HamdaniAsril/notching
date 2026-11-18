@@ -75,6 +75,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
   ░│░░░░░░░░░░│░   ← blur penuh
   ░└──────────┘░
   ```
+- Sudut atas lubang intipan membulat seperti jendela macOS 27 (radius 26 pt, lebih kecil untuk jendela yang pendek). Radius sudut jendela app lain tidak bisa dibaca, jadi dipakai radius standar. **(pemilik: sudutnya mengikuti jendela; angka keputusan penulis)**
 - Gradasinya mulai di 20% tinggi jendela dan menjadi blur penuh di 28%. Sisanya tetap blur. **(pemilik: lebih ke atas dan lebih tegas; angka pastinya keputusan penulis)**
 - Pindah ke jendela lain langsung mengganti intipan. Kursor keluar dari area blur, ke jendela fokus, atau ke area tanpa jendela (desktop): tidak ada yang diintip.
 - Muncul dan hilangnya intipan memakai transisi singkat, sekitar 120 ms. **(keputusan penulis)**

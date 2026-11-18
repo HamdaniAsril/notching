@@ -21,7 +21,8 @@ use objc2_app_kit::{
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_core_graphics::CGColor;
 use objc2_foundation::{NSArray, NSObject, NSPoint, NSRect, NSSize};
-use objc2_quartz_core::{CAGradientLayer, CALayer, CATransaction};
+use objc2_core_graphics::CGMutablePath;
+use objc2_quartz_core::{kCAFillRuleEvenOdd, CAGradientLayer, CALayer, CAShapeLayer, CATransaction};
 
 use crate::focus_rules::{PeekHole, PEEK_FADE_MS};
 use crate::geometry::{to_cg, Rect};
@@ -282,7 +283,7 @@ pub fn set_peek(_mtm: MainThreadMarker, hole: Option<&PeekHole>) {
                 match here {
                     Some(hole) => {
                         let covers: Vec<Rect> = hole.covers.iter().map(|&c| local(c)).collect();
-                        open_hole(&layer, s.w, s.h, local(hole.open), local(hole.fade), &covers);
+                        open_hole(&layer, s.w, s.h, local(hole.open), local(hole.fade), &covers, hole.radius);
                     }
                     None => close_hole(&layer),
                 }
@@ -300,23 +301,26 @@ fn as_object(c: &CGColor) -> &AnyObject {
 /// The mask: opaque everywhere but `whole`, where the fade part goes from blur at
 /// its bottom to clear at its top and `covers` stay opaque; a cover over the hole
 /// fades out, and stays the last sublayer for close_hole.
-fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, fade: Rect, covers: &[Rect]) {
+fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, fade: Rect, covers: &[Rect], radius: f64) {
     let black = CGColor::new_generic_gray(0.0, 1.0);
     let clear = CGColor::new_generic_gray(0.0, 0.0);
     let mask = CALayer::new();
     mask.setFrame(cg_rect(0.0, 0.0, w, h));
-    let strips = [
-        cg_rect(0.0, 0.0, whole.x, h),
-        cg_rect(whole.max_x(), 0.0, w - whole.max_x(), h),
-        cg_rect(whole.x, 0.0, whole.w, whole.y),
-        cg_rect(whole.x, whole.max_y(), whole.w, h - whole.max_y()),
-    ];
-    for r in strips {
-        let strip = CALayer::new();
-        strip.setFrame(r);
-        strip.setBackgroundColor(Some(&black));
-        mask.addSublayer(&strip);
+    // Everything but the hole, whose corners round like a window's. Its bottom
+    // corners sit under the fade, which is opaque there.
+    let path = CGMutablePath::new();
+    // SAFETY: a fresh path and no transform.
+    unsafe {
+        CGMutablePath::add_rect(Some(&path), std::ptr::null(), cg_rect(0.0, 0.0, w, h));
+        CGMutablePath::add_rounded_rect(Some(&path), std::ptr::null(), cg_rect(whole.x, whole.y, whole.w, whole.h), radius, radius);
     }
+    let outside = CAShapeLayer::new();
+    outside.setFrame(cg_rect(0.0, 0.0, w, h));
+    outside.setPath(Some(&path));
+    // SAFETY: a constant Core Animation defines.
+    outside.setFillRule(unsafe { kCAFillRuleEvenOdd });
+    outside.setFillColor(Some(&black));
+    mask.addSublayer(&outside);
     let gradient = CAGradientLayer::new();
     gradient.setFrame(cg_rect(fade.x, fade.y, fade.w, fade.h));
     // SAFETY: an array of CGColors, as CAGradientLayer takes.
