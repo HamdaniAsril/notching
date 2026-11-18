@@ -21,7 +21,7 @@ Nama "Fokus" saja tidak dipakai karena sudah menjadi nama paket widget (`modules
 
 **Bukan tujuan**
 - Mengatur kekuatan blur dengan bebas. Cara 1 memakai bahan blur macOS yang kekuatannya ditentukan macOS. Kalau blurnya terasa kurang kuat setelah dicoba, cara 3 (blur window server dengan radius bebas) bisa ditambah sebagai pilihan "blur lebih kuat" di pekerjaan berikutnya. **(pemilik)**
-- Memotret layar. Blur ini tidak butuh izin Screen Recording.
+- Memotret layar untuk blur. Blurnya sendiri tidak butuh izin Screen Recording; hanya intip yang butuh (bagian 4.4, diputuskan pemilik 18 November 2026).
 - Fokus lebih dari dua jendela.
 - Mengingat mode fokus setelah Notching ditutup atau Mac dinyalakan ulang. Mode fokus hanya ada di memori. **(keputusan penulis)**
 - Versi Windows.
@@ -63,13 +63,19 @@ App yang sedang difokuskan membuka jendela baru, misalnya dialog Simpan, jendela
 
 Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir dipilih, oleh app yang sama. Jendela lama yang dimunculkan dari belakang blur mengikuti 4.2, bukan 4.3. **(keputusan penulis)**
 
-### 4.4 Klik di area blur (pemilik)
+### 4.4 Klik dan intip di area blur (pemilik, 18 November 2026)
 
-- **Klik** jendela yang ter-blur: fokus pindah ke jendela itu (4.2). **⇧-klik**: jendela itu ditambahkan (4.1).
-- Klik di area blur tanpa jendela di bawahnya (desktop) tidak melakukan apa-apa. **(keputusan penulis)**
-- **Tidak ada intipan.** Menggerakkan kursor di atas area blur tidak memicu apa pun. **(pemilik, 18 November 2026: "matikan saja fitur intipnya")**
+- **Klik biasa** di area blur tidak melakukan apa-apa: area blur adalah pembatas. Pindah fokus lewat ⌘Tab atau ⌃⌥F. **(pemilik: "di area blur buat tidak bisa di klik")**
+- **⇧-klik** jendela yang ter-blur menambahkannya sebagai jendela fokus kedua (4.1). **(pemilik: "aku mau ada shift klik")**
+- **Intip:** kursor di atas jendela yang ter-blur menampilkan **gambar jendela itu, utuh**, di posisinya, di atas lapisan blur. Jendela yang tertutup jendela lain tetap tampil utuh, karena yang tampil adalah gambarnya. Urutan jendela tidak diubah, dan blur tidak dilubangi. **(pemilik memilih cara 1: "kembalikan fitur intip, kali ini buat lebih serius")**
+  - Gambar diambil dengan ScreenCaptureKit, sama seperti Intip jendela (`peek_capture.rs`, `PictureSize::Full`), dan hanya disimpan di memori selama mode fokus menyala.
+  - Sudut gambar mengikuti jendela aslinya, karena ScreenCaptureKit mengembalikan bentuk jendela beserta sudutnya yang transparan.
+  - Gambar muncul dengan pudar singkat (120 ms) dari blur. Dari satu jendela ke jendela lain, gambar lama langsung hilang. Gambar yang sudah pernah diambil tampil seketika saat diintip lagi.
+  - Gambarnya diam: isi jendela tidak bergerak selama diintip.
+  - Tanpa izin Screen Recording, intip tidak muncul. ⇧-klik dan blur tetap jalan.
+- Klik dan ⇧-klik di desktop yang ter-blur tidak melakukan apa-apa.
 
-  Riwayat: intipan sempat dibangun dan diuji pemilik dalam beberapa putaran. Bagian yang jelas mula-mula setengah atas jendela, lalu sepertiga, lalu seperlima dengan gradasi, dan akhirnya jendela utuh dengan sudut membulat. Jendela yang diintip sempat dinaikkan ke atas jendela blur lain, lalu aturan itu dihapus lagi. Kedipnya tetap ada walaupun log menunjukkan pemilihan jendela dan kenaikannya benar. Penyebab sisanya belum ketemu. Kalau intipan mau dicoba lagi, lihat catatan verifikasi nomor 6 sampai 14.
+  Riwayat: intipan sempat dibuat dengan melubangi blur (setengah, sepertiga, seperlima dengan gradasi, lalu jendela utuh dengan sudut membulat, dan sempat menaikkan jendela yang diintip). Hasilnya tetap berkedip walaupun log menunjukkan pemilihan jendelanya benar. Lihat catatan verifikasi nomor 6 sampai 14.
 
 ### 4.5 Mouse di area blur (pemilik, "setuju", 18 November 2026)
 
@@ -101,7 +107,7 @@ Blurnya hidup dan dikerjakan oleh window server di GPU: video di belakang tetap 
 
 Semua pendengar dilepas saat mode fokus mati.
 
-~~**Mengintip.**~~ Dihapus (bagian 4.4). Uraian lama: Panel punya tracking area. Selama kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor dari daftar jendela window server (`CGWindowListCopyWindowInfo`, hanya jendela di bawah panel, tanpa jendela Notching sendiri). Bingkai jendela itu lalu dilubangi dari blur dengan mask: transparan seukuran jendela dengan sudut membulat; bagian yang tertutup jendela blur lain tetap blur. Daftar jendela dibaca sekali saat kursor masuk ke jendela baru, bukan di setiap gerakan.
+**Mengintip (cara baru, bagian 4.4).** Panel punya tracking area. Saat kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor (`windows_below`, `window_at`). Gambar jendela itu diambil di thread lain dan dipasang sebagai lapisan gambar di atas blur dan lapisan gelap, seukuran bingkai jendela. Uraian cara lama, yang sudah tidak dipakai: Panel punya tracking area. Selama kursor bergerak di atasnya, Notching mencari jendela teratas di bawah kursor dari daftar jendela window server (`CGWindowListCopyWindowInfo`, hanya jendela di bawah panel, tanpa jendela Notching sendiri). Bingkai jendela itu lalu dilubangi dari blur dengan mask: transparan seukuran jendela dengan sudut membulat; bagian yang tertutup jendela blur lain tetap blur. Daftar jendela dibaca sekali saat kursor masuk ke jendela baru, bukan di setiap gerakan.
 
 **Klik di blur.** Panel menerima klik. Klik pada jendela teratas di bawah kursor mengaktifkan app-nya, menaikkan jendela itu (`ax::set_frontmost`, `ax::raise`), lalu fokus diperbarui seperti 4.2.
 
@@ -118,7 +124,7 @@ Pengaturan → Pintasan memuat ⌃⌥F dan ⌃⌥⇧F.
 
 ## 7. Izin
 
-Hanya Accessibility, sama dengan Atur jendela dan Intip jendela. Kalau izin belum ada saat shortcut ditekan, notch menampilkan pemberitahuan izin seperti alat lain, paling sering sekali per menit. Mode fokus tidak menyala tanpa izin.
+Accessibility, untuk semua fitur. Screen Recording, hanya untuk intip (bagian 4.4), sama seperti Intip jendela. Tanpa Screen Recording, intip tidak muncul. Kalau izin belum ada saat shortcut ditekan, notch menampilkan pemberitahuan izin seperti alat lain, paling sering sekali per menit. Mode fokus tidak menyala tanpa izin.
 
 ## 8. Risiko dan uji pertama
 

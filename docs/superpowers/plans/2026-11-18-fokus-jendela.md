@@ -464,3 +464,15 @@ pub fn own_windows(mtm: MainThreadMarker) -> Vec<u32>;
   - Bagian Shortcuts ditambah ⌃⌥F dan ⌃⌥⇧F.
 - [ ] **Step 5:** `npm test` dan `cd src-tauri && cargo test --lib`. Expected: lulus.
 - [ ] **Step 6:** Commit: `docs(window-focus): verification note, What's new and README`.
+
+
+---
+
+## Tambahan 18 November 2026: intip lewat gambar jendela
+
+Setelah uji di app, pemilik memilih intip dengan gambar jendela (desain bagian 4.4), klik biasa di blur tidak melakukan apa-apa, dan ⇧-klik tetap menambah. Dikerjakan langsung di sesi uji, dengan TDD untuk aturan murni:
+
+1. **Aturan:** `Event::Click` dihapus (klik biasa tidak memindah fokus). Test yang memakai klik diganti dengan ⌘Tab (`Front`) dan ⌃⌥⇧F (`Add`).
+2. **Paket dan Pengaturan:** `permissions` menjadi `["accessibility", "screen-recording"]`. Lipatan Fokus jendela di Pintasan mendapat baris Perekaman Layar (`screenRow`), dengan petunjuk "Tanpa izin ini, intip tidak muncul." / "Without it, there is no peek."
+3. **Lapisan:** setiap panel mendapat lapisan gambar di atas blur dan lapisan gelap (`show_picture`, `hide_picture`). Tracking area kembali (`moved`, `left`). `mouseDown` hanya meneruskan ⇧-klik.
+4. **Service:** jendela teratas di bawah kursor diambil gambarnya di thread lain (`peek_capture::picture(id, false, PictureSize::Full)`). Ada nomor urut supaya hasil yang terlambat dibuang, dan cache di memori yang dikosongkan saat mode fokus mati. Tanpa Screen Recording, tidak ada gambar.
