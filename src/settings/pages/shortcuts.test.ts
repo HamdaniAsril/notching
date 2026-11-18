@@ -243,3 +243,35 @@ test('other keys refuse the switcher key while it is on', async () => {
   await settle();
   expect(hint(root, 'shortcuts.awake')).toBe('Dipakai Intip jendela');
 });
+
+const WITH_FOCUS: ModuleState = {
+  ...STATE,
+  modules: [...STATE.modules, moduleInfo('window-focus', { name: 'Fokus jendela', entry: null, card: null, tool: true, permissions: ['accessibility'], category: 'window' })],
+};
+
+test('Fokus jendela has its two keys among the app keys', async () => {
+  const { root } = await onShortcuts(WITH_FOCUS);
+  expect(cap(root, 'shortcuts.focus').textContent).toBe('⌃⌥F');
+  expect(cap(root, 'shortcuts.focusAdd').textContent).toBe('⌃⌥⇧F');
+  expect(root.querySelector('[data-row="shortcuts.focus"] .label')!.textContent).toBe('Nyalakan atau matikan Fokus jendela');
+  expect(root.querySelector('[data-row="shortcuts.focusAdd"] .label')!.textContent).toBe('Tambah jendela ke Fokus jendela');
+});
+
+test('Fokus jendela folds open with its permission and Gelapkan', async () => {
+  const { root, bridge } = await onShortcuts(WITH_FOCUS);
+  cap(root, 'module.window-focus').click();
+  await settle();
+  const body = cap(root, 'module.window-focus').nextElementSibling as HTMLElement;
+  expect([...body.querySelectorAll('[data-row]')].map(e => (e as HTMLElement).dataset.row)).toEqual(['tool.window-focus.access', 'focus.dim']);
+  expect(body.querySelector('[data-row="focus.dim"] .label')!.textContent).toBe('Gelapkan');
+  expect(body.querySelector('[data-key="focus.dim.little"]')!.classList.contains('on')).toBe(true);
+  (body.querySelector('[data-key="focus.dim.much"]') as HTMLElement).click();
+  expect(bridge.setFocusSettings).toHaveBeenCalledWith({ dim: 'much' });
+});
+
+test('Gelapkan in English', async () => {
+  const { root } = await onShortcuts({ ...WITH_FOCUS, lang: 'en' });
+  cap(root, 'module.window-focus').click();
+  await settle();
+  expect(root.querySelector('[data-row="focus.dim"] .label')!.textContent).toBe('Darken');
+});

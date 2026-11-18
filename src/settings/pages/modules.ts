@@ -1,7 +1,7 @@
 import type { ShotKeys } from '../../bridge';
 import { fill, hostStrings, systemNames } from '../../i18n';
 import { formatBytes } from '../../kit/format';
-import { isModule, isTool, MODULE_CATEGORIES, type ModuleCategory, type ModuleInfo, type PeekSettings } from '../../modules/types';
+import { isModule, isTool, MODULE_CATEGORIES, type ModuleCategory, type FocusSettings, type ModuleInfo, type PeekSettings } from '../../modules/types';
 import { DEFAULT_LABELS } from '../../shot/keys';
 import { button, choice, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
@@ -330,6 +330,25 @@ function switcherRow(ctx: PageContext): HTMLElement {
   return box;
 }
 
+// Fokus jendela (design 18 Nov §6): its permission and how dark the blur gets.
+function focusRows(ctx: PageContext): HTMLElement[] {
+  const s = ctx.strings.focus;
+  const m = ctx.state.modules.find(x => x.id === 'window-focus')!;
+  const f = ctx.state.focus;
+  return [
+    accessRow(ctx, m),
+    row({ key: 'focus.dim', label: s.dim, hint: s.dimHint,
+      control: choice<FocusSettings['dim']>('focus.dim', [
+        { value: 'none', label: s.dimNone }, { value: 'little', label: s.dimLittle }, { value: 'much', label: s.dimMuch },
+      ], f.dim, v => ctx.save('focus.dim', ctx.bridge.setFocusSettings({ ...f, dim: v }))) }),
+  ];
+}
+
+// Fokus jendela's own page, reached another way: the same rows in one card.
+export function focusSettingsBox(ctx: PageContext): HTMLElement {
+  return group(...focusRows(ctx));
+}
+
 // Intip jendela's own page, reached another way: the same rows in one card.
 export function peekSettingsBox(ctx: PageContext): HTMLElement {
   return group(...peekRows(ctx));
@@ -393,6 +412,8 @@ export function toolFold(ctx: PageContext, m: ModuleInfo): HTMLElement[] {
   head.classList.toggle('open', !body.hidden);
   if (m.id === 'window-peek') {
     body.append(...peekRows(ctx));
+  } else if (m.id === 'window-focus') {
+    body.append(...focusRows(ctx));
   } else {
     const keys = m.id === 'window-keys'
       ? windowKeysBox(ctx, true)
@@ -541,6 +562,7 @@ export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> 
   'window-keys': windowSettings,
   shelf: shelfSettings,
   'window-peek': peekSettingsBox,
+  'window-focus': focusSettingsBox,
 };
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never

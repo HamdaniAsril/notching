@@ -354,8 +354,15 @@
       "shortcut": "Dipakai pintasan Mac",
       "other": "Dipakai app lain",
       "open": "Buka Pengaturan Sistem",
-      "app": "Dipakai pintasan Keep awake atau Shelf",
+      "app": "Dipakai pintasan Keep awake, Shelf, atau Fokus jendela",
       "peek": "Dipakai Intip jendela"
+    },
+    "focus": {
+      "dim": "Gelapkan",
+      "dimHint": "Lapisan gelap tipis di atas blur.",
+      "dimNone": "Tidak",
+      "dimLittle": "Sedikit",
+      "dimMuch": "Banyak"
     },
     "peek": {
       "switcher": "Pengalih jendela",
@@ -417,14 +424,14 @@
         "bottomRight": "Kanan bawah",
         "fill": "Penuhi layar"
       },
-      "app": "Dipakai pintasan Keep awake atau Shelf",
+      "app": "Dipakai pintasan Keep awake, Shelf, atau Fokus jendela",
       "peek": "Dipakai Intip jendela"
     },
     "permissions": {
       "sub": "Belum ada modul yang butuh izin sistem.",
       "note": "Kalau nanti ada, di sini kamu lihat izin apa, untuk apa, dan modul mana yang memakainya.",
       "need": "Izin yang dibutuhkan modul.",
-      "accessibilityHint": "Untuk mengunci keyboard, memotong file, mengatur jendela, dan mengintip jendela.",
+      "accessibilityHint": "Untuk mengunci keyboard, memotong file, mengatur jendela, mengintip jendela, dan memfokuskan jendela.",
       "screenRecordingHint": "Untuk mengambil gambar layar dan gambar jendela.",
       "granted": "Diizinkan",
       "missing": "Belum diizinkan",
@@ -547,6 +554,7 @@
       "seconds": "lama durasi detik tampil",
       "channels": "notifikasi suara bunyi reminder sholat",
       "pages": "halaman widget pil urutan beranda",
+      "focus": "fokus jendela blur buram konsentrasi",
       "shortcuts": "pintasan tombol shortcut keyboard keep awake shelf titipan screenshot potong atur jendela",
       "theme": "mode tampilan tema terang gelap sistem light dark appearance",
       "uninstall": "copot hapus uninstall izin lepas cabut permission reset trash sampah",
@@ -558,6 +566,8 @@
       "apps": "Modul",
       "awake": "Nyalakan atau matikan Keep awake",
       "shelf": "Buka Shelf",
+      "focus": "Nyalakan atau matikan Fokus jendela",
+      "focusAdd": "Tambah jendela ke Fokus jendela",
       "screenshot": "Screenshot",
       "tools": "Alat latar",
       "recording": "Tekan tombol…",
@@ -569,7 +579,7 @@
       "peek": "Dipakai Intip jendela",
       "shortcut": "Dipakai pintasan Mac",
       "other": "Dipakai app lain",
-      "reset": "Kembalikan ke ⌃⌥K dan ⌃⌥V",
+      "reset": "Kembalikan ke tombol bawaan",
       "awakeNote": "Keep awake menyala tanpa batas waktu sampai tombolnya ditekan lagi."
     },
     "uninstall": {

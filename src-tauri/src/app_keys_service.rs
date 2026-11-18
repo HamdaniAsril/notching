@@ -63,6 +63,8 @@ fn pressed(app: &AppHandle, action: Action) {
                 }
             }
         }
+        Action::Focus => crate::focus_service::pressed(app, false),
+        Action::FocusAdd => crate::focus_service::pressed(app, true),
         Action::Shelf => {
             let Some(mtm) = MainThreadMarker::new() else { return };
             let label = crate::shot_service::cursor_label(app, mtm);

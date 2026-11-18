@@ -111,3 +111,8 @@ test("the switcher's key is found by 'pengalih'", () => {
   const peek = moduleInfo('window-peek', { name: 'Intip jendela', tool: true, entry: null, card: null });
   expect(search(idx([...mods, peek]), 'pengalih').some(e => e.key === 'peek.switcher')).toBe(true);
 });
+
+test('the blur of Fokus jendela is found on Pintasan', () => {
+  expect(search(idx(), 'blur')[0].key).toBe('shortcuts.focus');
+  expect(search(idx(mods, 'en'), 'blur')[0].key).toBe('shortcuts.focus');
+});

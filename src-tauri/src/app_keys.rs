@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::shot_keys::{Combo, CONTROL, OPTION};
+use crate::shot_keys::{Combo, CONTROL, OPTION, SHIFT};
 
 /// What an app key does, and the module it belongs to.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -11,16 +11,21 @@ use crate::shot_keys::{Combo, CONTROL, OPTION};
 pub enum Action {
     Awake,
     Shelf,
+    /// Fokus jendela on, moved to this window, or off (design 18 Nov §4.1).
+    Focus,
+    /// A second window into Fokus jendela.
+    FocusAdd,
 }
 
 impl Action {
-    pub const ALL: [Action; 2] = [Action::Awake, Action::Shelf];
+    pub const ALL: [Action; 4] = [Action::Awake, Action::Shelf, Action::Focus, Action::FocusAdd];
 
     /// The module that must be on for the key to work.
     pub fn module(self) -> &'static str {
         match self {
             Action::Awake => "keep-awake",
             Action::Shelf => "shelf",
+            Action::Focus | Action::FocusAdd => crate::focus_service::MODULE_ID,
         }
     }
 
@@ -40,6 +45,8 @@ impl Action {
 pub struct AppKeys {
     pub awake: Combo,
     pub shelf: Combo,
+    pub focus: Combo,
+    pub focus_add: Combo,
 }
 
 impl Default for AppKeys {
@@ -47,6 +54,8 @@ impl Default for AppKeys {
         AppKeys {
             awake: Combo { code: 0x28, mods: CONTROL | OPTION }, // ⌃⌥K
             shelf: Combo { code: 0x09, mods: CONTROL | OPTION }, // ⌃⌥V
+            focus: Combo { code: 0x03, mods: CONTROL | OPTION }, // ⌃⌥F
+            focus_add: Combo { code: 0x03, mods: CONTROL | OPTION | SHIFT }, // ⌃⌥⇧F
         }
     }
 }
@@ -56,6 +65,8 @@ impl AppKeys {
         match action {
             Action::Awake => &mut self.awake,
             Action::Shelf => &mut self.shelf,
+            Action::Focus => &mut self.focus,
+            Action::FocusAdd => &mut self.focus_add,
         }
     }
 
@@ -106,13 +117,24 @@ pub fn set_key(keys: AppKeys, action: Action, combo: Option<Combo>, shot: bool, 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shot_keys::{label, CMD, SHIFT};
+    use crate::shot_keys::{label, CMD};
 
     #[test]
     fn defaults_are_control_option_k_and_v() {
         let k = AppKeys::default();
         assert_eq!(label(k.awake), "⌃⌥K");
         assert_eq!(label(k.shelf), "⌃⌥V");
+        assert_eq!(label(k.focus), "⌃⌥F");
+        assert_eq!(label(k.focus_add), "⌃⌥⇧F");
+    }
+
+    #[test]
+    fn focus_and_focus_add_are_different_keys() {
+        let keys = AppKeys::default();
+        assert_eq!(set_key(keys, Action::FocusAdd, Some(keys.focus), false, false), Err(AppKeyError::Duplicate { action: Action::Focus }));
+        assert_eq!(Action::Focus.module(), "window-focus");
+        assert_eq!(Action::FocusAdd.module(), "window-focus");
+        assert_eq!(serde_json::to_value(Action::FocusAdd).unwrap(), serde_json::json!("focusAdd"));
     }
 
     #[test]
@@ -121,7 +143,7 @@ mod tests {
             assert_eq!(Action::from_id(a.id()), Some(a));
         }
         assert_eq!(Action::from_id(0), None);
-        assert_eq!(Action::from_id(3), None);
+        assert_eq!(Action::from_id(5), None);
     }
 
     #[test]

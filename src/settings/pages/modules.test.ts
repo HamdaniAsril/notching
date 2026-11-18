@@ -511,7 +511,7 @@ test('Atur jendela: a refused key keeps recording and says why', async () => {
   bridge.windowSetKey.mockRejectedValueOnce({ kind: 'app' });
   press({ key: 'k', code: 'KeyK', ctrlKey: true, altKey: true });
   await settle();
-  expect(winRowHint(root, 'top')).toBe('Dipakai pintasan Keep awake atau Shelf');
+  expect(winRowHint(root, 'top')).toBe('Dipakai pintasan Keep awake, Shelf, atau Fokus jendela');
   bridge.windowSetKey.mockRejectedValueOnce({ kind: 'invalid' });
   press({ key: 'q', code: 'KeyQ' });
   await settle();

@@ -5,5 +5,8 @@ use tauri::AppHandle;
 
 pub const MODULE_ID: &str = "window-focus";
 
+/// ⌃⌥F (`add` false) or ⌃⌥⇧F (`add` true) was pressed.
+pub fn pressed(_app: &AppHandle, _add: bool) {}
+
 /// Brings the blur in line with the tool and its settings.
 pub fn sync(_app: &AppHandle) {}

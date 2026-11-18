@@ -20,8 +20,9 @@ export function windowKeys(over: Partial<Record<WindowCell, WindowKey['state']>>
 
 // Keep awake's and Shelf's keys, both reaching Notching unless named otherwise.
 export function appKeys(over: Partial<Record<AppAction, AppKey['state']>> = {}, labels: Partial<Record<AppAction, string>> = {}): AppKey[] {
-  return (['awake', 'shelf'] as const).map(action =>
-    ({ action, label: labels[action] ?? (action === 'awake' ? '⌃⌥K' : '⌃⌥V'), state: over[action] ?? 'ok' }));
+  const defaults: Record<AppAction, string> = { awake: '⌃⌥K', shelf: '⌃⌥V', focus: '⌃⌥F', focusAdd: '⌃⌥⇧F' };
+  return (['awake', 'shelf', 'focus', 'focusAdd'] as const).map(action =>
+    ({ action, label: labels[action] ?? defaults[action], state: over[action] ?? 'ok' }));
 }
 
 // Up to date, never checked, installable.

@@ -191,7 +191,7 @@ test('two modules that need the same permission share its row', async () => {
   const { root, app } = await mountForTest({ ...TEST_STATE, modules: [...TEST_STATE.modules, CLEAN, second] }, TEST_INFO);
   app.go({ page: 'permissions' });
   expect(root.querySelectorAll('[data-row="permission.accessibility"]')).toHaveLength(1);
-  expect(row(root, 'permission.accessibility')!.querySelector('.hint')!.textContent).toBe('Keyboard Cleaning Mode, Kunci Lain · Untuk mengunci keyboard, memotong file, mengatur jendela, dan mengintip jendela.');
+  expect(row(root, 'permission.accessibility')!.querySelector('.hint')!.textContent).toBe('Keyboard Cleaning Mode, Kunci Lain · Untuk mengunci keyboard, memotong file, mengatur jendela, mengintip jendela, dan memfokuskan jendela.');
 });
 
 test('on macOS 27 each row has System Settings\' new name', async () => {

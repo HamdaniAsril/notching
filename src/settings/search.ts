@@ -48,6 +48,8 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
     shortcuts: [
       ['shortcuts.awake', s.shortcuts.awake, k.shortcuts],
       ['shortcuts.shelf', s.shortcuts.shelf, k.shortcuts],
+      ['shortcuts.focus', s.shortcuts.focus, `${k.shortcuts} ${k.focus}`],
+      ['shortcuts.focusAdd', s.shortcuts.focusAdd, `${k.shortcuts} ${k.focus}`],
     ],
     permissions: [],
     uninstall: [

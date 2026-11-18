@@ -39,10 +39,13 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
   const updateSubs = new Set<(u: UpdateInfo) => void>();
   const setUpdate = (next: UpdateInfo) => { update = next; updateSubs.forEach(cb => cb(update)); };
   // A key is off while its module is.
-  const browserAppKeys = (): AppKey[] => (['awake', 'shelf'] as const).map(action => ({
+  const appDefaults: Record<AppAction, [string, string]> = {
+    awake: ['⌃⌥K', 'keep-awake'], shelf: ['⌃⌥V', 'shelf'], focus: ['⌃⌥F', 'window-focus'], focusAdd: ['⌃⌥⇧F', 'window-focus'],
+  };
+  const browserAppKeys = (): AppKey[] => (['awake', 'shelf', 'focus', 'focusAdd'] as const).map(action => ({
     action,
-    label: appLabels[action] ?? (action === 'awake' ? '⌃⌥K' : '⌃⌥V'),
-    state: state.modules.find(m => m.id === (action === 'awake' ? 'keep-awake' : 'shelf'))?.enabled === false ? 'off' as const : 'ok' as const,
+    label: appLabels[action] ?? appDefaults[action][0],
+    state: state.modules.find(m => m.id === appDefaults[action][1])?.enabled === false ? 'off' as const : 'ok' as const,
   }));
   const browserKeys = (k: KeyState): ShotKeys => ({ screen: k, pick: k, labels, custom: labels.screen !== '⌘⇧3' || labels.pick !== '⌘⇧4' });
   let info: SettingsInfo = {

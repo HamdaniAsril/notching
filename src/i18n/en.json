@@ -354,8 +354,15 @@
       "shortcut": "Taken by a Mac shortcut",
       "other": "Taken by another app",
       "open": "Open System Settings",
-      "app": "Used by the Keep awake or Shelf shortcut",
+      "app": "Used by the Keep awake, Shelf or Window focus shortcut",
       "peek": "Used by Window peek"
+    },
+    "focus": {
+      "dim": "Darken",
+      "dimHint": "A thin dark layer over the blur.",
+      "dimNone": "None",
+      "dimLittle": "A little",
+      "dimMuch": "A lot"
     },
     "peek": {
       "switcher": "Window switcher",
@@ -417,14 +424,14 @@
         "bottomRight": "Bottom right",
         "fill": "Fill screen"
       },
-      "app": "Used by the Keep awake or Shelf shortcut",
+      "app": "Used by the Keep awake, Shelf or Window focus shortcut",
       "peek": "Used by Window peek"
     },
     "permissions": {
       "sub": "No module needs a system permission yet.",
       "note": "When one does, you'll see here which permission, what it's for and which module uses it.",
       "need": "Permissions your modules need.",
-      "accessibilityHint": "To lock the keyboard, cut files, arrange windows and peek at windows.",
+      "accessibilityHint": "To lock the keyboard, cut files, arrange windows, peek at windows and focus on a window.",
       "screenRecordingHint": "To capture the screen and pictures of windows.",
       "granted": "Allowed",
       "missing": "Not allowed yet",
@@ -547,6 +554,7 @@
       "seconds": "duration seconds time",
       "channels": "notification sound reminder prayer",
       "pages": "pages widgets pill order home",
+      "focus": "window focus blur concentrate",
       "shortcuts": "shortcuts keys keyboard hotkey keep awake shelf screenshot cut files arrange windows",
       "theme": "appearance theme light dark system mode tampilan",
       "uninstall": "uninstall remove delete permissions release reset revoke trash copot",
@@ -558,6 +566,8 @@
       "apps": "Modules",
       "awake": "Turn Keep awake on or off",
       "shelf": "Open Shelf",
+      "focus": "Turn Window focus on or off",
+      "focusAdd": "Add a window to Window focus",
       "screenshot": "Screenshot",
       "tools": "Background tools",
       "recording": "Press keys…",
@@ -569,7 +579,7 @@
       "peek": "Used by Window peek",
       "shortcut": "Used by a Mac shortcut",
       "other": "Used by another app",
-      "reset": "Back to ⌃⌥K and ⌃⌥V",
+      "reset": "Back to the default keys",
       "awakeNote": "Keep awake stays on with no time limit until you press its key again."
     },
     "uninstall": {

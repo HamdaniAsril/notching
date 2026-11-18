@@ -5,16 +5,16 @@ import type { AppAction, AppKey, AppKeyError, PageContext, PageRender } from '..
 import { recorder, redraw, screenshotKeys, toolFold } from './modules';
 
 // The keys until changed.
-const DEFAULT_LABELS: Record<AppAction, string> = { awake: '⌃⌥K', shelf: '⌃⌥V' };
-const MODULE_OF: Record<AppAction, string> = { awake: 'keep-awake', shelf: 'shelf' };
+const DEFAULT_LABELS: Record<AppAction, string> = { awake: '⌃⌥K', shelf: '⌃⌥V', focus: '⌃⌥F', focusAdd: '⌃⌥⇧F' };
+const MODULE_OF: Record<AppAction, string> = { awake: 'keep-awake', shelf: 'shelf', focus: 'window-focus', focusAdd: 'window-focus' };
 // Its module's name when the module is not even installed.
-const MODULE_NAME: Record<AppAction, string> = { awake: 'Keep awake', shelf: 'Shelf' };
+const MODULE_NAME: Record<AppAction, string> = { awake: 'Keep awake', shelf: 'Shelf', focus: 'Window focus', focusAdd: 'Window focus' };
 
 // Keep awake's and Shelf's keys (owner, 4 Nov): each recorded by clicking it and
 // pressing new ones, as Screenshot's are. A key whose module is off says so.
 function appKeys(ctx: PageContext): HTMLElement {
   const s = ctx.strings.shortcuts;
-  const names: Record<AppAction, string> = { awake: s.awake, shelf: s.shelf };
+  const names: Record<AppAction, string> = { awake: s.awake, shelf: s.shelf, focus: s.focus, focusAdd: s.focusAdd };
   const box = el('div', 'app-keys');
   let keys: AppKey[] | null = null;
   let gone = false;

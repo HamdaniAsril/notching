@@ -65,7 +65,7 @@ export type WindowKeyError = { kind: 'invalid' } | { kind: 'duplicate'; cell: Wi
 
 // Keep awake's and Shelf's keys on the Pintasan page (AppKeyDto in
 // src-tauri/src/app_keys_service.rs).
-export type AppAction = 'awake' | 'shelf';
+export type AppAction = 'awake' | 'shelf' | 'focus' | 'focusAdd';
 export interface AppKey { action: AppAction; label: string; state: 'ok' | 'off' | 'other' | 'shortcut' | 'mac' }
 // Why a recorded key was refused (AppKeyError in src-tauri/src/app_keys.rs).
 export type AppKeyError = { kind: 'invalid' } | { kind: 'duplicate'; action: AppAction } | { kind: 'shot' } | { kind: 'window' } | { kind: 'peek' };
