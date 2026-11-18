@@ -79,6 +79,8 @@ mod shelf_watch;
 mod peek_service;
 mod focus_service;
 #[cfg(target_os = "macos")]
+mod focus_layer;
+#[cfg(target_os = "macos")]
 mod peek_windows;
 #[cfg(target_os = "macos")]
 mod peek_capture;
