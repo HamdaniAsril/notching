@@ -105,9 +105,9 @@ fn dim(app: &AppHandle) -> f64 {
     app.state::<CoreState>().0.lock().unwrap().focus_settings().dim.alpha()
 }
 
-/// A peek shows only the window's top, fading out (Settings).
-fn peek_top() -> bool {
-    APP.get().is_some_and(|app| app.state::<CoreState>().0.lock().unwrap().focus_settings().peek == PeekShape::Top)
+/// What a peek shows (Settings).
+fn peek_shape() -> PeekShape {
+    APP.get().map_or(PeekShape::Whole, |app| app.state::<CoreState>().0.lock().unwrap().focus_settings().peek)
 }
 
 /// At launch: the panels' hooks.
@@ -511,7 +511,7 @@ fn moved(x: f64, y: f64) {
                 return;
             }
             let Some(mtm) = MainThreadMarker::new() else { return };
-            focus_layer::show_picture(mtm, target.frame, &png, peek_top(), true);
+            focus_layer::show_picture(mtm, target.frame, &png, peek_shape(), true);
             PEEK.with(|p| *p.borrow_mut() = Some((target, true)));
         });
     });

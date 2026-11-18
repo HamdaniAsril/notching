@@ -363,9 +363,8 @@ pub struct Below {
 
 /// A peek waits for the pointer to rest on a window this long (owner, 18 Nov)…
 pub const PEEK_DELAY: std::time::Duration = std::time::Duration::from_millis(500);
-/// …then comes in slowly ("perlahan")…
-pub const PEEK_IN_MS: u64 = 400;
-/// …and goes quickly, so the blur is back at once.
+/// …then opens slowly from the window's top down (PEEK_REVEAL_MS), and goes
+/// quickly, so the blur is back at once.
 pub const PEEK_OUT_MS: u64 = 120;
 /// A top peek: the top fifth of the window shows whole…
 pub const PEEK_CLEAR: f64 = 0.2;
@@ -386,6 +385,45 @@ pub fn top_peek_stops() -> Vec<(f64, f64)> {
     }));
     stops.push((1.0, 1.0));
     stops
+}
+
+/// How long a peek takes to open from the window's top down (owner, 18 Nov).
+pub const PEEK_REVEAL_MS: u64 = 500;
+
+/// A peek's mask and how it slides in: it starts `travel` above its place, where
+/// nothing shows, and comes down, so the blur clears from the window's top
+/// down to the peek's edge (owner, 18 Nov).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Reveal {
+    /// How far the mask reaches below the picture, as a share of its height.
+    pub below: f64,
+    /// The mask's stops, bottom (0) to top (1): (place, how much shows).
+    pub stops: Vec<(f64, f64)>,
+}
+
+impl Reveal {
+    /// How far the mask travels for a picture `h` points tall.
+    pub fn travel(&self, h: f64) -> f64 {
+        h * (1.0 + self.below)
+    }
+}
+
+pub fn reveal(shape: PeekShape) -> Reveal {
+    match shape {
+        PeekShape::Top => Reveal { below: 0.0, stops: top_peek_stops() },
+        PeekShape::Whole => {
+            // A soft edge as tall as the top peek's fade, below the picture.
+            let edge = PEEK_FADE / (1.0 + PEEK_FADE);
+            let mut stops: Vec<(f64, f64)> = (0..FADE_STOPS)
+                .map(|i| {
+                    let t = i as f64 / (FADE_STOPS - 1) as f64;
+                    (t * edge, t * t * (3.0 - 2.0 * t))
+                })
+                .collect();
+            stops.push((1.0, 1.0));
+            Reveal { below: PEEK_FADE, stops }
+        }
+    }
 }
 
 /// After a click on the blur sends the focus to a window, news of any other
@@ -769,9 +807,8 @@ mod tests {
     #[test]
     fn a_peek_waits_half_a_second_then_comes_in_slowly() {
         assert_eq!(PEEK_DELAY, std::time::Duration::from_millis(500));
-        assert_eq!(PEEK_IN_MS, 400);
         // It goes faster than it comes, so the blur is back at once.
-        assert!(PEEK_OUT_MS < PEEK_IN_MS);
+        assert!(PEEK_OUT_MS < PEEK_REVEAL_MS);
     }
 
     #[test]
@@ -783,5 +820,29 @@ mod tests {
         assert!(!ignored_while_switching(61, 100, Some(61)));
         // After the switch has had its time, everything counts again.
         assert!(!ignored_while_switching(61, SWITCH_GRACE_MS, Some(300)));
+    }
+
+    #[test]
+    fn a_top_peek_opens_from_the_window_top_down_to_its_fade() {
+        let r = reveal(PeekShape::Top);
+        // The mask is the picture's own size, the top peek's stops.
+        assert_eq!(r.below, 0.0);
+        assert_eq!(r.stops, top_peek_stops());
+        // It starts a whole mask height above, where nothing shows.
+        assert_eq!(r.travel(500.0), 500.0);
+    }
+
+    #[test]
+    fn a_whole_peek_opens_from_the_window_top_down_past_its_bottom() {
+        let r = reveal(PeekShape::Whole);
+        // The mask reaches below the picture by the fade, so the soft edge ends
+        // past the bottom and all of the window shows.
+        assert_eq!(r.below, PEEK_FADE);
+        assert_eq!(r.stops.first(), Some(&(0.0, 0.0)));
+        assert_eq!(r.stops.last(), Some(&(1.0, 1.0)));
+        let edge = PEEK_FADE / (1.0 + PEEK_FADE);
+        assert!(r.stops.iter().all(|&(at, shows)| at >= edge - 1e-9 && shows == 1.0 || at <= edge + 1e-9));
+        assert!((r.travel(500.0) - 500.0 * (1.0 + PEEK_FADE)).abs() < 1e-9);
+        assert_eq!(PEEK_REVEAL_MS, 500);
     }
 }

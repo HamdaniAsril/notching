@@ -21,9 +21,9 @@ use objc2_app_kit::{
 use objc2_core_graphics::CGColor;
 use objc2_foundation::{NSArray, NSData, NSNumber, NSObject, NSPoint, NSRect, NSSize};
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
-use objc2_quartz_core::{CAGradientLayer, CATransaction};
+use objc2_quartz_core::{kCAMediaTimingFunctionEaseOut, CAGradientLayer, CAMediaTimingFunction, CATransaction};
 
-use crate::focus_rules::{top_peek_stops, PEEK_IN_MS, PEEK_OUT_MS};
+use crate::focus_rules::{reveal, PeekShape, PEEK_OUT_MS, PEEK_REVEAL_MS};
 use crate::geometry::{to_cg, Rect};
 use crate::screens::current_screens;
 
@@ -237,29 +237,29 @@ fn as_object(c: &CGColor) -> &AnyObject {
     unsafe { &*(c as *const CGColor as *const AnyObject) }
 }
 
-/// The mask of a top peek, `w` × `h` points: the picture shows at the top and
-/// fades out by the middle (focus_rules::top_peek_stops). Only the picture is
+/// A peek's mask for a picture `w` × `h` points (focus_rules::reveal), at its
+/// place, or `raised` above it where nothing shows yet. Only the picture is
 /// masked, never the blur.
-fn top_mask(w: f64, h: f64) -> objc2::rc::Retained<CAGradientLayer> {
-    let stops = top_peek_stops();
+fn reveal_mask(shape: PeekShape, w: f64, h: f64, raised: f64) -> objc2::rc::Retained<CAGradientLayer> {
+    let r = reveal(shape);
     let mask = CAGradientLayer::new();
-    mask.setFrame(CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(w, h)));
-    let colors: Vec<_> = stops.iter().map(|&(_, shows)| CGColor::new_generic_gray(0.0, shows)).collect();
+    mask.setFrame(CGRect::new(CGPoint::new(0.0, -r.below * h + raised), CGSize::new(w, h * (1.0 + r.below))));
+    let colors: Vec<_> = r.stops.iter().map(|&(_, shows)| CGColor::new_generic_gray(0.0, shows)).collect();
     let objects: Vec<&AnyObject> = colors.iter().map(|c| as_object(c)).collect();
     // SAFETY: an array of CGColors, as CAGradientLayer takes.
     unsafe { mask.setColors(Some(&NSArray::from_slice(&objects))) };
-    let places: Vec<_> = stops.iter().map(|&(at, _)| NSNumber::new_f64(at)).collect();
+    let places: Vec<_> = r.stops.iter().map(|&(at, _)| NSNumber::new_f64(at)).collect();
     mask.setLocations(Some(&NSArray::from_retained_slice(&places)));
-    // The layer is not flipped: 0 is the window's bottom, 1 its top.
+    // The layer is not flipped: 0 is the bottom, 1 the top.
     mask.setStartPoint(CGPoint::new(0.5, 0.0));
     mask.setEndPoint(CGPoint::new(0.5, 1.0));
     mask
 }
 
 /// The peek: `png`, a picture of a window at `frame` (CG points), over the blur
-/// of the screen it is on; `top`: only its top, fading out. `fade`: from
-/// nothing, over PEEK_IN_MS; else at once.
-pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], top: bool, fade: bool) {
+/// of the screen it is on, shaped by `shape`. `open`: it opens from the
+/// window's top down over PEEK_REVEAL_MS; else it is there at once.
+pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], shape: PeekShape, open: bool) {
     let Some(image) = NSImage::initWithData(NSImage::alloc(), &NSData::with_bytes(png)) else { return };
     let h = PRIMARY_H.with(|h| h.get());
     let cocoa = to_cg(frame, h);
@@ -271,21 +271,25 @@ pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], top: bool, f
         let local = Rect { x: cocoa.x - slot.screen.x, y: cocoa.y - slot.screen.y, ..cocoa };
         slot.picture.setFrame(ns_rect(local));
         let Some(layer) = slot.picture.layer() else { return };
+        let travel = reveal(shape).travel(local.h);
+        let mask = reveal_mask(shape, local.w, local.h, if open { travel } else { 0.0 });
         CATransaction::begin();
         CATransaction::setDisableActions(true);
         // SAFETY: an NSImage, which a layer on macOS takes as its contents.
         unsafe { layer.setContents(Some(&*(Retained::as_ptr(&image) as *const AnyObject))) };
-        let mask = top.then(|| top_mask(local.w, local.h));
-        // SAFETY: the picture's own layer takes a fresh mask, or none.
-        unsafe { layer.setMask(mask.as_deref().map(|m| &**m)) };
-        if !fade {
-            layer.setOpacity(1.0);
-        }
+        // SAFETY: the picture's own layer takes a fresh mask.
+        unsafe { layer.setMask(Some(&mask)) };
+        layer.setOpacity(1.0);
         CATransaction::commit();
-        if fade {
+        if open {
+            // The mask comes down: the blur clears from the window's top down.
             CATransaction::begin();
-            CATransaction::setAnimationDuration(PEEK_IN_MS as f64 / 1000.0);
-            layer.setOpacity(1.0);
+            CATransaction::setAnimationDuration(PEEK_REVEAL_MS as f64 / 1000.0);
+            // SAFETY: a constant Core Animation defines.
+            CATransaction::setAnimationTimingFunction(Some(&CAMediaTimingFunction::functionWithName(unsafe { kCAMediaTimingFunctionEaseOut })));
+            let mut f = mask.frame();
+            f.origin.y -= travel;
+            mask.setFrame(f);
             CATransaction::commit();
         }
     });
