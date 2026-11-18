@@ -285,18 +285,31 @@ impl Desk {
         holding.into_iter().filter_map(|s| self.step(s, Event::Gone(id)).map(|l| (s, l))).collect()
     }
 
-    /// A focused window now lies on `to`: its focus goes along, unless `to` has its own.
-    pub fn moved(&mut self, id: WinId, to: usize) -> Vec<(usize, Layer)> {
-        let Some(from) = self.screen_of(id) else { return Vec::new() };
-        if from == to || self.screens.iter().any(|(s, _)| *s == to) {
+    /// A focused window now lies on `to`. A screen without focus takes the
+    /// window's focus along; a screen with its own makes it its focus, the window
+    /// in use, and the screen it left lets it go (owner, 18 Nov: a window dragged
+    /// across stayed the other screen's, clear and out of reach of peeks and clicks).
+    pub fn moved(&mut self, w: Win, to: usize) -> Vec<(usize, Layer)> {
+        let Some(from) = self.screen_of(w.id) else { return Vec::new() };
+        if from == to {
             return Vec::new();
         }
-        let i = self.screens.iter().position(|(s, _)| *s == from).unwrap();
-        let (_, focus) = self.screens.remove(i);
-        let layer = focus.layer();
-        self.screens.push((to, focus));
-        self.screens.sort_by_key(|(s, _)| *s);
-        vec![(from, Layer::Off), (to, layer)]
+        if !self.screens.iter().any(|(s, _)| *s == to) {
+            let i = self.screens.iter().position(|(s, _)| *s == from).unwrap();
+            let (_, focus) = self.screens.remove(i);
+            let layer = focus.layer();
+            self.screens.push((to, focus));
+            self.screens.sort_by_key(|(s, _)| *s);
+            return vec![(from, Layer::Off), (to, layer)];
+        }
+        let mut out = Vec::new();
+        if let Some(layer) = self.step(from, Event::Gone(w.id)) {
+            out.push((from, layer));
+        }
+        if let Some(layer) = self.step(to, Event::Front(Some(w))) {
+            out.push((to, layer));
+        }
+        out
     }
 
     #[cfg(test)]
@@ -679,12 +692,22 @@ mod tests {
     fn a_moved_window_takes_its_focus_along() {
         let mut d = Desk::default();
         d.step(0, Event::Toggle(Some(A)));
-        assert_eq!(d.moved(1, 1), vec![(0, Layer::Off), (1, Layer::Shown { raise: vec![1] })]);
+        assert_eq!(d.moved(A, 1), vec![(0, Layer::Off), (1, Layer::Shown { raise: vec![1] })]);
         assert_eq!(d.shown_screens(), vec![1]);
-        // Onto a screen with its own focus: each keeps its own.
+        assert_eq!(d.moved(A, 1), vec![]);
+    }
+
+    #[test]
+    fn a_window_moved_onto_a_focused_screen_takes_that_focus() {
+        // A focused on screen 1, C on screen 0; A is dragged onto screen 0.
+        let mut d = Desk::default();
+        d.step(1, Event::Toggle(Some(A)));
         d.step(0, Event::Toggle(Some(C)));
-        assert_eq!(d.moved(1, 0), vec![]);
-        assert_eq!(d.moved(1, 1), vec![]);
+        assert_eq!(d.moved(A, 0), vec![(1, Layer::Paused), (0, Layer::Shown { raise: vec![1] })]);
+        // It is screen 0's focus now, and no longer screen 1's.
+        assert_eq!(d.screen_of(1), Some(0));
+        assert_eq!(d.layer(1), Layer::Paused);
+        assert_eq!(d.picked_wins(), vec![A]);
     }
 
     #[test]

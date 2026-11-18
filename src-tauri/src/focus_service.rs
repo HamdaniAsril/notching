@@ -74,6 +74,9 @@ thread_local! {
     static PEEK: RefCell<Option<(Below, bool)>> = const { RefCell::new(None) };
     static DRAG: RefCell<Watch> = RefCell::new(Watch::default());
     static DRAGGING: RefCell<bool> = const { RefCell::new(false) };
+    /// The window in use and its screen when the button went down, to see a
+    /// window dragged onto another screen once it is let go.
+    static PRESSED_ON: RefCell<Option<(Win, Option<usize>)>> = const { RefCell::new(None) };
     static CLOCK: Instant = Instant::now();
 }
 
@@ -402,7 +405,7 @@ fn moved_window(app: &AppHandle) {
     let mut changed = false;
     for w in picked {
         let Some(to) = screen_of(mtm, w) else { continue };
-        let changes = DESK.lock().unwrap().moved(w.id, to);
+        let changes = DESK.lock().unwrap().moved(w, to);
         for (screen, layer) in changes {
             apply(app, screen, layer);
             changed = true;
@@ -527,6 +530,8 @@ fn on_mouse(event: &NSEvent) {
         NSEventType::LeftMouseDown => {
             let count = drag_pasteboard().changeCount();
             DRAG.with(|d| d.borrow_mut().pressed(count));
+            let front = front_window().map(|w| (w, screen_of(mtm, w)));
+            PRESSED_ON.with(|p| *p.borrow_mut() = front);
         }
         NSEventType::LeftMouseDragged => {
             let began = DRAG.with(|d| d.borrow_mut().dragged(now_ms(), || drag_pasteboard().changeCount()));
@@ -539,6 +544,17 @@ fn on_mouse(event: &NSEvent) {
         NSEventType::LeftMouseUp => {
             if DRAGGING.with(|d| d.replace(false)) {
                 focus_layer::pass_through(mtm, false);
+            }
+            // A window dragged onto another screen: that screen hears it now, as
+            // if it had just come to the front there (owner, 18 Nov).
+            if let Some((w, was)) = PRESSED_ON.with(|p| p.borrow_mut().take()) {
+                let now = screen_of(mtm, w);
+                if now.is_some() && now != was {
+                    if let Some(app) = APP.get() {
+                        debug!("window {} dragged from screen {was:?} to {now:?}", w.id);
+                        front_changed(app);
+                    }
+                }
             }
         }
         _ => {}

@@ -86,7 +86,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
 
 ### 4.6 Layar, Space, dan app layar penuh
 
-- **Setiap monitor punya mode fokusnya sendiri.** ⌃⌥F di jendela pada sebuah monitor menyalakan atau mematikan mode fokus monitor itu saja. Monitor tanpa mode fokus tetap normal: klik atau ⌘Tab ke jendela di sana tidak menyentuh fokus monitor lain. Untuk mematikan semuanya, ⌃⌥F ditekan di masing-masing monitor. Pasangan dua jendela berlaku di dalam satu monitor; ⌃⌥⇧F di monitor yang mode fokusnya mati menyalakan mode fokus monitor itu. Jendela fokus yang diseret ke monitor yang mode fokusnya mati membawa mode fokusnya ikut pindah. Tanpa jendela (desktop), monitor tempat kursor berada yang menentukan. **(pemilik, 18 November 2026)**
+- **Setiap monitor punya mode fokusnya sendiri.** ⌃⌥F di jendela pada sebuah monitor menyalakan atau mematikan mode fokus monitor itu saja. Monitor tanpa mode fokus tetap normal: klik atau ⌘Tab ke jendela di sana tidak menyentuh fokus monitor lain. Untuk mematikan semuanya, ⌃⌥F ditekan di masing-masing monitor. Pasangan dua jendela berlaku di dalam satu monitor; ⌃⌥⇧F di monitor yang mode fokusnya mati menyalakan mode fokus monitor itu. Jendela fokus yang diseret ke monitor yang mode fokusnya mati membawa mode fokusnya ikut pindah. Jendela yang diseret ke monitor yang punya mode fokus sendiri menjadi jendela fokus monitor itu, dan monitor asalnya melepasnya (dijeda kalau tidak ada jendela fokus lain). Ini berlaku untuk jendela fokus maupun jendela biasa. **(pemilik, 18 November 2026, setelah jendela yang ditarik tetap tercatat milik monitor asalnya)** Tanpa jendela (desktop), monitor tempat kursor berada yang menentukan. **(pemilik, 18 November 2026)**
 - **Menu bar, Dock, menu yang terbuka, notifikasi, dan panel Notching** tetap jelas, karena semuanya ada di level jendela di atas lapisan blur.
 - **Pindah Space:** lapisan ikut ke Space yang baru, dan fokus pindah ke jendela aktif di sana, sama seperti ⌘Tab. **(keputusan penulis)**
 - **App layar penuh:** tidak ada blur, karena di sana tidak ada jendela lain untuk di-blur. **(keputusan penulis)**
@@ -158,7 +158,7 @@ Risiko lain yang harus dicek di Mac sungguhan:
 
 1. Nama **Fokus jendela**, id `window-focus`, sebagai alat latar di Katalog.
 2. ⌃⌥F di jendela yang sedang difokuskan mematikan mode fokus.
-3. Cara memilih jendela kedua: ⇧-klik jendela yang ter-blur, atau ⌃⌥⇧F setelah pindah fokus untuk mengembalikan jendela sebelumnya. Jendela ketiga menggantikan yang paling lama.
+3. (Diganti pemilik untuk jendela yang diseret ke monitor yang punya fokus sendiri, bagian 4.6.) Cara memilih jendela kedua: ⇧-klik jendela yang ter-blur, atau ⌃⌥⇧F setelah pindah fokus untuk mengembalikan jendela sebelumnya. Jendela ketiga menggantikan yang paling lama.
 4. Saat fokus di dua jendela, ⌘Tab ke app milik salah satunya tidak memecah pasangan.
 5. ⌘\` ke jendela lama di app yang sama dianggap pindah fokus, bukan jendela baru.
 6. App aktif tanpa jendela, atau jendela fokus ditutup tanpa pengganti: blur dijeda, bukan dimatikan.
