@@ -29,7 +29,7 @@ use tauri::{AppHandle, Manager};
 use crate::app_core::CoreState;
 use crate::ax::{self, Cf};
 use crate::focus_layer;
-use crate::focus_rules::{blur_screens, window_at, windows_below, Below, Desk, Event, Layer, PeekShape, Win, WinId, PEEK_DELAY};
+use crate::focus_rules::{blur_screens, ignored_while_switching, window_at, windows_below, Below, Desk, Event, Layer, PeekShape, Win, WinId, PEEK_DELAY};
 use crate::geometry::Rect;
 use crate::peek_capture::{self, PictureSize};
 use crate::shelf_watch::Watch;
@@ -45,6 +45,10 @@ static DESK: LazyLock<Mutex<Desk>> = LazyLock::new(|| Mutex::new(Desk::default()
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
 /// Pictures of the windows peeked at while the focus is on, in memory only.
 static PICTURES: LazyLock<Mutex<HashMap<WinId, Arc<Vec<u8>>>>> = LazyLock::new(Mutex::default);
+/// The window a click on the blur just sent the focus to, and when.
+static SWITCH: Mutex<Option<(Win, Instant)>> = Mutex::new(None);
+/// A click's app not active by then is asked once more.
+const ACTIVATE_CHECK: Duration = Duration::from_millis(300);
 /// Bumped by every peek change, so a slow picture for an earlier one is dropped.
 static PEEK_ROUND: AtomicU64 = AtomicU64::new(0);
 /// NOTCHING_FOCUS_DEBUG set: every layer change goes to the log.
@@ -204,6 +208,21 @@ fn screen_of(mtm: MainThreadMarker, w: Win) -> Option<usize> {
     frame_of(w).and_then(|f| screen_at(mtm, f))
 }
 
+/// News of `seen` taking the focus that only echoes a click's switch to another
+/// window (focus_rules::ignored_while_switching). Ends the switch once its
+/// window is heard or its time is up.
+fn stale(seen: Option<WinId>) -> bool {
+    let mut switch = SWITCH.lock().unwrap();
+    let Some((to, at)) = *switch else { return false };
+    let since = at.elapsed().as_millis() as u64;
+    if ignored_while_switching(to.id, since, seen) {
+        debug!("ignored focus news for {seen:?} while switching to {}", to.id);
+        return true;
+    }
+    *switch = None;
+    false
+}
+
 /// The screen under the pointer.
 fn pointer_screen(mtm: MainThreadMarker) -> Option<usize> {
     let (x, y) = focus_layer::pointer();
@@ -303,6 +322,9 @@ fn listen(app: &AppHandle) {
 fn front_changed(app: &AppHandle) {
     let Some(mtm) = MainThreadMarker::new() else { return };
     let front = front_window();
+    if stale(front.map(|w| w.id)) {
+        return;
+    }
     let screen = front.and_then(|w| screen_of(mtm, w)).or_else(|| pointer_screen(mtm));
     debug!("front app {:?}: window {:?} on screen {screen:?}", active_pid(), front.map(|w| w.id));
     if let Some(screen) = screen {
@@ -377,6 +399,9 @@ unsafe extern "C" fn on_ax(_observer: *const c_void, element: *const c_void, nam
             let id = ax::window_id(&element).or_else(|| ax::app(pid).and_then(|a| ax::focused_window_only(&a)).and_then(|w| ax::window_id(&w)));
             let Some(id) = id else { return };
             let win = Win { id, pid };
+            if name != "AXWindowCreated" && stale(Some(win.id)) {
+                return;
+            }
             let Some(screen) = screen_of(mtm, win) else { return };
             send(app, screen, if name == "AXWindowCreated" { Event::Created(win) } else { Event::Focused(win) });
             finish(app);
@@ -499,6 +524,15 @@ fn left() {
     }
 }
 
+/// The app forward the way Intip jendela does it (both activation paths), and
+/// the window up among its own.
+fn bring_up(win: Win) {
+    crate::peek_windows::activate(win.pid);
+    if let Some(window) = window_element(win.pid, win.id) {
+        ax::raise(&window);
+    }
+}
+
 fn clicked(x: f64, y: f64, shift: bool) {
     let (Some(app), Some(mtm)) = (APP.get(), MainThreadMarker::new()) else { return };
     let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
@@ -507,13 +541,25 @@ fn clicked(x: f64, y: f64, shift: bool) {
     // The desktop under the blur: nothing (design §4.4).
     let Some(target) = target else { return };
     let win = Win { id: target.id, pid: target.pid };
-    // A click moves the focus there, a ⇧-click adds it (owner, 18 Nov).
+    // A click moves the focus there, a ⇧-click adds it (owner, 18 Nov). Until
+    // the app is active, the app it leaves may still claim the focus: ignored.
+    *SWITCH.lock().unwrap() = Some((win, Instant::now()));
     send(app, screen, if shift { Event::ShiftClick(win) } else { Event::Click(win) });
     finish(app);
-    let frontmost = ax::app(win.pid).map(|element| ax::set_frontmost(&element));
-    let window = window_element(win.pid, win.id);
-    let raised = window.as_ref().map(ax::raise);
-    debug!("click on {} (pid {}, shift {shift}): frontmost {frontmost:?}, window found {}, raised {raised:?}", win.id, win.pid, window.is_some());
+    bring_up(win);
+    debug!("click on {} (pid {}, shift {shift})", win.id, win.pid);
+    // Some apps (Arc) do not always come forward when asked: asked once more.
+    std::thread::spawn(move || {
+        std::thread::sleep(ACTIVATE_CHECK);
+        let Some(app) = APP.get() else { return };
+        let _ = app.run_on_main_thread(move || {
+            let still = SWITCH.lock().unwrap().is_some_and(|(to, _)| to.id == win.id);
+            if still && active_pid() != Some(win.pid) {
+                debug!("pid {} not active after a click on {}: asking again", win.pid, win.id);
+                bring_up(win);
+            }
+        });
+    });
 }
 
 // ---- Drags go through ----

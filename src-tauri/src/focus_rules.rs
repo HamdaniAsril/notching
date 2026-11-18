@@ -388,6 +388,16 @@ pub fn top_peek_stops() -> Vec<(f64, f64)> {
     stops
 }
 
+/// After a click on the blur sends the focus to a window, news of any other
+/// window taking the focus is stale this long: the app being left still says
+/// its own window has it (owner, 18 Nov: Arc fell back under the blur).
+pub const SWITCH_GRACE_MS: u64 = 700;
+
+/// News of `seen` taking the focus, `since_ms` after a click sent it to `to`.
+pub fn ignored_while_switching(to: WinId, since_ms: u64, seen: Option<WinId>) -> bool {
+    since_ms < SWITCH_GRACE_MS && seen != Some(to)
+}
+
 /// The normal windows under one screen's `panel`, front to back: not the blur
 /// panels (`panels`), not the picked windows, not other levels. Notching's own
 /// windows, Settings among them, count like any other.
@@ -762,5 +772,16 @@ mod tests {
         assert_eq!(PEEK_IN_MS, 400);
         // It goes faster than it comes, so the blur is back at once.
         assert!(PEEK_OUT_MS < PEEK_IN_MS);
+    }
+
+    #[test]
+    fn while_a_click_switches_windows_other_focus_news_is_ignored() {
+        // Clicked window 61; the app it leaves still says its own window 300 has the focus.
+        assert!(ignored_while_switching(61, 100, Some(300)));
+        assert!(ignored_while_switching(61, 100, None));
+        // The clicked window itself always counts.
+        assert!(!ignored_while_switching(61, 100, Some(61)));
+        // After the switch has had its time, everything counts again.
+        assert!(!ignored_while_switching(61, SWITCH_GRACE_MS, Some(300)));
     }
 }
