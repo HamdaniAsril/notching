@@ -1,6 +1,8 @@
 //! Fokus jendela (design 18 Nov): its setting, which windows stay clear, and
 //! which window a peek shows. Free of AppKit so it can be unit tested.
 
+use crate::geometry::Rect;
+
 /// How dark the blur gets (design §6): a thin black layer over it.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -227,6 +229,33 @@ impl Focus {
     }
 }
 
+/// A window under the layer, from the window server's list (CG points, top-left of the main screen).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Below {
+    pub id: WinId,
+    pub pid: i32,
+    pub frame: Rect,
+}
+
+/// The top half of a peeked window is clear (design §4.4).
+pub const PEEK_CLEAR: f64 = 0.5;
+/// How long a peek takes to open or close.
+pub const PEEK_FADE_MS: u64 = 120;
+
+/// The topmost window under the point; `below` is front to back.
+pub fn peek_target(x: f64, y: f64, below: &[Below]) -> Option<Below> {
+    below.iter().find(|b| b.frame.contains(x, y)).copied()
+}
+
+/// The clear top part and the fading bottom part of `frame`.
+pub fn peek_hole(frame: Rect) -> (Rect, Rect) {
+    let clear = frame.h * PEEK_CLEAR;
+    (
+        Rect { h: clear, ..frame },
+        Rect { y: frame.y + clear, h: frame.h - clear, ..frame },
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -393,5 +422,24 @@ mod tests {
         let mut f = Focus::default();
         run(&mut f, &[Event::Toggle(Some(A)), Event::ShiftClick(C)]);
         assert_eq!(f.pids(), vec![10, 20]);
+    }
+
+    fn r(x: f64, y: f64, w: f64, h: f64) -> Rect {
+        Rect { x, y, w, h }
+    }
+
+    #[test]
+    fn peek_target_is_the_topmost_under_the_point() {
+        let front = Below { id: 7, pid: 1, frame: r(0., 0., 400., 300.) };
+        let back = Below { id: 8, pid: 2, frame: r(200., 100., 400., 300.) };
+        let below = [front, back];
+        assert_eq!(peek_target(250., 150., &below), Some(front));
+        assert_eq!(peek_target(500., 350., &below), Some(back));
+        assert_eq!(peek_target(900., 900., &below), None);
+    }
+
+    #[test]
+    fn peek_hole_splits_the_window_in_half() {
+        assert_eq!(peek_hole(r(100., 50., 400., 300.)), (r(100., 50., 400., 150.), r(100., 200., 400., 150.)));
     }
 }
