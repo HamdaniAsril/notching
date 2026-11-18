@@ -348,8 +348,12 @@ pub struct Below {
     pub frame: Rect,
 }
 
-/// How long a peek takes to appear or go (design §4.4).
-pub const PEEK_FADE_MS: u64 = 120;
+/// A peek waits for the pointer to rest on a window this long (owner, 18 Nov)…
+pub const PEEK_DELAY: std::time::Duration = std::time::Duration::from_millis(500);
+/// …then comes in slowly ("perlahan")…
+pub const PEEK_IN_MS: u64 = 400;
+/// …and goes quickly, so the blur is back at once.
+pub const PEEK_OUT_MS: u64 = 120;
 /// A top peek: the top fifth of the window shows whole…
 pub const PEEK_CLEAR: f64 = 0.2;
 /// …then fades back to blur over the next three tenths, eased.
@@ -727,5 +731,13 @@ mod tests {
         let steps: Vec<f64> = fade.windows(2).map(|w| w[1].1 - w[0].1).collect();
         let middle = steps[steps.len() / 2];
         assert!(steps[0] < middle && steps[steps.len() - 1] < middle);
+    }
+
+    #[test]
+    fn a_peek_waits_half_a_second_then_comes_in_slowly() {
+        assert_eq!(PEEK_DELAY, std::time::Duration::from_millis(500));
+        assert_eq!(PEEK_IN_MS, 400);
+        // It goes faster than it comes, so the blur is back at once.
+        assert!(PEEK_OUT_MS < PEEK_IN_MS);
     }
 }

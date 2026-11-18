@@ -23,7 +23,7 @@ use objc2_foundation::{NSArray, NSData, NSNumber, NSObject, NSPoint, NSRect, NSS
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_quartz_core::{CAGradientLayer, CATransaction};
 
-use crate::focus_rules::{top_peek_stops, PEEK_FADE_MS};
+use crate::focus_rules::{top_peek_stops, PEEK_IN_MS, PEEK_OUT_MS};
 use crate::geometry::{to_cg, Rect};
 use crate::screens::current_screens;
 
@@ -258,7 +258,7 @@ fn top_mask(w: f64, h: f64) -> objc2::rc::Retained<CAGradientLayer> {
 
 /// The peek: `png`, a picture of a window at `frame` (CG points), over the blur
 /// of the screen it is on; `top`: only its top, fading out. `fade`: from
-/// nothing, over PEEK_FADE_MS; else at once.
+/// nothing, over PEEK_IN_MS; else at once.
 pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], top: bool, fade: bool) {
     let Some(image) = NSImage::initWithData(NSImage::alloc(), &NSData::with_bytes(png)) else { return };
     let h = PRIMARY_H.with(|h| h.get());
@@ -284,21 +284,21 @@ pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], top: bool, f
         CATransaction::commit();
         if fade {
             CATransaction::begin();
-            CATransaction::setAnimationDuration(PEEK_FADE_MS as f64 / 1000.0);
+            CATransaction::setAnimationDuration(PEEK_IN_MS as f64 / 1000.0);
             layer.setOpacity(1.0);
             CATransaction::commit();
         }
     });
 }
 
-/// The peek goes. `fade`: over PEEK_FADE_MS; else at once.
+/// The peek goes. `fade`: over PEEK_OUT_MS; else at once.
 pub fn hide_picture(_mtm: MainThreadMarker, fade: bool) {
     SLOTS.with(|slots| {
         for slot in slots.borrow().iter() {
             let Some(layer) = slot.picture.layer() else { continue };
             CATransaction::begin();
             if fade {
-                CATransaction::setAnimationDuration(PEEK_FADE_MS as f64 / 1000.0);
+                CATransaction::setAnimationDuration(PEEK_OUT_MS as f64 / 1000.0);
             } else {
                 CATransaction::setDisableActions(true);
             }

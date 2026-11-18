@@ -29,7 +29,7 @@ use tauri::{AppHandle, Manager};
 use crate::app_core::CoreState;
 use crate::ax::{self, Cf};
 use crate::focus_layer;
-use crate::focus_rules::{blur_screens, window_at, windows_below, Below, Desk, Event, Layer, PeekShape, Win, WinId};
+use crate::focus_rules::{blur_screens, window_at, windows_below, Below, Desk, Event, Layer, PeekShape, Win, WinId, PEEK_DELAY};
 use crate::geometry::Rect;
 use crate::peek_capture::{self, PictureSize};
 use crate::shelf_watch::Watch;
@@ -453,24 +453,31 @@ fn moved(x: f64, y: f64) {
     if !crate::shot_service::screen_access() {
         return;
     }
-    let was_showing = PEEK.with(|p| p.borrow().is_some_and(|(_, shown)| shown));
-    let round = PEEK_ROUND.fetch_add(1, Ordering::SeqCst) + 1;
-    let cached = PICTURES.lock().unwrap().get(&target.id).cloned();
-    if let Some(png) = cached {
-        focus_layer::show_picture(mtm, target.frame, &png, peek_top(), !was_showing);
-        PEEK.with(|p| *p.borrow_mut() = Some((target, true)));
-        return;
-    }
-    // One window to the next: the old picture goes at once, the new one fades in.
-    if was_showing {
+    // One window to the next: the old picture goes at once. The new one waits
+    // for the pointer to rest on its window (PEEK_DELAY), its picture taken
+    // meanwhile, then comes in slowly (owner, 18 Nov).
+    if PEEK.with(|p| p.borrow().is_some_and(|(_, shown)| shown)) {
         focus_layer::hide_picture(mtm, false);
     }
+    let round = PEEK_ROUND.fetch_add(1, Ordering::SeqCst) + 1;
     PEEK.with(|p| *p.borrow_mut() = Some((target, false)));
     std::thread::spawn(move || {
-        let Some(png) = peek_capture::picture(target.id, false, PictureSize::Full) else { return };
-        PICTURES.lock().unwrap().insert(target.id, png.clone());
+        let start = Instant::now();
+        let cached = PICTURES.lock().unwrap().get(&target.id).cloned();
+        let png = match cached {
+            Some(png) => png,
+            None => {
+                let Some(png) = peek_capture::picture(target.id, false, PictureSize::Full) else { return };
+                PICTURES.lock().unwrap().insert(target.id, png.clone());
+                png
+            }
+        };
+        if let Some(rest) = PEEK_DELAY.checked_sub(start.elapsed()) {
+            std::thread::sleep(rest);
+        }
         let Some(app) = APP.get() else { return };
         let _ = app.run_on_main_thread(move || {
+            // The pointer moved on meanwhile: this peek is not wanted.
             if PEEK_ROUND.load(Ordering::SeqCst) != round {
                 return;
             }
