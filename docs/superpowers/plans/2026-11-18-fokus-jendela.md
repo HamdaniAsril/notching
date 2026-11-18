@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Alat latar "Fokus jendela" yang dipasang dari Katalog. ⌃⌥F membuat semua yang ada di belakang jendela aktif menjadi blur. Fokus ikut pindah saat pengguna pindah, ada intipan setengah atas jendela di bawah kursor, dan pengguna bisa memfokuskan dua jendela.
+**Goal:** Alat latar "Fokus jendela" yang dipasang dari Katalog. ⌃⌥F membuat semua yang ada di belakang jendela aktif menjadi blur. Fokus ikut pindah saat pengguna pindah, ada intipan sepertiga atas jendela di bawah kursor, dan pengguna bisa memfokuskan dua jendela.
 
 **Architecture:**
 - Aturan murni ada di `focus_rules.rs` dan dites tanpa AppKit: siapa yang difokuskan, jendela mana yang diintip, lubang intipan, dan kadar gelap.
@@ -23,7 +23,7 @@
 - Paket `window-focus` tidak langsung terpasang (`optIn`), juga bagi pengguna yang memperbarui app.
 - Shortcut bawaan ⌃⌥F (Fokus) dan ⌃⌥⇧F (Tambah), keduanya bisa diganti di Pintasan.
 - Kadar Gelapkan: Tidak 0 %, Sedikit 15 % (bawaan), Banyak 35 %.
-- Intipan: setengah atas jendela jelas, lalu gradasi sampai blur penuh di tepi bawah. Transisi 120 ms.
+- Intipan: sepertiga atas jendela jelas (pemilik, setelah uji pertama), lalu gradasi sampai blur penuh di tepi bawah. Transisi 120 ms.
 - Maksimal dua jendela fokus. Jendela ketiga menggantikan yang paling lama.
 - Teks dalam dua bahasa (id, en), persis seperti tabel di Task 2 dan Task 4.
 - Commit memakai `git -c user.email=216042476+HamdaniAsril@users.noreply.github.com commit`. Tidak ada push tanpa izin pemilik.
@@ -443,7 +443,7 @@ pub fn own_windows(mtm: MainThreadMarker) -> Vec<u32>;
      - dialog Simpan tetap jelas bersama jendelanya;
      - ⌘\` memindah fokus.
   2. Intipan:
-     - setengah atas jelas lalu bergradasi;
+     - sepertiga atas jelas lalu bergradasi;
      - scroll dan klik kanan di blur tidak melakukan apa-apa;
      - file bisa diseret dari jendela fokus ke jendela Finder yang ter-blur.
   3. Layar dan Space:

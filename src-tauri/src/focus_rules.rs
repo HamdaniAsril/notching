@@ -237,8 +237,8 @@ pub struct Below {
     pub frame: Rect,
 }
 
-/// The top half of a peeked window is clear (design §4.4).
-pub const PEEK_CLEAR: f64 = 0.5;
+/// The top third of a peeked window is clear (owner, 18 Nov, after the first test).
+pub const PEEK_CLEAR: f64 = 1.0 / 3.0;
 /// How long a peek takes to open or close.
 pub const PEEK_FADE_MS: u64 = 120;
 
@@ -439,7 +439,7 @@ mod tests {
     }
 
     #[test]
-    fn peek_hole_splits_the_window_in_half() {
-        assert_eq!(peek_hole(r(100., 50., 400., 300.)), (r(100., 50., 400., 150.), r(100., 200., 400., 150.)));
+    fn peek_hole_keeps_the_top_third_clear() {
+        assert_eq!(peek_hole(r(100., 50., 400., 300.)), (r(100., 50., 400., 100.), r(100., 150., 400., 200.)));
     }
 }
