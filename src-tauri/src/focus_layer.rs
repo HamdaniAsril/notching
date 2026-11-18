@@ -193,54 +193,60 @@ pub fn screens_cg(mtm: MainThreadMarker) -> Vec<Rect> {
     screens.iter().map(|s| to_cg(s.frame, h)).collect()
 }
 
-/// A panel on each screen in `only` (indices of screens_cg), ordered right below
-/// `window`; the other screens stay as they are. `dim` is Dim::alpha().
-pub fn show(mtm: MainThreadMarker, window: u32, dim: f64, only: &[usize]) {
+/// A panel on `screen` (an index of screens_cg), ordered right below `window`.
+/// Every screen has its own (owner, 18 Nov). `dim` is Dim::alpha().
+pub fn show_screen(mtm: MainThreadMarker, screen: usize, window: u32, dim: f64) {
     let screens = current_screens(mtm);
     if let Some(main) = screens.first() {
         PRIMARY_H.with(|h| h.set(main.frame.h));
     }
+    let Some(info) = screens.get(screen) else { return };
     SLOTS.with(|slots| {
         let mut slots = slots.borrow_mut();
         while slots.len() < screens.len() {
             slots.push(new_slot(mtm));
         }
-        for (i, slot) in slots.iter_mut().enumerate() {
-            let Some(screen) = screens.get(i).filter(|_| only.contains(&i)) else {
-                clear_masks(slot);
-                slot.panel.orderOut(None);
-                slot.shown = false;
-                continue;
-            };
-            slot.screen = screen.frame;
-            let size = NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(screen.frame.w, screen.frame.h));
-            slot.panel.setFrame_display(ns_rect(screen.frame), false);
-            if let Some(content) = slot.panel.contentView() {
-                content.setFrame(size);
-            }
-            slot.blur.setFrame(size);
-            slot.dark.setFrame(size);
-            if let Some(layer) = slot.dark.layer() {
-                CATransaction::begin();
-                CATransaction::setDisableActions(true);
-                layer.setOpacity(dim as f32);
-                CATransaction::commit();
-            }
-            slot.panel.orderWindow_relativeTo(NSWindowOrderingMode::Below, window as isize);
-            slot.shown = true;
+        let slot = &mut slots[screen];
+        slot.screen = info.frame;
+        let size = NSRect::new(NSPoint::new(0.0, 0.0), NSSize::new(info.frame.w, info.frame.h));
+        slot.panel.setFrame_display(ns_rect(info.frame), false);
+        if let Some(content) = slot.panel.contentView() {
+            content.setFrame(size);
         }
+        slot.blur.setFrame(size);
+        slot.dark.setFrame(size);
+        if let Some(layer) = slot.dark.layer() {
+            CATransaction::begin();
+            CATransaction::setDisableActions(true);
+            layer.setOpacity(dim as f32);
+            CATransaction::commit();
+        }
+        slot.panel.orderWindow_relativeTo(NSWindowOrderingMode::Below, window as isize);
+        slot.shown = true;
     });
 }
 
-/// The shown panels go right below `window` again, nothing else changes.
-pub fn reorder(_mtm: MainThreadMarker, window: u32) {
+/// One screen's panel goes right below `window` again, nothing else changes.
+pub fn reorder(_mtm: MainThreadMarker, screen: usize, window: u32) {
     SLOTS.with(|slots| {
-        for slot in slots.borrow().iter().filter(|s| s.shown) {
+        if let Some(slot) = slots.borrow().get(screen).filter(|s| s.shown) {
             slot.panel.orderWindow_relativeTo(NSWindowOrderingMode::Below, window as isize);
         }
     });
 }
 
+/// One screen's panel goes; that screen is as it was.
+pub fn hide_screen(_mtm: MainThreadMarker, screen: usize) {
+    SLOTS.with(|slots| {
+        if let Some(slot) = slots.borrow_mut().get_mut(screen) {
+            clear_masks(slot);
+            slot.panel.orderOut(None);
+            slot.shown = false;
+        }
+    });
+}
+
+/// Every panel goes.
 pub fn hide(_mtm: MainThreadMarker) {
     SLOTS.with(|slots| {
         for slot in slots.borrow_mut().iter_mut() {
@@ -263,6 +269,11 @@ pub fn pass_through(_mtm: MainThreadMarker, on: bool) {
 /// The layer's own window numbers, to skip in the window list.
 pub fn own_windows(_mtm: MainThreadMarker) -> Vec<u32> {
     SLOTS.with(|slots| slots.borrow().iter().filter(|s| s.shown).map(|s| s.panel.windowNumber() as u32).collect())
+}
+
+/// One screen's panel's window number, while it shows.
+pub fn own_window(_mtm: MainThreadMarker, screen: usize) -> Option<u32> {
+    SLOTS.with(|slots| slots.borrow().get(screen).filter(|s| s.shown).map(|s| s.panel.windowNumber() as u32))
 }
 
 fn clear_masks(slot: &Slot) {

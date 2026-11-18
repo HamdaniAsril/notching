@@ -31,3 +31,4 @@ Putaran 2, catatan pemilik, diterapkan:
 
 Putaran 3, catatan pemilik, diterapkan:
 9. Aturan setengah fokus dihapus: intipan menampilkan seluruh jendela, dengan sudut membulat. Jendela yang tertutup tetap maju saat diintip.
+10. Mode fokus per monitor: ⌃⌥F di monitor lain menyalakan mode fokus monitor itu juga, dan masing-masing dimatikan dengan ⌃⌥F di monitornya. Aturan `Desk` (satu `Focus` per layar), lapisan `show_screen`/`hide_screen`.

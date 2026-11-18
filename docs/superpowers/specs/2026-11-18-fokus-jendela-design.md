@@ -82,7 +82,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
 
 ### 4.6 Layar, Space, dan app layar penuh
 
-- **Hanya monitor tempat jendela fokus berada** yang di-blur. Monitor lain tidak terdampak, dan klik atau ⌘Tab ke jendela di monitor itu **tidak memindahkan fokus**. Fokus pindah ke monitor lain hanya lewat ⌃⌥F di sana. Tanpa jendela (desktop), monitor tempat kursor berada yang menentukan. **(pemilik, 18 November 2026)** Dua jendela fokus di dua monitor: kedua monitor itu yang di-blur. Jendela fokus diseret ke monitor lain: blurnya ikut pindah. **(pemilik, 18 November 2026, mengganti keputusan penulis "monitor lain di-blur seluruhnya")**
+- **Setiap monitor punya mode fokusnya sendiri.** ⌃⌥F di jendela pada sebuah monitor menyalakan atau mematikan mode fokus monitor itu saja. Monitor tanpa mode fokus tetap normal: klik atau ⌘Tab ke jendela di sana tidak menyentuh fokus monitor lain. Untuk mematikan semuanya, ⌃⌥F ditekan di masing-masing monitor. Pasangan dua jendela berlaku di dalam satu monitor; ⌃⌥⇧F di monitor yang mode fokusnya mati menyalakan mode fokus monitor itu. Jendela fokus yang diseret ke monitor yang mode fokusnya mati membawa mode fokusnya ikut pindah. Tanpa jendela (desktop), monitor tempat kursor berada yang menentukan. **(pemilik, 18 November 2026)**
 - **Menu bar, Dock, menu yang terbuka, notifikasi, dan panel Notching** tetap jelas, karena semuanya ada di level jendela di atas lapisan blur.
 - **Pindah Space:** lapisan ikut ke Space yang baru, dan fokus pindah ke jendela aktif di sana, sama seperti ⌘Tab. **(keputusan penulis)**
 - **App layar penuh:** tidak ada blur, karena di sana tidak ada jendela lain untuk di-blur. **(keputusan penulis)**

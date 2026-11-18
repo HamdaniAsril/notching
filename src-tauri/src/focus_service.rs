@@ -1,9 +1,10 @@
 //! Fokus jendela's native side (design 18 Nov §5): ⌃⌥F and ⌃⌥⇧F, following the
 //! window in use through NSWorkspace and Accessibility, the peek and the click on
 //! the blur, letting drags through, the notch icon and the permission notice.
-//! The rules live in focus_rules.rs, the panels in focus_layer.rs.
+//! Every screen has its own focus (owner, 18 Nov). The rules live in
+//! focus_rules.rs, the panels in focus_layer.rs.
 //!
-//! While the mode is off nothing listens: no observer, no monitor, no panel.
+//! While no screen's focus is on nothing listens: no observer, no monitor, no panel.
 
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -25,7 +26,7 @@ use tauri::{AppHandle, Manager};
 use crate::app_core::CoreState;
 use crate::ax::{self, Cf};
 use crate::focus_layer;
-use crate::focus_rules::{blur_screens, on_blurred_screen, peek_hole, peek_target, Below, Event, Focus, Layer, Win, WinId};
+use crate::focus_rules::{blur_screens, peek_hole, peek_target, Below, Desk, Event, Layer, Win, WinId};
 use crate::geometry::Rect;
 use crate::shelf_watch::Watch;
 use crate::status::{self, Activity};
@@ -38,10 +39,10 @@ const NOTICE_EVERY: Duration = Duration::from_secs(60);
 const PEEK_READ_MS: u64 = 100;
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
-static FOCUS: LazyLock<Mutex<Focus>> = LazyLock::new(|| Mutex::new(Focus::default()));
+static DESK: LazyLock<Mutex<Desk>> = LazyLock::new(|| Mutex::new(Desk::default()));
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
 
-/// What is listening while the mode is on. Main thread only.
+/// What is listening while some screen's focus is on. Main thread only.
 #[derive(Default)]
 struct Listening {
     workspace: Vec<Retained<ProtocolObject<dyn NSObjectProtocol>>>,
@@ -54,8 +55,6 @@ thread_local! {
     static LISTENING: RefCell<Option<Listening>> = const { RefCell::new(None) };
     /// The window the peek shows now, and the blurred windows above it.
     static PEEK: RefCell<Option<(Below, Vec<Rect>)>> = const { RefCell::new(None) };
-    /// The screens blurred now, so a moving window re-orders only when that changes.
-    static BLURRED: RefCell<Vec<usize>> = const { RefCell::new(Vec::new()) };
     /// When the window list was last read for a peek that found nothing.
     static PEEK_READ: RefCell<Option<u64>> = const { RefCell::new(None) };
     static DRAG: RefCell<Watch> = RefCell::new(Watch::default());
@@ -90,39 +89,44 @@ pub fn start(app: &AppHandle) {
     focus_layer::init(focus_layer::Hooks { moved, left, clicked });
 }
 
-/// ⌃⌥F (`add` false) or ⌃⌥⇧F (`add` true) was pressed. Main thread.
+/// ⌃⌥F (`add` false) or ⌃⌥⇧F (`add` true) was pressed: it acts on the screen of
+/// the window in use, else the pointer's. Main thread.
 pub fn pressed(app: &AppHandle, add: bool) {
     if !crate::keyclean_tap::trusted(false) {
         eprintln!("notching: window focus key pressed without Accessibility");
         no_access(app);
         return;
     }
+    let Some(mtm) = MainThreadMarker::new() else { return };
     let front = front_window();
-    send(app, if add { Event::Add(front) } else { Event::Toggle(front) });
+    let Some(screen) = front.and_then(|w| screen_of(mtm, w)).or_else(|| pointer_screen(mtm)) else { return };
+    send(app, screen, if add { Event::Add(front) } else { Event::Toggle(front) });
+    finish(app);
 }
 
 /// Brings the blur in line with the tool and its settings, from any thread.
 pub fn sync(app: &AppHandle) {
     on_main(app, |app| {
-        let on = FOCUS.lock().unwrap().is_on();
-        if !on {
+        if !DESK.lock().unwrap().is_on() {
             return;
         }
         if !enabled(app) {
-            *FOCUS.lock().unwrap() = Focus::default();
-            apply(app, Layer::Off);
+            *DESK.lock().unwrap() = Desk::default();
         } else {
-            let layer = FOCUS.lock().unwrap().layer();
-            apply(app, layer);
+            let layers = DESK.lock().unwrap().layers();
+            for (screen, layer) in layers {
+                apply(app, screen, layer);
+            }
         }
+        finish(app);
     });
 }
 
-/// The screens changed while the mode may be on: the panels follow. Main thread.
+/// The screens changed while some focus may be on: the panels follow. Main thread.
 pub fn screens_changed(app: &AppHandle) {
-    let layer = FOCUS.lock().unwrap().layer();
-    if matches!(layer, Layer::Shown { .. }) {
-        apply(app, layer);
+    let layers = DESK.lock().unwrap().layers();
+    for (screen, layer) in layers {
+        apply(app, screen, layer);
     }
 }
 
@@ -141,6 +145,8 @@ pub fn no_access(app: &AppHandle) {
     }
 }
 
+// ---- Windows and screens ----
+
 fn active_pid() -> Option<i32> {
     NSWorkspace::sharedWorkspace().frontmostApplication().map(|a| a.processIdentifier())
 }
@@ -155,16 +161,9 @@ fn front_window() -> Option<Win> {
     Some(Win { id: ax::window_id(&window)?, pid })
 }
 
-/// The screens holding the picked windows (owner, 18 Nov: other monitors stay as they are).
-fn screens_for(mtm: MainThreadMarker, picked: &[Win]) -> Vec<usize> {
-    let list = crate::notify::window_list();
-    let frames: Vec<Rect> = picked
-        .iter()
-        .filter_map(|w| {
-            list.iter().find(|b| b.number == w.id).map(|b| b.bounds).or_else(|| window_element(w.pid, w.id).and_then(|e| ax::frame(&e)))
-        })
-        .collect();
-    blur_screens(&focus_layer::screens_cg(mtm), &frames)
+/// One of the app's windows by its window server number.
+fn window_element(pid: i32, id: WinId) -> Option<Cf> {
+    ax::windows(&ax::app(pid)?).into_iter().find(|w| ax::window_id(w) == Some(id))
 }
 
 /// A window's frame, from the window server, else from Accessibility.
@@ -172,85 +171,77 @@ fn frame_of(w: Win) -> Option<Rect> {
     crate::notify::window_list().iter().find(|b| b.number == w.id).map(|b| b.bounds).or_else(|| window_element(w.pid, w.id).and_then(|e| ax::frame(&e)))
 }
 
-/// Focus moves only to a window on a blurred screen (owner, 18 Nov). With no
-/// window, the pointer's screen decides; with nothing blurred yet, anything goes.
-fn takes_focus(frame: Option<Rect>) -> bool {
-    let Some(mtm) = MainThreadMarker::new() else { return true };
-    let blurred = BLURRED.with(|b| b.borrow().clone());
-    if blurred.is_empty() {
-        return true;
-    }
-    let frame = frame.unwrap_or_else(|| {
-        let (x, y) = focus_layer::pointer();
-        Rect { x, y, w: 1.0, h: 1.0 }
-    });
-    on_blurred_screen(frame, &focus_layer::screens_cg(mtm), &blurred)
+/// The screen holding most of `frame`.
+fn screen_at(mtm: MainThreadMarker, frame: Rect) -> Option<usize> {
+    blur_screens(&focus_layer::screens_cg(mtm), &[frame]).first().copied()
 }
 
-/// A picked window moved: when it lands on another screen, the blur goes with it.
-fn moved_window(app: &AppHandle) {
-    let Some(mtm) = MainThreadMarker::new() else { return };
-    let (layer, picked) = {
-        let focus = FOCUS.lock().unwrap();
-        (focus.layer(), focus.picked_wins())
-    };
-    if !matches!(layer, Layer::Shown { .. }) {
-        return;
-    }
-    let now = screens_for(mtm, &picked);
-    if BLURRED.with(|b| *b.borrow() != now) {
-        apply(app, layer);
-    }
+/// The screen a window is on.
+fn screen_of(mtm: MainThreadMarker, w: Win) -> Option<usize> {
+    frame_of(w).and_then(|f| screen_at(mtm, f))
 }
 
-/// One of the app's windows by its window server number.
-fn window_element(pid: i32, id: WinId) -> Option<Cf> {
-    ax::windows(&ax::app(pid)?).into_iter().find(|w| ax::window_id(w) == Some(id))
+/// The screen under the pointer.
+fn pointer_screen(mtm: MainThreadMarker) -> Option<usize> {
+    let (x, y) = focus_layer::pointer();
+    screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 })
 }
 
-fn send(app: &AppHandle, e: Event) {
-    let layer = FOCUS.lock().unwrap().step(e);
+// ---- The rules and the screen ----
+
+fn send(app: &AppHandle, screen: usize, e: Event) {
+    let layer = DESK.lock().unwrap().step(screen, e);
     if let Some(layer) = layer {
-        apply(app, layer);
+        apply(app, screen, layer);
     }
 }
 
-/// The screen as the rules say. Main thread.
-fn apply(app: &AppHandle, layer: Layer) {
+/// One screen as the rules say. Main thread; `finish` follows.
+fn apply(app: &AppHandle, screen: usize, layer: Layer) {
     let Some(mtm) = MainThreadMarker::new() else { return };
     clear_peek(mtm);
     match layer {
-        Layer::Off => {
-            BLURRED.with(|b| b.borrow_mut().clear());
-            focus_layer::hide(mtm);
-            stop_listening();
-            status::clear(app, MODULE_ID);
-            eprintln!("notching: window focus off");
-        }
-        Layer::Paused => {
-            focus_layer::hide(mtm);
-            listen(app);
-        }
+        Layer::Off | Layer::Paused => focus_layer::hide_screen(mtm, screen),
         Layer::Shown { raise } => {
             listen(app);
-            let pids = FOCUS.lock().unwrap().picked_wins();
             // A pair: both go up, the one in use last (design §5).
             if raise.len() > 1 {
-                for id in &raise {
-                    if let Some(w) = pids.iter().find(|w| w.id == *id).and_then(|w| window_element(w.pid, w.id)) {
-                        ax::raise(&w);
-                    }
-                }
+                raise_all(&raise);
             }
-            let only = screens_for(mtm, &pids);
-            focus_layer::show(mtm, raise[0], dim(app), &only);
-            BLURRED.with(|b| *b.borrow_mut() = only);
-            if let Err(e) = status::set_icon(app, MODULE_ID, Activity::On) {
-                eprintln!("notching: window focus status: {e}");
-            }
+            focus_layer::show_screen(mtm, screen, raise[0], dim(app));
         }
     }
-    rewatch();
+}
+
+/// After the screens changed: listening, the notch icon and the observers follow.
+fn finish(app: &AppHandle) {
+    if DESK.lock().unwrap().is_on() {
+        listen(app);
+        if let Err(e) = status::set_icon(app, MODULE_ID, Activity::On) {
+            eprintln!("notching: window focus status: {e}");
+        }
+        rewatch();
+    } else {
+        if let Some(mtm) = MainThreadMarker::new() {
+            focus_layer::hide(mtm);
+        }
+        let was = LISTENING.with(|l| l.borrow().is_some());
+        stop_listening();
+        status::clear(app, MODULE_ID);
+        if was {
+            eprintln!("notching: window focus off");
+        }
+    }
+}
+
+/// Raises these picked windows, in this order.
+fn raise_all(ids: &[WinId]) {
+    let picked = DESK.lock().unwrap().picked_wins();
+    for id in ids {
+        if let Some(w) = picked.iter().find(|w| w.id == *id).and_then(|w| window_element(w.pid, w.id)) {
+            ax::raise_only(&w);
+        }
+    }
 }
 
 // ---- Listening ----
@@ -265,14 +256,7 @@ fn listen(app: &AppHandle) {
     // SAFETY: AppKit's notification names are static strings.
     for name in unsafe { [NSWorkspaceDidActivateApplicationNotification, NSWorkspaceActiveSpaceDidChangeNotification] } {
         let handle = app.clone();
-        let block = RcBlock::new(move |_: NonNull<NSNotification>| {
-            let front = front_window();
-            // A window on a screen without blur leaves the focus where it is.
-            if takes_focus(front.and_then(frame_of)) {
-                send(&handle, Event::Front(front));
-            }
-            rewatch();
-        });
+        let block = RcBlock::new(move |_: NonNull<NSNotification>| front_changed(&handle));
         // SAFETY: the block lives as long as its observer, dropped when the mode ends.
         let observer = unsafe { center.addObserverForName_object_queue_usingBlock(Some(name), None, Some(&NSOperationQueue::mainQueue()), &block) };
         listening.workspace.push(observer);
@@ -287,6 +271,18 @@ fn listen(app: &AppHandle) {
     );
     LISTENING.with(|l| *l.borrow_mut() = Some(listening));
     eprintln!("notching: window focus on");
+}
+
+/// The active app or the Space changed: the screen of its window hears it; a
+/// screen without focus leaves it alone (owner, 18 Nov).
+fn front_changed(app: &AppHandle) {
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    let front = front_window();
+    let screen = front.and_then(|w| screen_of(mtm, w)).or_else(|| pointer_screen(mtm));
+    if let Some(screen) = screen {
+        send(app, screen, Event::Front(front));
+    }
+    finish(app);
 }
 
 fn stop_listening() {
@@ -310,8 +306,8 @@ fn stop_listening() {
 /// Accessibility observers for the active app and the apps of the picked windows.
 fn rewatch() {
     let (picked, mut pids) = {
-        let focus = FOCUS.lock().unwrap();
-        (focus.picked_wins(), focus.pids())
+        let desk = DESK.lock().unwrap();
+        (desk.picked_wins(), desk.pids())
     };
     if let Some(active) = active_pid().filter(|p| !pids.contains(p)) {
         pids.insert(0, active);
@@ -338,7 +334,7 @@ fn rewatch() {
 }
 
 unsafe extern "C" fn on_ax(_observer: *const c_void, element: *const c_void, name: *const c_void, _refcon: *mut c_void) {
-    let Some(app) = APP.get() else { return };
+    let (Some(app), Some(mtm)) = (APP.get(), MainThreadMarker::new()) else { return };
     if name.is_null() {
         return;
     }
@@ -355,11 +351,9 @@ unsafe extern "C" fn on_ax(_observer: *const c_void, element: *const c_void, nam
             let id = ax::window_id(&element).or_else(|| ax::app(pid).and_then(|a| ax::focused_window_only(&a)).and_then(|w| ax::window_id(&w)));
             let Some(id) = id else { return };
             let win = Win { id, pid };
-            if name == "AXWindowCreated" {
-                send(app, Event::Created(win));
-            } else if takes_focus(frame_of(win)) {
-                send(app, Event::Focused(win));
-            }
+            let Some(screen) = screen_of(mtm, win) else { return };
+            send(app, screen, if name == "AXWindowCreated" { Event::Created(win) } else { Event::Focused(win) });
+            finish(app);
         }
         "AXMoved" => moved_window(app),
         _ => gone(app),
@@ -369,24 +363,47 @@ unsafe extern "C" fn on_ax(_observer: *const c_void, element: *const c_void, nam
 /// A window closed or was minimized somewhere: every picked one no longer on screen is gone.
 fn gone(app: &AppHandle) {
     let on_screen: Vec<u32> = crate::notify::window_list().iter().map(|w| w.number).collect();
-    let picked = FOCUS.lock().unwrap().picked();
-    for id in picked.into_iter().filter(|id| !on_screen.contains(id)) {
-        send(app, Event::Gone(id));
+    let picked = DESK.lock().unwrap().picked_wins();
+    for w in picked.into_iter().filter(|w| !on_screen.contains(&w.id)) {
+        let changes = DESK.lock().unwrap().gone(w.id);
+        for (screen, layer) in changes {
+            apply(app, screen, layer);
+        }
+    }
+    finish(app);
+}
+
+/// A picked window moved: when it lands on another screen, its focus goes with it.
+fn moved_window(app: &AppHandle) {
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    let picked = DESK.lock().unwrap().picked_wins();
+    let mut changed = false;
+    for w in picked {
+        let Some(to) = screen_of(mtm, w) else { continue };
+        let changes = DESK.lock().unwrap().moved(w.id, to);
+        for (screen, layer) in changes {
+            apply(app, screen, layer);
+            changed = true;
+        }
+    }
+    if changed {
+        finish(app);
     }
 }
 
 // ---- The pointer on the blur ----
 
-/// Windows under the layer, front to back, without Notching's own or the picked ones.
-fn below_layer(mtm: MainThreadMarker) -> Vec<Below> {
+/// Windows under one screen's layer, front to back, without Notching's own or the picked ones.
+fn below_layer(mtm: MainThreadMarker, screen: usize) -> Vec<Below> {
+    let Some(panel) = focus_layer::own_window(mtm, screen) else { return Vec::new() };
     let list = crate::notify::window_list();
     let own = focus_layer::own_windows(mtm);
     let me = std::process::id() as i32;
-    let picked = FOCUS.lock().unwrap().picked();
-    let Some(last_own) = list.iter().rposition(|w| own.contains(&w.number)) else { return Vec::new() };
-    list[last_own + 1..]
+    let picked: Vec<WinId> = DESK.lock().unwrap().picked_wins().iter().map(|w| w.id).collect();
+    let Some(at) = list.iter().position(|w| w.number == panel) else { return Vec::new() };
+    list[at + 1..]
         .iter()
-        .filter(|w| w.layer == 0 && w.pid != me && !picked.contains(&w.number))
+        .filter(|w| w.layer == 0 && w.pid != me && !own.contains(&w.number) && !picked.contains(&w.number))
         .map(|w| Below { id: w.number, pid: w.pid, frame: w.bounds })
         .collect()
 }
@@ -416,13 +433,14 @@ fn moved(x: f64, y: f64) {
         }
         PEEK_READ.with(|r| *r.borrow_mut() = Some(now));
     }
-    let mut below = below_layer(mtm);
+    let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
+    let mut below = below_layer(mtm, screen);
     let mut at = below.iter().position(|b| b.frame.contains(x, y));
     // Covered by other blurred windows: it comes up above them, still under the
     // blur and the focused windows (owner, 18 Nov).
     if let Some(i) = at.filter(|&i| !peek_hole(below[i], &below[..i]).covers.is_empty()) {
-        bring_forward(mtm, below[i]);
-        below = below_layer(mtm);
+        bring_forward(mtm, screen, below[i]);
+        below = below_layer(mtm, screen);
         at = below.iter().position(|b| b.frame.contains(x, y));
     }
     let hole = at.map(|i| peek_hole(below[i], &below[..i]));
@@ -432,20 +450,15 @@ fn moved(x: f64, y: f64) {
     }
 }
 
-/// Raises `target`, then the focused windows over it, then puts the layer back
-/// right below them: focused > blur > target > the rest.
-fn bring_forward(mtm: MainThreadMarker, target: Below) {
-    let Layer::Shown { raise } = FOCUS.lock().unwrap().layer() else { return };
-    let picked = FOCUS.lock().unwrap().picked_wins();
+/// Raises `target`, then the screen's focused windows over it, then puts that
+/// screen's layer back right below them: focused > blur > target > the rest.
+fn bring_forward(mtm: MainThreadMarker, screen: usize, target: Below) {
+    let Layer::Shown { raise } = DESK.lock().unwrap().layer(screen) else { return };
     if let Some(w) = window_element(target.pid, target.id) {
         ax::raise_only(&w);
     }
-    for id in &raise {
-        if let Some(w) = picked.iter().find(|w| w.id == *id).and_then(|w| window_element(w.pid, w.id)) {
-            ax::raise_only(&w);
-        }
-    }
-    focus_layer::reorder(mtm, raise[0]);
+    raise_all(&raise);
+    focus_layer::reorder(mtm, screen, raise[0]);
 }
 
 fn left() {
@@ -456,12 +469,14 @@ fn left() {
 
 fn clicked(x: f64, y: f64, shift: bool) {
     let (Some(app), Some(mtm)) = (APP.get(), MainThreadMarker::new()) else { return };
+    let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
     // Read afresh: the click lands on the topmost window under it.
-    let target = peek_target(x, y, &below_layer(mtm));
+    let target = peek_target(x, y, &below_layer(mtm, screen));
     // The desktop under the blur: nothing (design §4.4).
     let Some(target) = target else { return };
     let win = Win { id: target.id, pid: target.pid };
-    send(app, if shift { Event::ShiftClick(win) } else { Event::Click(win) });
+    send(app, screen, if shift { Event::ShiftClick(win) } else { Event::Click(win) });
+    finish(app);
     if let Some(element) = ax::app(win.pid) {
         ax::set_frontmost(&element);
     }

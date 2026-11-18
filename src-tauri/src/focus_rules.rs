@@ -234,6 +234,97 @@ impl Focus {
     }
 }
 
+/// Every screen's own focus (owner, 18 Nov): ⌃⌥F on a window turns its screen's
+/// focus on or off, and a screen without focus stays as it is. Only screens whose
+/// focus is on are kept, in screen order.
+#[derive(Default)]
+pub struct Desk {
+    screens: Vec<(usize, Focus)>,
+}
+
+impl Desk {
+    /// An event on `screen`; the layer that screen should show now, if it changed.
+    pub fn step(&mut self, screen: usize, e: Event) -> Option<Layer> {
+        match self.screens.iter().position(|(s, _)| *s == screen) {
+            Some(i) => {
+                let layer = self.screens[i].1.step(e);
+                if !self.screens[i].1.is_on() {
+                    self.screens.remove(i);
+                }
+                layer
+            }
+            None => {
+                let mut focus = Focus::default();
+                let layer = focus.step(e);
+                if focus.is_on() {
+                    self.screens.push((screen, focus));
+                    self.screens.sort_by_key(|(s, _)| *s);
+                }
+                layer
+            }
+        }
+    }
+
+    /// A window closed or was minimized: the screens that held it, and their layers.
+    pub fn gone(&mut self, id: WinId) -> Vec<(usize, Layer)> {
+        let holding: Vec<usize> = self.screens.iter().filter(|(_, f)| f.has(id)).map(|(s, _)| *s).collect();
+        holding.into_iter().filter_map(|s| self.step(s, Event::Gone(id)).map(|l| (s, l))).collect()
+    }
+
+    /// A focused window now lies on `to`: its focus goes along, unless `to` has its own.
+    pub fn moved(&mut self, id: WinId, to: usize) -> Vec<(usize, Layer)> {
+        let Some(from) = self.screen_of(id) else { return Vec::new() };
+        if from == to || self.screens.iter().any(|(s, _)| *s == to) {
+            return Vec::new();
+        }
+        let i = self.screens.iter().position(|(s, _)| *s == from).unwrap();
+        let (_, focus) = self.screens.remove(i);
+        let layer = focus.layer();
+        self.screens.push((to, focus));
+        self.screens.sort_by_key(|(s, _)| *s);
+        vec![(from, Layer::Off), (to, layer)]
+    }
+
+    pub fn layer(&self, screen: usize) -> Layer {
+        self.screens.iter().find(|(s, _)| *s == screen).map_or(Layer::Off, |(_, f)| f.layer())
+    }
+
+    /// Every screen's layer, for the screens whose focus is on.
+    pub fn layers(&self) -> Vec<(usize, Layer)> {
+        self.screens.iter().map(|(s, f)| (*s, f.layer())).collect()
+    }
+
+    pub fn is_on(&self) -> bool {
+        !self.screens.is_empty()
+    }
+
+    /// The screens showing their blur now.
+    #[cfg(test)]
+    pub fn shown_screens(&self) -> Vec<usize> {
+        self.screens.iter().filter(|(_, f)| matches!(f.layer(), Layer::Shown { .. })).map(|(s, _)| *s).collect()
+    }
+
+    pub fn screen_of(&self, id: WinId) -> Option<usize> {
+        self.screens.iter().find(|(_, f)| f.has(id)).map(|(s, _)| *s)
+    }
+
+    /// Every screen's picked windows, in screen order.
+    pub fn picked_wins(&self) -> Vec<Win> {
+        self.screens.iter().flat_map(|(_, f)| f.picked_wins()).collect()
+    }
+
+    /// The apps of every picked window, each once.
+    pub fn pids(&self) -> Vec<i32> {
+        let mut out: Vec<i32> = Vec::new();
+        for pid in self.screens.iter().flat_map(|(_, f)| f.pids()) {
+            if !out.contains(&pid) {
+                out.push(pid);
+            }
+        }
+        out
+    }
+}
+
 /// A window under the layer, from the window server's list (CG points, top-left of the main screen).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Below {
@@ -279,13 +370,6 @@ pub fn peek_hole(target: Below, in_front: &[Below]) -> PeekHole {
         covers: in_front.iter().filter_map(|b| overlap(b.frame, open)).collect(),
         radius: PEEK_RADIUS.min(open.w / 2.0).min(open.h / 2.0),
     }
-}
-
-/// A window on a screen the blur covers. Elsewhere a click or ⌘Tab leaves the
-/// focus where it is (owner, 18 Nov: "dimonitor lain harus normal").
-pub fn on_blurred_screen(frame: Rect, screens: &[Rect], blurred: &[usize]) -> bool {
-    let mine = blur_screens(screens, &[frame]);
-    !mine.is_empty() && mine.iter().all(|i| blurred.contains(i))
 }
 
 /// The screens to blur: the one holding most of each picked window, else the
@@ -540,11 +624,64 @@ mod tests {
         assert_eq!(blur_screens(&screens, &[]), Vec::<usize>::new());
     }
 
+
     #[test]
-    fn only_a_window_on_a_blurred_screen_takes_the_focus() {
-        let screens = [r(0., 0., 1440., 900.), r(1440., 0., 1920., 1080.)];
-        assert!(on_blurred_screen(r(100., 100., 600., 400.), &screens, &[0]));
-        assert!(!on_blurred_screen(r(1800., 100., 600., 400.), &screens, &[0]));
-        assert!(on_blurred_screen(r(1800., 100., 600., 400.), &screens, &[0, 1]));
+    fn each_screen_has_its_own_focus() {
+        let mut d = Desk::default();
+        assert_eq!(d.step(0, Event::Toggle(Some(A))), shown(&[1]));
+        assert_eq!(d.step(1, Event::Toggle(Some(C))), shown(&[3]));
+        assert_eq!(d.shown_screens(), vec![0, 1]);
+        assert_eq!(d.screen_of(3), Some(1));
+    }
+
+    #[test]
+    fn turning_one_screen_off_leaves_the_other() {
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        d.step(1, Event::Toggle(Some(C)));
+        assert_eq!(d.step(0, Event::Toggle(Some(A))), Some(Layer::Off));
+        assert_eq!(d.shown_screens(), vec![1]);
+        assert!(d.is_on());
+        assert_eq!(d.step(1, Event::Toggle(Some(C))), Some(Layer::Off));
+        assert!(!d.is_on());
+    }
+
+    #[test]
+    fn a_window_on_a_screen_without_focus_leaves_it_alone() {
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        assert_eq!(d.step(1, Event::Front(Some(C))), None);
+        assert_eq!(d.step(1, Event::Focused(C)), None);
+        assert_eq!(d.layer(0), Layer::Shown { raise: vec![1] });
+    }
+
+    #[test]
+    fn gone_finds_its_screen() {
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        d.step(1, Event::Toggle(Some(C)));
+        assert_eq!(d.gone(3), vec![(1, Layer::Paused)]);
+        assert_eq!(d.gone(99), vec![]);
+    }
+
+    #[test]
+    fn a_moved_window_takes_its_focus_along() {
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        assert_eq!(d.moved(1, 1), vec![(0, Layer::Off), (1, Layer::Shown { raise: vec![1] })]);
+        assert_eq!(d.shown_screens(), vec![1]);
+        // Onto a screen with its own focus: each keeps its own.
+        d.step(0, Event::Toggle(Some(C)));
+        assert_eq!(d.moved(1, 0), vec![]);
+        assert_eq!(d.moved(1, 1), vec![]);
+    }
+
+    #[test]
+    fn the_desk_lists_every_picked_window_and_app() {
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        d.step(1, Event::Toggle(Some(D)));
+        assert_eq!(d.picked_wins(), vec![A, D]);
+        assert_eq!(d.pids(), vec![10, 30]);
     }
 }
