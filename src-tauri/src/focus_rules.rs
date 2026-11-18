@@ -234,6 +234,13 @@ impl Focus {
     }
 }
 
+/// `a` is on screen and in front of every one of `others` still on screen;
+/// `order` is the window server's list, front to back.
+pub fn above_all(order: &[WinId], a: WinId, others: &[WinId]) -> bool {
+    let Some(at) = order.iter().position(|&w| w == a) else { return false };
+    others.iter().all(|o| order.iter().position(|w| w == o).is_none_or(|i| i > at))
+}
+
 /// Every screen's own focus (owner, 18 Nov): ⌃⌥F on a window turns its screen's
 /// focus on or off, and a screen without focus stays as it is. Only screens whose
 /// focus is on are kept, in screen order.
@@ -683,5 +690,16 @@ mod tests {
         d.step(1, Event::Toggle(Some(D)));
         assert_eq!(d.picked_wins(), vec![A, D]);
         assert_eq!(d.pids(), vec![10, 30]);
+    }
+
+    #[test]
+    fn above_all_reads_the_window_order() {
+        let order = [5, 7, 2, 9];
+        assert!(above_all(&order, 7, &[2, 9]));
+        assert!(!above_all(&order, 2, &[7]));
+        // A window gone from the list does not count against it.
+        assert!(above_all(&order, 2, &[9, 42]));
+        // The window itself must be there.
+        assert!(!above_all(&order, 42, &[9]));
     }
 }

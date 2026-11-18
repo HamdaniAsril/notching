@@ -26,7 +26,7 @@ use tauri::{AppHandle, Manager};
 use crate::app_core::CoreState;
 use crate::ax::{self, Cf};
 use crate::focus_layer;
-use crate::focus_rules::{blur_screens, peek_hole, peek_target, Below, Desk, Event, Layer, Win, WinId};
+use crate::focus_rules::{above_all, blur_screens, peek_hole, peek_target, Below, Desk, Event, Layer, Win, WinId};
 use crate::geometry::Rect;
 use crate::shelf_watch::Watch;
 use crate::status::{self, Activity};
@@ -41,6 +41,14 @@ const PEEK_READ_MS: u64 = 100;
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static DESK: LazyLock<Mutex<Desk>> = LazyLock::new(|| Mutex::new(Desk::default()));
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
+/// The window being brought forward for a peek; the pointer waits meanwhile.
+static RAISING: Mutex<Option<WinId>> = Mutex::new(None);
+/// The last window its app would not raise: it is peeked with its covers instead.
+static NO_RAISE: Mutex<Option<WinId>> = Mutex::new(None);
+/// Apps raise their windows on their own time: the order is checked this often…
+const RAISE_CHECK: Duration = Duration::from_millis(20);
+/// …this many times, at most.
+const RAISE_TRIES: u32 = 15;
 
 /// What is listening while some screen's focus is on. Main thread only.
 #[derive(Default)]
@@ -415,8 +423,13 @@ fn clear_peek(mtm: MainThreadMarker) {
 }
 
 fn moved(x: f64, y: f64) {
+    peek_at(x, y, true);
+}
+
+/// The peek at the pointer; `may_raise` false once a raise has been tried.
+fn peek_at(x: f64, y: f64, may_raise: bool) {
     let Some(mtm) = MainThreadMarker::new() else { return };
-    if DRAGGING.with(|d| *d.borrow()) {
+    if DRAGGING.with(|d| *d.borrow()) || RAISING.lock().unwrap().is_some() {
         return;
     }
     // Still on the visible part of the same window: nothing to redo.
@@ -434,14 +447,16 @@ fn moved(x: f64, y: f64) {
         PEEK_READ.with(|r| *r.borrow_mut() = Some(now));
     }
     let Some(screen) = screen_at(mtm, Rect { x, y, w: 1.0, h: 1.0 }) else { return };
-    let mut below = below_layer(mtm, screen);
-    let mut at = below.iter().position(|b| b.frame.contains(x, y));
+    let below = below_layer(mtm, screen);
+    let at = below.iter().position(|b| b.frame.contains(x, y));
     // Covered by other blurred windows: it comes up above them, still under the
-    // blur and the focused windows (owner, 18 Nov).
-    if let Some(i) = at.filter(|&i| !peek_hole(below[i], &below[..i]).covers.is_empty()) {
-        bring_forward(mtm, screen, below[i]);
-        below = below_layer(mtm, screen);
-        at = below.iter().position(|b| b.frame.contains(x, y));
+    // blur and the focused windows (owner, 18 Nov). The peek waits for it.
+    if let Some(i) = at.filter(|&i| may_raise && !peek_hole(below[i], &below[..i]).covers.is_empty()) {
+        // The blurred windows lying over it.
+        let covered_by: Vec<WinId> = below[..i].iter().filter(|b| !peek_hole(below[i], &[**b]).covers.is_empty()).map(|b| b.id).collect();
+        if *NO_RAISE.lock().unwrap() != Some(below[i].id) && bring_forward(screen, below[i], covered_by) {
+            return;
+        }
     }
     let hole = at.map(|i| peek_hole(below[i], &below[..i]));
     PEEK.with(|p| *p.borrow_mut() = at.map(|i| (below[i], below[..i].iter().map(|b| b.frame).collect())));
@@ -450,15 +465,60 @@ fn moved(x: f64, y: f64) {
     }
 }
 
-/// Raises `target`, then the screen's focused windows over it, then puts that
-/// screen's layer back right below them: focused > blur > target > the rest.
-fn bring_forward(mtm: MainThreadMarker, screen: usize, target: Below) {
-    let Layer::Shown { raise } = DESK.lock().unwrap().layer(screen) else { return };
-    if let Some(w) = window_element(target.pid, target.id) {
-        ax::raise_only(&w);
+/// Raises `target` above the windows covering it, then the screen's focused
+/// windows over it, each time waiting until the window server shows the new
+/// order, then puts that screen's layer right below them: focused > blur >
+/// target > the rest. Apps raise their windows on their own time, so ordering
+/// the layer at once left it in the wrong place and the peek flickered. False
+/// when nothing was started.
+fn bring_forward(screen: usize, target: Below, covered_by: Vec<WinId>) -> bool {
+    let Layer::Shown { raise } = DESK.lock().unwrap().layer(screen) else { return false };
+    {
+        let mut raising = RAISING.lock().unwrap();
+        if raising.is_some() {
+            return false;
+        }
+        *raising = Some(target.id);
     }
-    raise_all(&raise);
-    focus_layer::reorder(mtm, screen, raise[0]);
+    let picked = DESK.lock().unwrap().picked_wins();
+    let focused: Vec<Win> = raise.iter().filter_map(|id| picked.iter().find(|w| w.id == *id).copied()).collect();
+    std::thread::spawn(move || {
+        let order = || crate::notify::window_list().iter().map(|w| w.number).collect::<Vec<WinId>>();
+        let wait = |done: &dyn Fn(&[WinId]) -> bool| {
+            (0..RAISE_TRIES).any(|_| {
+                let ok = done(&order());
+                if !ok {
+                    std::thread::sleep(RAISE_CHECK);
+                }
+                ok
+            })
+        };
+        let raised = window_element(target.pid, target.id).is_some_and(|w| ax::raise_only(&w))
+            && wait(&|o| above_all(o, target.id, &covered_by));
+        for f in &focused {
+            if let Some(w) = window_element(f.pid, f.id) {
+                ax::raise_only(&w);
+            }
+        }
+        let ids: Vec<WinId> = focused.iter().map(|f| f.id).collect();
+        let back = wait(&|o| ids.iter().all(|&f| above_all(o, f, &[target.id])));
+        eprintln!("notching: window focus peek raised {}: {}, focused back on top: {back}", target.id, if raised { "yes" } else { "refused" });
+        if !raised {
+            *NO_RAISE.lock().unwrap() = Some(target.id);
+        }
+        let Some(app) = APP.get() else { return };
+        let _ = app.run_on_main_thread(move || {
+            if let (Some(mtm), Layer::Shown { raise }) = (MainThreadMarker::new(), DESK.lock().unwrap().layer(screen)) {
+                focus_layer::reorder(mtm, screen, raise[0]);
+            }
+            *RAISING.lock().unwrap() = None;
+            PEEK.with(|p| p.borrow_mut().take());
+            PEEK_READ.with(|r| r.borrow_mut().take());
+            let (x, y) = focus_layer::pointer();
+            peek_at(x, y, false);
+        });
+    });
+    true
 }
 
 fn left() {
