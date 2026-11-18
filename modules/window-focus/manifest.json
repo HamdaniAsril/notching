@@ -5,7 +5,7 @@
   "icon": "icon.svg",
   "optIn": true,
   "permissions": ["accessibility", "screen-recording"],
-  "capabilities": ["focus", "status", "notify"],
+  "capabilities": ["focus", "notify"],
   "tool": "focus",
   "notifications": [{ "id": "access", "on": true, "sound": false }]
 }

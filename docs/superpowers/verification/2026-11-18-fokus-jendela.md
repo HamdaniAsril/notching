@@ -61,3 +61,5 @@ Reviewer terpisah membaca seluruh cabang (540bba3..c641534): siap digabung setel
 6. Pasangan: lapisan diurutkan ulang 250 ms setelah jendela-jendelanya dinaikkan.
 7. Izin dicabut saat fokus menyala: ⌃⌥F mematikan semuanya.
 8. Pindah Space: fokus monitor yang jendelanya tidak ada di Space itu dijeda (`Desk::space_changed`). Test `a_focus_whose_windows_are_not_on_this_space_rests_until_they_are`.
+
+Setelah review akhir: pemilik mencoba ulang dan menyatakan "sudah aman semua"; log mencatat dua perubahan konfigurasi layar ("screens changed") tanpa error, dengan mode fokus mengikuti jendelanya. Permintaan terakhir: tidak ada ikon Fokus jendela di notch. Diterapkan: kemampuan `status` dicabut dari paket, dan `set_icon`/`clear` dihapus dari service.

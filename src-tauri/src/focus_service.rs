@@ -1,7 +1,7 @@
 //! Fokus jendela's native side (design 18 Nov §5): ⌃⌥F and ⌃⌥⇧F, following the
 //! window in use through NSWorkspace and Accessibility, the peek (a picture of
 //! the window under the pointer) and the ⇧-click on the blur, letting drags
-//! through, the notch icon and the permission notice.
+//! through and the permission notice. Nothing shows beside the notch.
 //! Every screen has its own focus (owner, 18 Nov). The rules live in
 //! focus_rules.rs, the panels in focus_layer.rs.
 //!
@@ -32,7 +32,6 @@ use crate::focus_rules::{blur_screens, ignored_while_switching, window_at, windo
 use crate::geometry::Rect;
 use crate::peek_capture::{self, PictureSize};
 use crate::shelf_watch::Watch;
-use crate::status::{self, Activity};
 
 pub const MODULE_ID: &str = "window-focus";
 
@@ -293,13 +292,11 @@ fn apply(app: &AppHandle, screen: usize, layer: Layer) {
     }
 }
 
-/// After the screens changed: listening, the notch icon and the observers follow.
+/// After the screens changed: listening and the observers follow. Nothing shows
+/// beside the notch (owner, 18 Nov).
 fn finish(app: &AppHandle) {
     if DESK.lock().unwrap().is_on() {
         listen(app);
-        if let Err(e) = status::set_icon(app, MODULE_ID, Activity::On) {
-            eprintln!("notching: window focus status: {e}");
-        }
         // Next run-loop turn: never inside an observer's own callback, which may
         // drop that observer (final review, 18 Nov).
         let block = RcBlock::new(rewatch);
@@ -311,7 +308,6 @@ fn finish(app: &AppHandle) {
         }
         let was = LISTENING.with(|l| l.borrow().is_some());
         stop_listening();
-        status::clear(app, MODULE_ID);
         if was {
             eprintln!("notching: window focus off");
         }

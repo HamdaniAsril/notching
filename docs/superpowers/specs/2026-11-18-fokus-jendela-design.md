@@ -43,7 +43,7 @@ Nama "Fokus" saja tidak dipakai karena sudah menjadi nama paket widget (`modules
   - **⌃⌥⇧F** setelah klik biasa memindahkan fokus ke jendela B (4.2): jendela yang difokuskan sebelumnya ikut kembali jelas. Hasilnya, sebelumnya plus B.
   - Kalau sudah ada dua, menambah jendela ketiga menggantikan yang paling lama difokuskan.
 - Kedua shortcut bisa diganti di Pengaturan → Pintasan, seperti shortcut alat lain. Notching menolak kombinasi yang sudah dipakai shortcutnya sendiri.
-- Selama mode fokus menyala, notch menampilkan ikon alat ini tanpa teks, seperti Keyboard Cleaning Mode. **(keputusan penulis)**
+- Tidak ada ikon di samping notch selama mode fokus menyala. **(pemilik, 18 November 2026: "tidak perlu ada icon di notch"; mengganti keputusan penulis)**
 
 ### 4.2 Fokus ikut pindah saat pengguna pindah (pemilik)
 
@@ -167,7 +167,7 @@ Risiko lain yang harus dicek di Mac sungguhan:
 7. (Tidak berlaku lagi: intipan dihapus pemilik.)
 8. Klik di desktop yang ter-blur tidak melakukan apa-apa.
 9. Pindah Space memindah fokus. App layar penuh tanpa blur. (Bagian monitor diganti pemilik: hanya monitor jendela fokus yang di-blur, bagian 4.6.)
-10. Ikon alat tanpa teks di samping notch selama mode fokus menyala.
+10. (Diganti pemilik: tidak ada ikon di notch.)
 11. Setelan Gelapkan: Tidak, Sedikit (bawaan), Banyak.
 12. Mode fokus tidak diingat setelah Notching ditutup.
 13. (Tidak berlaku lagi: intipan kini tanpa gradasi.)
