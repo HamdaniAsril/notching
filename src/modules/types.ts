@@ -104,6 +104,7 @@ export interface ModuleState {
   panelGlass: boolean; // the open panel fades toward its bottom; false: solid black
   shelfOpenOnDrag: boolean; // Shelf opens as soon as a file drag starts anywhere
   peek: PeekSettings; // Intip jendela (design 5 Nov §4)
+  focus: FocusSettings; // Fokus jendela (design 18 Nov §6)
   peekKeyLabel: string; // its switcher key as shown ("⌘⇥")
 }
 
@@ -124,6 +125,13 @@ export const DEFAULT_PEEK: PeekSettings = {
   dock: true, dockClick: 'toggle', card: 'system', material: 'solid', minimized: true,
   switcher: true, switcherKey: { code: 48, mods: 0x0100 }, layout: 'windows', place: 'center',
 };
+
+// Fokus jendela's settings (design 18 Nov §6): how dark the blur gets.
+export interface FocusSettings {
+  dim: 'none' | 'little' | 'much';
+}
+
+export const DEFAULT_FOCUS: FocusSettings = { dim: 'little' };
 
 // Beranda's package: always installed, so the Katalog leaves it out (design 4 Nov §3).
 export const CORE_PACKAGE = 'home';

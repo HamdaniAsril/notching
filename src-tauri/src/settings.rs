@@ -237,6 +237,9 @@ pub struct Settings {
     /// Intip jendela's settings (design 5 Nov §4).
     #[serde(deserialize_with = "lenient")]
     pub window_peek: crate::peek_rules::PeekSettings,
+    /// Fokus jendela's settings (design 18 Nov §6).
+    #[serde(deserialize_with = "lenient")]
+    pub window_focus: crate::focus_rules::FocusSettings,
 }
 
 impl Default for Settings {
@@ -267,6 +270,7 @@ impl Default for Settings {
             shelf_open_on_drag: true,
             installed_opt_in: Vec::new(),
             window_peek: crate::peek_rules::PeekSettings::default(),
+            window_focus: crate::focus_rules::FocusSettings::default(),
         }
     }
 }

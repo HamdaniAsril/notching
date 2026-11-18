@@ -103,6 +103,8 @@ pub struct ModuleStateDto {
     pub shelf_open_on_drag: bool,
     /// Intip jendela's settings, and its switcher key as Settings shows it ("⌘⇥").
     pub peek: crate::peek_rules::PeekSettings,
+    /// Fokus jendela's settings.
+    pub focus: crate::focus_rules::FocusSettings,
     pub peek_key_label: String,
 }
 
@@ -233,6 +235,7 @@ impl AppCore {
             panel_glass: self.settings.panel_glass,
             shelf_open_on_drag: self.settings.shelf_open_on_drag,
             peek: self.settings.window_peek,
+            focus: self.settings.window_focus,
             peek_key_label: crate::shot_keys::label(self.settings.window_peek.switcher_key),
         }
     }
@@ -452,6 +455,15 @@ impl AppCore {
     /// The Volt accent, "#rrggbb".
     pub fn accent(&self) -> String {
         self.settings.accent.clone()
+    }
+
+    pub fn focus_settings(&self) -> crate::focus_rules::FocusSettings {
+        self.settings.window_focus
+    }
+
+    pub fn set_focus_settings(&mut self, f: crate::focus_rules::FocusSettings) -> Result<(), CoreError> {
+        self.settings.window_focus = f;
+        self.save()
     }
 
     pub fn peek_settings(&self) -> crate::peek_rules::PeekSettings {
@@ -775,6 +787,17 @@ mod tests {
         assert_eq!(open(&d, None).theme(), ThemeSetting::System);
         open(&d, None).set_theme(ThemeSetting::Dark).unwrap();
         assert_eq!(open(&d, None).theme(), ThemeSetting::Dark);
+    }
+
+    #[test]
+    fn focus_settings_are_kept() {
+        use crate::focus_rules::{Dim, FocusSettings};
+        let d = setup();
+        assert_eq!(open(&d, None).focus_settings(), FocusSettings::default());
+        let much = FocusSettings { dim: Dim::Much };
+        open(&d, None).set_focus_settings(much).unwrap();
+        assert_eq!(open(&d, None).focus_settings(), much);
+        assert_eq!(open(&d, None).state().focus, much);
     }
 
     #[test]

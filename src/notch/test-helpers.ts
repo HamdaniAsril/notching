@@ -1,6 +1,6 @@
 import { beforeEach, vi } from 'vitest';
 import type { Bridge, CleanerApp, CleanerEvent, CleanerItem, CleanerNode, CleanerScan, LiveStatus, MediaSummary, Notice, PointerUpdate, ShelfDrag, ShelfDrop, ShelfState, Shot, ShotDrag, ShotEvent, ShotKeys, ShotSetup } from '../bridge';
-import { DEFAULT_PEEK, type ModuleInfo, type ModuleState, type Page, type WidgetInfo } from '../modules/types';
+import { DEFAULT_FOCUS, DEFAULT_PEEK, type ModuleInfo, type ModuleState, type Page, type WidgetInfo } from '../modules/types';
 import { DEFAULT_CONFIG, type NotchConfig } from './config';
 import { type CardSize, NotchController } from './controller';
 import type { NotchSize } from './shape';
@@ -139,6 +139,7 @@ export const TEST_STATE: ModuleState = {
   panelGlass: true,
   shelfOpenOnDrag: true,
   peek: DEFAULT_PEEK,
+  focus: DEFAULT_FOCUS,
   peekKeyLabel: '⌘⇥',
   macos: 14, // the old permission names; a test of macOS 27 says so
 };

@@ -1,7 +1,7 @@
 import type { ShotKeys } from '../bridge';
 import type { SettingsStrings } from '../i18n';
 import type { Lang } from '../kit/protocol';
-import type { ModuleState, PeekSettings, Placement } from '../modules/types';
+import type { FocusSettings, ModuleState, PeekSettings, Placement } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 
 export type LanguageChoice = 'auto' | 'id' | 'en';
@@ -107,6 +107,7 @@ export interface SettingsBridge {
   setPanelGlass(on: boolean): Promise<void>; // off: the open panel is solid black
   setShelfOpenOnDrag(on: boolean): Promise<void>; // off: Shelf opens when a drag reaches the notch
   setPeekSettings(p: PeekSettings): Promise<void>; // Intip jendela's settings, whole
+  setFocusSettings(f: FocusSettings): Promise<void>; // Fokus jendela's settings, whole
   switchSetKey(key: ShotKeyPress): Promise<void>; // the switcher's key; rejects with SwitchKeyError
   switchResetKey(): Promise<void>; // back to ⌘Tab
   setLaunchAtLogin(on: boolean): Promise<void>;

@@ -15,6 +15,7 @@ mod modules;
 mod page_commands;
 mod pages;
 mod peek_rules;
+mod focus_rules;
 mod glass_rules;
 mod switch_rules;
 mod tap_rules;
@@ -76,6 +77,7 @@ mod shelf_service;
 mod shelf_watch;
 #[cfg(target_os = "macos")]
 mod peek_service;
+mod focus_service;
 #[cfg(target_os = "macos")]
 mod peek_windows;
 #[cfg(target_os = "macos")]
@@ -183,6 +185,7 @@ pub fn run() {
             settings_window::set_panel_glass,
             settings_window::set_shelf_open_on_drag,
             settings_window::set_peek_settings,
+            settings_window::set_focus_settings,
             settings_window::open_dock_settings,
             peek_service::peek_size,
             peek_service::peek_pointer,

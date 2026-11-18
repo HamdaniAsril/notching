@@ -1,7 +1,7 @@
 import type { KeyState, ShotKeys } from '../bridge';
 import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
-import { DEFAULT_PEEK, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
+import { DEFAULT_FOCUS, DEFAULT_PEEK, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
 import type { AppAction, AppKey, UpdateInfo, LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
 
@@ -64,6 +64,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     notifications: { glow: true, seconds: 3.5 }, missed: [], sampleStatus: false, accent: '#c8f04a', accentCustom: null, panelGlass: true,
     shelfOpenOnDrag: true,
     peek: DEFAULT_PEEK,
+    focus: DEFAULT_FOCUS,
     peekKeyLabel: '⌘⇥',
     macos: Number(params.get('macos') ?? 27),
   };
@@ -101,6 +102,7 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     setPanelGlass: async panelGlass => setState({ ...state, panelGlass }),
     setShelfOpenOnDrag: async shelfOpenOnDrag => setState({ ...state, shelfOpenOnDrag }),
     setPeekSettings: async peek => setState({ ...state, peek }),
+    setFocusSettings: async focus => setState({ ...state, focus }),
     switchSetKey: async () => {},
     switchResetKey: async () => setState({ ...state, peek: { ...state.peek, switcherKey: DEFAULT_PEEK.switcherKey }, peekKeyLabel: '⌘⇥' }),
     setAccent: async (accent, custom) => setState({ ...state, accent, accentCustom: custom ?? state.accentCustom }),

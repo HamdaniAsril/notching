@@ -172,6 +172,18 @@ pub fn set_panel_glass(app: AppHandle, core: State<CoreState>, on: bool) -> Resu
     change(&app, &core, |c| c.set_panel_glass(on))
 }
 
+/// Fokus jendela's settings: saved, then a blur on screen takes the new darkness.
+#[tauri::command]
+pub fn set_focus_settings(
+    app: AppHandle,
+    core: State<CoreState>,
+    settings: crate::focus_rules::FocusSettings,
+) -> Result<(), String> {
+    change(&app, &core, |c| c.set_focus_settings(settings))?;
+    crate::focus_service::sync(&app);
+    Ok(())
+}
+
 /// Intip jendela's settings: saved, then its Dock watch and click tap follow them.
 #[tauri::command]
 pub fn set_peek_settings(

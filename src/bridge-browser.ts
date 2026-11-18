@@ -7,7 +7,7 @@ import { fakePrefs } from './bridge-browser-prefs';
 import { fakeTimer } from './bridge-browser-timer';
 import index from '../modules/index.json';
 import type { Lang } from './kit/protocol';
-import { DEFAULT_PEEK, type ModuleCategory, type ModuleInfo, type ModuleState, type Page, type WidgetKind } from './modules/types';
+import { DEFAULT_FOCUS, DEFAULT_PEEK, type ModuleCategory, type ModuleInfo, type ModuleState, type Page, type WidgetKind } from './modules/types';
 import { DEFAULT_CONFIG } from './notch/config';
 import { localPointer } from './notch/local-pointer';
 
@@ -152,6 +152,7 @@ export function browserBridge(root: HTMLElement): Bridge {
     panelGlass: params.get('glass') !== 'off',
     shelfOpenOnDrag: true,
     peek: DEFAULT_PEEK,
+    focus: DEFAULT_FOCUS,
     peekKeyLabel: '⌘⇥',
     macos: Number(params.get('macos') ?? 27),
   };

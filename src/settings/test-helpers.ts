@@ -1,5 +1,5 @@
 import { afterEach, vi } from 'vitest';
-import type { ModuleState, PeekSettings, Placement } from '../modules/types';
+import type { FocusSettings, ModuleState, PeekSettings, Placement } from '../modules/types';
 import type { NotchConfig } from '../notch/config';
 import { fakeRaf, TEST_STATE, timers } from '../notch/test-helpers';
 import { mountSettings, type SettingsApp } from './shell';
@@ -88,6 +88,7 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     setPanelGlass: vi.fn(async (_on: boolean) => {}),
     setShelfOpenOnDrag: vi.fn(async (_on: boolean) => {}),
     setPeekSettings: vi.fn(async (_p: PeekSettings) => {}),
+    setFocusSettings: vi.fn(async (_f: FocusSettings) => {}),
     switchSetKey: vi.fn(async (_key: ShotKeyPress) => {}),
     switchResetKey: vi.fn(async () => {}),
     setNoticeSeconds: vi.fn(async (_seconds: number) => {}),
