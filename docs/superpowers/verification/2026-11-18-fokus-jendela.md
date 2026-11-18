@@ -49,3 +49,15 @@ Putaran intip lewat gambar:
 20. Klik Arc yang ter-blur kadang tidak membawa Arc ke depan (hanya Arc; app lain normal, menurut pemilik). Log: semua langkah Notching berhasil ("frontmost Some(true) … raised Some(true)"), tapi macOS tidak melaporkan Arc aktif. Pada percobaan lain, setelah klik Arc fokus kembali ke Claude karena Claude masih mengabarkan jendela fokusnya selama perpindahan. Diperbaiki: aktivasi memakai cara Intip jendela (`peek_windows::activate`, dua jalur), diminta ulang sekali setelah 0,3 detik kalau belum aktif, dan kabar fokus jendela lain diabaikan 0,7 detik setelah klik (`ignored_while_switching`).
 21. Klik Arc setelah perbaikan: 3 dari 3 klik membuat Arc aktif ("sekarang sudah aman"). Permintaan berikutnya: intip terbuka dari atas ke bawah. Diterapkan: mask gambar turun dari atas dalam 500 ms (`reveal`, `PEEK_REVEAL_MS`).
 22. Animasi terbuka dari atas tidak jalan: mask tidak mendapat animasi otomatis. Diperbaiki dengan animasi eksplisit `position.y`, lalu jalan ("animasinya terbuka perlahan"). Terlalu pelan: dipercepat dari 500 ms ke 150 ms. Ditambahkan saklar Animasi intip (bawaan menyala).
+
+## Review akhir
+
+Reviewer terpisah membaca seluruh cabang (540bba3..c641534): siap digabung setelah perbaikan. Diperbaiki dalam satu putaran:
+1. Konfigurasi layar berubah: sesi fokus dipindah ke layar jendelanya (`Desk::rekey`), semua panel disembunyikan lalu digambar ulang. Test `a_screen_change_keeps_each_focus_with_its_windows`, `a_focus_with_no_window_left_on_any_screen_ends`, `two_focuses_landing_on_one_screen_keep_the_first`.
+2. Observer Aksesibilitas dipasang ulang hanya saat ada perubahan, di putaran run-loop berikutnya (tidak di dalam callback-nya sendiri). Tekan mouse tidak lagi memanggil Aksesibilitas.
+3. Cache gambar intip dihapus: gambar diambil baru untuk setiap intip.
+4. Jendela yang ditarik ke monitor yang fokus pada app yang sama kini menjadi fokus di sana. Test `a_window_moved_onto_a_screen_focused_on_its_own_app_takes_that_focus`.
+5. App yang keluar: daftar jendela dicek, lalu dicek sekali lagi 250 ms kemudian.
+6. Pasangan: lapisan diurutkan ulang 250 ms setelah jendela-jendelanya dinaikkan.
+7. Izin dicabut saat fokus menyala: ⌃⌥F mematikan semuanya.
+8. Pindah Space: fokus monitor yang jendelanya tidak ada di Space itu dijeda (`Desk::space_changed`). Test `a_focus_whose_windows_are_not_on_this_space_rests_until_they_are`.

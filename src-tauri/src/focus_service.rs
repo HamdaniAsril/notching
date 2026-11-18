@@ -10,9 +10,8 @@
 use std::cell::RefCell;
 use std::ffi::c_void;
 use std::ptr::NonNull;
-use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, LazyLock, Mutex, OnceLock};
+use std::sync::{LazyLock, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use block2::RcBlock;
@@ -21,7 +20,7 @@ use objc2::runtime::{AnyObject, ProtocolObject};
 use objc2::MainThreadMarker;
 use objc2_app_kit::{
     NSEvent, NSEventMask, NSEventType, NSPasteboard, NSPasteboardNameDrag, NSWorkspace, NSWorkspaceActiveSpaceDidChangeNotification,
-    NSWorkspaceDidActivateApplicationNotification,
+    NSWorkspaceDidActivateApplicationNotification, NSWorkspaceDidTerminateApplicationNotification,
 };
 use objc2_foundation::{NSNotification, NSObjectProtocol, NSOperationQueue, NSString};
 use tauri::{AppHandle, Manager};
@@ -43,10 +42,10 @@ const NOTICE_EVERY: Duration = Duration::from_secs(60);
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static DESK: LazyLock<Mutex<Desk>> = LazyLock::new(|| Mutex::new(Desk::default()));
 static LAST_NOTICE: Mutex<Option<Instant>> = Mutex::new(None);
-/// Pictures of the windows peeked at while the focus is on, in memory only.
-static PICTURES: LazyLock<Mutex<HashMap<WinId, Arc<Vec<u8>>>>> = LazyLock::new(Mutex::default);
 /// The window a click on the blur just sent the focus to, and when.
 static SWITCH: Mutex<Option<(Win, Instant)>> = Mutex::new(None);
+/// How long apps get to carry out a raise or to let a closed window go.
+const SETTLE: Duration = Duration::from_millis(250);
 /// A click's app not active by then is asked once more.
 const ACTIVATE_CHECK: Duration = Duration::from_millis(300);
 /// Bumped by every peek change, so a slow picture for an earlier one is dropped.
@@ -68,8 +67,9 @@ macro_rules! debug {
 struct Listening {
     workspace: Vec<Retained<ProtocolObject<dyn NSObjectProtocol>>>,
     monitor: Option<Retained<AnyObject>>,
-    /// Accessibility observers, one per app: the active one and those of the picked windows.
-    apps: Vec<(i32, ax::Observer)>,
+    /// Accessibility observers, one per app: the active one and those of the
+    /// picked windows, each with the windows it already watches.
+    apps: Vec<(i32, ax::Observer, Vec<WinId>)>,
 }
 
 thread_local! {
@@ -124,6 +124,12 @@ pub fn start(app: &AppHandle) {
 pub fn pressed(app: &AppHandle, add: bool) {
     if !crate::keyclean_tap::trusted(false) {
         eprintln!("notching: window focus key pressed without Accessibility");
+        // The permission went while the focus was on: the key still turns it off
+        // (final review, 18 Nov).
+        if DESK.lock().unwrap().is_on() {
+            *DESK.lock().unwrap() = Desk::default();
+            finish(app);
+        }
         no_access(app);
         return;
     }
@@ -152,12 +158,24 @@ pub fn sync(app: &AppHandle) {
     });
 }
 
-/// The screens changed while some focus may be on: the panels follow. Main thread.
+/// The screens were plugged, unplugged or rearranged: each focus goes to the
+/// screen its windows are on now, every panel goes, and the shown ones come
+/// back on their screens (final review, 18 Nov). Main thread.
 pub fn screens_changed(app: &AppHandle) {
+    let Some(mtm) = MainThreadMarker::new() else { return };
+    if !DESK.lock().unwrap().is_on() {
+        return;
+    }
+    let picked = DESK.lock().unwrap().picked_wins();
+    let places: Vec<(WinId, Option<usize>)> = picked.iter().map(|w| (w.id, screen_of(mtm, *w))).collect();
+    DESK.lock().unwrap().rekey(|w| places.iter().find(|(id, _)| *id == w.id).and_then(|(_, s)| *s));
+    focus_layer::hide(mtm);
     let layers = DESK.lock().unwrap().layers();
+    debug!("screens changed: {layers:?}");
     for (screen, layer) in layers {
         apply(app, screen, layer);
     }
+    finish(app);
 }
 
 /// ⌃⌥F without Accessibility: the notch says so, at most once a minute.
@@ -255,6 +273,22 @@ fn apply(app: &AppHandle, screen: usize, layer: Layer) {
                 raise_all(&raise);
             }
             focus_layer::show_screen(mtm, screen, raise[0], dim(app));
+            // Apps raise their windows on their own time: once a pair's raises
+            // have landed, the layer goes under them again (final review, 18 Nov).
+            if raise.len() > 1 {
+                let handle = app.clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(SETTLE);
+                    let _ = handle.clone().run_on_main_thread(move || {
+                        let now = DESK.lock().unwrap().layers().into_iter().find(|(s, _)| *s == screen).map(|(_, l)| l);
+                        if now == Some(Layer::Shown { raise: raise.clone() }) {
+                            if let Some(mtm) = MainThreadMarker::new() {
+                                focus_layer::show_screen(mtm, screen, raise[0], dim(&handle));
+                            }
+                        }
+                    });
+                });
+            }
         }
     }
 }
@@ -266,13 +300,16 @@ fn finish(app: &AppHandle) {
         if let Err(e) = status::set_icon(app, MODULE_ID, Activity::On) {
             eprintln!("notching: window focus status: {e}");
         }
-        rewatch();
+        // Next run-loop turn: never inside an observer's own callback, which may
+        // drop that observer (final review, 18 Nov).
+        let block = RcBlock::new(rewatch);
+        // SAFETY: the queue copies the block, which captures nothing.
+        unsafe { NSOperationQueue::mainQueue().addOperationWithBlock(&block) };
     } else {
         if let Some(mtm) = MainThreadMarker::new() {
             focus_layer::hide(mtm);
         }
         let was = LISTENING.with(|l| l.borrow().is_some());
-        PICTURES.lock().unwrap().clear();
         stop_listening();
         status::clear(app, MODULE_ID);
         if was {
@@ -301,9 +338,21 @@ fn listen(app: &AppHandle) {
     let mut listening = Listening::default();
     let center = NSWorkspace::sharedWorkspace().notificationCenter();
     // SAFETY: AppKit's notification names are static strings.
-    for name in unsafe { [NSWorkspaceDidActivateApplicationNotification, NSWorkspaceActiveSpaceDidChangeNotification] } {
+    let names = unsafe {
+        [
+            (NSWorkspaceDidActivateApplicationNotification, Heard::Front),
+            (NSWorkspaceActiveSpaceDidChangeNotification, Heard::Space),
+            (NSWorkspaceDidTerminateApplicationNotification, Heard::Quit),
+        ]
+    };
+    for (name, heard) in names {
         let handle = app.clone();
-        let block = RcBlock::new(move |_: NonNull<NSNotification>| front_changed(&handle));
+        let block = RcBlock::new(move |_: NonNull<NSNotification>| match heard {
+            Heard::Front => front_changed(&handle),
+            Heard::Space => space_changed(&handle),
+            // A quitting app may never say its windows are gone (final review, 18 Nov).
+            Heard::Quit => gone(&handle, true),
+        });
         // SAFETY: the block lives as long as its observer, dropped when the mode ends.
         let observer = unsafe { center.addObserverForName_object_queue_usingBlock(Some(name), None, Some(&NSOperationQueue::mainQueue()), &block) };
         listening.workspace.push(observer);
@@ -318,6 +367,26 @@ fn listen(app: &AppHandle) {
     );
     LISTENING.with(|l| *l.borrow_mut() = Some(listening));
     eprintln!("notching: window focus on");
+}
+
+/// What a workspace notification is about.
+#[derive(Clone, Copy)]
+enum Heard {
+    Front,
+    Space,
+    Quit,
+}
+
+/// Another Space: the window in use is heard as with ⌘Tab, and a focus whose
+/// windows are not on this Space rests until they are (final review, 18 Nov).
+fn space_changed(app: &AppHandle) {
+    front_changed(app);
+    let on_screen: Vec<WinId> = crate::notify::window_list().iter().map(|w| w.number).collect();
+    let changes = DESK.lock().unwrap().space_changed(&on_screen);
+    for (screen, layer) in changes {
+        apply(app, screen, layer);
+    }
+    finish(app);
 }
 
 /// The active app or the Space changed: the screen of its window hears it; a
@@ -354,7 +423,10 @@ fn stop_listening() {
     }
 }
 
-/// Accessibility observers for the active app and the apps of the picked windows.
+/// Accessibility observers for the active app and the apps of the picked
+/// windows. Only what changed is redone: an app hung in Accessibility costs its
+/// timeouts once, not on every event (final review, 18 Nov). Main thread, never
+/// inside an observer callback.
 fn rewatch() {
     let (picked, mut pids) = {
         let desk = DESK.lock().unwrap();
@@ -366,20 +438,29 @@ fn rewatch() {
     LISTENING.with(|l| {
         let mut l = l.borrow_mut();
         let Some(listening) = l.as_mut() else { return };
-        listening.apps.clear();
+        listening.apps.retain(|(pid, _, _)| pids.contains(pid));
         for pid in pids {
-            let (Some(observer), Some(app)) = (ax::Observer::new(pid, on_ax), ax::app(pid)) else { continue };
-            for name in ["AXFocusedWindowChanged", "AXWindowCreated", "AXWindowMiniaturized"] {
-                observer.watch(&app, name);
-            }
-            for w in picked.iter().filter(|w| w.pid == pid) {
+            let at = match listening.apps.iter().position(|(p, _, _)| *p == pid) {
+                Some(at) => at,
+                None => {
+                    let (Some(observer), Some(app)) = (ax::Observer::new(pid, on_ax), ax::app(pid)) else { continue };
+                    for name in ["AXFocusedWindowChanged", "AXWindowCreated", "AXWindowMiniaturized"] {
+                        observer.watch(&app, name);
+                    }
+                    listening.apps.push((pid, observer, Vec::new()));
+                    listening.apps.len() - 1
+                }
+            };
+            let (_, observer, watched) = &mut listening.apps[at];
+            let fresh: Vec<Win> = picked.iter().filter(|w| w.pid == pid && !watched.contains(&w.id)).copied().collect();
+            for w in fresh {
                 if let Some(element) = window_element(pid, w.id) {
                     observer.watch(&element, "AXUIElementDestroyed");
                     observer.watch(&element, "AXWindowMiniaturized");
                     observer.watch(&element, "AXMoved");
+                    watched.push(w.id);
                 }
             }
-            listening.apps.push((pid, observer));
         }
     });
 }
@@ -410,12 +491,14 @@ unsafe extern "C" fn on_ax(_observer: *const c_void, element: *const c_void, nam
             finish(app);
         }
         "AXMoved" => moved_window(app),
-        _ => gone(app),
+        _ => gone(app, true),
     }
 }
 
-/// A window closed or was minimized somewhere: every picked one no longer on screen is gone.
-fn gone(app: &AppHandle) {
+/// A window closed or was minimized somewhere: every picked one no longer on
+/// screen is gone. `again`: looked at once more a moment later, for a window
+/// the server still listed while it closed (final review, 18 Nov).
+fn gone(app: &AppHandle, again: bool) {
     let on_screen: Vec<u32> = crate::notify::window_list().iter().map(|w| w.number).collect();
     let picked = DESK.lock().unwrap().picked_wins();
     for w in picked.into_iter().filter(|w| !on_screen.contains(&w.id)) {
@@ -425,6 +508,13 @@ fn gone(app: &AppHandle) {
         }
     }
     finish(app);
+    if again {
+        let handle = app.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(SETTLE);
+            let _ = handle.clone().run_on_main_thread(move || gone(&handle, false));
+        });
+    }
 }
 
 /// A picked window moved: when it lands on another screen, its focus goes with it.
@@ -494,16 +584,10 @@ fn moved(x: f64, y: f64) {
     let round = PEEK_ROUND.fetch_add(1, Ordering::SeqCst) + 1;
     PEEK.with(|p| *p.borrow_mut() = Some((target, false)));
     std::thread::spawn(move || {
+        // Taken afresh for every peek, during the wait, and kept by nothing:
+        // a picture is never older than the peek (final review, 18 Nov).
         let start = Instant::now();
-        let cached = PICTURES.lock().unwrap().get(&target.id).cloned();
-        let png = match cached {
-            Some(png) => png,
-            None => {
-                let Some(png) = peek_capture::picture(target.id, false, PictureSize::Full) else { return };
-                PICTURES.lock().unwrap().insert(target.id, png.clone());
-                png
-            }
-        };
+        let Some(png) = peek_capture::picture(target.id, false, PictureSize::Full) else { return };
         if let Some(rest) = PEEK_DELAY.checked_sub(start.elapsed()) {
             std::thread::sleep(rest);
         }
@@ -579,8 +663,15 @@ fn on_mouse(event: &NSEvent) {
         NSEventType::LeftMouseDown => {
             let count = drag_pasteboard().changeCount();
             DRAG.with(|d| d.borrow_mut().pressed(count));
-            let front = front_window().map(|w| (w, screen_of(mtm, w)));
-            PRESSED_ON.with(|p| *p.borrow_mut() = front);
+            // The window under the pointer, from the window server: no
+            // Accessibility call on every click (final review, 18 Nov).
+            let (x, y) = focus_layer::pointer();
+            let me = std::process::id() as i32;
+            let under = crate::notify::window_list()
+                .into_iter()
+                .find(|w| w.layer == 0 && w.pid != me && w.bounds.contains(x, y))
+                .map(|w| (Win { id: w.number, pid: w.pid }, screen_at(mtm, w.bounds)));
+            PRESSED_ON.with(|p| *p.borrow_mut() = under);
         }
         NSEventType::LeftMouseDragged => {
             let began = DRAG.with(|d| d.borrow_mut().dragged(now_ms(), || drag_pasteboard().changeCount()));
@@ -597,7 +688,8 @@ fn on_mouse(event: &NSEvent) {
             // A window dragged onto another screen: that screen hears it now, as
             // if it had just come to the front there (owner, 18 Nov).
             if let Some((w, was)) = PRESSED_ON.with(|p| p.borrow_mut().take()) {
-                let now = screen_of(mtm, w);
+                let frame = crate::notify::window_list().into_iter().find(|b| b.number == w.id).map(|b| b.bounds);
+                let now = frame.and_then(|f| screen_at(mtm, f));
                 if now.is_some() && now != was {
                     if let Some(app) = APP.get() {
                         debug!("window {} dragged from screen {was:?} to {now:?}", w.id);

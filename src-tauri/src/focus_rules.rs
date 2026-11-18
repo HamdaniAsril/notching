@@ -314,8 +314,44 @@ impl Desk {
         if let Some(layer) = self.step(from, Event::Gone(w.id)) {
             out.push((from, layer));
         }
-        if let Some(layer) = self.step(to, Event::Front(Some(w))) {
+        // A click's replace, not ⌘Tab's: a same-app pair there must not keep it out.
+        if let Some(layer) = self.step(to, Event::Click(w)) {
             out.push((to, layer));
+        }
+        out
+    }
+
+    /// The screens were plugged, unplugged or rearranged, so their numbers may
+    /// mean other screens now: each focus goes to the screen its windows are on
+    /// (`screen_of`). One with no window on any screen ends; two on one screen
+    /// keep the first (final review, 18 Nov).
+    pub fn rekey(&mut self, screen_of: impl Fn(Win) -> Option<usize>) {
+        let old = std::mem::take(&mut self.screens);
+        for (_, focus) in old {
+            let Some(to) = focus.picked_wins().into_iter().find_map(&screen_of) else { continue };
+            if !self.screens.iter().any(|(s, _)| *s == to) {
+                self.screens.push((to, focus));
+            }
+        }
+        self.screens.sort_by_key(|(s, _)| *s);
+    }
+
+    /// Another Space: a focus whose windows are none of `on_screen` rests, and
+    /// one resting whose window is back comes back (final review, 18 Nov: a
+    /// screen stayed blurred over a Space without its window).
+    pub fn space_changed(&mut self, on_screen: &[WinId]) -> Vec<(usize, Layer)> {
+        let sessions: Vec<(usize, Vec<Win>, Layer)> = self.screens.iter().map(|(s, f)| (*s, f.picked_wins(), f.layer())).collect();
+        let mut out = Vec::new();
+        for (screen, picked, layer) in sessions {
+            let seen = picked.iter().find(|w| on_screen.contains(&w.id)).copied();
+            let event = match (seen, layer) {
+                (None, Layer::Shown { .. }) if !picked.is_empty() => Event::Front(None),
+                (Some(w), Layer::Paused) => Event::Focused(w),
+                _ => continue,
+            };
+            if let Some(layer) = self.step(screen, event) {
+                out.push((screen, layer));
+            }
         }
         out
     }
@@ -859,5 +895,63 @@ mod tests {
         assert!((r.travel(500.0) - 500.0 * (1.0 + PEEK_FADE)).abs() < 1e-9);
         // Very quick (owner, 18 Nov: "buat sangat cepat").
         assert_eq!(PEEK_REVEAL_MS, 150);
+    }
+
+    #[test]
+    fn a_screen_change_keeps_each_focus_with_its_windows() {
+        // Focus on screens 0 and 2; screen 1 is unplugged, so 2 becomes 1.
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        d.step(2, Event::Toggle(Some(C)));
+        d.rekey(|w| match w.id {
+            1 => Some(0),
+            3 => Some(1),
+            _ => None,
+        });
+        assert_eq!(d.layers(), vec![(0, Layer::Shown { raise: vec![1] }), (1, Layer::Shown { raise: vec![3] })]);
+    }
+
+    #[test]
+    fn a_focus_with_no_window_left_on_any_screen_ends() {
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        d.step(1, Event::Toggle(Some(C)));
+        d.gone(3);
+        d.rekey(|w| (w.id == 1).then_some(0));
+        assert_eq!(d.layers(), vec![(0, Layer::Shown { raise: vec![1] })]);
+        let mut gone = Desk::default();
+        gone.step(1, Event::Toggle(Some(C)));
+        gone.rekey(|_| None);
+        assert!(!gone.is_on());
+    }
+
+    #[test]
+    fn two_focuses_landing_on_one_screen_keep_the_first() {
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        d.step(1, Event::Toggle(Some(C)));
+        d.rekey(|_| Some(0));
+        assert_eq!(d.layers(), vec![(0, Layer::Shown { raise: vec![1] })]);
+    }
+
+    #[test]
+    fn a_window_moved_onto_a_screen_focused_on_its_own_app_takes_that_focus() {
+        // B and A are windows of the same app, focused on screens 1 and 0.
+        let mut d = Desk::default();
+        d.step(1, Event::Toggle(Some(B)));
+        d.step(0, Event::Toggle(Some(A)));
+        assert_eq!(d.moved(B, 0), vec![(1, Layer::Paused), (0, Layer::Shown { raise: vec![2] })]);
+    }
+
+    #[test]
+    fn a_focus_whose_windows_are_not_on_this_space_rests_until_they_are() {
+        let mut d = Desk::default();
+        d.step(0, Event::Toggle(Some(A)));
+        d.step(1, Event::Toggle(Some(C)));
+        // Another Space: only A is on screen.
+        assert_eq!(d.space_changed(&[1]), vec![(1, Layer::Paused)]);
+        // Back: C is on screen again.
+        assert_eq!(d.space_changed(&[1, 3]), vec![(1, Layer::Shown { raise: vec![3] })]);
+        assert_eq!(d.space_changed(&[1, 3]), vec![]);
     }
 }
