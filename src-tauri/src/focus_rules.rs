@@ -244,8 +244,9 @@ pub struct Below {
 
 /// The top fifth of a peeked window is clear (owner, 18 Nov, after trying it)…
 pub const PEEK_CLEAR: f64 = 0.2;
-/// …then a short fade back to blur (owner: "lebih tegas").
-pub const PEEK_FADE: f64 = 0.08;
+/// …then a fade back to blur: shorter than at first ("lebih tegas"), softer than
+/// 8% ("terlalu keras"), the owner on 18 Nov.
+pub const PEEK_FADE: f64 = 0.2;
 /// The hole's top corners round like a macOS 27 window's (owner, 18 Nov). Other
 /// apps' corner radii cannot be read, so this is the standard one.
 pub const PEEK_RADIUS: f64 = 26.0;
@@ -506,11 +507,11 @@ mod tests {
     }
 
     #[test]
-    fn peek_hole_opens_the_top_fifth_with_a_short_fade() {
+    fn peek_hole_opens_the_top_fifth_then_fades_over_a_fifth() {
         let target = Below { id: 7, pid: 1, frame: r(100., 50., 400., 500.) };
         let hole = peek_hole(target, &[]);
-        assert_eq!(hole.open, r(100., 50., 400., 140.));
-        assert_eq!(hole.fade, r(100., 150., 400., 40.));
+        assert_eq!(hole.open, r(100., 50., 400., 200.));
+        assert_eq!(hole.fade, r(100., 150., 400., 100.));
         assert!(hole.covers.is_empty());
     }
 
@@ -520,7 +521,7 @@ mod tests {
         assert_eq!(big.radius, 26.);
         // A small window's hole cannot round more than half its height.
         let small = peek_hole(Below { id: 7, pid: 1, frame: r(0., 0., 300., 100.) }, &[]);
-        assert_eq!(small.radius, 14.);
+        assert_eq!(small.radius, 20.);
     }
 
     #[test]
@@ -529,7 +530,7 @@ mod tests {
         let front = Below { id: 7, pid: 1, frame: r(300., 50., 400., 300.) };
         let away = Below { id: 9, pid: 3, frame: r(900., 0., 100., 100.) };
         let hole = peek_hole(target, &[front, away]);
-        assert_eq!(hole.covers, vec![r(300., 50., 100., 90.)]);
+        assert_eq!(hole.covers, vec![r(300., 50., 100., 150.)]);
     }
 
     #[test]

@@ -22,3 +22,4 @@ Notching Dev (`id.web.notching.dev`, bundle debug dibuka lewat `open`). Versi de
 2. Blur hanya di monitor tempat jendela fokus berada.
 3. Saat mengintip jendela paling belakang, bagian jendela lain yang menutupinya ikut jelas. Diperbaiki: bagian itu tetap blur.
 4. Sudut atas lubang intipan kotak, tidak mengikuti jendela. Diperbaiki: sudutnya membulat (radius 26 pt).
+5. Gradasi 8% terlalu keras. Diubah: gradasi 20%, jadi blur penuh di 40% tinggi jendela.

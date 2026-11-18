@@ -76,7 +76,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
   ░└──────────┘░
   ```
 - Sudut atas lubang intipan membulat seperti jendela macOS 27 (radius 26 pt, lebih kecil untuk jendela yang pendek). Radius sudut jendela app lain tidak bisa dibaca, jadi dipakai radius standar. **(pemilik: sudutnya mengikuti jendela; angka keputusan penulis)**
-- Gradasinya mulai di 20% tinggi jendela dan menjadi blur penuh di 28%. Sisanya tetap blur. **(pemilik: lebih ke atas dan lebih tegas; angka pastinya keputusan penulis)**
+- Gradasinya mulai di 20% tinggi jendela dan menjadi blur penuh di 40%. Sisanya tetap blur. **(pemilik: lebih ke atas; gradasi 8% "terlalu keras", lalu dibuat lebih lembut; angka pastinya keputusan penulis)**
 - Pindah ke jendela lain langsung mengganti intipan. Kursor keluar dari area blur, ke jendela fokus, atau ke area tanpa jendela (desktop): tidak ada yang diintip.
 - Muncul dan hilangnya intipan memakai transisi singkat, sekitar 120 ms. **(keputusan penulis)**
 - Kalau sebagian jendela yang diintip tertutup jendela lain yang juga ter-blur, bagian yang menutupinya **tetap blur**. Hanya bagian jendela yang terlihat yang menjadi jelas. **(pemilik, 18 November 2026)**
@@ -166,7 +166,7 @@ Risiko lain yang harus dicek di Mac sungguhan:
 4. Saat fokus di dua jendela, ⌘Tab ke app milik salah satunya tidak memecah pasangan.
 5. ⌘\` ke jendela lama di app yang sama dianggap pindah fokus, bukan jendela baru.
 6. App aktif tanpa jendela, atau jendela fokus ditutup tanpa pengganti: blur dijeda, bukan dimatikan.
-7. Intipan: jelas 20% teratas, gradasi sampai 28% (arah dari pemilik, angka dari penulis). Transisi 120 ms.
+7. Intipan: jelas 20% teratas, gradasi sampai 40% (arah dari pemilik, angka dari penulis). Transisi 120 ms.
 8. Klik di desktop yang ter-blur tidak melakukan apa-apa.
 9. Pindah Space memindah fokus. App layar penuh tanpa blur. (Bagian monitor diganti pemilik: hanya monitor jendela fokus yang di-blur, bagian 4.6.)
 10. Ikon alat tanpa teks di samping notch selama mode fokus menyala.
