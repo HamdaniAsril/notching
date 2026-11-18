@@ -19,9 +19,11 @@ use objc2_app_kit::{
     NSWindowStyleMask,
 };
 use objc2_core_graphics::CGColor;
-use objc2_foundation::{NSArray, NSData, NSNumber, NSObject, NSPoint, NSRect, NSSize};
+use objc2_foundation::{NSArray, NSData, NSNumber, NSObject, NSPoint, NSRect, NSSize, NSString};
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
-use objc2_quartz_core::{kCAMediaTimingFunctionEaseOut, CAGradientLayer, CAMediaTimingFunction, CATransaction};
+use objc2_quartz_core::{
+    kCAMediaTimingFunctionEaseOut, CABasicAnimation, CAGradientLayer, CAMediaTiming, CAMediaTimingFunction, CATransaction,
+};
 
 use crate::focus_rules::{reveal, PeekShape, PEEK_OUT_MS, PEEK_REVEAL_MS};
 use crate::geometry::{to_cg, Rect};
@@ -237,13 +239,12 @@ fn as_object(c: &CGColor) -> &AnyObject {
     unsafe { &*(c as *const CGColor as *const AnyObject) }
 }
 
-/// A peek's mask for a picture `w` × `h` points (focus_rules::reveal), at its
-/// place, or `raised` above it where nothing shows yet. Only the picture is
+/// A peek's mask for a picture `w` × `h` points (focus_rules::reveal), at its place. Only the picture is
 /// masked, never the blur.
-fn reveal_mask(shape: PeekShape, w: f64, h: f64, raised: f64) -> objc2::rc::Retained<CAGradientLayer> {
+fn reveal_mask(shape: PeekShape, w: f64, h: f64) -> objc2::rc::Retained<CAGradientLayer> {
     let r = reveal(shape);
     let mask = CAGradientLayer::new();
-    mask.setFrame(CGRect::new(CGPoint::new(0.0, -r.below * h + raised), CGSize::new(w, h * (1.0 + r.below))));
+    mask.setFrame(CGRect::new(CGPoint::new(0.0, -r.below * h), CGSize::new(w, h * (1.0 + r.below))));
     let colors: Vec<_> = r.stops.iter().map(|&(_, shows)| CGColor::new_generic_gray(0.0, shows)).collect();
     let objects: Vec<&AnyObject> = colors.iter().map(|c| as_object(c)).collect();
     // SAFETY: an array of CGColors, as CAGradientLayer takes.
@@ -272,7 +273,7 @@ pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], shape: PeekS
         slot.picture.setFrame(ns_rect(local));
         let Some(layer) = slot.picture.layer() else { return };
         let travel = reveal(shape).travel(local.h);
-        let mask = reveal_mask(shape, local.w, local.h, if open { travel } else { 0.0 });
+        let mask = reveal_mask(shape, local.w, local.h);
         CATransaction::begin();
         CATransaction::setDisableActions(true);
         // SAFETY: an NSImage, which a layer on macOS takes as its contents.
@@ -282,15 +283,21 @@ pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], shape: PeekS
         layer.setOpacity(1.0);
         CATransaction::commit();
         if open {
-            // The mask comes down: the blur clears from the window's top down.
-            CATransaction::begin();
-            CATransaction::setAnimationDuration(PEEK_REVEAL_MS as f64 / 1000.0);
+            // The mask comes down from where nothing shows: the blur clears from
+            // the window's top down. An explicit animation, as glass_view does
+            // for its mask: a mask layer gets no implicit one (owner, 18 Nov: it
+            // opened at once).
+            let y = mask.position().y;
+            let a = CABasicAnimation::animationWithKeyPath(Some(&NSString::from_str("position.y")));
+            // SAFETY: numbers, the kind position.y animates.
+            unsafe {
+                a.setFromValue(Some(&NSNumber::new_f64(y + travel)));
+                a.setToValue(Some(&NSNumber::new_f64(y)));
+            }
+            a.setDuration(PEEK_REVEAL_MS as f64 / 1000.0);
             // SAFETY: a constant Core Animation defines.
-            CATransaction::setAnimationTimingFunction(Some(&CAMediaTimingFunction::functionWithName(unsafe { kCAMediaTimingFunctionEaseOut })));
-            let mut f = mask.frame();
-            f.origin.y -= travel;
-            mask.setFrame(f);
-            CATransaction::commit();
+            a.setTimingFunction(Some(&CAMediaTimingFunction::functionWithName(unsafe { kCAMediaTimingFunctionEaseOut })));
+            mask.addAnimation_forKey(&a, Some(&NSString::from_str("reveal")));
         }
     });
 }
