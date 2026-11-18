@@ -84,11 +84,12 @@ The pill under the notch holds your pages. Home comes first. Add as many of your
 
 Add or remove any of them, and any widget pack, from the Catalog in Settings. Nothing to download: it's all in the app already.
 
-**3 background tools, no panel needed.**
+**4 background tools, no panel needed.**
 
 - **Cut files.** ⌘X and ⌘V move files in Finder, just as they move text.
 - **Arrange windows.** `⌃⌥` with an arrow key snaps the front window to half of its screen, with `;` `'` `.` `/` to a corner, with `\` to the centre, and with Return it fills the screen.
 - **Window peek.** Point at a Dock icon to see every window of the app, minimized ones too; click the icon to minimize them all or bring them all back; ⌘Tab shows every window, minimized ones too. Install it from the Catalog.
+- **Window focus.** `⌃⌥F` blurs everything behind the window you work in; focus follows you to another window, point at the blur to peek at what is behind, and `⌃⌥⇧F` keeps a second window clear. Install it from the Catalog.
 
 ## Shortcuts
 
@@ -99,6 +100,7 @@ Every key Notching listens for sits on one page in Settings. Click one to change
 - ⌘⇧3 and ⌘⇧4 for Screenshot, once you hand them over from macOS.
 - The ten keys of Arrange windows.
 - ⌘Tab for Window peek's switcher, once it is installed (macOS's own ⌘Tab comes back whenever the switcher lets go).
+- ⌃⌥F and ⌃⌥⇧F for Window focus, once it is installed.
 
 Notching won't let two of its shortcuts share a key, and tells you when another app already has one.
 
@@ -139,7 +141,7 @@ A notch app is open all day, so it has to cost you almost nothing. We spent a lo
 
 On macOS, some modules need a permission, which you grant once in System Settings → Privacy & Security:
 - Screen Recording for Screenshot, and for Window peek's pictures of windows. Since macOS 15 it is called Screen & System Audio Recording.
-- Accessibility for Keyboard Cleaning Mode, Cut files, Arrange windows and Window peek. Since macOS 27 it is called Device Control and Data Access.
+- Accessibility for Keyboard Cleaning Mode, Cut files, Arrange windows, Window peek and Window focus. Since macOS 27 it is called Device Control and Data Access.
 - Full Disk Access for Cleaner.
 - Camera for Mirror.
 

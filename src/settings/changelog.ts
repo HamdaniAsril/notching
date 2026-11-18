@@ -11,6 +11,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.1.5',
+    date: null,
+    items: {
+      id: [
+        'Fokus jendela (pasang dari Katalog): tekan ⌃⌥F dan semua yang di belakang jendelamu jadi blur. Fokus ikut pindah saat kamu pindah jendela, arahkan kursor ke area blur untuk mengintip, dan ⌃⌥⇧F menambah jendela kedua.',
+      ],
+      en: [
+        'Window focus (install it from the Catalog): press ⌃⌥F and everything behind your window blurs. Focus follows you to another window, point at the blur to peek, and ⌃⌥⇧F adds a second window.',
+      ],
+    },
+  },
+  {
     version: '0.1.4',
     date: '2026-11-07',
     items: {
