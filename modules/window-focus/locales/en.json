@@ -1,0 +1,9 @@
+{
+  "name": "Window focus",
+  "shortName": "Focus",
+  "description": "Blurs everything behind the window you work in",
+  "channels": { "access": "Access" },
+  "notice": {
+    "access": { "title": "Window focus needs {accessibility}", "detail": "Open Settings → Permissions" }
+  }
+}

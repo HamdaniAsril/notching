@@ -58,6 +58,9 @@ pub enum Capability {
     /// Intip jendela: the Dock peek and the Dock click, run by the core (design 5 Nov).
     #[serde(rename = "peek")]
     Peek,
+    /// Fokus jendela: everything behind the focused window blurs (design 18 Nov).
+    #[serde(rename = "focus")]
+    Focus,
 }
 
 /// System permissions a module needs (shown on the Permissions page, plan 3).

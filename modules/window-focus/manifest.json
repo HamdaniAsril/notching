@@ -1,0 +1,11 @@
+{
+  "id": "window-focus",
+  "version": "1.0.0",
+  "category": "window",
+  "icon": "icon.svg",
+  "optIn": true,
+  "permissions": ["accessibility"],
+  "capabilities": ["focus", "status", "notify"],
+  "tool": "focus",
+  "notifications": [{ "id": "access", "on": true, "sound": false }]
+}

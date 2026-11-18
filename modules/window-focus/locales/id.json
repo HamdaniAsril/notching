@@ -1,0 +1,9 @@
+{
+  "name": "Fokus jendela",
+  "shortName": "Fokus",
+  "description": "Semua yang di belakang jendela kerjamu jadi blur",
+  "channels": { "access": "Izin" },
+  "notice": {
+    "access": { "title": "Fokus jendela butuh izin {accessibility}", "detail": "Buka Pengaturan → Izin" }
+  }
+}
