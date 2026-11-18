@@ -315,6 +315,11 @@ pub fn raise(window: &Cf) -> bool {
     raised
 }
 
+/// Brings the window up among the others, nothing more (no main window change).
+pub fn raise_only(window: &Cf) -> bool {
+    perform(window, "AXRaise")
+}
+
 /// Makes the app the active one through Accessibility, which macOS 14+ still
 /// honours when the old activation option is ignored.
 pub fn set_frontmost(app: &Cf) -> bool {

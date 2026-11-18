@@ -25,7 +25,7 @@ use tauri::{AppHandle, Manager};
 use crate::app_core::CoreState;
 use crate::ax::{self, Cf};
 use crate::focus_layer;
-use crate::focus_rules::{blur_screens, peek_hole, peek_target, Below, Event, Focus, Layer, Win, WinId};
+use crate::focus_rules::{blur_screens, on_blurred_screen, peek_hole, peek_target, Below, Event, Focus, Layer, Win, WinId};
 use crate::geometry::Rect;
 use crate::shelf_watch::Watch;
 use crate::status::{self, Activity};
@@ -167,6 +167,26 @@ fn screens_for(mtm: MainThreadMarker, picked: &[Win]) -> Vec<usize> {
     blur_screens(&focus_layer::screens_cg(mtm), &frames)
 }
 
+/// A window's frame, from the window server, else from Accessibility.
+fn frame_of(w: Win) -> Option<Rect> {
+    crate::notify::window_list().iter().find(|b| b.number == w.id).map(|b| b.bounds).or_else(|| window_element(w.pid, w.id).and_then(|e| ax::frame(&e)))
+}
+
+/// Focus moves only to a window on a blurred screen (owner, 18 Nov). With no
+/// window, the pointer's screen decides; with nothing blurred yet, anything goes.
+fn takes_focus(frame: Option<Rect>) -> bool {
+    let Some(mtm) = MainThreadMarker::new() else { return true };
+    let blurred = BLURRED.with(|b| b.borrow().clone());
+    if blurred.is_empty() {
+        return true;
+    }
+    let frame = frame.unwrap_or_else(|| {
+        let (x, y) = focus_layer::pointer();
+        Rect { x, y, w: 1.0, h: 1.0 }
+    });
+    on_blurred_screen(frame, &focus_layer::screens_cg(mtm), &blurred)
+}
+
 /// A picked window moved: when it lands on another screen, the blur goes with it.
 fn moved_window(app: &AppHandle) {
     let Some(mtm) = MainThreadMarker::new() else { return };
@@ -201,6 +221,7 @@ fn apply(app: &AppHandle, layer: Layer) {
     clear_peek(mtm);
     match layer {
         Layer::Off => {
+            BLURRED.with(|b| b.borrow_mut().clear());
             focus_layer::hide(mtm);
             stop_listening();
             status::clear(app, MODULE_ID);
@@ -245,7 +266,11 @@ fn listen(app: &AppHandle) {
     for name in unsafe { [NSWorkspaceDidActivateApplicationNotification, NSWorkspaceActiveSpaceDidChangeNotification] } {
         let handle = app.clone();
         let block = RcBlock::new(move |_: NonNull<NSNotification>| {
-            send(&handle, Event::Front(front_window()));
+            let front = front_window();
+            // A window on a screen without blur leaves the focus where it is.
+            if takes_focus(front.and_then(frame_of)) {
+                send(&handle, Event::Front(front));
+            }
             rewatch();
         });
         // SAFETY: the block lives as long as its observer, dropped when the mode ends.
@@ -330,7 +355,11 @@ unsafe extern "C" fn on_ax(_observer: *const c_void, element: *const c_void, nam
             let id = ax::window_id(&element).or_else(|| ax::app(pid).and_then(|a| ax::focused_window_only(&a)).and_then(|w| ax::window_id(&w)));
             let Some(id) = id else { return };
             let win = Win { id, pid };
-            send(app, if name == "AXWindowCreated" { Event::Created(win) } else { Event::Focused(win) });
+            if name == "AXWindowCreated" {
+                send(app, Event::Created(win));
+            } else if takes_focus(frame_of(win)) {
+                send(app, Event::Focused(win));
+            }
         }
         "AXMoved" => moved_window(app),
         _ => gone(app),
@@ -387,13 +416,36 @@ fn moved(x: f64, y: f64) {
         }
         PEEK_READ.with(|r| *r.borrow_mut() = Some(now));
     }
-    let below = below_layer(mtm);
-    let at = below.iter().position(|b| b.frame.contains(x, y));
+    let mut below = below_layer(mtm);
+    let mut at = below.iter().position(|b| b.frame.contains(x, y));
+    // Covered by other blurred windows: it comes up above them, still under the
+    // blur and the focused windows (owner, 18 Nov).
+    if let Some(i) = at.filter(|&i| !peek_hole(below[i], &below[..i]).covers.is_empty()) {
+        bring_forward(mtm, below[i]);
+        below = below_layer(mtm);
+        at = below.iter().position(|b| b.frame.contains(x, y));
+    }
     let hole = at.map(|i| peek_hole(below[i], &below[..i]));
     PEEK.with(|p| *p.borrow_mut() = at.map(|i| (below[i], below[..i].iter().map(|b| b.frame).collect())));
     if hole.is_some() || was {
         focus_layer::set_peek(mtm, hole.as_ref());
     }
+}
+
+/// Raises `target`, then the focused windows over it, then puts the layer back
+/// right below them: focused > blur > target > the rest.
+fn bring_forward(mtm: MainThreadMarker, target: Below) {
+    let Layer::Shown { raise } = FOCUS.lock().unwrap().layer() else { return };
+    let picked = FOCUS.lock().unwrap().picked_wins();
+    if let Some(w) = window_element(target.pid, target.id) {
+        ax::raise_only(&w);
+    }
+    for id in &raise {
+        if let Some(w) = picked.iter().find(|w| w.id == *id).and_then(|w| window_element(w.pid, w.id)) {
+            ax::raise_only(&w);
+        }
+    }
+    focus_layer::reorder(mtm, raise[0]);
 }
 
 fn left() {

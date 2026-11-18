@@ -244,9 +244,22 @@ pub struct Below {
 
 /// The top fifth of a peeked window is clear (owner, 18 Nov, after trying it)…
 pub const PEEK_CLEAR: f64 = 0.2;
-/// …then a fade back to blur: shorter than at first ("lebih tegas"), softer than
-/// 8% ("terlalu keras"), the owner on 18 Nov.
-pub const PEEK_FADE: f64 = 0.2;
+/// …then an eased fade back to blur: shorter than at first ("lebih tegas"),
+/// softer than 8% and 20% ("terlalu keras", "kurang smooth"), the owner on 18 Nov.
+pub const PEEK_FADE: f64 = 0.3;
+/// How many stops the fade's curve is drawn with.
+const FADE_STOPS: usize = 9;
+
+/// The fade's stops, bottom (0) to top (1): (place, how much blur), eased in and
+/// out so neither end of the band shows an edge.
+pub fn fade_stops() -> Vec<(f64, f64)> {
+    (0..FADE_STOPS)
+        .map(|i| {
+            let t = i as f64 / (FADE_STOPS - 1) as f64;
+            (t, 1.0 - t * t * (3.0 - 2.0 * t))
+        })
+        .collect()
+}
 /// The hole's top corners round like a macOS 27 window's (owner, 18 Nov). Other
 /// apps' corner radii cannot be read, so this is the standard one.
 pub const PEEK_RADIUS: f64 = 26.0;
@@ -290,6 +303,13 @@ pub fn peek_hole(target: Below, in_front: &[Below]) -> PeekHole {
         covers: in_front.iter().filter_map(|b| overlap(b.frame, open)).collect(),
         radius: PEEK_RADIUS.min(open.w / 2.0).min(open.h / 2.0),
     }
+}
+
+/// A window on a screen the blur covers. Elsewhere a click or ⌘Tab leaves the
+/// focus where it is (owner, 18 Nov: "dimonitor lain harus normal").
+pub fn on_blurred_screen(frame: Rect, screens: &[Rect], blurred: &[usize]) -> bool {
+    let mine = blur_screens(screens, &[frame]);
+    !mine.is_empty() && mine.iter().all(|i| blurred.contains(i))
 }
 
 /// The screens to blur: the one holding most of each picked window, else the
@@ -507,11 +527,11 @@ mod tests {
     }
 
     #[test]
-    fn peek_hole_opens_the_top_fifth_then_fades_over_a_fifth() {
+    fn peek_hole_opens_the_top_fifth_then_fades_over_three_tenths() {
         let target = Below { id: 7, pid: 1, frame: r(100., 50., 400., 500.) };
         let hole = peek_hole(target, &[]);
-        assert_eq!(hole.open, r(100., 50., 400., 200.));
-        assert_eq!(hole.fade, r(100., 150., 400., 100.));
+        assert_eq!(hole.open, r(100., 50., 400., 250.));
+        assert_eq!(hole.fade, r(100., 150., 400., 150.));
         assert!(hole.covers.is_empty());
     }
 
@@ -521,7 +541,7 @@ mod tests {
         assert_eq!(big.radius, 26.);
         // A small window's hole cannot round more than half its height.
         let small = peek_hole(Below { id: 7, pid: 1, frame: r(0., 0., 300., 100.) }, &[]);
-        assert_eq!(small.radius, 20.);
+        assert_eq!(small.radius, 25.);
     }
 
     #[test]
@@ -530,7 +550,7 @@ mod tests {
         let front = Below { id: 7, pid: 1, frame: r(300., 50., 400., 300.) };
         let away = Below { id: 9, pid: 3, frame: r(900., 0., 100., 100.) };
         let hole = peek_hole(target, &[front, away]);
-        assert_eq!(hole.covers, vec![r(300., 50., 100., 150.)]);
+        assert_eq!(hole.covers, vec![r(300., 50., 100., 200.)]);
     }
 
     #[test]
@@ -543,5 +563,27 @@ mod tests {
         // Off every screen: the screen nearest still blurs, never none.
         assert_eq!(blur_screens(&screens, &[r(-900., 100., 600., 400.)]), vec![0]);
         assert_eq!(blur_screens(&screens, &[]), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn the_fade_eases_in_and_out() {
+        let stops = fade_stops();
+        // From full blur at the bottom (0) to clear at the top (1).
+        assert_eq!(stops.first(), Some(&(0.0, 1.0)));
+        assert_eq!(stops.last(), Some(&(1.0, 0.0)));
+        assert!(stops.len() >= 6);
+        assert!(stops.windows(2).all(|w| w[0].0 < w[1].0 && w[0].1 > w[1].1));
+        // Eased: slow at both ends, so the first and last steps are the smallest.
+        let steps: Vec<f64> = stops.windows(2).map(|w| w[0].1 - w[1].1).collect();
+        let middle = steps[steps.len() / 2];
+        assert!(steps[0] < middle && steps[steps.len() - 1] < middle);
+    }
+
+    #[test]
+    fn only_a_window_on_a_blurred_screen_takes_the_focus() {
+        let screens = [r(0., 0., 1440., 900.), r(1440., 0., 1920., 1080.)];
+        assert!(on_blurred_screen(r(100., 100., 600., 400.), &screens, &[0]));
+        assert!(!on_blurred_screen(r(1800., 100., 600., 400.), &screens, &[0]));
+        assert!(on_blurred_screen(r(1800., 100., 600., 400.), &screens, &[0, 1]));
     }
 }
