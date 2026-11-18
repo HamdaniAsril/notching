@@ -358,6 +358,8 @@
       "peek": "Used by Window peek"
     },
     "focus": {
+      "reveal": "Peek animation",
+      "revealHint": "The peek opens quickly from the top down.",
       "peek": "Peek",
       "peekHint": "Point at a blurred window. Whole: all of it. Top part: its top, fading out.",
       "peekWhole": "Whole",

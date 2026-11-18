@@ -358,6 +358,8 @@
       "peek": "Dipakai Intip jendela"
     },
     "focus": {
+      "reveal": "Animasi intip",
+      "revealHint": "Intip terbuka cepat dari atas ke bawah.",
       "peek": "Intip",
       "peekHint": "Arahkan kursor ke jendela yang ter-blur. Utuh: seluruh jendela. Bagian atas: atasnya jelas, lalu memudar.",
       "peekWhole": "Utuh",

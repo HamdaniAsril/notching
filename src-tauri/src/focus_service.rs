@@ -105,9 +105,12 @@ fn dim(app: &AppHandle) -> f64 {
     app.state::<CoreState>().0.lock().unwrap().focus_settings().dim.alpha()
 }
 
-/// What a peek shows (Settings).
-fn peek_shape() -> PeekShape {
-    APP.get().map_or(PeekShape::Whole, |app| app.state::<CoreState>().0.lock().unwrap().focus_settings().peek)
+/// What a peek shows, and whether it opens from the top down (Settings).
+fn peek_look() -> (PeekShape, bool) {
+    APP.get().map_or((PeekShape::Whole, true), |app| {
+        let f = app.state::<CoreState>().0.lock().unwrap().focus_settings();
+        (f.peek, f.reveal)
+    })
 }
 
 /// At launch: the panels' hooks.
@@ -511,7 +514,8 @@ fn moved(x: f64, y: f64) {
                 return;
             }
             let Some(mtm) = MainThreadMarker::new() else { return };
-            focus_layer::show_picture(mtm, target.frame, &png, peek_shape(), true);
+            let (shape, reveal) = peek_look();
+            focus_layer::show_picture(mtm, target.frame, &png, shape, reveal);
             PEEK.with(|p| *p.borrow_mut() = Some((target, true)));
         });
     });

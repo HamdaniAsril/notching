@@ -40,11 +40,19 @@ pub enum PeekShape {
 }
 
 /// Fokus jendela's settings. A missing field takes its default, an unknown choice too.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct FocusSettings {
     pub dim: Dim,
     pub peek: PeekShape,
+    /// A peek opens from the window's top down (owner, 18 Nov); off, it is there at once.
+    pub reveal: bool,
+}
+
+impl Default for FocusSettings {
+    fn default() -> Self {
+        FocusSettings { dim: Dim::default(), peek: PeekShape::default(), reveal: true }
+    }
 }
 
 pub type WinId = u32;
@@ -387,8 +395,9 @@ pub fn top_peek_stops() -> Vec<(f64, f64)> {
     stops
 }
 
-/// How long a peek takes to open from the window's top down (owner, 18 Nov).
-pub const PEEK_REVEAL_MS: u64 = 500;
+/// How long a peek takes to open from the window's top down: very quick (owner,
+/// 18 Nov: 500 ms was too slow).
+pub const PEEK_REVEAL_MS: u64 = 150;
 
 /// A peek's mask and how it slides in: it starts `travel` above its place, where
 /// nothing shows, and comes down, so the blur clears from the window's top
@@ -495,7 +504,12 @@ mod tests {
     fn focus_settings_default_and_survive_bad_fields() {
         let f: FocusSettings = serde_json::from_str(r#"{"dim":"nonsense","peek":"nonsense"}"#).unwrap();
         assert_eq!(f, FocusSettings::default());
-        assert_eq!(serde_json::to_value(FocusSettings::default()).unwrap(), serde_json::json!({"dim":"little","peek":"whole"}));
+        assert_eq!(serde_json::to_value(FocusSettings::default()).unwrap(), serde_json::json!({"dim":"little","peek":"whole","reveal":true}));
+        let still: FocusSettings = serde_json::from_str(r#"{"reveal":false}"#).unwrap();
+        assert!(!still.reveal);
+        // An older file without it opens with the animation on.
+        let old: FocusSettings = serde_json::from_str(r#"{"dim":"much"}"#).unwrap();
+        assert!(old.reveal);
         let top: FocusSettings = serde_json::from_str(r#"{"peek":"top"}"#).unwrap();
         assert_eq!(top, FocusSettings { peek: PeekShape::Top, ..FocusSettings::default() });
         assert_eq!([Dim::None.alpha(), Dim::Little.alpha(), Dim::Much.alpha()], [0.0, 0.15, 0.35]);
@@ -843,6 +857,7 @@ mod tests {
         let edge = PEEK_FADE / (1.0 + PEEK_FADE);
         assert!(r.stops.iter().all(|&(at, shows)| at >= edge - 1e-9 && shows == 1.0 || at <= edge + 1e-9));
         assert!((r.travel(500.0) - 500.0 * (1.0 + PEEK_FADE)).abs() < 1e-9);
-        assert_eq!(PEEK_REVEAL_MS, 500);
+        // Very quick (owner, 18 Nov: "buat sangat cepat").
+        assert_eq!(PEEK_REVEAL_MS, 150);
     }
 }

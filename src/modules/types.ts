@@ -130,9 +130,10 @@ export const DEFAULT_PEEK: PeekSettings = {
 export interface FocusSettings {
   dim: 'none' | 'little' | 'much';
   peek: 'whole' | 'top'; // the whole window, or its top fading back to blur
+  reveal: boolean; // the peek opens from the window's top down
 }
 
-export const DEFAULT_FOCUS: FocusSettings = { dim: 'little', peek: 'whole' };
+export const DEFAULT_FOCUS: FocusSettings = { dim: 'little', peek: 'whole', reveal: true };
 
 // Beranda's package: always installed, so the Katalog leaves it out (design 4 Nov §3).
 export const CORE_PACKAGE = 'home';

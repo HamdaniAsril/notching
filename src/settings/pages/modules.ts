@@ -347,6 +347,8 @@ function focusRows(ctx: PageContext): HTMLElement[] {
       control: choice<FocusSettings['peek']>('focus.peek', [
         { value: 'whole', label: s.peekWhole }, { value: 'top', label: s.peekTop },
       ], f.peek, v => ctx.save('focus.peek', ctx.bridge.setFocusSettings({ ...f, peek: v }))) }),
+    row({ key: 'focus.reveal', label: s.reveal, hint: s.revealHint,
+      control: toggle('focus.reveal', s.reveal, f.reveal, on => ctx.save('focus.reveal', ctx.bridge.setFocusSettings({ ...f, reveal: on }))) }),
   ];
 }
 
