@@ -25,6 +25,7 @@ unsafe extern "C" {
     fn AXObserverCreate(pid: i32, callback: ObserverCallback, out: *mut *const c_void) -> i32;
     fn AXObserverAddNotification(observer: *const c_void, element: *const c_void, name: *const c_void, refcon: *mut c_void) -> i32;
     fn AXObserverGetRunLoopSource(observer: *const c_void) -> *mut c_void;
+    fn AXUIElementGetPid(element: *const c_void, pid: *mut i32) -> i32;
 }
 
 #[link(name = "CoreFoundation", kind = "framework")]
@@ -84,6 +85,19 @@ impl Drop for Cf {
         // SAFETY: created or copied by this module, released once.
         unsafe { CFRelease(self.0) };
     }
+}
+
+/// An element an Accessibility callback lent us, kept with a reference of our own.
+pub fn borrowed(p: *const c_void) -> Option<Cf> {
+    // SAFETY: a live CF object for the call; one more reference, released by Drop.
+    (!p.is_null()).then(|| Cf(unsafe { CFRetain(p) }))
+}
+
+/// The process the element belongs to.
+pub fn pid_of(element: &Cf) -> Option<i32> {
+    let mut pid = 0;
+    // SAFETY: an element and an i32 out.
+    (unsafe { AXUIElementGetPid(element.0, &mut pid) } == AX_OK).then_some(pid)
 }
 
 fn owned(p: *const c_void) -> Option<Cf> {
@@ -279,6 +293,11 @@ pub fn role(element: &Cf) -> Option<String> {
 
 pub fn subrole(element: &Cf) -> Option<String> {
     string(element, "AXSubrole")
+}
+
+/// The window fills its own full-screen Space.
+pub fn full_screen(window: &Cf) -> bool {
+    boolean(window, "AXFullScreen").unwrap_or(false)
 }
 
 pub fn minimized(window: &Cf) -> Option<bool> {

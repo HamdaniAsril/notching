@@ -342,6 +342,7 @@ pub fn run() {
             switch_service::start(app.handle());
             tap_guard::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
+            focus_service::start(app.handle());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());
             shelf_watch::sync(app.handle());

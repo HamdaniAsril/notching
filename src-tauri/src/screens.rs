@@ -70,6 +70,7 @@ pub fn watch_screen_changes(app: tauri::AppHandle) {
                 if let Err(e) = crate::overlay::rebuild_overlays(&handle) {
                     eprintln!("notching: rebuilding overlays failed: {e}");
                 }
+                crate::focus_service::screens_changed(&handle);
             });
         });
     });

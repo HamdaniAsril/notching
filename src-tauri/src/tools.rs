@@ -3,7 +3,7 @@
 
 use tauri::AppHandle;
 
-const TOOLS: [&str; 2] = [crate::cut_service::MODULE_ID, crate::win_service::MODULE_ID];
+const TOOLS: [&str; 3] = [crate::cut_service::MODULE_ID, crate::win_service::MODULE_ID, crate::focus_service::MODULE_ID];
 
 /// A module changed. A tool switched on without Accessibility asks macOS to
 /// show its own request (§4).
@@ -28,6 +28,9 @@ pub fn module_changed(app: &AppHandle, id: &str, on: bool) {
     crate::win_service::module_changed(app, id);
     if id == crate::cut_service::MODULE_ID {
         crate::cut_service::sync(app);
+    }
+    if id == crate::focus_service::MODULE_ID {
+        crate::focus_service::sync(app);
     }
     if on && !crate::keyclean_tap::trusted(false) {
         crate::keyclean_tap::trusted(true);

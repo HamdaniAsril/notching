@@ -98,6 +98,11 @@ impl Focus {
         self.picked.iter().map(|w| w.id).collect()
     }
 
+    /// The picked windows with their apps, the one in use last.
+    pub fn picked_wins(&self) -> Vec<Win> {
+        self.picked.clone()
+    }
+
     /// The apps of the picked windows, each once, for their observers.
     pub fn pids(&self) -> Vec<i32> {
         let mut out: Vec<i32> = Vec::new();
@@ -415,6 +420,13 @@ mod tests {
             assert_eq!(f.step(e), None);
         }
         assert!(!f.is_on());
+    }
+
+    #[test]
+    fn picked_wins_carry_their_apps_in_order_of_use() {
+        let mut f = Focus::default();
+        run(&mut f, &[Event::Toggle(Some(A)), Event::ShiftClick(C)]);
+        assert_eq!(f.picked_wins(), vec![A, C]);
     }
 
     #[test]
