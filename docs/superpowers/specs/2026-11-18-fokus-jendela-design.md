@@ -65,7 +65,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
 
 ### 4.4 Klik dan intip di area blur (pemilik, 18 November 2026)
 
-- **Klik biasa** di area blur tidak melakukan apa-apa: area blur adalah pembatas. Pindah fokus lewat ⌘Tab atau ⌃⌥F. **(pemilik: "di area blur buat tidak bisa di klik")**
+- **Klik** jendela yang ter-blur: fokus pindah ke jendela itu (4.2). **(pemilik, 18 November 2026: sempat dimatikan, "di area blur buat tidak bisa di klik", lalu diaktifkan lagi: "sekarang aktifkan lagi ya")**
 - **⇧-klik** jendela yang ter-blur menambahkannya sebagai jendela fokus kedua (4.1). **(pemilik: "aku mau ada shift klik")**
 - **Intip:** kursor di atas jendela yang ter-blur menampilkan **gambar jendela itu, utuh**, di posisinya, di atas lapisan blur. Jendela yang tertutup jendela lain tetap tampil utuh, karena yang tampil adalah gambarnya. Urutan jendela tidak diubah, dan blur tidak dilubangi. **(pemilik memilih cara 1: "kembalikan fitur intip, kali ini buat lebih serius")**
   - Gambar diambil dengan ScreenCaptureKit, sama seperti Intip jendela (`peek_capture.rs`, `PictureSize::Full`), dan hanya disimpan di memori selama mode fokus menyala.

@@ -43,3 +43,4 @@ Putaran 3, catatan pemilik, diterapkan:
 Putaran intip lewat gambar:
 15. Intip lewat gambar jendela (ScreenCaptureKit) di atas blur: jalan, tanpa kedip ("sudah jalan, intipnya muncul"); 20 intipan di log tanpa error.
 16. Pemilik ingin mencoba lagi intip bagian atas. Ditambahkan pilihan Pengaturan → Intip: Utuh / Bagian atas. Bagian atas memakai mask gradasi di gambar (20% jelas, *ease* sampai 50%).
+17. Klik biasa di area blur diaktifkan lagi atas permintaan pemilik: klik jendela yang ter-blur memindahkan fokus ke sana; ⇧-klik tetap menambah.

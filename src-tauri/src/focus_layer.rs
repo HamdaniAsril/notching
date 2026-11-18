@@ -2,7 +2,7 @@
 //! normal window level, holding macOS's own behind-window blur and a thin dark
 //! layer, ordered right below that screen's focused window. Over them, a picture
 //! of the window under the pointer: the peek (design §4.4). It catches every
-//! click; only a ⇧-click does something. Main thread only. Like the sensors, the
+//! click: a click moves the focus, a ⇧-click adds a window. Main thread only. Like the sensors, the
 //! panels are never closed, only ordered out.
 
 use std::cell::RefCell;
@@ -77,7 +77,7 @@ define_class!(
             }
         }
 
-        // No click goes further (design §4.5); the service acts on ⇧-click only.
+        // No click goes further (design §4.5): the service moves or adds the focus.
         #[unsafe(method(mouseDown:))]
         fn mouse_down(&self, event: &NSEvent) {
             if let Some(h) = HOOKS.get() {
