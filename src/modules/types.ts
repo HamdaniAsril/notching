@@ -129,9 +129,10 @@ export const DEFAULT_PEEK: PeekSettings = {
 // Fokus jendela's settings (design 18 Nov §6): how dark the blur gets.
 export interface FocusSettings {
   dim: 'none' | 'little' | 'much';
+  peek: 'whole' | 'top'; // the whole window, or its top fading back to blur
 }
 
-export const DEFAULT_FOCUS: FocusSettings = { dim: 'little' };
+export const DEFAULT_FOCUS: FocusSettings = { dim: 'little', peek: 'whole' };
 
 // Beranda's package: always installed, so the Katalog leaves it out (design 4 Nov §3).
 export const CORE_PACKAGE = 'home';

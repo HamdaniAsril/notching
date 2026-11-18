@@ -39,3 +39,7 @@ Putaran 3, catatan pemilik, diterapkan:
     - Jendela Notching sendiri (Pengaturan, nomor 4485 di log) disaring dari daftar, jadi tidak bisa diintip dan isinya tembus lewat lubang jendela lain. Diperbaiki: hanya panel blur yang disaring (`windows_below`).
     - Setiap ganti target (misalnya bolak-balik 57 dan 4245 di batas dua jendela bertumpuk), lubang baru muncul dengan pudar 120 ms dari blur penuh, jadi terlihat berkedip. Diperbaiki: pudar hanya dari tanpa intipan dan ke tanpa intipan; antar jendela langsung pindah.
 14. Setelah perbaikan nomor 13 masih ada bug menurut pemilik. Log menunjukkan target intipan dipilih dengan benar (jendela teratas di bawah kursor, tanpa jendela tersembunyi), jadi kedip yang tersisa kemungkinan berasal dari cara mask menggambar ulang blur hidup dari window server. Penyebab pastinya belum ketemu. Pemilik memutuskan menghapus fitur intip: kursor di atas blur tidak memicu apa pun; klik dan ⇧-klik di jendela yang ter-blur tetap memindah atau menambah fokus.
+
+Putaran intip lewat gambar:
+15. Intip lewat gambar jendela (ScreenCaptureKit) di atas blur: jalan, tanpa kedip ("sudah jalan, intipnya muncul"); 20 intipan di log tanpa error.
+16. Pemilik ingin mencoba lagi intip bagian atas. Ditambahkan pilihan Pengaturan → Intip: Utuh / Bagian atas. Bagian atas memakai mask gradasi di gambar (20% jelas, *ease* sampai 50%).

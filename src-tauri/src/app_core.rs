@@ -794,7 +794,7 @@ mod tests {
         use crate::focus_rules::{Dim, FocusSettings};
         let d = setup();
         assert_eq!(open(&d, None).focus_settings(), FocusSettings::default());
-        let much = FocusSettings { dim: Dim::Much };
+        let much = FocusSettings { dim: Dim::Much, ..FocusSettings::default() };
         open(&d, None).set_focus_settings(much).unwrap();
         assert_eq!(open(&d, None).focus_settings(), much);
         assert_eq!(open(&d, None).state().focus, much);

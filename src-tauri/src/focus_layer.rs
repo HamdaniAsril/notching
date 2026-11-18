@@ -19,10 +19,11 @@ use objc2_app_kit::{
     NSWindowStyleMask,
 };
 use objc2_core_graphics::CGColor;
-use objc2_foundation::{NSData, NSObject, NSPoint, NSRect, NSSize};
-use objc2_quartz_core::CATransaction;
+use objc2_foundation::{NSArray, NSData, NSNumber, NSObject, NSPoint, NSRect, NSSize};
+use objc2_core_foundation::{CGPoint, CGRect, CGSize};
+use objc2_quartz_core::{CAGradientLayer, CATransaction};
 
-use crate::focus_rules::PEEK_FADE_MS;
+use crate::focus_rules::{top_peek_stops, PEEK_FADE_MS};
 use crate::geometry::{to_cg, Rect};
 use crate::screens::current_screens;
 
@@ -230,9 +231,35 @@ pub fn show_screen(mtm: MainThreadMarker, screen: usize, window: u32, dim: f64) 
     });
 }
 
+/// A CGColor as the object CAGradientLayer's colours are.
+fn as_object(c: &CGColor) -> &AnyObject {
+    // SAFETY: CGColor is a Core Foundation type that is also an Objective-C object.
+    unsafe { &*(c as *const CGColor as *const AnyObject) }
+}
+
+/// The mask of a top peek, `w` × `h` points: the picture shows at the top and
+/// fades out by the middle (focus_rules::top_peek_stops). Only the picture is
+/// masked, never the blur.
+fn top_mask(w: f64, h: f64) -> objc2::rc::Retained<CAGradientLayer> {
+    let stops = top_peek_stops();
+    let mask = CAGradientLayer::new();
+    mask.setFrame(CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(w, h)));
+    let colors: Vec<_> = stops.iter().map(|&(_, shows)| CGColor::new_generic_gray(0.0, shows)).collect();
+    let objects: Vec<&AnyObject> = colors.iter().map(|c| as_object(c)).collect();
+    // SAFETY: an array of CGColors, as CAGradientLayer takes.
+    unsafe { mask.setColors(Some(&NSArray::from_slice(&objects))) };
+    let places: Vec<_> = stops.iter().map(|&(at, _)| NSNumber::new_f64(at)).collect();
+    mask.setLocations(Some(&NSArray::from_retained_slice(&places)));
+    // The layer is not flipped: 0 is the window's bottom, 1 its top.
+    mask.setStartPoint(CGPoint::new(0.5, 0.0));
+    mask.setEndPoint(CGPoint::new(0.5, 1.0));
+    mask
+}
+
 /// The peek: `png`, a picture of a window at `frame` (CG points), over the blur
-/// of the screen it is on. `fade`: from nothing, over PEEK_FADE_MS; else at once.
-pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], fade: bool) {
+/// of the screen it is on; `top`: only its top, fading out. `fade`: from
+/// nothing, over PEEK_FADE_MS; else at once.
+pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], top: bool, fade: bool) {
     let Some(image) = NSImage::initWithData(NSImage::alloc(), &NSData::with_bytes(png)) else { return };
     let h = PRIMARY_H.with(|h| h.get());
     let cocoa = to_cg(frame, h);
@@ -248,6 +275,9 @@ pub fn show_picture(mtm: MainThreadMarker, frame: Rect, png: &[u8], fade: bool) 
         CATransaction::setDisableActions(true);
         // SAFETY: an NSImage, which a layer on macOS takes as its contents.
         unsafe { layer.setContents(Some(&*(Retained::as_ptr(&image) as *const AnyObject))) };
+        let mask = top.then(|| top_mask(local.w, local.h));
+        // SAFETY: the picture's own layer takes a fresh mask, or none.
+        unsafe { layer.setMask(mask.as_deref().map(|m| &**m)) };
         if !fade {
             layer.setOpacity(1.0);
         }

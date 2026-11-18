@@ -262,12 +262,16 @@ test('Fokus jendela folds open with its permission and Gelapkan', async () => {
   cap(root, 'module.window-focus').click();
   await settle();
   const body = cap(root, 'module.window-focus').nextElementSibling as HTMLElement;
-  expect([...body.querySelectorAll('[data-row]')].map(e => (e as HTMLElement).dataset.row)).toEqual(['tool.window-focus.access', 'tool.window-focus.screen', 'focus.dim']);
+  expect([...body.querySelectorAll('[data-row]')].map(e => (e as HTMLElement).dataset.row)).toEqual(['tool.window-focus.access', 'tool.window-focus.screen', 'focus.dim', 'focus.peek']);
   expect(body.querySelector('[data-row="tool.window-focus.screen"] small')!.textContent).toBe('Tanpa izin ini, intip tidak muncul.');
   expect(body.querySelector('[data-row="focus.dim"] .label')!.textContent).toBe('Gelapkan');
   expect(body.querySelector('[data-key="focus.dim.little"]')!.classList.contains('on')).toBe(true);
   (body.querySelector('[data-key="focus.dim.much"]') as HTMLElement).click();
-  expect(bridge.setFocusSettings).toHaveBeenCalledWith({ dim: 'much' });
+  expect(bridge.setFocusSettings).toHaveBeenCalledWith({ dim: 'much', peek: 'whole' });
+  expect(body.querySelector('[data-row="focus.peek"] .label')!.textContent).toBe('Intip');
+  expect(body.querySelector('[data-key="focus.peek.whole"]')!.classList.contains('on')).toBe(true);
+  (body.querySelector('[data-key="focus.peek.top"]') as HTMLElement).click();
+  expect(bridge.setFocusSettings).toHaveBeenCalledWith({ dim: 'little', peek: 'top' });
 });
 
 test('Gelapkan in English', async () => {

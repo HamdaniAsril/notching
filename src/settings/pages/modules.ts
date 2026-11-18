@@ -343,6 +343,10 @@ function focusRows(ctx: PageContext): HTMLElement[] {
       control: choice<FocusSettings['dim']>('focus.dim', [
         { value: 'none', label: s.dimNone }, { value: 'little', label: s.dimLittle }, { value: 'much', label: s.dimMuch },
       ], f.dim, v => ctx.save('focus.dim', ctx.bridge.setFocusSettings({ ...f, dim: v }))) }),
+    row({ key: 'focus.peek', label: s.peek, hint: s.peekHint,
+      control: choice<FocusSettings['peek']>('focus.peek', [
+        { value: 'whole', label: s.peekWhole }, { value: 'top', label: s.peekTop },
+      ], f.peek, v => ctx.save('focus.peek', ctx.bridge.setFocusSettings({ ...f, peek: v }))) }),
   ];
 }
 

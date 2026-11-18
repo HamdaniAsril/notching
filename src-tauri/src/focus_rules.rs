@@ -27,11 +27,24 @@ impl Dim {
     }
 }
 
+/// What a peek shows (owner, 18 Nov: to compare both in Settings).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PeekShape {
+    /// The top of the window, fading back to blur by its middle.
+    Top,
+    /// The whole window. Last, so serde can take any unknown choice as this one.
+    #[default]
+    #[serde(other)]
+    Whole,
+}
+
 /// Fokus jendela's settings. A missing field takes its default, an unknown choice too.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct FocusSettings {
     pub dim: Dim,
+    pub peek: PeekShape,
 }
 
 pub type WinId = u32;
@@ -334,6 +347,26 @@ pub struct Below {
 
 /// How long a peek takes to appear or go (design §4.4).
 pub const PEEK_FADE_MS: u64 = 120;
+/// A top peek: the top fifth of the window shows whole…
+pub const PEEK_CLEAR: f64 = 0.2;
+/// …then fades back to blur over the next three tenths, eased.
+pub const PEEK_FADE: f64 = 0.3;
+/// How many stops the fade's curve is drawn with.
+const FADE_STOPS: usize = 9;
+
+/// A top peek's mask, bottom (0) to top (1) of the window: (place, how much of
+/// the picture shows). Nothing below the fade, all of it above, and an eased
+/// curve between, so neither end of the band shows an edge.
+pub fn top_peek_stops() -> Vec<(f64, f64)> {
+    let start = 1.0 - PEEK_CLEAR - PEEK_FADE;
+    let mut stops = vec![(0.0, 0.0)];
+    stops.extend((0..FADE_STOPS).map(|i| {
+        let t = i as f64 / (FADE_STOPS - 1) as f64;
+        (start + t * PEEK_FADE, t * t * (3.0 - 2.0 * t))
+    }));
+    stops.push((1.0, 1.0));
+    stops
+}
 
 /// The normal windows under one screen's `panel`, front to back: not the blur
 /// panels (`panels`), not the picked windows, not other levels. Notching's own
@@ -392,9 +425,11 @@ mod tests {
 
     #[test]
     fn focus_settings_default_and_survive_bad_fields() {
-        let f: FocusSettings = serde_json::from_str(r#"{"dim":"nonsense"}"#).unwrap();
+        let f: FocusSettings = serde_json::from_str(r#"{"dim":"nonsense","peek":"nonsense"}"#).unwrap();
         assert_eq!(f, FocusSettings::default());
-        assert_eq!(serde_json::to_value(FocusSettings::default()).unwrap(), serde_json::json!({"dim":"little"}));
+        assert_eq!(serde_json::to_value(FocusSettings::default()).unwrap(), serde_json::json!({"dim":"little","peek":"whole"}));
+        let top: FocusSettings = serde_json::from_str(r#"{"peek":"top"}"#).unwrap();
+        assert_eq!(top, FocusSettings { peek: PeekShape::Top, ..FocusSettings::default() });
         assert_eq!([Dim::None.alpha(), Dim::Little.alpha(), Dim::Much.alpha()], [0.0, 0.15, 0.35]);
     }
 
@@ -659,5 +694,23 @@ mod tests {
         let below = windows_below(&list, 900, &[900, 901], &[61, 300]);
         assert_eq!(below.iter().map(|b| b.id).collect::<Vec<_>>(), vec![4485, 57]);
         assert_eq!(windows_below(&list, 12345, &[], &[]), vec![]);
+    }
+
+    #[test]
+    fn a_top_peek_is_clear_at_the_top_and_fades_away_by_the_middle() {
+        // (place from the window's bottom, how much of the picture shows)
+        let stops = top_peek_stops();
+        assert_eq!(stops.first(), Some(&(0.0, 0.0)));
+        assert_eq!(stops.last(), Some(&(1.0, 1.0)));
+        assert!(stops.windows(2).all(|w| w[0].0 < w[1].0 && w[0].1 <= w[1].1));
+        let at = |place: f64| stops.iter().find(|s| (s.0 - place).abs() < 1e-9).map(|s| s.1);
+        // Blur below the middle, the picture whole in the top fifth.
+        assert_eq!(at(0.5), Some(0.0));
+        assert_eq!(at(0.8), Some(1.0));
+        // Eased: slow at both ends of the fade.
+        let fade: Vec<&(f64, f64)> = stops.iter().filter(|s| s.0 >= 0.5 && s.0 <= 0.8).collect();
+        let steps: Vec<f64> = fade.windows(2).map(|w| w[1].1 - w[0].1).collect();
+        let middle = steps[steps.len() / 2];
+        assert!(steps[0] < middle && steps[steps.len() - 1] < middle);
     }
 }

@@ -358,6 +358,10 @@
       "peek": "Used by Window peek"
     },
     "focus": {
+      "peek": "Peek",
+      "peekHint": "Point at a blurred window. Whole: all of it. Top part: its top, fading out.",
+      "peekWhole": "Whole",
+      "peekTop": "Top part",
       "screenHint": "Without it, there is no peek.",
       "dim": "Darken",
       "dimHint": "A thin dark layer over the blur.",

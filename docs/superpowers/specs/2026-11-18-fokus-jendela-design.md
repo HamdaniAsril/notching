@@ -73,6 +73,7 @@ Yang dihitung "jendela baru" adalah jendela yang dibuat setelah fokus terakhir d
   - Gambar muncul dengan pudar singkat (120 ms) dari blur. Dari satu jendela ke jendela lain, gambar lama langsung hilang. Gambar yang sudah pernah diambil tampil seketika saat diintip lagi.
   - Gambarnya diam: isi jendela tidak bergerak selama diintip.
   - Tanpa izin Screen Recording, intip tidak muncul. ⇧-klik dan blur tetap jalan.
+  - **Pengaturan → Intip: Utuh / Bagian atas** (bawaan Utuh). Bagian atas: 20% teratas gambar tampil, lalu memudar dengan kurva *ease* sampai 50%, dan di bawahnya blur. Yang di-mask hanya gambar milik Notching, bukan blur macOS. **(pemilik, 18 November 2026: "coba lagi intip blur setengah", sebagai pilihan supaya bisa dibandingkan tanpa build ulang; angka dari penulis)**
 - Klik dan ⇧-klik di desktop yang ter-blur tidak melakukan apa-apa.
 
   Riwayat: intipan sempat dibuat dengan melubangi blur (setengah, sepertiga, seperlima dengan gradasi, lalu jendela utuh dengan sudut membulat, dan sempat menaikkan jendela yang diintip). Hasilnya tetap berkedip walaupun log menunjukkan pemilihan jendelanya benar. Lihat catatan verifikasi nomor 6 sampai 14.
@@ -118,6 +119,7 @@ Semua pendengar dilepas saat mode fokus mati.
 Halaman Fokus jendela di Pengaturan berisi:
 - Saklar nyala/mati alat (bukan mode fokus; mode fokus dinyalakan dengan shortcut).
 - Status izin Accessibility, seperti alat lain.
+- **Intip:** Utuh atau Bagian atas (bagian 4.4). Bawaannya Utuh.
 - **Gelapkan:** Tidak, Sedikit, atau Banyak, yaitu lapisan hitam tipis di atas blur (0 %, 15 %, 35 %). Bawaannya Sedikit. **(keputusan penulis)** Ini satu-satunya cara mengatur seberapa "mundur" latar belakang dengan cara 1.
 
 Pengaturan → Pintasan memuat ⌃⌥F dan ⌃⌥⇧F.

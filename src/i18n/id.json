@@ -358,6 +358,10 @@
       "peek": "Dipakai Intip jendela"
     },
     "focus": {
+      "peek": "Intip",
+      "peekHint": "Arahkan kursor ke jendela yang ter-blur. Utuh: seluruh jendela. Bagian atas: atasnya jelas, lalu memudar.",
+      "peekWhole": "Utuh",
+      "peekTop": "Bagian atas",
       "screenHint": "Tanpa izin ini, intip tidak muncul.",
       "dim": "Gelapkan",
       "dimHint": "Lapisan gelap tipis di atas blur.",
