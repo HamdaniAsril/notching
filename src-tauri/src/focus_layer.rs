@@ -10,7 +10,6 @@ use std::sync::OnceLock;
 
 use block2::RcBlock;
 use objc2::rc::Retained;
-use objc2::runtime::AnyObject;
 use objc2::{define_class, msg_send, AllocAnyThread, MainThreadMarker, MainThreadOnly, Message};
 use objc2_app_kit::{
     NSAppearance, NSAppearanceCustomization, NSAppearanceNameDarkAqua, NSAutoresizingMaskOptions, NSBackingStoreType, NSColor,
@@ -20,11 +19,11 @@ use objc2_app_kit::{
 };
 use objc2_core_foundation::{CGPoint, CGRect, CGSize};
 use objc2_core_graphics::CGColor;
-use objc2_foundation::{NSArray, NSNumber, NSObject, NSPoint, NSRect, NSSize};
+use objc2_foundation::{NSObject, NSPoint, NSRect, NSSize};
 use objc2_core_graphics::CGMutablePath;
-use objc2_quartz_core::{kCAFillRuleEvenOdd, CAGradientLayer, CALayer, CAShapeLayer, CATransaction};
+use objc2_quartz_core::{kCAFillRuleEvenOdd, CALayer, CAShapeLayer, CATransaction};
 
-use crate::focus_rules::{fade_stops, PeekHole, PEEK_FADE_MS};
+use crate::focus_rules::{PeekHole, PEEK_FADE_MS};
 use crate::geometry::{to_cg, Rect};
 use crate::screens::current_screens;
 
@@ -292,7 +291,7 @@ pub fn set_peek(_mtm: MainThreadMarker, hole: Option<&PeekHole>) {
                 match here {
                     Some(hole) => {
                         let covers: Vec<Rect> = hole.covers.iter().map(|&c| local(c)).collect();
-                        open_hole(&layer, s.w, s.h, local(hole.open), local(hole.fade), &covers, hole.radius);
+                        open_hole(&layer, s.w, s.h, local(hole.open), &covers, hole.radius);
                     }
                     None => close_hole(&layer),
                 }
@@ -301,21 +300,14 @@ pub fn set_peek(_mtm: MainThreadMarker, hole: Option<&PeekHole>) {
     });
 }
 
-/// A CGColor as the object CAGradientLayer's colours are.
-fn as_object(c: &CGColor) -> &AnyObject {
-    // SAFETY: CGColor is a Core Foundation type that is also an Objective-C object.
-    unsafe { &*(c as *const CGColor as *const AnyObject) }
-}
-
-/// The mask: opaque everywhere but `whole`, where the fade part goes from blur at
-/// its bottom to clear at its top and `covers` stay opaque; a cover over the hole
-/// fades out, and stays the last sublayer for close_hole.
-fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, fade: Rect, covers: &[Rect], radius: f64) {
+/// The mask: opaque everywhere but `whole`, a window-shaped hole where `covers`
+/// stay opaque; a cover over the hole fades out, and stays the last sublayer for
+/// close_hole.
+fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, covers: &[Rect], radius: f64) {
     let black = CGColor::new_generic_gray(0.0, 1.0);
     let mask = CALayer::new();
     mask.setFrame(cg_rect(0.0, 0.0, w, h));
-    // Everything but the hole, whose corners round like a window's. Its bottom
-    // corners sit under the fade, which is opaque there.
+    // Everything but the hole, whose corners round like a window's.
     let path = CGMutablePath::new();
     // SAFETY: a fresh path and no transform.
     unsafe {
@@ -329,19 +321,6 @@ fn open_hole(layer: &CALayer, w: f64, h: f64, whole: Rect, fade: Rect, covers: &
     outside.setFillRule(unsafe { kCAFillRuleEvenOdd });
     outside.setFillColor(Some(&black));
     mask.addSublayer(&outside);
-    let gradient = CAGradientLayer::new();
-    gradient.setFrame(cg_rect(fade.x, fade.y, fade.w, fade.h));
-    // An eased curve from blur at the bottom to clear at the top.
-    let stops = fade_stops();
-    let colors: Vec<_> = stops.iter().map(|&(_, blur)| CGColor::new_generic_gray(0.0, blur)).collect();
-    let objects: Vec<&AnyObject> = colors.iter().map(|c| as_object(c)).collect();
-    // SAFETY: an array of CGColors, as CAGradientLayer takes.
-    unsafe { gradient.setColors(Some(&NSArray::from_slice(&objects))) };
-    let places: Vec<_> = stops.iter().map(|&(at, _)| NSNumber::new_f64(at)).collect();
-    gradient.setLocations(Some(&NSArray::from_retained_slice(&places)));
-    gradient.setStartPoint(CGPoint::new(0.5, 0.0));
-    gradient.setEndPoint(CGPoint::new(0.5, 1.0));
-    mask.addSublayer(&gradient);
     for c in covers {
         let block = CALayer::new();
         block.setFrame(cg_rect(c.x, c.y, c.w, c.h));

@@ -28,3 +28,6 @@ Putaran 2, catatan pemilik, diterapkan:
 6. Transisi 20% masih kurang halus. Diubah: gradasi 30% dengan kurva *ease* (9 titik), blur penuh di 50%.
 7. Jendela yang diintip tertutup jendela blur lain, hasilnya jelek. Diubah: jendela itu dinaikkan (AXRaise) ke atas jendela blur lain, lalu jendela fokus dinaikkan lagi dan lapisan diurutkan ulang di bawahnya.
 8. Klik jendela di monitor tanpa blur memindahkan fokus ke sana. Diubah: fokus hanya pindah ke jendela di monitor yang di-blur; di monitor lain hanya lewat ⌃⌥F.
+
+Putaran 3, catatan pemilik, diterapkan:
+9. Aturan setengah fokus dihapus: intipan menampilkan seluruh jendela, dengan sudut membulat. Jendela yang tertutup tetap maju saat diintip.
