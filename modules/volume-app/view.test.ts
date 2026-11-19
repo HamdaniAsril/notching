@@ -2,17 +2,20 @@
 import { expect, test, vi } from 'vitest';
 import iconSvg from './icon.svg?raw';
 import id from './locales/id.json';
-import { type AppRow, type MainRow, renderPage, type VolumeView } from './view';
+import { type AppRow, type MainRow, type OutputRow, renderPage, type VolumeView } from './view';
 
 const CHROME: AppRow = { app: '/Applications/Google Chrome.app', name: 'Google Chrome', icon: 'data:image/png;base64,AAAA', level: 0.4, playing: true };
 const MUSIC: AppRow = { app: '/System/Applications/Music.app', name: 'Music', icon: null, level: 1, playing: false };
 const SPEAKERS: MainRow = { name: 'MacBook Air Speakers', level: 0.5, muted: false, settable: true };
-const OK = (apps: AppRow[], main: MainRow | null = SPEAKERS): VolumeView => ({ access: 'granted', main, apps });
+const LAPTOP: OutputRow = { uid: 'BuiltInSpeakerDevice', name: 'MacBook Air Speakers', kind: 'builtin', current: true };
+const MONITOR: OutputRow = { uid: 'hdmi-lenovo', name: 'LEN L24i-40', kind: 'display', current: false };
+const BUDS: OutputRow = { uid: 'aa-bb', name: 'AirPods', kind: 'bluetooth', current: false };
+const OK = (apps: AppRow[], main: MainRow | null = SPEAKERS, outputs: OutputRow[] = [LAPTOP, MONITOR, BUDS]): VolumeView => ({ access: 'granted', main, outputs, apps });
 
 function page(v: VolumeView | null) {
   const root = document.createElement('div');
   document.body.append(root);
-  const act = { set: vi.fn(), request: vi.fn(), main: vi.fn() };
+  const act = { set: vi.fn(), request: vi.fn(), main: vi.fn(), output: vi.fn() };
   const view = renderPage(root, id, act);
   if (v) view.update(v);
   const rows = () => [...root.querySelectorAll<HTMLElement>('.va-row')];
@@ -50,7 +53,7 @@ test('moving a slider sets that app', () => {
 });
 
 test('without the permission the card asks for it', () => {
-  const { root, act, rows } = page({ access: 'unknown', main: SPEAKERS, apps: [CHROME] });
+  const { root, act, rows } = page({ access: 'unknown', main: SPEAKERS, outputs: [LAPTOP], apps: [CHROME] });
   expect(root.textContent).toContain('Volume app butuh izin Rekam Audio Sistem');
   expect(rows()).toHaveLength(0);
   root.querySelector<HTMLButtonElement>('.va-allow')!.click();
@@ -118,11 +121,55 @@ test('an output set on the device has no slider to move', () => {
 });
 
 test('the main volume works without the permission and follows the keys', () => {
-  const { master, view } = page({ access: 'denied', main: SPEAKERS, apps: [] });
+  const { master, view } = page({ access: 'denied', main: SPEAKERS, outputs: [LAPTOP], apps: [] });
   expect(master()).not.toBeNull();
-  view.update({ access: 'denied', main: { ...SPEAKERS, level: 0.25 }, apps: [] });
+  view.update({ access: 'denied', main: { ...SPEAKERS, level: 0.25 }, outputs: [LAPTOP], apps: [] });
   expect(master()!.querySelector<HTMLInputElement>('input[type="range"]')!.value).toBe('25');
   // No output at all: no main row.
   view.update(OK([], null));
   expect(master()!.hidden).toBe(true);
+});
+
+test('the output opens a list of every speaker, the current one marked', () => {
+  const { root, master, rows } = page(OK([CHROME]));
+  const pick = master()!.querySelector<HTMLButtonElement>('button.va-output')!;
+  expect(pick.textContent).toContain('MacBook Air Speakers');
+  expect(pick.getAttribute('aria-expanded')).toBe('false');
+  expect(root.querySelector<HTMLElement>('.va-picker')!.hidden).toBe(true);
+  pick.click();
+  expect(pick.getAttribute('aria-expanded')).toBe('true');
+  const choices = [...root.querySelectorAll<HTMLButtonElement>('.va-picker button.va-choice')];
+  expect(choices.map(c => c.textContent)).toEqual(['MacBook Air Speakers', 'LEN L24i-40', 'AirPods']);
+  expect(choices.map(c => c.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
+  expect(choices[2].querySelector('.va-kind')!.getAttribute('data-kind')).toBe('bluetooth');
+  // The apps step aside while it is open.
+  expect(root.querySelector<HTMLElement>('.va-list')!.hidden).toBe(true);
+  expect(rows()).toHaveLength(1);
+});
+
+test('choosing a speaker moves the sound there and closes the list', () => {
+  const { root, act, master } = page(OK([CHROME]));
+  master()!.querySelector<HTMLButtonElement>('button.va-output')!.click();
+  root.querySelectorAll<HTMLButtonElement>('.va-picker button.va-choice')[1].click();
+  expect(act.output).toHaveBeenCalledWith('hdmi-lenovo');
+  expect(root.querySelector<HTMLElement>('.va-picker')!.hidden).toBe(true);
+  expect(root.querySelector<HTMLElement>('.va-list')!.hidden).toBe(false);
+});
+
+test('the list follows a new speaker and closes with Escape or a second click', () => {
+  const { root, view, master } = page(OK([]));
+  const pick = master()!.querySelector<HTMLButtonElement>('button.va-output')!;
+  pick.click();
+  view.update(OK([], SPEAKERS, [LAPTOP, MONITOR]));
+  expect(root.querySelectorAll('.va-picker button.va-choice')).toHaveLength(2);
+  root.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  expect(root.querySelector<HTMLElement>('.va-picker')!.hidden).toBe(true);
+  pick.click();
+  pick.click();
+  expect(root.querySelector<HTMLElement>('.va-picker')!.hidden).toBe(true);
+});
+
+test('with one speaker there is nothing to pick', () => {
+  const { master } = page(OK([], SPEAKERS, [LAPTOP]));
+  expect(master()!.querySelector<HTMLButtonElement>('button.va-output')!.disabled).toBe(true);
 });

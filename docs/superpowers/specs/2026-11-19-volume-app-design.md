@@ -46,6 +46,14 @@ The module "Volume app" (en "App volume"), opt-in, a card in the notch
   shows it; it needs no permission and follows the volume keys. Raising it
   while muted unmutes, as the keys do. An output that sets its own volume
   (HDMI, some DACs) shows the level greyed out with "diatur di perangkat".
+- The output's name opens the speakers (owner, 19 Nov: "menu untuk pindah
+  speaker dari laptop ke monitor external atau speaker lain"), in place of
+  the apps: every device Sound settings would offer (output streams, can be
+  the default, not hidden, never Volume app's own taps), each with an icon
+  for its kind (laptop, display, headphones, AirPlay, USB, speaker) and a
+  check on the current one. Picking one makes it the Mac's output, and moves
+  alerts with it when they were on the old one, as Sound settings does. App
+  taps follow to the new output. Escape or the name again closes it.
 - Below, one row per app that is playing now or is turned down, with its
   icon, name, a slider and the percentage. Without the permission this part
   says how to give it.

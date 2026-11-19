@@ -35,6 +35,13 @@ const PROCESS_OUTPUT: u32 = code(b"piro");
 const DEFAULT_OUTPUT: u32 = code(b"dOut");
 const DEVICE_UID: u32 = code(b"uid ");
 const NAME: u32 = code(b"lnam");
+const DEVICES: u32 = code(b"dev#");
+const STREAMS: u32 = code(b"stm#");
+const TRANSPORT: u32 = code(b"tran");
+const CAN_BE_DEFAULT: u32 = code(b"dflt");
+const HIDDEN: u32 = code(b"hidn");
+/// Where alerts and sound effects play.
+const SYSTEM_OUTPUT: u32 = code(b"sOut");
 const OUTPUT: u32 = code(b"outp");
 /// The device's main volume as the menu bar shows it.
 const MAIN_VOLUME: u32 = code(b"vmvc");
@@ -120,15 +127,20 @@ fn get_in<T: Copy>(object: u32, selector: u32, scope: u32) -> Option<T> {
 
 /// Every process Core Audio knows, as process objects.
 fn process_objects() -> Vec<u32> {
-    let address = Address { selector: PROCESS_LIST, scope: GLOBAL, element: 0 };
+    ids(SYSTEM, PROCESS_LIST, GLOBAL)
+}
+
+/// A list of object ids.
+fn ids(object: u32, selector: u32, scope: u32) -> Vec<u32> {
+    let address = Address { selector, scope, element: 0 };
     let mut size = 0;
     // SAFETY: valid out pointers; the list is read into a buffer of that size.
     unsafe {
-        if AudioObjectGetPropertyDataSize(SYSTEM, &address, 0, std::ptr::null(), &mut size) != 0 {
+        if AudioObjectGetPropertyDataSize(object, &address, 0, std::ptr::null(), &mut size) != 0 {
             return vec![];
         }
         let mut ids = vec![0u32; size as usize / 4];
-        if AudioObjectGetPropertyData(SYSTEM, &address, 0, std::ptr::null(), &mut size, ids.as_mut_ptr().cast()) != 0 {
+        if AudioObjectGetPropertyData(object, &address, 0, std::ptr::null(), &mut size, ids.as_mut_ptr().cast()) != 0 {
             return vec![];
         }
         ids.truncate(size as usize / 4);
@@ -169,11 +181,19 @@ fn output_property(device: u32, selector: u32) -> (bool, bool) {
     }
 }
 
-fn set_output<T: Copy>(device: u32, selector: u32, value: T) -> i32 {
-    let address = Address { selector, scope: OUTPUT, element: 0 };
+fn set_global<T: Copy>(object: u32, selector: u32, value: T) -> i32 {
+    set_in(object, selector, GLOBAL, value)
+}
+
+fn set_output_prop<T: Copy>(device: u32, selector: u32, value: T) -> i32 {
+    set_in(device, selector, OUTPUT, value)
+}
+
+fn set_in<T: Copy>(object: u32, selector: u32, scope: u32, value: T) -> i32 {
+    let address = Address { selector, scope, element: 0 };
     // SAFETY: `value` is `size` bytes of the property's type.
     unsafe {
-        AudioObjectSetPropertyData(device, &address, 0, std::ptr::null(), std::mem::size_of::<T>() as u32, (&value as *const T).cast())
+        AudioObjectSetPropertyData(object, &address, 0, std::ptr::null(), std::mem::size_of::<T>() as u32, (&value as *const T).cast())
     }
 }
 
@@ -329,7 +349,7 @@ fn start_tap(objects: &[u32], output: &str, level: f32) -> Result<Tap, String> {
     let subs = NSArray::from_retained_slice(&[Retained::into_super(Retained::into_super(Retained::into_super(sub)))]);
     let taps = NSArray::from_retained_slice(&[Retained::into_super(Retained::into_super(Retained::into_super(tap_entry)))]);
     let aggregate = dict(vec![
-        ("uid", ns(&format!("id.web.notching.volume.{uuid}"))),
+        ("uid", ns(&format!("{}{uuid}", rules::OWN_UID))),
         ("name", ns("Notching volume")),
         ("private", yes()),
         ("tapautostart", yes()),
@@ -538,12 +558,68 @@ pub struct MainDto {
     pub settable: bool,
 }
 
+/// A speaker the sound can go to. Same shape as OutputRow in
+/// modules/volume-app/view.ts.
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OutputDto {
+    pub uid: String,
+    pub name: String,
+    pub kind: rules::OutputKind,
+    pub current: bool,
+}
+
 #[derive(Clone, Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VolumeView {
     pub access: &'static str,
     pub main: Option<MainDto>,
+    pub outputs: Vec<OutputDto>,
     pub apps: Vec<AppDto>,
+}
+
+/// Every device that can play the Mac's sound, as Sound settings lists them:
+/// output streams, allowed as the default, not hidden, not our own taps.
+fn outputs() -> Vec<(u32, OutputDto)> {
+    let current = get::<u32>(SYSTEM, DEFAULT_OUTPUT);
+    ids(SYSTEM, DEVICES, GLOBAL)
+        .into_iter()
+        .filter(|&d| !ids(d, STREAMS, OUTPUT).is_empty())
+        .filter(|&d| get_in::<u32>(d, CAN_BE_DEFAULT, OUTPUT).is_none_or(|v| v != 0))
+        .filter(|&d| get::<u32>(d, HIDDEN).is_none_or(|v| v == 0))
+        .filter_map(|d| {
+            let uid = text_of(d, DEVICE_UID)?;
+            if rules::is_ours(&uid) {
+                return None;
+            }
+            let name = text_of(d, NAME).unwrap_or_else(|| uid.clone());
+            let kind = rules::output_kind(get::<u32>(d, TRANSPORT).unwrap_or(0));
+            Some((d, OutputDto { uid, name, kind, current: current == Some(d) }))
+        })
+        .collect()
+}
+
+#[derive(serde::Deserialize)]
+pub struct OutputArgs {
+    pub uid: String,
+}
+
+/// Sends the Mac's sound to that speaker. Alerts move with it when they were
+/// on the old one, as Sound settings does by default. Taps follow on the next
+/// look, woken now.
+pub fn set_output(a: &OutputArgs) {
+    let Some((device, _)) = outputs().into_iter().find(|(_, o)| o.uid == a.uid) else { return };
+    let old = get::<u32>(SYSTEM, DEFAULT_OUTPUT);
+    let alerts = get::<u32>(SYSTEM, SYSTEM_OUTPUT);
+    let status = set_global(SYSTEM, DEFAULT_OUTPUT, device);
+    if status != 0 {
+        eprintln!("notching: volume app: output not changed ({status})");
+        return;
+    }
+    if old.is_some() && alerts == old {
+        set_global(SYSTEM, SYSTEM_OUTPUT, device);
+    }
+    wake();
 }
 
 fn main_volume() -> Option<MainDto> {
@@ -567,14 +643,14 @@ pub fn set_main(a: &MainArgs) {
     let muted_now = get_in::<u32>(device, MUTE, OUTPUT).is_some_and(|m| m != 0);
     let (level, muted) = rules::main_writes(muted_now, a.level, a.muted);
     if let Some(level) = level {
-        let status = set_output(device, MAIN_VOLUME, level);
+        let status = set_output_prop(device, MAIN_VOLUME, level);
         if status != 0 {
             eprintln!("notching: volume app: main volume refused ({status})");
         }
     }
     if let Some(muted) = muted {
         if output_property(device, MUTE).1 {
-            set_output(device, MUTE, u32::from(muted));
+            set_output_prop(device, MUTE, u32::from(muted));
         }
     }
 }
@@ -600,7 +676,8 @@ pub fn read() -> VolumeView {
         })
         .collect();
     apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-    VolumeView { access: access(), main: main_volume(), apps }
+    let outputs = outputs().into_iter().map(|(_, o)| o).collect();
+    VolumeView { access: access(), main: main_volume(), outputs, apps }
 }
 
 #[derive(serde::Deserialize)]

@@ -13,5 +13,6 @@
   "mute": "Bisukan",
   "unmute": "Nyalakan suara",
   "muted": "Bisu",
-  "fixed": "diatur di perangkat"
+  "fixed": "diatur di perangkat",
+  "pickOutput": "Pilih speaker"
 }

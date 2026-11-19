@@ -13,5 +13,6 @@
   "mute": "Mute",
   "unmute": "Unmute",
   "muted": "Muted",
-  "fixed": "set on the device"
+  "fixed": "set on the device",
+  "pickOutput": "Choose speaker"
 }

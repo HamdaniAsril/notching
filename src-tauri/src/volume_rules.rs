@@ -58,6 +58,38 @@ pub fn main_writes(muted_now: bool, level: Option<f32>, muted: Option<bool>) -> 
     (level, muted.or(unmute))
 }
 
+/// What an output is, for its icon on the card.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OutputKind {
+    BuiltIn,
+    Display,
+    Bluetooth,
+    AirPlay,
+    Usb,
+    Other,
+}
+
+/// From a device's transport type (kAudioDevicePropertyTransportType).
+pub fn output_kind(transport: u32) -> OutputKind {
+    match &transport.to_be_bytes() {
+        b"bltn" => OutputKind::BuiltIn,
+        b"hdmi" | b"dprt" => OutputKind::Display,
+        b"blue" | b"blea" => OutputKind::Bluetooth,
+        b"airp" => OutputKind::AirPlay,
+        b"usb " => OutputKind::Usb,
+        _ => OutputKind::Other,
+    }
+}
+
+/// Volume app's own aggregate devices start their UID with this; they are
+/// never offered as an output.
+pub const OWN_UID: &str = "id.web.notching.volume.";
+
+pub fn is_ours(uid: &str) -> bool {
+    uid.starts_with(OWN_UID)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -142,5 +174,29 @@ mod tests {
         assert_eq!(main_writes(false, None, Some(true)), (None, Some(true)));
         assert_eq!(main_writes(true, None, Some(false)), (None, Some(false)));
         assert_eq!(main_writes(true, Some(0.6), Some(true)), (Some(0.6), Some(true)));
+    }
+
+    const fn four(s: &[u8; 4]) -> u32 {
+        u32::from_be_bytes(*s)
+    }
+
+    #[test]
+    fn an_output_is_known_by_its_transport() {
+        assert_eq!(output_kind(four(b"bltn")), OutputKind::BuiltIn);
+        assert_eq!(output_kind(four(b"hdmi")), OutputKind::Display);
+        assert_eq!(output_kind(four(b"dprt")), OutputKind::Display);
+        assert_eq!(output_kind(four(b"blue")), OutputKind::Bluetooth);
+        assert_eq!(output_kind(four(b"blea")), OutputKind::Bluetooth);
+        assert_eq!(output_kind(four(b"airp")), OutputKind::AirPlay);
+        assert_eq!(output_kind(four(b"usb ")), OutputKind::Usb);
+        assert_eq!(output_kind(four(b"virt")), OutputKind::Other);
+        assert_eq!(output_kind(0), OutputKind::Other);
+    }
+
+    #[test]
+    fn our_own_aggregates_are_not_outputs() {
+        assert!(is_ours("id.web.notching.volume.6F1C2A90-0000-4000-8000-000000000000"));
+        assert!(!is_ours("BuiltInSpeakerDevice"));
+        assert!(!is_ours("~:AMS2_Aggregate:0"));
     }
 }

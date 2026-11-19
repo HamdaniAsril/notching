@@ -199,13 +199,130 @@ span.va-icon {
   outline-offset: 2px;
 }
 
+/* The output's name: a quiet button that opens the speakers. */
 .va-output {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: -2px 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--v-muted);
+  font: 500 11px/15px "Inter", -apple-system, sans-serif;
+  cursor: pointer;
+}
+
+.va-output:hover:not(:disabled),
+.va-output[aria-expanded="true"] {
+  background: var(--v-track);
+  color: var(--v-ink);
+}
+
+.va-output:disabled {
+  cursor: default;
+}
+
+.va-output:disabled .va-chevron {
+  display: none;
+}
+
+.va-output:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 1px;
+}
+
+.va-output-name {
   min-width: 0;
   overflow: hidden;
-  font: 500 11px/15px "Inter", -apple-system, sans-serif;
-  color: var(--v-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.va-chevron,
+.va-chevron svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
+.va-output[aria-expanded="true"] .va-chevron svg {
+  transform: rotate(180deg);
+}
+
+/* The speakers, in place of the apps while open. */
+.va-picker {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.va-picker[hidden],
+.va-list[hidden] {
+  display: none;
+}
+
+.va-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--v-ink);
+  font: 600 12px/15px "Inter", -apple-system, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.va-choice:hover,
+.va-choice[aria-pressed="true"] {
+  background: var(--v-track);
+}
+
+.va-choice:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: -2px;
+}
+
+.va-kind {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  color: var(--v-muted);
+}
+
+.va-kind svg {
+  width: 18px;
+  height: 18px;
+}
+
+.va-choice-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.va-check {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--v-acc);
+}
+
+.va-check svg {
+  width: 16px;
+  height: 16px;
 }
 
 .va-master .va-name {
