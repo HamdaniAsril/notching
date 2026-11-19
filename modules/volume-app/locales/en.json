@@ -8,5 +8,10 @@
   "empty": "No app is playing sound",
   "access": "App volume needs System Audio Recording",
   "accessHint": "So it can turn one app down without touching the others.",
-  "allow": "Allow"
+  "allow": "Allow",
+  "mainTitle": "Main volume",
+  "mute": "Mute",
+  "unmute": "Unmute",
+  "muted": "Muted",
+  "fixed": "set on the device"
 }

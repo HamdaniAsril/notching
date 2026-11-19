@@ -8,5 +8,10 @@
   "empty": "Belum ada app yang bersuara",
   "access": "Volume app butuh izin Rekam Audio Sistem",
   "accessHint": "Supaya bisa mengecilkan satu app tanpa mengubah yang lain.",
-  "allow": "Izinkan"
+  "allow": "Izinkan",
+  "mainTitle": "Volume utama",
+  "mute": "Bisukan",
+  "unmute": "Nyalakan suara",
+  "muted": "Bisu",
+  "fixed": "diatur di perangkat"
 }

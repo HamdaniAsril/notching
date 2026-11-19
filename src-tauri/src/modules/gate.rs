@@ -38,6 +38,7 @@ pub enum Call {
     VolumeRead,
     VolumeSet,
     VolumeRequest,
+    VolumeMain,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -108,6 +109,7 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Volume, "read") => Ok(Call::VolumeRead),
         (Capability::Volume, "set") => Ok(Call::VolumeSet),
         (Capability::Volume, "request") => Ok(Call::VolumeRequest),
+        (Capability::Volume, "main") => Ok(Call::VolumeMain),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -346,6 +348,7 @@ mod tests {
         assert_eq!(authorize(Some(&m), "volume-app", "volume", "read"), Ok(Call::VolumeRead));
         assert_eq!(authorize(Some(&m), "volume-app", "volume", "set"), Ok(Call::VolumeSet));
         assert_eq!(authorize(Some(&m), "volume-app", "volume", "request"), Ok(Call::VolumeRequest));
+        assert_eq!(authorize(Some(&m), "volume-app", "volume", "main"), Ok(Call::VolumeMain));
         assert_eq!(authorize(Some(&m), "volume-app", "volume", "mute"), Err(CallError::UnknownMethod("mute".into())));
         let t = entry("timer", &[Capability::Timer], true);
         assert_eq!(

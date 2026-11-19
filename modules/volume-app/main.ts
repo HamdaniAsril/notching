@@ -14,6 +14,7 @@ async function start(): Promise<void> {
   const view = renderPage(document.getElementById('va')!, kit.lang === 'en' ? en : id, {
     set: (app, level) => void kit.call('volume', 'set', { app, level }).catch(() => {}),
     request: () => void kit.call('volume', 'request').catch(() => {}),
+    main: change => void kit.call('volume', 'main', change).catch(() => {}),
   });
   const read = (): void => {
     void kit.call<VolumeView>('volume', 'read').then(v => view.update(v), () => {}).finally(() => setTimeout(read, POLL_MS));

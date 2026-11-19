@@ -9,14 +9,24 @@ export interface AppRow {
   playing: boolean;
 }
 
+// Same as MainDto: the Mac's own volume on the current output.
+export interface MainRow {
+  name: string; // the output, "MacBook Air Speakers"
+  level: number; // 0–1
+  muted: boolean;
+  settable: boolean; // false when the device sets its own volume (HDMI)
+}
+
 export interface VolumeView {
   access: 'granted' | 'denied' | 'unknown'; // System Audio Recording
+  main: MainRow | null; // null with no output at all
   apps: AppRow[];
 }
 
 export interface Actions {
   set(app: string, level: number): void;
   request(): void;
+  main(change: { level?: number; muted?: boolean }): void;
 }
 
 export type Strings = typeof id;
@@ -30,14 +40,76 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = '
 
 const pct = (level: number) => Math.round(level * 100);
 
-// One black Volt card: a row per app playing or turned down, each with its
-// icon, name, a slider and the percentage. Without the permission it asks for
+// Line speakers in the card's ink: with sound waves, and crossed out.
+const SPEAKER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const SPEAKER_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 6 6"/><path d="m22 9-6 6"/></svg>';
+
+function slider(label: string): HTMLInputElement {
+  const s = el('input', 'va-slider');
+  s.type = 'range';
+  s.min = '0';
+  s.max = '100';
+  s.step = '1';
+  s.setAttribute('aria-label', label);
+  return s;
+}
+
+// The Mac's own volume above the apps: a speaker that mutes, the output's
+// name, a slider and the percentage. It needs no permission, and follows the
+// volume keys on every read unless the slider is held.
+function masterRow(s: Strings, act: Actions): { root: HTMLElement; update(m: MainRow | null): void } {
+  const root = el('div', 'va-master');
+  const mute = el('button', 'va-mute');
+  mute.type = 'button';
+  const main = el('div', 'va-main');
+  const head = el('div', 'va-head');
+  const output = el('span', 'va-output');
+  const value = el('span', 'va-pct');
+  head.append(el('span', 'va-name', s.mainTitle), output, value);
+  const range = slider(s.mainTitle);
+  main.append(head, range);
+  root.append(mute, main);
+  root.hidden = true;
+
+  let held = false;
+  let muted = false;
+  range.addEventListener('pointerdown', () => { held = true; });
+  range.addEventListener('pointerup', () => { held = false; });
+  range.addEventListener('input', () => {
+    value.textContent = `${range.value}%`;
+    act.main({ level: Number(range.value) / 100 });
+  });
+  mute.addEventListener('click', () => act.main({ muted: !muted }));
+
+  return {
+    root,
+    update(m) {
+      root.hidden = m === null;
+      if (!m) return;
+      muted = m.muted;
+      root.classList.toggle('muted', m.muted);
+      mute.innerHTML = m.muted ? SPEAKER_OFF : SPEAKER;
+      mute.setAttribute('aria-pressed', String(m.muted));
+      mute.setAttribute('aria-label', m.muted ? s.unmute : s.mute);
+      mute.disabled = !m.settable && !m.muted;
+      output.textContent = m.settable ? m.name : `${m.name} · ${s.fixed}`;
+      range.disabled = !m.settable;
+      if (held || document.activeElement === range) return;
+      range.value = String(pct(m.level));
+      value.textContent = m.muted ? s.muted : `${pct(m.level)}%`;
+    },
+  };
+}
+
+// One black Volt card: the Mac's own volume on top, then a row per app playing
+// or turned down, each with its icon, name, a slider and the percentage. Without the permission it asks for
 // it instead. Rows are rebuilt only when the apps change; a held slider keeps
 // what it shows.
 export function renderPage(root: HTMLElement, s: Strings, act: Actions): { update(v: VolumeView): void } {
   const list = el('div', 'va-list');
   const card = el('div', 'va-card');
-  card.append(el('span', 'v-lab ink va-title', s.title), list);
+  const master = masterRow(s, act);
+  card.append(el('span', 'v-lab ink va-title', s.title), master.root, list);
   list.append(el('div', 'va-empty', s.loading));
   root.replaceChildren(card);
 
@@ -76,22 +148,17 @@ export function renderPage(root: HTMLElement, s: Strings, act: Actions): { updat
       if (!x.playing) head.append(el('span', 'va-quiet', s.quiet));
       const value = el('span', 'va-pct', `${pct(x.level)}%`);
       head.append(value);
-      const slider = el('input', 'va-slider');
-      slider.type = 'range';
-      slider.min = '0';
-      slider.max = '100';
-      slider.step = '1';
-      slider.value = String(pct(x.level));
-      slider.setAttribute('aria-label', x.name);
-      const entry = { slider, value, held: false };
-      slider.addEventListener('pointerdown', () => { entry.held = true; });
-      slider.addEventListener('pointerup', () => { entry.held = false; });
-      slider.addEventListener('input', () => {
-        value.textContent = `${slider.value}%`;
-        act.set(x.app, Number(slider.value) / 100);
+      const range = slider(x.name);
+      range.value = String(pct(x.level));
+      const entry = { slider: range, value, held: false };
+      range.addEventListener('pointerdown', () => { entry.held = true; });
+      range.addEventListener('pointerup', () => { entry.held = false; });
+      range.addEventListener('input', () => {
+        value.textContent = `${range.value}%`;
+        act.set(x.app, Number(range.value) / 100);
       });
       rows.set(x.app, entry);
-      main.append(head, slider);
+      main.append(head, range);
       row.append(icon, main);
       return row;
     }));
@@ -99,6 +166,7 @@ export function renderPage(root: HTMLElement, s: Strings, act: Actions): { updat
 
   return {
     update(v) {
+      master.update(v.main);
       if (v.access !== 'granted') {
         shape = 'ask';
         rows.clear();

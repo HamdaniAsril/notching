@@ -50,6 +50,14 @@ pub fn copy_scaled(input: &[f32], in_ch: usize, output: &mut [f32], out_ch: usiz
     }
 }
 
+/// What to write for the main volume: a level and/or a mute. Raising the
+/// level of a muted output unmutes it, as the volume keys do.
+pub fn main_writes(muted_now: bool, level: Option<f32>, muted: Option<bool>) -> (Option<f32>, Option<bool>) {
+    let level = level.map(|l| l.clamp(0.0, 1.0));
+    let unmute = (muted_now && level.is_some_and(|l| l > 0.0)).then_some(false);
+    (level, muted.or(unmute))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -115,5 +123,24 @@ mod tests {
         let mut none = [9.0; 2];
         copy_scaled(&[], 0, &mut none, 2, 1.0);
         assert_eq!(none, [0.0, 0.0]);
+    }
+
+    #[test]
+    fn raising_a_muted_output_unmutes_it() {
+        assert_eq!(main_writes(true, Some(0.5), None), (Some(0.5), Some(false)));
+        // Not muted: only the level.
+        assert_eq!(main_writes(false, Some(0.5), None), (Some(0.5), None));
+        // Down to 0 keeps the mute as it is.
+        assert_eq!(main_writes(true, Some(0.0), None), (Some(0.0), None));
+        // Out of range levels are clamped.
+        assert_eq!(main_writes(false, Some(1.4), None), (Some(1.0), None));
+        assert_eq!(main_writes(false, Some(-0.2), None), (Some(0.0), None));
+    }
+
+    #[test]
+    fn a_mute_asked_for_wins() {
+        assert_eq!(main_writes(false, None, Some(true)), (None, Some(true)));
+        assert_eq!(main_writes(true, None, Some(false)), (None, Some(false)));
+        assert_eq!(main_writes(true, Some(0.6), Some(true)), (Some(0.6), Some(true)));
     }
 }

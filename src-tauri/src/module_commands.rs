@@ -205,6 +205,11 @@ pub async fn module_call(
             crate::volume_service::set(&a);
             Ok(serde_json::Value::Null)
         }
+        Call::VolumeMain => {
+            let a: crate::volume_service::MainArgs = parse_args(args, "volume.main")?;
+            crate::volume_service::set_main(&a);
+            Ok(serde_json::Value::Null)
+        }
         Call::VolumeRequest => {
             crate::volume_service::request();
             Ok(serde_json::Value::Null)

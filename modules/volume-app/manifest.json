@@ -4,7 +4,7 @@
   "category": "utilities",
   "entry": "index.html",
   "icon": "icon.svg",
-  "card": { "width": 440, "height": 236 },
+  "card": { "width": 440, "height": 284 },
   "optIn": true,
   "permissions": [],
   "capabilities": ["volume"]

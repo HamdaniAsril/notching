@@ -34,6 +34,11 @@ const PROCESS_PID: u32 = code(b"ppid");
 const PROCESS_OUTPUT: u32 = code(b"piro");
 const DEFAULT_OUTPUT: u32 = code(b"dOut");
 const DEVICE_UID: u32 = code(b"uid ");
+const NAME: u32 = code(b"lnam");
+const OUTPUT: u32 = code(b"outp");
+/// The device's main volume as the menu bar shows it.
+const MAIN_VOLUME: u32 = code(b"vmvc");
+const MUTE: u32 = code(b"mute");
 /// CATapMuteBehavior: muted while Notching taps it.
 const MUTED_WHEN_TAPPED: isize = 2;
 
@@ -71,6 +76,9 @@ type IoProc = unsafe extern "C" fn(
 unsafe extern "C" {
     fn AudioObjectGetPropertyDataSize(object: u32, address: *const Address, qsize: u32, q: *const c_void, size: *mut u32) -> i32;
     fn AudioObjectGetPropertyData(object: u32, address: *const Address, qsize: u32, q: *const c_void, size: *mut u32, data: *mut c_void) -> i32;
+    fn AudioObjectSetPropertyData(object: u32, address: *const Address, qsize: u32, q: *const c_void, size: u32, data: *const c_void) -> i32;
+    fn AudioObjectHasProperty(object: u32, address: *const Address) -> u8;
+    fn AudioObjectIsPropertySettable(object: u32, address: *const Address, settable: *mut u8) -> i32;
     fn AudioHardwareCreateProcessTap(description: *mut AnyObject, tap: *mut u32) -> i32;
     fn AudioHardwareDestroyProcessTap(tap: u32) -> i32;
     fn AudioHardwareCreateAggregateDevice(description: *const c_void, device: *mut u32) -> i32;
@@ -97,7 +105,11 @@ const RTLD_LAZY: c_int = 1;
 const RTLD_DEFAULT: *mut c_void = -2isize as *mut c_void;
 
 fn get<T: Copy>(object: u32, selector: u32) -> Option<T> {
-    let address = Address { selector, scope: GLOBAL, element: 0 };
+    get_in(object, selector, GLOBAL)
+}
+
+fn get_in<T: Copy>(object: u32, selector: u32, scope: u32) -> Option<T> {
+    let address = Address { selector, scope, element: 0 };
     let mut value = std::mem::MaybeUninit::<T>::uninit();
     let mut size = std::mem::size_of::<T>() as u32;
     // SAFETY: `value` has room for `size` bytes.
@@ -127,18 +139,42 @@ fn process_objects() -> Vec<u32> {
 /// The current output's id and UID.
 fn default_output() -> Option<(u32, String)> {
     let device: u32 = get(SYSTEM, DEFAULT_OUTPUT)?;
-    let uid: *const c_void = get(device, DEVICE_UID)?;
-    if uid.is_null() {
+    Some((device, text_of(device, DEVICE_UID)?))
+}
+
+/// A CFString property, as text.
+fn text_of(object: u32, selector: u32) -> Option<String> {
+    let cf: *const c_void = get(object, selector)?;
+    if cf.is_null() {
         return None;
     }
     // SAFETY: a CFString Core Audio handed over (+1), bridged to NSString.
-    let text = unsafe {
-        let s = &*(uid as *const NSString);
-        let text = s.to_string();
-        CFRelease(uid);
+    Some(unsafe {
+        let text = (*(cf as *const NSString)).to_string();
+        CFRelease(cf);
         text
-    };
-    Some((device, text))
+    })
+}
+
+/// Has the output this property, and can it be changed? (has, settable)
+fn output_property(device: u32, selector: u32) -> (bool, bool) {
+    let address = Address { selector, scope: OUTPUT, element: 0 };
+    // SAFETY: a valid address and out pointer.
+    unsafe {
+        if AudioObjectHasProperty(device, &address) == 0 {
+            return (false, false);
+        }
+        let mut settable = 0u8;
+        (true, AudioObjectIsPropertySettable(device, &address, &mut settable) == 0 && settable != 0)
+    }
+}
+
+fn set_output<T: Copy>(device: u32, selector: u32, value: T) -> i32 {
+    let address = Address { selector, scope: OUTPUT, element: 0 };
+    // SAFETY: `value` is `size` bytes of the property's type.
+    unsafe {
+        AudioObjectSetPropertyData(device, &address, 0, std::ptr::null(), std::mem::size_of::<T>() as u32, (&value as *const T).cast())
+    }
 }
 
 /// The app that answers for a process: Safari for its WebKit audio process.
@@ -490,11 +526,57 @@ pub struct AppDto {
     pub playing: bool,
 }
 
+/// The Mac's own volume, on the current output. Same shape as MainRow in
+/// modules/volume-app/view.ts.
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MainDto {
+    pub name: String,
+    pub level: f32,
+    pub muted: bool,
+    /// False for an output whose volume is set on the device (HDMI, some DACs).
+    pub settable: bool,
+}
+
 #[derive(Clone, Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VolumeView {
     pub access: &'static str,
+    pub main: Option<MainDto>,
     pub apps: Vec<AppDto>,
+}
+
+fn main_volume() -> Option<MainDto> {
+    let (device, _) = default_output()?;
+    let name = text_of(device, NAME).unwrap_or_default();
+    let (has, settable) = output_property(device, MAIN_VOLUME);
+    let level = if has { get_in::<f32>(device, MAIN_VOLUME, OUTPUT).unwrap_or(1.0) } else { 1.0 };
+    let muted = get_in::<u32>(device, MUTE, OUTPUT).is_some_and(|m| m != 0);
+    Some(MainDto { name, level: level.clamp(0.0, 1.0), muted, settable })
+}
+
+#[derive(serde::Deserialize)]
+pub struct MainArgs {
+    pub level: Option<f32>,
+    pub muted: Option<bool>,
+}
+
+/// The Mac's own volume and mute, as the volume keys would set them.
+pub fn set_main(a: &MainArgs) {
+    let Some((device, _)) = default_output() else { return };
+    let muted_now = get_in::<u32>(device, MUTE, OUTPUT).is_some_and(|m| m != 0);
+    let (level, muted) = rules::main_writes(muted_now, a.level, a.muted);
+    if let Some(level) = level {
+        let status = set_output(device, MAIN_VOLUME, level);
+        if status != 0 {
+            eprintln!("notching: volume app: main volume refused ({status})");
+        }
+    }
+    if let Some(muted) = muted {
+        if output_property(device, MUTE).1 {
+            set_output(device, MUTE, u32::from(muted));
+        }
+    }
 }
 
 fn icon(app: &str, pid: i32) -> Option<String> {
@@ -518,7 +600,7 @@ pub fn read() -> VolumeView {
         })
         .collect();
     apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
-    VolumeView { access: access(), apps }
+    VolumeView { access: access(), main: main_volume(), apps }
 }
 
 #[derive(serde::Deserialize)]

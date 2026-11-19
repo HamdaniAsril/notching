@@ -37,10 +37,18 @@ others or the Mac's own volume, from the notch.
 
 ## What shows
 
-The module "Volume app" (en "App volume"), opt-in, a card in the notch: one
-row per app that is playing now or is turned down, with its icon, name, a
-slider and the percentage. Without the permission the card says how to give
-it.
+The module "Volume app" (en "App volume"), opt-in, a card in the notch
+(440 × 284).
+
+- On top, the Mac's own volume (owner, 19 Nov: "tambahkan pengaturan volume
+  utama di bagian atas"): a speaker that mutes, the output's name, a slider
+  and the percentage. It is the current output's main volume, as the menu bar
+  shows it; it needs no permission and follows the volume keys. Raising it
+  while muted unmutes, as the keys do. An output that sets its own volume
+  (HDMI, some DACs) shows the level greyed out with "diatur di perangkat".
+- Below, one row per app that is playing now or is turned down, with its
+  icon, name, a slider and the percentage. Without the permission this part
+  says how to give it.
 
 ## Non-goals (for now)
 
