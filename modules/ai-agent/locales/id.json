@@ -1,0 +1,23 @@
+{
+  "name": "Agent AI",
+  "shortName": "Agent",
+  "description": "Claude Code, Codex, dan OpenCode di notch",
+  "title": "Agent AI",
+  "working": "Bekerja",
+  "waiting": "Menunggu kamu",
+  "done": "Selesai",
+  "now": "baru saja",
+  "minutes": "{n} mnt",
+  "hours": "{n} jam",
+  "empty": "Tidak ada agent yang bekerja",
+  "notConnected": "Belum ada agent terhubung",
+  "connectHint": "Hubungkan di Pengaturan → Modul → Agent AI",
+  "channels": {
+    "waiting": "Agent menunggu kamu",
+    "done": "Agent selesai"
+  },
+  "notice": {
+    "waiting": { "title": "{agent} menunggu kamu" },
+    "done": { "title": "{agent} selesai" }
+  }
+}

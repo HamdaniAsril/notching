@@ -1,0 +1,15 @@
+{
+  "id": "ai-agent",
+  "version": "1.0.0",
+  "category": "utilities",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "card": { "width": 520, "height": 236 },
+  "optIn": true,
+  "permissions": [],
+  "capabilities": ["agents", "status", "notify"],
+  "notifications": [
+    { "id": "waiting", "on": true, "sound": true },
+    { "id": "done", "on": true, "sound": false }
+  ]
+}

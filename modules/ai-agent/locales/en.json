@@ -1,0 +1,23 @@
+{
+  "name": "AI agents",
+  "shortName": "Agents",
+  "description": "Claude Code, Codex, and OpenCode in the notch",
+  "title": "AI agents",
+  "working": "Working",
+  "waiting": "Needs you",
+  "done": "Done",
+  "now": "just now",
+  "minutes": "{n} min",
+  "hours": "{n} hr",
+  "empty": "No agent is working",
+  "notConnected": "No agent connected yet",
+  "connectHint": "Connect one in Settings → Modules → AI agents",
+  "channels": {
+    "waiting": "Agent needs you",
+    "done": "Agent finished"
+  },
+  "notice": {
+    "waiting": { "title": "{agent} needs you" },
+    "done": { "title": "{agent} finished" }
+  }
+}

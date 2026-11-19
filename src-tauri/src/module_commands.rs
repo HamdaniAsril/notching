@@ -69,6 +69,7 @@ pub fn uninstall_module(app: AppHandle, core: State<CoreState>, id: String) -> R
     crate::cleaner_service::module_gone(&app, &id);
     crate::media_service::module_gone(&app, &id);
     crate::shot_service::uninstalled(&app, &id);
+    crate::agent_service::uninstalled(&app, &id);
     crate::tools::module_changed(&app, &id, false);
     crate::status::publish(&app);
     Ok(())
@@ -184,6 +185,12 @@ pub async fn module_call(
         Call::PrefsWrite => {
             let a: PrefsWriteArgs = parse_args(args, "prefs.write")?;
             app.state::<PrefsState>().0.write(&module_id, &a.value)?;
+            Ok(serde_json::Value::Null)
+        }
+        Call::AgentsRead => serde_json::to_value(crate::agent_service::read(&app)),
+        Call::AgentsOpen => {
+            let a: crate::agent_service::OpenArgs = parse_args(args, "agents.open")?;
+            crate::agent_service::open(&a)?;
             Ok(serde_json::Value::Null)
         }
     };

@@ -158,6 +158,16 @@ export interface SettingsBridge {
   cleanerExclusions(): Promise<{ home: string; paths: string[] }>; // Cleaner's never-clean list; rejects when unreadable
   cleanerUnexclude(path: string): Promise<void>;
   cleanerOpenLog(): Promise<void>; // shows cleaner.log in Finder
+  agentLinks(): Promise<AgentLink[]>; // Agent AI's agents and whether each is connected
+  setAgentLink(agent: string, on: boolean): Promise<AgentLink[]>; // Hubungkan or Lepaskan; rejects when a config can't be read
+}
+
+// One agent on Agent AI's page. Same shape as AgentLink in src-tauri/src/agent_service.rs.
+export interface AgentLink {
+  agent: 'claude' | 'codex' | 'opencode';
+  name: string;
+  installed: boolean;
+  connected: boolean;
 }
 
 export interface SettingsEnv {

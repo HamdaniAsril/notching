@@ -357,6 +357,17 @@
       "app": "Dipakai pintasan Keep awake, Shelf, atau Fokus jendela",
       "peek": "Dipakai Intip jendela"
     },
+    "agents": {
+      "connect": "Hubungkan",
+      "disconnect": "Lepaskan",
+      "connected": "Terhubung",
+      "notConnected": "Belum terhubung",
+      "missing": "Tidak terpasang",
+      "claudeHint": "Menambah hook di ~/.claude/settings.json.",
+      "codexHint": "Menambah perintah di notify, ~/.codex/config.toml. Program notify yang sudah ada tetap jalan.",
+      "opencodeHint": "Menaruh plugin di ~/.config/opencode/plugins.",
+      "note": "File aslinya disimpan sekali dengan akhiran .before-notching. Agent yang sedang terbuka perlu dibuka ulang."
+    },
     "focus": {
       "reveal": "Animasi intip",
       "revealHint": "Intip terbuka cepat dari atas ke bawah.",

@@ -16,9 +16,11 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: {
       id: [
         'Fokus jendela (pasang dari Katalog): tekan ⌃⌥F dan semua yang di belakang jendelamu jadi blur. Fokus ikut pindah saat kamu pindah jendela atau mengklik jendela yang ter-blur, setiap monitor punya mode fokus sendiri, dan ⌃⌥⇧F menambah jendela kedua.',
+        'Agent AI (pasang dari Katalog): Claude Code, Codex, dan OpenCode terlihat di notch, mana yang sedang bekerja, menunggu kamu, atau sudah selesai, lengkap dengan notifikasinya. Hubungkan tiap agent di pengaturan modul.',
       ],
       en: [
         'Window focus (install it from the Catalog): press ⌃⌥F and everything behind your window blurs. Focus follows you when you switch windows or click a blurred one, every screen has its own focus, and ⌃⌥⇧F adds a second window.',
+        'AI agents (install it from the Catalog): see in the notch which of Claude Code, Codex, and OpenCode is working, needs you, or has finished, with a notice for each. Connect every agent in the module’s settings.',
       ],
     },
   },

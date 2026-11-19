@@ -567,3 +567,34 @@ test('Shelf can open as soon as a file drag starts, and saves a change', async (
   sw.click();
   expect(bridge.setShelfOpenOnDrag).toHaveBeenCalledWith(false);
 });
+
+const AGENT = moduleInfo('ai-agent', { name: 'Agent AI', description: 'Agent di notch' });
+const WITH_AGENT: ModuleState = { ...STATE, modules: [...STATE.modules, AGENT] };
+const LINKS = [
+  { agent: 'claude', name: 'Claude Code', installed: true, connected: false },
+  { agent: 'codex', name: 'Codex', installed: true, connected: true },
+  { agent: 'opencode', name: 'OpenCode', installed: false, connected: false },
+] as const;
+
+test('Agent AI page: each agent with its state, and Hubungkan or Lepaskan', async () => {
+  const { root, app, bridge } = await mountForTest(WITH_AGENT);
+  bridge.agentLinks.mockResolvedValue([...LINKS]);
+  app.go({ page: 'module', id: 'ai-agent' });
+  await settle();
+  const label = (key: string) => root.querySelector(`[data-row="module.ai-agent.${key}"] .label`)!.textContent;
+  const state = (key: string) => root.querySelector(`[data-row="module.ai-agent.${key}"] .perm-state`)!.textContent;
+  expect([label('claude'), label('codex'), label('opencode')]).toEqual(['Claude Code', 'Codex', 'OpenCode']);
+  expect([state('claude'), state('codex'), state('opencode')]).toEqual(['Belum terhubung', 'Terhubung', 'Tidak terpasang']);
+  const btn = (key: string) => root.querySelector<HTMLElement>(`[data-key="module.ai-agent.${key}"]`);
+  expect(btn('claude')!.textContent).toBe('Hubungkan');
+  expect(btn('codex')!.textContent).toBe('Lepaskan');
+  // Not installed and not connected: nothing to press.
+  expect(btn('opencode')).toBeNull();
+  bridge.setAgentLink.mockResolvedValue([{ ...LINKS[0], connected: true }, LINKS[1], LINKS[2]]);
+  btn('claude')!.click();
+  await settle();
+  expect(bridge.setAgentLink).toHaveBeenCalledWith('claude', true);
+  expect(state('claude')).toBe('Terhubung');
+  expect(btn('claude')!.textContent).toBe('Lepaskan');
+  expect(root.textContent).toContain('.before-notching');
+});

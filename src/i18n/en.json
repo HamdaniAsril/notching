@@ -357,6 +357,17 @@
       "app": "Used by the Keep awake, Shelf or Window focus shortcut",
       "peek": "Used by Window peek"
     },
+    "agents": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "missing": "Not installed",
+      "claudeHint": "Adds hooks to ~/.claude/settings.json.",
+      "codexHint": "Adds a command to notify in ~/.codex/config.toml. A notify program already there keeps running.",
+      "opencodeHint": "Puts a plugin in ~/.config/opencode/plugins.",
+      "note": "The original file is kept once with a .before-notching ending. Agents already open need a restart."
+    },
     "focus": {
       "reveal": "Peek animation",
       "revealHint": "The peek opens quickly from the top down.",

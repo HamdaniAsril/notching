@@ -5,7 +5,7 @@ import { isModule, isTool, MODULE_CATEGORIES, type ModuleCategory, type FocusSet
 import { DEFAULT_LABELS } from '../../shot/keys';
 import { button, choice, el, group, head, note, row, toggle } from '../controls';
 import { icon } from '../icons';
-import type { PageContext, PageRender, SettingsInfo, ShotKeyPress, SwitchKeyError, WindowCell, WindowKey, WindowKeyError } from '../types';
+import type { AgentLink, PageContext, PageRender, SettingsInfo, ShotKeyPress, SwitchKeyError, WindowCell, WindowKey, WindowKeyError } from '../types';
 
 export const UNINSTALL_CONFIRM_MS = 4000;
 
@@ -562,6 +562,35 @@ function windowKeysBox(ctx: PageContext, folded: boolean): HTMLElement {
   return box;
 }
 
+// Agent AI's page (design 19 Nov §Hubungkan): each agent, whether it tells the
+// notch, and the button that changes that. An agent not on this Mac and not
+// connected has nothing to press.
+function agentSettings(ctx: PageContext): HTMLElement {
+  const s = ctx.strings.agents;
+  const hints: Record<AgentLink['agent'], string> = { claude: s.claudeHint, codex: s.codexHint, opencode: s.opencodeHint };
+  const box = el('div', 'agent-links perms');
+  const draw = (links: AgentLink[]) => {
+    box.replaceChildren(group(...links.map(l => {
+      const key = `module.ai-agent.${l.agent}`;
+      const state = el('span', 'perm-state');
+      state.append(el('i', 'perm-dot'), el('span', undefined, l.connected ? s.connected : l.installed ? s.notConnected : s.missing));
+      state.classList.toggle('on', l.connected);
+      const ctl = el('div', 'ctl');
+      ctl.append(state);
+      if (l.installed || l.connected) {
+        ctl.append(button(key, l.connected ? s.disconnect : s.connect, () => {
+          const pending = ctx.bridge.setAgentLink(l.agent, !l.connected);
+          ctx.save(key, pending.then(() => {}));
+          pending.then(draw, () => {});
+        }));
+      }
+      return row({ key, label: l.name, hint: hints[l.agent], control: ctl });
+    })), note(s.note));
+  };
+  ctx.bridge.agentLinks().then(draw, () => {});
+  return box;
+}
+
 // Each module's own settings, shown on its page; the rest say they have none.
 export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> = {
   screenshot: screenshotKeys,
@@ -571,6 +600,7 @@ export const MODULE_SETTINGS: Record<string, (ctx: PageContext) => HTMLElement> 
   shelf: shelfSettings,
   'window-peek': peekSettingsBox,
   'window-focus': focusSettingsBox,
+  'ai-agent': agentSettings,
 };
 
 // The module's own SVG as a mask in the text colour, like the pill. The SVG never

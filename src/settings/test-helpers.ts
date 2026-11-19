@@ -6,7 +6,7 @@ import { mountSettings, type SettingsApp } from './shell';
 import { shutFolds } from './pages/modules';
 import type { ShotKeys } from '../bridge';
 import { shotKeys } from '../shot/test-helpers';
-import type { AppAction, AppKey, LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress, ThemeChoice, UninstallPreview, UpdateInfo, AboutLink, WindowCell, WindowKey } from './types';
+import type { AgentLink, AppAction, AppKey, LanguageChoice, Place, PrayerMethod, Route, SettingsBridge, SettingsInfo, ShotKeyPress, ThemeChoice, UninstallPreview, UpdateInfo, AboutLink, WindowCell, WindowKey } from './types';
 
 const CELLS: [WindowCell, string][] = [
   ['topLeft', ';'], ['top', '↑'], ['topRight', "'"], ['left', '←'], ['center', '\\'], ['right', '→'],
@@ -120,6 +120,8 @@ export function fakeSettingsBridge(initialState: ModuleState = TEST_STATE, initi
     cleanerExclusions: vi.fn(async (): Promise<{ home: string; paths: string[] }> => ({ home: '/Users/a', paths: [] })),
     cleanerUnexclude: vi.fn(async (_path: string) => {}),
     cleanerOpenLog: vi.fn(async () => {}),
+    agentLinks: vi.fn(async (): Promise<AgentLink[]> => []),
+    setAgentLink: vi.fn(async (_agent: string, _on: boolean): Promise<AgentLink[]> => []),
     emitModuleState: (s: ModuleState) => { state = s; stateSubs.forEach(cb => cb(s)); },
     emitSettings: (s: SettingsInfo) => { info = s; infoSubs.forEach(cb => cb(s)); },
     emitGo: (route: string) => goSubs.forEach(cb => cb(route)),

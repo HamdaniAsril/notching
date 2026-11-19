@@ -16,6 +16,8 @@ mod page_commands;
 mod pages;
 mod peek_rules;
 mod focus_rules;
+mod agent_rules;
+mod agent_hooks;
 mod glass_rules;
 mod switch_rules;
 mod tap_rules;
@@ -78,6 +80,7 @@ mod shelf_watch;
 #[cfg(target_os = "macos")]
 mod peek_service;
 mod focus_service;
+mod agent_service;
 #[cfg(target_os = "macos")]
 mod focus_layer;
 #[cfg(target_os = "macos")]
@@ -188,6 +191,8 @@ pub fn run() {
             settings_window::set_shelf_open_on_drag,
             settings_window::set_peek_settings,
             settings_window::set_focus_settings,
+            agent_service::agent_links,
+            agent_service::set_agent_link,
             settings_window::open_dock_settings,
             peek_service::peek_size,
             peek_service::peek_pointer,
@@ -343,6 +348,7 @@ pub fn run() {
             tap_guard::start(app.handle());
             screens::watch_screen_changes(app.handle().clone());
             focus_service::start(app.handle());
+            agent_service::start(app.handle());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());
             shelf_watch::sync(app.handle());

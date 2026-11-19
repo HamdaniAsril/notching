@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { syncUnlisten, type ShotKeys } from '../bridge';
 import type { ModuleState } from '../modules/types';
-import type { Place, SettingsBridge, SettingsInfo, UpdateInfo, WindowKey } from './types';
+import type { AgentLink, Place, SettingsBridge, SettingsInfo, UpdateInfo, WindowKey } from './types';
 
 // The native side: commands in src-tauri/src/settings_window.rs,
 // module_commands.rs and page_commands.rs; both broadcasts reach every window.
@@ -71,6 +71,8 @@ export function tauriSettingsBridge(): SettingsBridge {
     openCameraSettings: () => invoke('open_camera_settings'),
     cleanerExclusions: () => invoke<{ home: string; paths: string[] }>('cleaner_exclusions'),
     cleanerUnexclude: path => invoke('cleaner_unexclude', { path }),
+    agentLinks: () => invoke<AgentLink[]>('agent_links'),
+    setAgentLink: (agent, on) => invoke<AgentLink[]>('set_agent_link', { agent, on }),
     cleanerOpenLog: () => invoke('cleaner_open_log'),
   };
 }

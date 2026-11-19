@@ -3,7 +3,14 @@ import { BERANDA, catalog } from '../bridge-browser';
 import type { Lang } from '../kit/protocol';
 import { DEFAULT_FOCUS, DEFAULT_PEEK, type ModuleInfo, type ModuleState, type Page } from '../modules/types';
 import { DEFAULT_CONFIG } from '../notch/config';
-import type { AppAction, AppKey, UpdateInfo, LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
+import type { AgentLink, AppAction, AppKey, UpdateInfo, LanguageChoice, Place, SettingsBridge, SettingsInfo, WindowCell, WindowKey } from './types';
+
+// Agent AI's page in the browser: one of each state.
+const AGENT_LINKS: AgentLink[] = [
+  { agent: 'claude', name: 'Claude Code', installed: true, connected: true },
+  { agent: 'codex', name: 'Codex', installed: true, connected: false },
+  { agent: 'opencode', name: 'OpenCode', installed: false, connected: false },
+];
 
 const city = (name: string, region: string, latitude: number, longitude: number): Place =>
   ({ name, region, country: 'Indonesia', latitude, longitude });
@@ -207,6 +214,8 @@ export function browserSettingsBridge(params: URLSearchParams): SettingsBridge {
     openCameraSettings: async () => console.info('openCameraSettings'),
     cleanerExclusions: async () => ({ home: '/Users/a', paths: ['/Users/a/Library/Caches/com.spotify.client'] }),
     cleanerUnexclude: async path => console.info('cleanerUnexclude', path),
+    agentLinks: async () => AGENT_LINKS,
+    setAgentLink: async (agent, on) => AGENT_LINKS.map(l => (l.agent === agent ? { ...l, connected: on } : l)),
     cleanerOpenLog: async () => console.info('cleanerOpenLog'),
     movePage: async (id, to) => {
       const [home, ...custom] = state.pages;

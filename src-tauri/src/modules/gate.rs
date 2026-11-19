@@ -31,6 +31,8 @@ pub enum Call {
     MediaCommand,
     PrefsRead,
     PrefsWrite,
+    AgentsRead,
+    AgentsOpen,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -94,6 +96,8 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Media, "command") => Ok(Call::MediaCommand),
         (Capability::Prefs, "read") => Ok(Call::PrefsRead),
         (Capability::Prefs, "write") => Ok(Call::PrefsWrite),
+        (Capability::Agents, "read") => Ok(Call::AgentsRead),
+        (Capability::Agents, "open") => Ok(Call::AgentsOpen),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -298,5 +302,18 @@ mod tests {
         assert_eq!(authorize(Some(&m), "paket", "prefs", "read"), Ok(Call::PrefsRead));
         assert_eq!(authorize(Some(&m), "paket", "prefs", "write"), Ok(Call::PrefsWrite));
         assert_eq!(authorize(Some(&m), "paket", "prefs", "clear"), Err(CallError::UnknownMethod("clear".into())));
+    }
+
+    #[test]
+    fn agents_needs_its_capability() {
+        let m = entry("ai-agent", &[Capability::Agents], true);
+        assert_eq!(authorize(Some(&m), "ai-agent", "agents", "read"), Ok(Call::AgentsRead));
+        assert_eq!(authorize(Some(&m), "ai-agent", "agents", "open"), Ok(Call::AgentsOpen));
+        assert_eq!(authorize(Some(&m), "ai-agent", "agents", "connect"), Err(CallError::UnknownMethod("connect".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        assert_eq!(
+            authorize(Some(&t), "timer", "agents", "read"),
+            Err(CallError::NotDeclared { module: "timer".into(), capability: "agents".into() })
+        );
     }
 }

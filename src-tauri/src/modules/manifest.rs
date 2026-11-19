@@ -58,6 +58,10 @@ pub enum Capability {
     /// Intip jendela: the Dock peek and the Dock click, run by the core (design 5 Nov).
     #[serde(rename = "peek")]
     Peek,
+    /// Status agent: the AI agents' sessions the core hears, and bringing up the
+    /// app one runs in (design 19 Nov).
+    #[serde(rename = "agents")]
+    Agents,
     /// Fokus jendela: everything behind the focused window blurs (design 18 Nov).
     #[serde(rename = "focus")]
     Focus,

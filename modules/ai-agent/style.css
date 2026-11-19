@@ -1,0 +1,175 @@
+/* Agent AI's card: one black Volt card, 520 × 236. Classes start with ag- so
+   they never meet the notch's own. */
+.ag-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 236px;
+  padding: 12px;
+  border-radius: 17px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+}
+
+.ag-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.ag-title {
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.ag-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--v-acc);
+  color: var(--v-on-acc);
+  font: 600 11px/18px "Inter", -apple-system, sans-serif;
+  text-align: center;
+}
+
+.ag-count:empty {
+  display: none;
+}
+
+.ag-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.ag-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--v-track);
+  color: var(--v-ink);
+  font: inherit;
+  text-align: left;
+}
+
+button.ag-row {
+  cursor: pointer;
+}
+
+button.ag-row:hover {
+  background: var(--v-acc-soft);
+}
+
+button.ag-row:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 1px;
+}
+
+.ag-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--v-muted);
+}
+
+.ag-row[data-state="working"] .ag-dot {
+  background: #30d158;
+  animation: ag-pulse 1.6s ease-in-out infinite;
+}
+
+.ag-row[data-state="waiting"] .ag-dot {
+  background: var(--v-acc);
+}
+
+@keyframes ag-pulse {
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ag-row[data-state="working"] .ag-dot {
+    animation: none;
+  }
+}
+
+.ag-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ag-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ag-project {
+  overflow: hidden;
+  font: 600 13px/16px "Inter", -apple-system, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ag-agent,
+.ag-detail,
+.ag-ago {
+  font: 500 11px/14px "Inter", -apple-system, sans-serif;
+  color: var(--v-muted);
+  white-space: nowrap;
+}
+
+.ag-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ag-side {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.ag-state {
+  font: 600 11px/14px "Inter", -apple-system, sans-serif;
+}
+
+.ag-row[data-state="waiting"] .ag-state {
+  color: var(--v-acc);
+}
+
+.ag-row[data-state="done"] .ag-state {
+  color: var(--v-muted);
+}
+
+.ag-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.ag-empty-main {
+  font: 600 13px/16px "Inter", -apple-system, sans-serif;
+  color: var(--v-ink);
+}
+
+.ag-empty-hint {
+  font: 500 11px/14px "Inter", -apple-system, sans-serif;
+  color: var(--v-muted);
+}
