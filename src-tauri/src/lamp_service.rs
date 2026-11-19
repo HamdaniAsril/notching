@@ -57,6 +57,15 @@ fn brightness() -> Option<&'static Brightness> {
     .as_ref()
 }
 
+/// One display's brightness, 0–1, when DisplayServices can read it (the
+/// built-in screen and Apple's own displays).
+pub fn get(id: u32) -> Option<f32> {
+    let b = brightness()?;
+    let mut level = 0.0;
+    // SAFETY: `level` is a valid out pointer.
+    (unsafe { (b.get)(id, &mut level) } == 0).then_some(level)
+}
+
 /// Every display DisplayServices can read, with its brightness.
 fn levels() -> Vec<Level> {
     let Some(b) = brightness() else { return Vec::new() };
@@ -76,7 +85,8 @@ fn levels() -> Vec<Level> {
         .collect()
 }
 
-fn set(id: u32, level: f32) {
+/// A display's brightness through DisplayServices; also used by Kecerahan.
+pub fn set(id: u32, level: f32) {
     if let Some(b) = brightness() {
         // SAFETY: plain values.
         unsafe {

@@ -18,6 +18,7 @@ mod peek_rules;
 mod focus_rules;
 mod agent_rules;
 mod agent_hooks;
+mod brightness_rules;
 mod glass_rules;
 mod switch_rules;
 mod tap_rules;
@@ -81,6 +82,7 @@ mod shelf_watch;
 mod peek_service;
 mod focus_service;
 mod agent_service;
+mod brightness_service;
 #[cfg(target_os = "macos")]
 mod focus_layer;
 #[cfg(target_os = "macos")]
@@ -349,6 +351,7 @@ pub fn run() {
             screens::watch_screen_changes(app.handle().clone());
             focus_service::start(app.handle());
             agent_service::start(app.handle());
+            brightness_service::start(app.handle());
             sensor::init(app.handle());
             shelf_drop::init(app.handle());
             shelf_watch::sync(app.handle());
@@ -363,6 +366,7 @@ pub fn run() {
             tauri::RunEvent::Exit => {
                 switch_symbolic::restore();
                 lamp_service::quitting(app);
+                brightness_service::quitting();
                 shelf_service::quitting(app);
                 shot_service::quitting(app);
                 cleaner_service::quitting(app);

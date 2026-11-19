@@ -1,0 +1,11 @@
+{
+  "id": "kecerahan",
+  "version": "1.0.0",
+  "category": "utilities",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "card": { "width": 440, "height": 160 },
+  "optIn": true,
+  "permissions": [],
+  "capabilities": ["brightness"]
+}

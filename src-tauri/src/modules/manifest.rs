@@ -62,6 +62,10 @@ pub enum Capability {
     /// app one runs in (design 19 Nov).
     #[serde(rename = "agents")]
     Agents,
+    /// Kecerahan: every screen's brightness, through DisplayServices, DDC or
+    /// software dimming (design 19 Nov).
+    #[serde(rename = "brightness")]
+    Brightness,
     /// Fokus jendela: everything behind the focused window blurs (design 18 Nov).
     #[serde(rename = "focus")]
     Focus,

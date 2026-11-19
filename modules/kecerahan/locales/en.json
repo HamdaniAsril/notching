@@ -1,0 +1,12 @@
+{
+  "name": "Brightness",
+  "shortName": "Bright",
+  "description": "Set the brightness of every screen, monitors too",
+  "title": "Brightness",
+  "software": "Software",
+  "softwareHint": "This monitor doesn't take brightness commands, so its picture is dimmed instead. It can only go darker than the monitor's own setting.",
+  "builtIn": "Built-in display",
+  "screen": "Display",
+  "loading": "Reading displays…",
+  "empty": "No display can be set"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Kecerahan",
+  "shortName": "Terang",
+  "description": "Atur kecerahan setiap layar, termasuk monitor",
+  "title": "Kecerahan",
+  "software": "Software",
+  "softwareHint": "Monitor ini tidak menerima perintah kecerahan, jadi layarnya diredupkan lewat warna. Hanya bisa lebih redup dari setelan monitor.",
+  "builtIn": "Layar bawaan",
+  "screen": "Layar",
+  "loading": "Membaca layar…",
+  "empty": "Tidak ada layar yang bisa diatur"
+}

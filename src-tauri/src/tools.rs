@@ -11,6 +11,7 @@ pub fn module_changed(app: &AppHandle, id: &str, on: bool) {
     // Keep awake's and Shelf's keys follow their modules too, and so does
     // Shelf's drag watcher.
     crate::app_keys_service::module_changed(app, id);
+    crate::brightness_service::module_changed(id, on);
     if id == crate::shelf_service::MODULE_ID {
         crate::shelf_watch::sync(app);
     }

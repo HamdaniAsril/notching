@@ -33,6 +33,8 @@ pub enum Call {
     PrefsWrite,
     AgentsRead,
     AgentsOpen,
+    BrightnessRead,
+    BrightnessSet,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -98,6 +100,8 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Prefs, "write") => Ok(Call::PrefsWrite),
         (Capability::Agents, "read") => Ok(Call::AgentsRead),
         (Capability::Agents, "open") => Ok(Call::AgentsOpen),
+        (Capability::Brightness, "read") => Ok(Call::BrightnessRead),
+        (Capability::Brightness, "set") => Ok(Call::BrightnessSet),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -314,6 +318,19 @@ mod tests {
         assert_eq!(
             authorize(Some(&t), "timer", "agents", "read"),
             Err(CallError::NotDeclared { module: "timer".into(), capability: "agents".into() })
+        );
+    }
+
+    #[test]
+    fn brightness_needs_its_capability() {
+        let m = entry("kecerahan", &[Capability::Brightness], true);
+        assert_eq!(authorize(Some(&m), "kecerahan", "brightness", "read"), Ok(Call::BrightnessRead));
+        assert_eq!(authorize(Some(&m), "kecerahan", "brightness", "set"), Ok(Call::BrightnessSet));
+        assert_eq!(authorize(Some(&m), "kecerahan", "brightness", "reset"), Err(CallError::UnknownMethod("reset".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        assert_eq!(
+            authorize(Some(&t), "timer", "brightness", "set"),
+            Err(CallError::NotDeclared { module: "timer".into(), capability: "brightness".into() })
         );
     }
 }

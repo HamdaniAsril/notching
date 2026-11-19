@@ -71,6 +71,7 @@ pub fn watch_screen_changes(app: tauri::AppHandle) {
                     eprintln!("notching: rebuilding overlays failed: {e}");
                 }
                 crate::focus_service::screens_changed(&handle);
+                crate::brightness_service::screens_changed();
             });
         });
     });

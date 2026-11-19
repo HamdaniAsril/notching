@@ -188,6 +188,19 @@ pub async fn module_call(
             Ok(serde_json::Value::Null)
         }
         Call::AgentsRead => serde_json::to_value(crate::agent_service::read(&app)),
+        // A new monitor is tried over DDC first, which can take a second.
+        Call::BrightnessRead => {
+            let handle = app.clone();
+            let rows = tauri::async_runtime::spawn_blocking(move || crate::brightness_service::read(&handle))
+                .await
+                .map_err(|e| e.to_string())?;
+            serde_json::to_value(rows)
+        }
+        Call::BrightnessSet => {
+            let a: crate::brightness_service::SetArgs = parse_args(args, "brightness.set")?;
+            crate::brightness_service::set(&a);
+            Ok(serde_json::Value::Null)
+        }
         Call::AgentsOpen => {
             let a: crate::agent_service::OpenArgs = parse_args(args, "agents.open")?;
             crate::agent_service::open(&a)?;
