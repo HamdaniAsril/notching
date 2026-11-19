@@ -185,6 +185,33 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* "Working..." (Agent AI, owner 19 Nov): the first dot stays, the second shows
+   from a third of the beat, the third from two thirds, so ".", "..", "...". */
+.st-dot-2 {
+  animation: st-dot-2 1.2s step-end infinite;
+}
+
+.st-dot-3 {
+  animation: st-dot-3 1.2s step-end infinite;
+}
+
+@keyframes st-dot-2 {
+  0% { opacity: 0; }
+  33.333% { opacity: 1; }
+}
+
+@keyframes st-dot-3 {
+  0% { opacity: 0; }
+  66.666% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-dot-2,
+  .st-dot-3 {
+    animation: none;
+  }
+}
+
 /* The soundwave beside the notch while music plays (view.ts, design 3 Nov §5):
    each bar grows from 30 % to 100 % of its height and back, on its own beat
    (--mu-t, 0.9–1.3 s) and start (--mu-d), so they rise and fall in turn. CSS

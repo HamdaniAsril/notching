@@ -17,7 +17,15 @@
     "done": "Agent selesai"
   },
   "notice": {
-    "waiting": { "title": "{agent} menunggu kamu" },
-    "done": { "title": "{agent} selesai" }
+    "waiting": {
+      "title": "{agent} menunggu kamu"
+    },
+    "done": {
+      "title": "{agent} selesai"
+    }
+  },
+  "status": {
+    "working": "Working",
+    "waiting": "Waiting"
   }
 }

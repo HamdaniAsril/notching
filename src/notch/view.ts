@@ -33,6 +33,7 @@ export interface NoticeView {
 export interface StatusView {
   text: string;
   icon: string | null;
+  dots?: boolean; // three dots after the text that fill one by one ("Working...", Agent AI)
 }
 
 // What plays (MediaSummary in src/bridge.ts): `art` is a data: URL, or null.
@@ -495,7 +496,8 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
 
   // An empty status is the icon alone (Keyboard Cleaning Mode): no gap after it.
   const iconRoom = (s: StatusView) => (s.icon ? ST_ICON + (s.text ? ST_GAP : 0) : 0);
-  const itemWidth = (s: StatusView) => PILL_CHAR * s.text.length + iconRoom(s);
+  // The dots always take their full room, so nothing moves as they fill.
+  const itemWidth = (s: StatusView) => PILL_CHAR * (s.text.length + (s.dots ? 3 : 0)) + iconRoom(s);
   const contentWidth = () =>
     statuses.reduce((w, s) => w + itemWidth(s), 0) + ST_SEP * Math.max(0, statuses.length - 1);
 
@@ -520,6 +522,13 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
       class: 'st-text', x: x + iconRoom(s), y: cy + 4, 'text-anchor': 'start', fill: '#F3F5F0',
     });
     text.textContent = s.text;
+    if (s.dots) {
+      for (const n of [1, 2, 3]) {
+        const dot = svgEl('tspan', { class: `st-dot st-dot-${n}` });
+        dot.textContent = '.';
+        text.append(dot);
+      }
+    }
     out.push(text);
     return out;
   }

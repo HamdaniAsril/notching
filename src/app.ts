@@ -340,7 +340,7 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     const items = s && s.screen === info.label ? s.items : [];
     view.setStatus(items.map(i => {
       const m = state.modules.find(x => x.id === i.moduleId);
-      return { text: i.text, icon: m ? bridge.moduleUrl(m.id, m.icon) : null };
+      return { text: i.text, icon: m ? bridge.moduleUrl(m.id, i.icon ?? m.icon) : null, dots: i.dots ?? false };
     }));
   };
   const offStatus = bridge.onStatus(showStatus);

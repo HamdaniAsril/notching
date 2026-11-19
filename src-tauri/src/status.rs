@@ -9,6 +9,8 @@ use crate::module_commands::{change, MODULE_STATE_EVENT};
 use crate::notify::{clip, cursor_screen};
 
 pub const STATUS_MAX: usize = 6;
+/// A part's text ("Working", Agent AI): a word, not a number.
+pub const PART_MAX: usize = 10;
 /// Sent to every window with a StatusDto, or null when nothing shows.
 pub const STATUS_EVENT: &str = "notching://status";
 /// What "Contoh status" in Notifikasi shows.
@@ -30,6 +32,21 @@ pub struct LiveEntry {
     pub text: Option<String>,
     /// Shows as the module's icon alone (Keyboard Cleaning Mode, design 31 Oct §5).
     pub icon_only: bool,
+    /// One of several statuses of the same module (Agent AI: one per agent).
+    pub part: Option<String>,
+    /// A file in the module's package shown instead of its icon.
+    pub icon: Option<String>,
+    /// Three dots after the text that fill one by one.
+    pub dots: bool,
+}
+
+/// One of a module's statuses, each with its own icon (Agent AI, owner 19 Nov).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Part {
+    pub key: String,
+    pub icon: String,
+    pub text: String,
+    pub dots: bool,
 }
 
 /// Kept in memory only, in the order the modules started.
@@ -51,7 +68,15 @@ impl LiveStatus {
                 changed
             }
             None => {
-                self.entries.push(LiveEntry { module: module.map(String::from), activity, text, icon_only: false });
+                self.entries.push(LiveEntry {
+                    module: module.map(String::from),
+                    activity,
+                    text,
+                    icon_only: false,
+                    part: None,
+                    icon: None,
+                    dots: false,
+                });
                 true
             }
         }
@@ -65,6 +90,35 @@ impl LiveStatus {
             e.icon_only = true;
         }
         changed
+    }
+
+    /// The module's statuses become `parts`, where its first one was (or last);
+    /// true when its activity changed or a part came or went. No parts clears it.
+    pub fn set_parts(&mut self, module: &str, activity: Activity, parts: &[Part]) -> bool {
+        let at = self.entries.iter().position(|e| e.module.as_deref() == Some(module)).unwrap_or(self.entries.len());
+        let before: Vec<(Option<String>, Activity)> = self
+            .entries
+            .iter()
+            .filter(|e| e.module.as_deref() == Some(module))
+            .map(|e| (e.part.clone(), e.activity))
+            .collect();
+        self.entries.retain(|e| e.module.as_deref() != Some(module));
+        let fresh: Vec<LiveEntry> = parts
+            .iter()
+            .map(|p| LiveEntry {
+                module: Some(module.to_string()),
+                activity,
+                text: Some(clip(p.text.trim(), PART_MAX)).filter(|t| !t.is_empty()),
+                icon_only: false,
+                part: Some(p.key.clone()),
+                icon: Some(p.icon.clone()),
+                dots: p.dots,
+            })
+            .collect();
+        let after: Vec<(Option<String>, Activity)> = fresh.iter().map(|e| (e.part.clone(), e.activity)).collect();
+        let at = at.min(self.entries.len());
+        self.entries.splice(at..at, fresh);
+        before != after
     }
 
     pub fn clear(&mut self, module: Option<&str>) -> bool {
@@ -83,15 +137,21 @@ impl LiveStatus {
 
     /// Every entry that has text, or is an icon alone (text ""), and whose
     /// module is not in `off`, in the order they started.
-    pub fn shown(&self, off: &[String]) -> Vec<(Option<String>, String)> {
+    pub fn items(&self, off: &[String]) -> Vec<StatusItemDto> {
         self.entries
             .iter()
             .filter(|e| !e.module.as_ref().is_some_and(|m| off.contains(m)))
             .filter_map(|e| {
                 let text = if e.icon_only { Some(String::new()) } else { e.text.clone() };
-                text.map(|t| (e.module.clone(), t))
+                text.map(|text| StatusItemDto { module_id: e.module.clone(), text, icon: e.icon.clone(), dots: e.dots })
             })
             .collect()
+    }
+
+    /// `items` as (module, text).
+    #[cfg(test)]
+    pub fn shown(&self, off: &[String]) -> Vec<(Option<String>, String)> {
+        self.items(off).into_iter().map(|i| (i.module_id, i.text)).collect()
     }
 }
 
@@ -101,6 +161,10 @@ impl LiveStatus {
 pub struct StatusItemDto {
     pub module_id: Option<String>,
     pub text: String,
+    /// A file in the module's package to show instead of its icon.
+    pub icon: Option<String>,
+    /// Three dots after the text that fill one by one.
+    pub dots: bool,
 }
 
 /// Same shape as LiveStatus in src/bridge.ts: never sent with no items (null instead).
@@ -163,6 +227,19 @@ pub fn set(app: &AppHandle, module: &str, activity: Activity, text: Option<&str>
 pub fn set_icon(app: &AppHandle, module: &str, activity: Activity) -> Result<(), String> {
     let mut result = Ok(());
     update(app, |core| match core.set_status_icon(module, activity) {
+        Ok(changed) => changed,
+        Err(e) => {
+            result = Err(e.to_string());
+            false
+        }
+    });
+    result
+}
+
+/// A module's statuses, one per part; it must declare "status". No parts clears it.
+pub fn set_parts(app: &AppHandle, module: &str, activity: Activity, parts: Vec<Part>) -> Result<(), String> {
+    let mut result = Ok(());
+    update(app, |core| match core.set_status_parts(module, activity, &parts) {
         Ok(changed) => changed,
         Err(e) => {
             result = Err(e.to_string());
@@ -277,6 +354,44 @@ mod tests {
         live.clear(None);
         assert!(!live.has_sample());
         assert_eq!(shown(&live), of(&[("a", "1")]));
+    }
+
+    fn part(key: &str, text: &str, dots: bool) -> Part {
+        Part { key: key.into(), icon: format!("logos/{key}.svg"), text: text.into(), dots }
+    }
+
+    #[test]
+    fn parts_show_side_by_side_with_their_own_icon() {
+        let mut live = LiveStatus::default();
+        live.set(Some("timer"), Activity::Running, Some("18:42"));
+        assert!(live.set_parts("ai", Activity::Running, &[part("claude", "Working", true), part("codex", "Waiting", false)]));
+        live.set(Some("awake"), Activity::On, Some("1:42"));
+        let items = live.items(&[]);
+        let view: Vec<_> = items.iter().map(|i| (i.module_id.as_deref(), i.text.as_str(), i.icon.as_deref(), i.dots)).collect();
+        assert_eq!(view, vec![
+            (Some("timer"), "18:42", None, false),
+            (Some("ai"), "Working", Some("logos/claude.svg"), true),
+            (Some("ai"), "Waiting", Some("logos/codex.svg"), false),
+            (Some("awake"), "1:42", None, false),
+        ]);
+        // New parts keep the module's place; the same parts are no change.
+        assert!(live.set_parts("ai", Activity::Running, &[part("codex", "Working", true)]));
+        assert_eq!(live.shown(&[])[1], (Some("ai".into()), "Working".into()));
+        assert!(!live.set_parts("ai", Activity::Running, &[part("codex", "Working", true)]));
+        assert!(live.set_parts("ai", Activity::On, &[part("codex", "Waiting", false)]));
+        assert_eq!(live.activity("ai"), Some(Activity::On));
+        // Switched off, or no parts at all.
+        assert_eq!(live.items(&["ai".into()]).len(), 2);
+        assert!(live.set_parts("ai", Activity::On, &[]));
+        assert_eq!(live.activity("ai"), None);
+        assert_eq!(live.shown(&[]).len(), 2);
+    }
+
+    #[test]
+    fn a_part_takes_a_word_of_ten() {
+        let mut live = LiveStatus::default();
+        live.set_parts("ai", Activity::Running, &[part("c", "Working on it", true)]);
+        assert_eq!(live.shown(&[])[0].1, "Working o…");
     }
 
     #[test]

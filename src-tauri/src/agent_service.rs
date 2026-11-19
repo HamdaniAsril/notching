@@ -10,7 +10,7 @@ use tauri::{AppHandle, Manager};
 use crate::agent_hooks as hooks;
 use crate::agent_rules::{parse, Agent, Board, Notice, State};
 use crate::app_core::CoreState;
-use crate::status::{self, Activity};
+use crate::status::{self, Activity, Part};
 
 pub const MODULE_ID: &str = "ai-agent";
 /// How often the inbox is read.
@@ -20,8 +20,8 @@ const POLL: Duration = Duration::from_millis(500);
 const BACKLOG_MS: u64 = 60_000;
 
 static BOARD: Mutex<Option<Board>> = Mutex::new(None);
-/// What the status beside the notch shows now: (sessions, any working).
-static SHOWN: Mutex<Option<(usize, bool)>> = Mutex::new(None);
+/// What the status beside the notch shows now: each busy agent, and whether it works.
+static SHOWN: Mutex<Option<Vec<(Agent, bool)>>> = Mutex::new(None);
 
 fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
@@ -144,25 +144,39 @@ fn post(app: &AppHandle, n: &Notice) {
     }
 }
 
-/// Beside the notch: how many sessions work or wait; a red dot while any works.
+/// Beside the notch (owner, 19 Nov): each busy agent's logo, then "Working"
+/// with dots that fill one by one, or "Waiting"; a red dot while any works.
 fn show(app: &AppHandle) {
-    let busy = BOARD.lock().unwrap().as_ref().map(Board::busy).unwrap_or((0, false));
-    let next = (busy.0 > 0).then_some(busy);
+    let agents = BOARD.lock().unwrap().as_ref().map(Board::agents).unwrap_or_default();
     {
         let mut shown = SHOWN.lock().unwrap();
-        if *shown == next {
+        if shown.as_ref() == Some(&agents) {
             return;
         }
-        *shown = next;
+        *shown = Some(agents.clone());
     }
-    match next {
-        Some((n, working)) => {
-            let activity = if working { Activity::Running } else { Activity::On };
-            if let Err(e) = status::set(app, MODULE_ID, activity, Some(&n.to_string())) {
-                eprintln!("notching: agent status: {e}");
-            }
-        }
-        None => status::clear(app, MODULE_ID),
+    if agents.is_empty() {
+        status::clear(app, MODULE_ID);
+        return;
+    }
+    let (working, waiting) = {
+        let core = app.state::<CoreState>();
+        let core = core.0.lock().unwrap();
+        let text = |key: &str| core.module_text(MODULE_ID, key).unwrap_or_default();
+        (text("status.working"), text("status.waiting"))
+    };
+    let parts = agents
+        .iter()
+        .map(|&(agent, works)| Part {
+            key: agent.id().into(),
+            icon: format!("logos/{}.svg", agent.id()),
+            text: if works { working.clone() } else { waiting.clone() },
+            dots: works,
+        })
+        .collect();
+    let activity = if agents.iter().any(|&(_, works)| works) { Activity::Running } else { Activity::On };
+    if let Err(e) = status::set_parts(app, MODULE_ID, activity, parts) {
+        eprintln!("notching: agent status: {e}");
     }
 }
 

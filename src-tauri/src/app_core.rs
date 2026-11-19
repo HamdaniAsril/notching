@@ -8,7 +8,7 @@ use crate::modules::manifest::{CardSize, Permission, TileAction, WidgetKind};
 use crate::modules::store::{ChannelEntry, ModuleEntry, ModuleStore, StoreError};
 use crate::pages::{self, is_route, Page, PageError, Placement, MODULE_PAGE_PREFIX};
 use crate::modules::manifest::Capability;
-use crate::status::{Activity, LiveStatus, StatusDto, StatusItemDto, SAMPLE_TEXT};
+use crate::status::{Activity, LiveStatus, Part, StatusDto, StatusItemDto, SAMPLE_TEXT};
 use crate::settings::{
     clamp_seconds, load_settings, save_settings, ChannelPref, HomeSettings, LanguageSetting, NotchConfig, Place,
     PrayerMethod, Settings,
@@ -258,6 +258,13 @@ impl AppCore {
         Ok(self.live.set_icon(module, activity))
     }
 
+    pub fn set_status_parts(&mut self, module: &str, activity: Activity, parts: &[Part]) -> Result<bool, CoreError> {
+        if !self.module(module).is_some_and(|e| e.manifest.capabilities.contains(&Capability::Status)) {
+            return Err(CoreError::Invalid("status".into()));
+        }
+        Ok(self.live.set_parts(module, activity, parts))
+    }
+
     pub fn clear_status(&mut self, module: Option<&str>) -> bool {
         self.live.clear(module)
     }
@@ -290,8 +297,7 @@ impl AppCore {
             .filter(|e| !e.installed || !e.enabled || self.settings.status_off.contains(&e.manifest.id))
             .map(|e| e.manifest.id.clone())
             .collect();
-        let items: Vec<StatusItemDto> =
-            self.live.shown(&off).into_iter().map(|(module_id, text)| StatusItemDto { module_id, text }).collect();
+        let items: Vec<StatusItemDto> = self.live.items(&off);
         let next = (!items.is_empty()).then(|| StatusDto { screen: screen.into(), items });
         if next == self.shown_status {
             return None;
@@ -881,7 +887,7 @@ mod tests {
         let mut core = open(&d, None);
         assert_eq!(core.status_change("Built-in"), None);
         core.set_status(Some("a"), Activity::Running, Some("18:42")).unwrap();
-        let item = StatusItemDto { module_id: Some("a".into()), text: "18:42".into() };
+        let item = StatusItemDto { module_id: Some("a".into()), text: "18:42".into(), icon: None, dots: false };
         let dto = StatusDto { screen: "Built-in".into(), items: vec![item.clone()] };
         assert_eq!(core.status_change("Built-in"), Some(Some(dto.clone())));
         assert_eq!(core.status_change("Built-in"), None);

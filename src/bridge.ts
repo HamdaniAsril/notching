@@ -34,7 +34,8 @@ export interface Notice {
 // is null for the sample.
 export interface LiveStatus {
   screen: string;
-  items: { moduleId: string | null; text: string }[];
+  // icon: a file in the module's package shown instead of its icon; dots: "Working..."
+  items: { moduleId: string | null; text: string; icon?: string | null; dots?: boolean }[];
 }
 
 // What plays, for the cover and soundwave beside the notch (MediaSummary in

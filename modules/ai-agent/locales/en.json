@@ -17,7 +17,15 @@
     "done": "Agent finished"
   },
   "notice": {
-    "waiting": { "title": "{agent} needs you" },
-    "done": { "title": "{agent} finished" }
+    "waiting": {
+      "title": "{agent} needs you"
+    },
+    "done": {
+      "title": "{agent} finished"
+    }
+  },
+  "status": {
+    "working": "Working",
+    "waiting": "Waiting"
   }
 }

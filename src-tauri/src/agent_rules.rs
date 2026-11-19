@@ -261,9 +261,28 @@ impl Board {
     }
 
     /// Sessions working or waiting, and whether any is working.
+    #[cfg(test)]
     pub fn busy(&self) -> (usize, bool) {
         let n = self.sessions.iter().filter(|s| s.state != State::Done).count();
         (n, self.sessions.iter().any(|s| s.state == State::Working))
+    }
+
+    /// Each agent with a session working or waiting, in Agent::ALL's order, and
+    /// whether any of its sessions works.
+    pub fn agents(&self) -> Vec<(Agent, bool)> {
+        Agent::ALL
+            .into_iter()
+            .filter_map(|a| {
+                let mine = self.sessions.iter().filter(|s| s.agent == a && s.state != State::Done);
+                let mut any = false;
+                let mut working = false;
+                for s in mine {
+                    any = true;
+                    working |= s.state == State::Working;
+                }
+                any.then_some((a, working))
+            })
+            .collect()
     }
 
     /// Newest change first.
@@ -463,6 +482,19 @@ mod tests {
         b.forget(Agent::Claude);
         assert_eq!(b.list().len(), 1);
         assert!(b.find(Agent::OpenCode, "x").is_some());
+    }
+
+    #[test]
+    fn agents_lists_each_busy_agent_once_in_a_fixed_order() {
+        let mut b = Board::default();
+        assert!(b.agents().is_empty());
+        b.hear(news(Agent::OpenCode, "o", Kind::Now(State::Waiting), 1));
+        b.hear(news(Agent::Claude, "a", Kind::Now(State::Waiting), 2));
+        b.hear(news(Agent::Claude, "b", Kind::Now(State::Working), 3));
+        b.hear(news(Agent::Codex, "t", Kind::Now(State::Done), 4));
+        assert_eq!(b.agents(), vec![(Agent::Claude, true), (Agent::OpenCode, false)]);
+        b.hear(news(Agent::Claude, "b", Kind::Now(State::Done), 5));
+        assert_eq!(b.agents(), vec![(Agent::Claude, false), (Agent::OpenCode, false)]);
     }
 
     #[test]

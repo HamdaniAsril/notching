@@ -325,6 +325,20 @@ test('several statuses widen the tab and get thin line separators', () => {
   expect(xs[1]).toBeLessThan(xs[2]);
 });
 
+test('a status with dots ends in three dots that fill one by one, and takes their room', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setStatus([st('Working', '/a/logos/claude.svg'), st('1:42')]);
+  const plain = Number(root.querySelectorAll('.st-text')[1].getAttribute('x'));
+  v.setStatus([{ text: 'Working', icon: '/a/logos/claude.svg', dots: true }, st('1:42')]);
+  const text = root.querySelector('.st-text')!;
+  expect(text.textContent).toBe('Working...');
+  expect([...text.querySelectorAll('.st-dot')].map(d => d.getAttribute('class'))).toEqual(['st-dot st-dot-1', 'st-dot st-dot-2', 'st-dot st-dot-3']);
+  // The next status moves right by the three dots, so nothing jumps as they fill.
+  expect(Number(root.querySelectorAll('.st-text')[1].getAttribute('x'))).toBe(plain + 3 * 7);
+  expect(root.querySelector('.st-icon')!.getAttribute('href')).toBe('/a/logos/claude.svg');
+});
+
 test('without a notch a status opens one small pill with the dot inside', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));
