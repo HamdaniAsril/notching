@@ -339,6 +339,15 @@ test('a status with dots ends in three dots that fill one by one, and takes thei
   expect(root.querySelector('.st-icon')!.getAttribute('href')).toBe('/a/logos/claude.svg');
 });
 
+test('a status icon in colour keeps its colour; the rest turn white', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl({ width: 190, height: 32 }), deps(fakeRaf()));
+  v.setStatus([{ text: 'Working', icon: '/a/logos/claude.svg', color: true }, st('1:42', '/k/icon.svg')]);
+  const [claude, other] = [...root.querySelectorAll('.st-icon')];
+  expect(claude.getAttribute('filter')).toBeNull();
+  expect(other.getAttribute('filter')).toMatch(/^url\(#notch-white-/);
+});
+
 test('without a notch a status opens one small pill with the dot inside', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));

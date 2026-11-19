@@ -38,6 +38,8 @@ pub struct LiveEntry {
     pub icon: Option<String>,
     /// Three dots after the text that fill one by one.
     pub dots: bool,
+    /// The icon keeps its own colours instead of turning white.
+    pub color: bool,
 }
 
 /// One of a module's statuses, each with its own icon (Agent AI, owner 19 Nov).
@@ -47,6 +49,8 @@ pub struct Part {
     pub icon: String,
     pub text: String,
     pub dots: bool,
+    /// Its icon keeps its own colours (Claude's orange, owner 19 Nov).
+    pub color: bool,
 }
 
 /// Kept in memory only, in the order the modules started.
@@ -76,6 +80,7 @@ impl LiveStatus {
                     part: None,
                     icon: None,
                     dots: false,
+                    color: false,
                 });
                 true
             }
@@ -113,6 +118,7 @@ impl LiveStatus {
                 part: Some(p.key.clone()),
                 icon: Some(p.icon.clone()),
                 dots: p.dots,
+                color: p.color,
             })
             .collect();
         let after: Vec<(Option<String>, Activity)> = fresh.iter().map(|e| (e.part.clone(), e.activity)).collect();
@@ -143,7 +149,7 @@ impl LiveStatus {
             .filter(|e| !e.module.as_ref().is_some_and(|m| off.contains(m)))
             .filter_map(|e| {
                 let text = if e.icon_only { Some(String::new()) } else { e.text.clone() };
-                text.map(|text| StatusItemDto { module_id: e.module.clone(), text, icon: e.icon.clone(), dots: e.dots })
+                text.map(|text| StatusItemDto { module_id: e.module.clone(), text, icon: e.icon.clone(), dots: e.dots, color: e.color })
             })
             .collect()
     }
@@ -165,6 +171,8 @@ pub struct StatusItemDto {
     pub icon: Option<String>,
     /// Three dots after the text that fill one by one.
     pub dots: bool,
+    /// The icon keeps its own colours.
+    pub color: bool,
 }
 
 /// Same shape as LiveStatus in src/bridge.ts: never sent with no items (null instead).
@@ -357,7 +365,7 @@ mod tests {
     }
 
     fn part(key: &str, text: &str, dots: bool) -> Part {
-        Part { key: key.into(), icon: format!("logos/{key}.svg"), text: text.into(), dots }
+        Part { key: key.into(), icon: format!("logos/{key}.svg"), text: text.into(), dots, color: key == "claude" }
     }
 
     #[test]
@@ -367,6 +375,7 @@ mod tests {
         assert!(live.set_parts("ai", Activity::Running, &[part("claude", "Working", true), part("codex", "Waiting", false)]));
         live.set(Some("awake"), Activity::On, Some("1:42"));
         let items = live.items(&[]);
+        assert_eq!(items.iter().map(|i| i.color).collect::<Vec<_>>(), vec![false, true, false, false]);
         let view: Vec<_> = items.iter().map(|i| (i.module_id.as_deref(), i.text.as_str(), i.icon.as_deref(), i.dots)).collect();
         assert_eq!(view, vec![
             (Some("timer"), "18:42", None, false),

@@ -172,6 +172,8 @@ fn show(app: &AppHandle) {
             icon: format!("logos/{}.svg", agent.id()),
             text: if works { working.clone() } else { waiting.clone() },
             dots: works,
+            // Claude's logo in its own orange (owner, 19 Nov); the others white.
+            color: agent == Agent::Claude,
         })
         .collect();
     let activity = if agents.iter().any(|&(_, works)| works) { Activity::Running } else { Activity::On };

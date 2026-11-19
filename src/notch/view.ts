@@ -34,6 +34,7 @@ export interface StatusView {
   text: string;
   icon: string | null;
   dots?: boolean; // three dots after the text that fill one by one ("Working...", Agent AI)
+  color?: boolean; // the icon keeps its own colours instead of turning white (Claude's orange)
 }
 
 // What plays (MediaSummary in src/bridge.ts): `art` is a data: URL, or null.
@@ -512,9 +513,8 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
   function drawItem(s: StatusView, x: number, cy: number): SVGElement[] {
     const out: SVGElement[] = [];
     if (s.icon) {
-      const icon = svgEl('image', {
-        class: 'st-icon', x, y: cy - ST_ICON / 2, width: ST_ICON, height: ST_ICON, filter: `url(#${white.id})`,
-      });
+      const icon = svgEl('image', { class: 'st-icon', x, y: cy - ST_ICON / 2, width: ST_ICON, height: ST_ICON });
+      if (!s.color) icon.setAttribute('filter', `url(#${white.id})`);
       icon.setAttribute('href', s.icon);
       out.push(icon);
     }

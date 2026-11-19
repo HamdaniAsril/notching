@@ -887,7 +887,7 @@ mod tests {
         let mut core = open(&d, None);
         assert_eq!(core.status_change("Built-in"), None);
         core.set_status(Some("a"), Activity::Running, Some("18:42")).unwrap();
-        let item = StatusItemDto { module_id: Some("a".into()), text: "18:42".into(), icon: None, dots: false };
+        let item = StatusItemDto { module_id: Some("a".into()), text: "18:42".into(), icon: None, dots: false, color: false };
         let dto = StatusDto { screen: "Built-in".into(), items: vec![item.clone()] };
         assert_eq!(core.status_change("Built-in"), Some(Some(dto.clone())));
         assert_eq!(core.status_change("Built-in"), None);
