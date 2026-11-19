@@ -12,7 +12,7 @@ export interface ChangelogEntry {
 export const CHANGELOG: ChangelogEntry[] = [
   {
     version: '0.1.5',
-    date: null,
+    date: '2026-11-19',
     items: {
       id: [
         'Fokus jendela (pasang dari Katalog): tekan ⌃⌥F dan semua yang di belakang jendelamu jadi blur. Fokus ikut pindah saat kamu berganti jendela atau mengklik jendela yang ter-blur. Setiap monitor punya fokus sendiri, dan ⌃⌥⇧F atau ⇧-klik menambah jendela kedua.',
