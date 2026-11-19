@@ -196,6 +196,19 @@ pub async fn module_call(
                 .map_err(|e| e.to_string())?;
             serde_json::to_value(rows)
         }
+        Call::VolumeRead => {
+            let view = tauri::async_runtime::spawn_blocking(crate::volume_service::read).await.map_err(|e| e.to_string())?;
+            serde_json::to_value(view)
+        }
+        Call::VolumeSet => {
+            let a: crate::volume_service::SetArgs = parse_args(args, "volume.set")?;
+            crate::volume_service::set(&a);
+            Ok(serde_json::Value::Null)
+        }
+        Call::VolumeRequest => {
+            crate::volume_service::request();
+            Ok(serde_json::Value::Null)
+        }
         Call::BrightnessSet => {
             let a: crate::brightness_service::SetArgs = parse_args(args, "brightness.set")?;
             crate::brightness_service::set(&a);

@@ -12,6 +12,7 @@ pub fn module_changed(app: &AppHandle, id: &str, on: bool) {
     // Shelf's drag watcher.
     crate::app_keys_service::module_changed(app, id);
     crate::brightness_service::module_changed(id, on);
+    crate::volume_service::module_changed(id);
     if id == crate::shelf_service::MODULE_ID {
         crate::shelf_watch::sync(app);
     }

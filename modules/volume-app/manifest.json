@@ -1,0 +1,11 @@
+{
+  "id": "volume-app",
+  "version": "1.0.0",
+  "category": "utilities",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "card": { "width": 440, "height": 236 },
+  "optIn": true,
+  "permissions": [],
+  "capabilities": ["volume"]
+}

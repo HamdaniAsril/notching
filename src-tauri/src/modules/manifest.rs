@@ -66,6 +66,10 @@ pub enum Capability {
     /// software dimming (design 19 Nov).
     #[serde(rename = "brightness")]
     Brightness,
+    /// Volume app: one app's sound turned down through a Core Audio tap
+    /// (design 19 Nov).
+    #[serde(rename = "volume")]
+    Volume,
     /// Fokus jendela: everything behind the focused window blurs (design 18 Nov).
     #[serde(rename = "focus")]
     Focus,

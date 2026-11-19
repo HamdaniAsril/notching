@@ -4,5 +4,7 @@
 <dict>
   <key>NSCameraUsageDescription</key>
   <string>Cermin shows your camera so you can check it before a meeting.</string>
+  <key>NSAudioCaptureUsageDescription</key>
+  <string>Volume app turns one app's sound up or down without touching the others.</string>
 </dict>
 </plist>

@@ -1,0 +1,12 @@
+{
+  "name": "App volume",
+  "shortName": "Volume",
+  "description": "Turn one app down without touching the others",
+  "title": "App volume",
+  "quiet": "Silent",
+  "loading": "Reading apps…",
+  "empty": "No app is playing sound",
+  "access": "App volume needs System Audio Recording",
+  "accessHint": "So it can turn one app down without touching the others.",
+  "allow": "Allow"
+}

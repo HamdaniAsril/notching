@@ -18,11 +18,13 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Fokus jendela (pasang dari Katalog): tekan ⌃⌥F dan semua yang di belakang jendelamu jadi blur. Fokus ikut pindah saat kamu pindah jendela atau mengklik jendela yang ter-blur, setiap monitor punya mode fokus sendiri, dan ⌃⌥⇧F menambah jendela kedua.',
         'Agent AI (pasang dari Katalog): Claude Code, Codex, dan OpenCode terlihat di notch, mana yang sedang bekerja, menunggu kamu, atau sudah selesai, lengkap dengan notifikasinya. Hubungkan tiap agent di pengaturan modul.',
         'Kecerahan (pasang dari Katalog): atur kecerahan setiap layar dari notch, termasuk monitor eksternal. Monitor yang menerima DDC diatur lampunya; yang tidak, diredupkan lewat warna.',
+        'Volume app (pasang dari Katalog): kecilkan satu app dari notch tanpa mengubah app lain atau volume Mac. Butuh izin Rekam Audio Sistem.',
       ],
       en: [
         'Window focus (install it from the Catalog): press ⌃⌥F and everything behind your window blurs. Focus follows you when you switch windows or click a blurred one, every screen has its own focus, and ⌃⌥⇧F adds a second window.',
         'AI agents (install it from the Catalog): see in the notch which of Claude Code, Codex, and OpenCode is working, needs you, or has finished, with a notice for each. Connect every agent in the module’s settings.',
         'Brightness (install it from the Catalog): set every screen’s brightness from the notch, external monitors too. A monitor that takes DDC has its backlight set; one that doesn’t is dimmed through its colours.',
+        'App volume (install it from the Catalog): turn one app down from the notch without touching the others or the Mac’s volume. Needs System Audio Recording.',
       ],
     },
   },

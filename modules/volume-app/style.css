@@ -1,0 +1,159 @@
+/* Volume app's card: one black Volt card, 440 × 236. Classes start with va- so
+   they never meet the notch's own. */
+.va-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 236px;
+  padding: 12px 16px;
+  border-radius: 17px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--v-ring);
+}
+
+.va-title {
+  font-size: 13px;
+  line-height: 16px;
+}
+
+.va-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.va-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.va-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.va-name {
+  overflow: hidden;
+  font: 600 12px/15px "Inter", -apple-system, sans-serif;
+  color: var(--v-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.va-pct {
+  margin-left: auto;
+  font: 600 12px/15px "Inter", -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--v-muted);
+}
+
+.va-slider {
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.va-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--v-track);
+}
+
+.va-slider::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--v-acc);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.va-slider:focus-visible {
+  outline: 2px solid var(--v-acc);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.va-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 500 12px/15px "Inter", -apple-system, sans-serif;
+  color: var(--v-muted);
+}
+
+.va-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.va-icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 7px;
+}
+
+span.va-icon {
+  background: var(--v-track);
+}
+
+.va-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.va-quiet {
+  flex: none;
+  font: 500 10px/15px "Inter", -apple-system, sans-serif;
+  color: var(--v-muted);
+}
+
+.va-ask {
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+
+.va-ask-main {
+  font: 600 12px/15px "Inter", -apple-system, sans-serif;
+  color: var(--v-ink);
+}
+
+.va-ask-hint {
+  font: 500 11px/14px "Inter", -apple-system, sans-serif;
+  color: var(--v-muted);
+}
+
+.va-allow {
+  margin-top: 4px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--v-acc);
+  color: var(--v-on-acc);
+  font: 600 12px/15px "Inter", -apple-system, sans-serif;
+  cursor: pointer;
+}
+
+.va-allow:focus-visible {
+  outline: 2px solid var(--v-ink);
+  outline-offset: 2px;
+}

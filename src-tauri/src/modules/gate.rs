@@ -35,6 +35,9 @@ pub enum Call {
     AgentsOpen,
     BrightnessRead,
     BrightnessSet,
+    VolumeRead,
+    VolumeSet,
+    VolumeRequest,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -102,6 +105,9 @@ pub fn authorize(module: Option<&ModuleEntry>, module_id: &str, capability: &str
         (Capability::Agents, "open") => Ok(Call::AgentsOpen),
         (Capability::Brightness, "read") => Ok(Call::BrightnessRead),
         (Capability::Brightness, "set") => Ok(Call::BrightnessSet),
+        (Capability::Volume, "read") => Ok(Call::VolumeRead),
+        (Capability::Volume, "set") => Ok(Call::VolumeSet),
+        (Capability::Volume, "request") => Ok(Call::VolumeRequest),
         _ => Err(CallError::UnknownMethod(method.to_string())),
     }
 }
@@ -331,6 +337,20 @@ mod tests {
         assert_eq!(
             authorize(Some(&t), "timer", "brightness", "set"),
             Err(CallError::NotDeclared { module: "timer".into(), capability: "brightness".into() })
+        );
+    }
+
+    #[test]
+    fn volume_needs_its_capability() {
+        let m = entry("volume-app", &[Capability::Volume], true);
+        assert_eq!(authorize(Some(&m), "volume-app", "volume", "read"), Ok(Call::VolumeRead));
+        assert_eq!(authorize(Some(&m), "volume-app", "volume", "set"), Ok(Call::VolumeSet));
+        assert_eq!(authorize(Some(&m), "volume-app", "volume", "request"), Ok(Call::VolumeRequest));
+        assert_eq!(authorize(Some(&m), "volume-app", "volume", "mute"), Err(CallError::UnknownMethod("mute".into())));
+        let t = entry("timer", &[Capability::Timer], true);
+        assert_eq!(
+            authorize(Some(&t), "timer", "volume", "set"),
+            Err(CallError::NotDeclared { module: "timer".into(), capability: "volume".into() })
         );
     }
 }
