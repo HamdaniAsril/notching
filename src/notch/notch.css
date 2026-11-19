@@ -150,6 +150,13 @@
   mask: var(--icon) center / contain no-repeat;
 }
 
+/* An icon in its own colours (Agent AI's Claude logo): drawn as is, not as a mask. */
+.notch-notice .ear.l .glyph.color {
+  background: var(--icon) center / contain no-repeat;
+  -webkit-mask: none;
+  mask: none;
+}
+
 .notch-notice .ear.l svg {
   width: 16px;
   height: 16px;

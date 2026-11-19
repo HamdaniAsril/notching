@@ -294,6 +294,15 @@ test('a notice shows on this notch', async () => {
   expect(root.querySelector<HTMLElement>('.ear.l .glyph')!.style.getPropertyValue('--icon')).toContain('mod://home/icon.svg');
 });
 
+test('a notice with its own icon shows that file of its module, in colour if asked', async () => {
+  const { root, bridge, r } = await start();
+  bridge.emitNotice({ ...notice('Selesai'), icon: 'logos/claude.svg', color: true });
+  r.runAll(120);
+  const glyph = root.querySelector<HTMLElement>('.ear.l .glyph')!;
+  expect(glyph.style.getPropertyValue('--icon')).toContain('mod://home/logos/claude.svg');
+  expect(glyph.classList.contains('color')).toBe(true);
+});
+
 test('a notice waits while the panel is open', async () => {
   const { app, bridge, r } = await start();
   open(app, r);

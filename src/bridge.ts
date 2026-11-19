@@ -27,6 +27,8 @@ export interface Notice {
   detail: string;
   glow: boolean;
   seconds: number;
+  icon?: string | null; // a file in the module's package shown instead of its icon
+  color?: boolean; // that icon keeps its own colours
 }
 
 // The statuses beside the notch, in the order they started (StatusDto in

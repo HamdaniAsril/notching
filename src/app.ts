@@ -321,7 +321,8 @@ export async function startApp(root: HTMLElement, bridge: Bridge, env: AppEnv): 
     showing = next;
     const from = state.modules.find(m => m.id === next.moduleId && m.installed && m.enabled);
     view.setNotice({
-      icon: from ? bridge.moduleUrl(from.id, from.icon) : null, title: next.title, detail: next.detail, glow: next.glow,
+      icon: from ? bridge.moduleUrl(from.id, next.icon ?? from.icon) : null, color: next.color ?? false,
+      title: next.title, detail: next.detail, glow: next.glow,
     });
     controller.notify(next.seconds * 1000);
     view.kick();

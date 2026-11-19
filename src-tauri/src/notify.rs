@@ -23,7 +23,7 @@ pub const SOUND: &str = "Glass";
 pub const TITLE_MAX: usize = 60;
 pub const DETAIL_MAX: usize = 40;
 
-/// Same shape as Notice in src/notch/notices.ts.
+/// Same shape as Notice in src/bridge.ts.
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NoticeDto {
@@ -35,6 +35,17 @@ pub struct NoticeDto {
     pub detail: String,
     pub glow: bool,
     pub seconds: f64,
+    /// A file in the module's package shown instead of its icon (Agent AI's logos).
+    pub icon: Option<String>,
+    /// That icon keeps its own colours (Claude's orange).
+    pub color: bool,
+}
+
+/// An icon of the module's own for one notice, instead of the module's icon.
+#[derive(Clone, Debug, PartialEq)]
+pub struct NoticeIcon {
+    pub file: String,
+    pub color: bool,
 }
 
 /// One line, at most `max` characters, cut with "…".
@@ -118,6 +129,18 @@ pub fn clear_missed(app: AppHandle, core: State<CoreState>) {
 /// A module's notice on one of its channels. Callable from any thread; a channel
 /// the person switched off is dropped quietly.
 pub fn post(app: &AppHandle, module_id: &str, channel: &str, title: &str, detail: &str) -> Result<(), String> {
+    post_with_icon(app, module_id, channel, title, detail, None)
+}
+
+/// `post`, showing `icon` instead of the module's icon.
+pub fn post_with_icon(
+    app: &AppHandle,
+    module_id: &str,
+    channel: &str,
+    title: &str,
+    detail: &str,
+    icon: Option<NoticeIcon>,
+) -> Result<(), String> {
     let (pref, look) = {
         let core = app.state::<CoreState>();
         let core = core.0.lock().unwrap();
@@ -134,6 +157,8 @@ pub fn post(app: &AppHandle, module_id: &str, channel: &str, title: &str, detail
         detail: clip(detail, DETAIL_MAX),
         glow: look.glow,
         seconds: look.seconds,
+        color: icon.as_ref().is_some_and(|i| i.color),
+        icon: icon.map(|i| i.file),
     };
     deliver(app, dto, pref.sound);
     Ok(())
@@ -151,6 +176,8 @@ pub fn send_sample_notice(app: AppHandle, title: String, detail: String) {
         detail: clip(&detail, DETAIL_MAX),
         glow: look.glow,
         seconds: look.seconds,
+        icon: None,
+        color: false,
     };
     deliver(&app, dto, true);
 }
@@ -166,6 +193,8 @@ pub fn post_core(app: &AppHandle, title: &str, detail: &str) {
         detail: clip(detail, DETAIL_MAX),
         glow: look.glow,
         seconds: look.seconds,
+        icon: None,
+        color: false,
     };
     deliver(app, dto, false);
 }

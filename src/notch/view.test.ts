@@ -166,6 +166,17 @@ test('the notice shows its icon, title and detail as text', () => {
   expect(glyph.style.getPropertyValue('--icon')).toContain('mod://home/icon.svg');
 });
 
+test('a notice icon in colour keeps its colour', () => {
+  const root = document.createElement('div');
+  const v = mountNotch(root, ctl(null), deps(fakeRaf()));
+  v.setNotice({ icon: 'mod://ai-agent/logos/claude.svg', color: true, title: 'Claude Code selesai', detail: 'notching', glow: false });
+  const glyph = root.querySelector<HTMLElement>('.ear.l .glyph')!;
+  expect(glyph.classList.contains('color')).toBe(true);
+  expect(glyph.style.getPropertyValue('--icon')).toContain('mod://ai-agent/logos/claude.svg');
+  v.setNotice({ icon: 'mod://home/icon.svg', title: 'Kirim', detail: '', glow: false });
+  expect(root.querySelector<HTMLElement>('.ear.l .glyph')!.classList.contains('color')).toBe(false);
+});
+
 test('a notice without a module icon shows the bell', () => {
   const root = document.createElement('div');
   const v = mountNotch(root, ctl(null), deps(fakeRaf()));

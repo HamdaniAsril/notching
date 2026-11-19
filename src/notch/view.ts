@@ -24,6 +24,7 @@ export interface PillItem {
 // What the ears show. `icon` is the module's icon URL, null for the bell.
 export interface NoticeView {
   icon: string | null;
+  color?: boolean; // the icon keeps its own colours (Claude's orange) instead of the text colour
   title: string;
   detail: string;
   glow: boolean;
@@ -610,7 +611,7 @@ export function mountNotch(root: HTMLElement, c: NotchController, deps: ViewDeps
     }
     if (n.icon) {
       const glyph = doc.createElement('i');
-      glyph.className = 'glyph';
+      glyph.className = n.color ? 'glyph color' : 'glyph';
       glyph.style.setProperty('--icon', `url("${n.icon}")`);
       earL.replaceChildren(glyph);
     } else {

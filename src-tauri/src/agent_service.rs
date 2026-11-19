@@ -139,7 +139,9 @@ fn post(app: &AppHandle, n: &Notice) {
         Some(d) => format!("{} · {d}", n.project),
         None => n.project.clone(),
     };
-    if let Err(e) = crate::notify::post(app, MODULE_ID, channel, &title, &detail) {
+    // The agent's own logo, Claude's in its orange (owner, 19 Nov).
+    let icon = crate::notify::NoticeIcon { file: format!("logos/{}.svg", n.agent.id()), color: n.agent == Agent::Claude };
+    if let Err(e) = crate::notify::post_with_icon(app, MODULE_ID, channel, &title, &detail, Some(icon)) {
         eprintln!("notching: agent notice: {e}");
     }
 }
