@@ -116,3 +116,12 @@ test('the blur of Fokus jendela is found on Pintasan', () => {
   expect(search(idx(), 'blur')[0].key).toBe('shortcuts.focus');
   expect(search(idx(mods, 'en'), 'blur')[0].key).toBe('shortcuts.focus');
 });
+
+test("Musik's switch on Tampilan is found while Musik is installed", () => {
+  const musik = moduleInfo('musik', { name: 'Musik', entry: null, card: null,
+    widgets: [{ id: 'player', name: 'Musik', entry: 'index.html', width: 2, kind: 'work' }] });
+  const keys = (m: typeof musik) => search(idx([m]), 'sampul lagu').map(e => e.key);
+  expect(keys(musik)).toContain('look.music');
+  expect(search(idx([musik], 'en'), 'music beside').map(e => e.key)).toContain('look.music');
+  expect(keys({ ...musik, installed: false })).not.toContain('look.music');
+});

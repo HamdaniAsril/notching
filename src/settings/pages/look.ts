@@ -10,6 +10,7 @@ import type { PageContext, PageRender } from '../types';
 // The four sliders (spec 4.3): the preview follows every move, the real notch
 // follows on release, when the value is saved.
 const CUSTOM_SAVE_MS = 300;
+const MUSIK = 'musik';
 
 // Beranda's row as the opened preview shows it: each widget's sample on its black
 // card, in its columns. Null when Beranda has no widget whose package is on.
@@ -114,6 +115,26 @@ export const lookPage: PageRender = ctx => {
   let shown = glassSwitch();
   const glass = settingRow({ key: 'look.glass', label: s.glass, hint: s.glassHint, control: shown });
 
+  // Musik beside the notch (owner, 19 Nov: "tombol on off untuk menampilkan
+  // status musik di notch"): Musik's status switch, here because Musik is a
+  // widget package with no page of its own. Only while Musik is installed.
+  const musik = ctx.state.modules.find(m => m.id === MUSIK && m.installed);
+  let music: HTMLElement | null = null;
+  if (musik) {
+    let musicOn = musik.statusShown;
+    const musicSwitch = (): HTMLElement => toggle('look.music', s.music, musicOn, on => {
+      musicOn = on;
+      const focused = box.ownerDocument.activeElement === musicShown;
+      const next = musicSwitch();
+      musicShown.replaceWith(next);
+      musicShown = next;
+      if (focused) musicShown.focus();
+      ctx.save('look.music', ctx.bridge.setStatusShown(MUSIK, on));
+    });
+    let musicShown = musicSwitch();
+    music = settingRow({ key: 'look.music', label: s.music, hint: s.musicHint, control: musicShown });
+  }
+
   const reset = button('look.reset', s.reset, () => {
     local = { ...DEFAULT_CONFIG };
     preview.setConfig(local);
@@ -127,6 +148,6 @@ export const lookPage: PageRender = ctx => {
 
   const page = el('div');
   page.append(head({ title: ctx.strings.sections.look }), box, el('small', 'preview-hint', s.previewHint),
-    group(accent, glass), group(...rows), foot);
+    group(accent, glass, ...(music ? [music] : [])), group(...rows), foot);
   return page;
 };

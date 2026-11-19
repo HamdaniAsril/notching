@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { expect, test, vi } from 'vitest';
 import { CONFIG_RANGES, DEFAULT_CONFIG } from '../../notch/config';
-import { TEST_STATE } from '../../notch/test-helpers';
+import { moduleInfo, TEST_STATE } from '../../notch/test-helpers';
 import { accentPalette } from '../../kit/accent';
 import { mountForTest } from '../test-helpers';
 
@@ -196,4 +196,36 @@ test('the see-through panel switch sits with the accent, shows the saved choice 
 test('Umum no longer has the see-through panel switch', async () => {
   const { root } = await mountForTest();
   expect(root.querySelector('[data-row="general.glass"]')).toBeNull();
+});
+
+const MUSIK = moduleInfo('musik', { name: 'Musik', entry: null, card: null, statusShown: true,
+  widgets: [{ id: 'player', name: 'Musik', entry: 'index.html', width: 2, kind: 'work' }] });
+
+test('the music switch shows what plays beside the notch, saved as Musik\'s status', async () => {
+  const { root, app, bridge } = await mountForTest({ ...TEST_STATE, modules: [...TEST_STATE.modules, MUSIK] });
+  app.go({ page: 'look' });
+  const row = root.querySelector('[data-row="look.music"]')!;
+  expect(row.textContent).toContain('Musik di samping notch');
+  expect(row.textContent).toContain('Sampul lagu dan gelombangnya tampil saat musik diputar.');
+  const sw = () => root.querySelector<HTMLButtonElement>('[data-key="look.music"]')!;
+  expect(sw().getAttribute('aria-checked')).toBe('true');
+  sw().click();
+  expect(bridge.setStatusShown).toHaveBeenLastCalledWith('musik', false);
+  expect(sw().getAttribute('aria-checked')).toBe('false');
+  sw().click();
+  expect(bridge.setStatusShown).toHaveBeenLastCalledWith('musik', true);
+});
+
+test('the music switch starts off when it was switched off', async () => {
+  const off = { ...MUSIK, statusShown: false };
+  const { root, app } = await mountForTest({ ...TEST_STATE, modules: [...TEST_STATE.modules, off] });
+  app.go({ page: 'look' });
+  expect(root.querySelector('[data-key="look.music"]')!.getAttribute('aria-checked')).toBe('false');
+});
+
+test('without Musik installed there is no music switch', async () => {
+  const gone = { ...MUSIK, installed: false, enabled: false };
+  const { root, app } = await mountForTest({ ...TEST_STATE, modules: [...TEST_STATE.modules.filter(m => m.id !== 'musik'), gone] });
+  app.go({ page: 'look' });
+  expect(root.querySelector('[data-row="look.music"]')).toBeNull();
 });

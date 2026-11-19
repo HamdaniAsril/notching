@@ -180,6 +180,8 @@ struct Control {
     latest: Option<NowPlaying>,
     /// The summary last sent; nothing playing until the first is.
     sent: MediaSummary,
+    /// Musik's status switched off in Pengaturan: nothing beside the notch.
+    hidden: bool,
     notify: Option<Notify>,
 }
 
@@ -187,7 +189,17 @@ impl Control {
     /// Keeps `now` as the latest state and sends the summary if it changed.
     fn store(&mut self, now: Option<NowPlaying>) {
         self.latest = now;
-        let next = MediaSummary::of(self.latest.as_ref());
+        self.publish();
+    }
+
+    /// Musik's status switch: off sends nothing playing, on what plays now.
+    fn hide(&mut self, hidden: bool) {
+        self.hidden = hidden;
+        self.publish();
+    }
+
+    fn publish(&mut self) {
+        let next = if self.hidden { MediaSummary::default() } else { MediaSummary::of(self.latest.as_ref()) };
         if next != self.sent {
             self.sent = next;
             if let Some(notify) = &self.notify {
@@ -221,10 +233,20 @@ pub fn start(app: &AppHandle) {
     let notify: Notify = Arc::new(move |summary: &MediaSummary| {
         let _ = handle.emit(MEDIA_EVENT, summary);
     });
-    let control = Control { notify: Some(notify), ..Control::default() };
+    let hidden = !app.state::<CoreState>().0.lock().unwrap().status_shown(MODULE_ID);
+    let control = Control { notify: Some(notify), hidden, ..Control::default() };
     app.manage(MediaService(Arc::new((Mutex::new(control), Condvar::new()))));
     if enabled(app) {
         switch_on(app);
+    }
+}
+
+/// Musik's "Status di samping notch" switch in Pengaturan.
+pub fn status_shown(app: &AppHandle, id: &str, on: bool) {
+    if id == MODULE_ID {
+        if let Some(service) = app.try_state::<MediaService>() {
+            service.0.0.lock().unwrap().hide(!on);
+        }
     }
 }
 
@@ -579,6 +601,25 @@ while (my $w = <STDIN>) { chomp $w; print qq({"title":"$w","rate":1,"at":2}\n); 
             MediaSummary::default(),
         ]);
         assert_eq!(c.sent, MediaSummary::default());
+    }
+
+    #[test]
+    fn a_hidden_status_sends_nothing_playing_and_comes_back_with_what_plays() {
+        let (mut c, log) = heard();
+        let braga = r#"{"title":"Jalan Braga","rate":1,"at":1}"#;
+        c.store(line(braga));
+        c.hide(true);
+        // Songs go on while hidden: nothing is sent.
+        c.store(line(r#"{"title":"Senja","rate":1,"at":2}"#));
+        c.hide(true);
+        c.hide(false);
+        assert_eq!(*log.lock().unwrap(), vec![
+            MediaSummary { playing: true, title: Some("Jalan Braga".into()), art: None },
+            MediaSummary::default(),
+            MediaSummary { playing: true, title: Some("Senja".into()), art: None },
+        ]);
+        // The widgets still read what plays.
+        assert_eq!(c.latest.as_ref().and_then(|n| n.title.clone()).as_deref(), Some("Senja"));
     }
 
     #[test]

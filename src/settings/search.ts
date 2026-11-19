@@ -86,6 +86,10 @@ export function searchIndex(s: SettingsStrings, modules: ModuleInfo[], pages: Pa
     if (page === 'modules' && modules.some(m => m.id === 'screenshot' && m.installed)) {
       mods.push(entry('module.screenshot.keys', s.shotKeys.title, where, { page: 'module', id: 'screenshot' }, k.shotKeys));
     }
+    // Musik's switch sits on Tampilan while Musik is installed.
+    if (page === 'look' && modules.some(m => m.id === 'musik' && m.installed)) {
+      mods.push(entry('look.music', s.look.music, where, { page: 'look' }, k.music));
+    }
     if (page === 'modules' && modules.some(m => m.id === 'shelf' && m.installed)) {
       mods.push(entry('module.shelf.drag', s.modules.shelfDrag, where, { page: 'module', id: 'shelf' }, k.shelfDrag));
     }

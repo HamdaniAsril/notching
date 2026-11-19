@@ -277,6 +277,11 @@ impl AppCore {
         }
     }
 
+    /// A module's status switch in Pengaturan.
+    pub fn status_shown(&self, id: &str) -> bool {
+        !self.settings.status_off.iter().any(|m| m == id)
+    }
+
     pub fn set_status_shown(&mut self, id: &str, on: bool) -> Result<(), CoreError> {
         if self.module(id).is_none() {
             return Err(CoreError::Store(StoreError::UnknownModule(id.into())));
@@ -863,6 +868,8 @@ mod tests {
         assert!(core.state().modules[0].status_shown);
         core.set_status_shown("a", false).unwrap();
         assert_eq!(core.settings.status_off, ["a"]);
+        assert!(!core.status_shown("a"));
+        assert!(core.status_shown("b"));
         assert!(!open(&d, None).state().modules[0].status_shown);
         core.set_status_shown("a", true).unwrap();
         assert!(open(&d, None).state().modules[0].status_shown);

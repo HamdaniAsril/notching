@@ -277,6 +277,7 @@ pub fn set_sample_status(app: AppHandle, on: bool) {
 #[tauri::command]
 pub fn set_status_shown(app: AppHandle, core: State<CoreState>, module: String, on: bool) -> Result<(), String> {
     change(&app, &core, |c| c.set_status_shown(&module, on))?;
+    crate::media_service::status_shown(&app, &module, on);
     publish(&app);
     Ok(())
 }
